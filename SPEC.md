@@ -12,9 +12,21 @@ Chronolog is a time-tracking and note-taking PWA for consulting work. It support
 Client (e.g. "Big Cheese Inc.")
   └── Contract (e.g. "Install new cheese")
         └── Deliverable (e.g. "Onboarding")
+              └── Work Type (e.g. "Development", "Review", "Documentation")
 ```
 
 Tags are flat labels applied to time entries (e.g. "Meeting with client", "Admin", "Travel").
+
+### Work Types
+
+Each deliverable defines its own set of allowed work types. A time entry selects one work type from the deliverable it belongs to.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| id | UUID | Primary key |
+| deliverable_id | FK | Links to Deliverable |
+| name | TEXT | e.g. "Development", "Review" |
+| sort_order | INT | For UI ordering |
 
 ### Time Entries
 
@@ -23,6 +35,7 @@ Tags are flat labels applied to time entries (e.g. "Meeting with client", "Admin
 | id | UUID | Primary key |
 | contract_id | FK | Links to Contract |
 | deliverable_id | FK | Nullable, links to Deliverable |
+| work_type_id | FK | Nullable, links to Work Type (scoped to deliverable) |
 | date | DATE | Entry date |
 | start_time | TIME | Nullable (manual entry may have duration only) |
 | end_time | TIME | Nullable (set later when stopping) |
