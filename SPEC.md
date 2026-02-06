@@ -2,7 +2,7 @@
 
 ## Overview
 
-Chronolog is a time-tracking and note-taking PWA for consulting work. It supports 2-3 users managing time entries and markdown notes across 3-5 active client contracts, with offline-first capability, encryption at rest, and TOTP-based 2FA.
+Chronolog is a time-tracking and note-taking app for consulting work, delivered as a **Tauri 2.0 desktop application** (macOS primary) with a **PWA fallback for mobile**. It supports 2-3 users managing time entries and markdown notes across 3-5 active client contracts, with offline-first capability, encryption at rest, and TOTP-based 2FA.
 
 ## Data Model
 
@@ -93,16 +93,26 @@ Tracked via a backlinks index, extracted from `[[wiki-link]]` syntax in markdown
 ## Technology Stack
 
 ### Frontend
-- **SvelteKit** with `@sveltejs/adapter-node`
+- **SvelteKit** with two build targets:
+  - `@sveltejs/adapter-static` for the Tauri desktop build (static site loaded by the webview)
+  - `@sveltejs/adapter-node` for the server deployment (PWA mobile fallback)
 - **Svelte 5** runes for state management
-- **@vite-pwa/sveltekit** (v1.1+) for PWA / service worker
-- **Dexie.js** (v4.3+) for client-side IndexedDB storage
+- **@vite-pwa/sveltekit** (v1.1+) for PWA / service worker (mobile only)
+- **Dexie.js** (v4.3+) for client-side IndexedDB storage (mobile/PWA)
 - **TipTap** (v3.x) for WYSIWYG markdown editing
   - `@tiptap/extension-markdown` for markdown serialisation
   - Custom WikiLink node using Suggestion utility for `[[note-links]]`
   - FileHandler extension for drag-and-drop attachments
   - AnchoredHeading extension for section-level linking
-- **Workbox Background Sync** for offline mutation queue
+- **Workbox Background Sync** for offline mutation queue (mobile/PWA)
+
+### Desktop Shell (Tauri)
+- **Tauri 2.0** as the desktop application shell (Rust-based, WebView2/WebKit)
+- **Multi-window support** via Tauri's window management API (e.g. pop-out note editors)
+- **Native menus** and system tray integration
+- **tauri-plugin-sql** for native SQLite access (replaces IndexedDB on desktop)
+- **tauri-plugin-updater** for auto-update support
+- Primary target: macOS (.app / .dmg distribution)
 
 ### Backend
 - **SvelteKit server routes** (API endpoints via `+server.ts`)
@@ -112,13 +122,21 @@ Tracked via a backlinks index, extracted from `[[wiki-link]]` syntax in markdown
 - **Node.js crypto** (AES-256-GCM) for application-level encryption
 
 ### Deployment
-- **Coolify** on a **Hetzner** CX22 VPS (~EUR 4-6/mo)
+- **Desktop (Tauri)**: Built with `cargo tauri build`, distributed as macOS `.app` bundle / `.dmg` installer. Auto-updates via `tauri-plugin-updater`.
+- **Server / PWA**: **Coolify** on a **Hetzner** CX22 VPS (~EUR 4-6/mo)
   - Automatic HTTPS via Let's Encrypt
   - Built-in scheduled PostgreSQL backups to S3-compatible storage
   - Git-push deploys
-- **Alternative**: Docker Compose + Caddy on any VPS
+- **Alternative server**: Docker Compose + Caddy on any VPS
 
 ### Offline Strategy
+
+A **storage abstraction layer** provides a unified interface for local data access. The underlying storage engine differs by platform:
+
+- **Desktop (Tauri)**: Native SQLite via `tauri-plugin-sql`. No IndexedDB or service worker needed.
+- **Mobile / PWA**: IndexedDB via Dexie.js, with service worker caching and Workbox Background Sync.
+
+The abstraction exposes the same reactive query and mutation API to the Svelte UI regardless of platform. Platform detection (`window.__TAURI__`) selects the appropriate backend at initialisation.
 
 ```
                   ┌─────────────┐
@@ -132,24 +150,35 @@ Tracked via a backlinks index, extracted from `[[wiki-link]]` syntax in markdown
                          │ HTTPS
           ───────────────┼─────────────── network boundary
                          │
-                  ┌──────┴──────┐
-                  │ Service     │  (caches app shell, queues failed writes)
-                  │ Worker      │
-                  └──────┬──────┘
-                         │
-                  ┌──────┴──────┐
-                  │  Dexie.js   │  (IndexedDB: notes, entries, attachments)
-                  │  (offline   │
-                  │   store)    │
-                  └──────┬──────┘
-                         │
-                  ┌──────┴──────┐
-                  │  Svelte UI  │  (TipTap editor, time tracker, weekly view)
-                  └─────────────┘
+              ┌──────────┴──────────┐
+              │                     │
+     Desktop (Tauri)         Mobile (PWA)
+              │                     │
+      ┌───────┴───────┐    ┌───────┴───────┐
+      │  SQLite       │    │ Service Worker │
+      │  (tauri-      │    │ (app shell     │
+      │   plugin-sql) │    │  cache +       │
+      └───────┬───────┘    │  Background    │
+              │            │  Sync)         │
+              │            └───────┬───────┘
+              │                    │
+              │            ┌───────┴───────┐
+              │            │  Dexie.js     │
+              │            │  (IndexedDB)  │
+              │            └───────┬───────┘
+              │                    │
+      ┌───────┴────────────────────┴───────┐
+      │   Storage Abstraction Layer        │
+      │   (unified reactive query/mutate)  │
+      └────────────────┬──────────────────┘
+                       │
+               ┌───────┴───────┐
+               │  Svelte UI    │  (TipTap editor, time tracker, weekly view)
+               └───────────────┘
 ```
 
-- **Reads**: Dexie liveQuery serves data from IndexedDB. Background sync pulls changes from server.
-- **Writes**: Saved to IndexedDB immediately. Queued for server sync via Background Sync API.
+- **Reads**: Storage abstraction serves data from local store (SQLite or IndexedDB). Background sync pulls changes from server.
+- **Writes**: Saved to local store immediately. Queued for server sync (Background Sync on PWA; direct HTTP on Tauri).
 - **Conflict resolution**: Last-write-wins using `updated_at` timestamps. Acceptable for 2-3 users with low collision probability.
 - **Session expiry**: 30-day server sessions. App remains usable offline via cached data. Re-auth required on reconnection if session expired.
 
@@ -172,7 +201,8 @@ Tracked via a backlinks index, extracted from `[[wiki-link]]` syntax in markdown
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| DB architecture | PostgreSQL (server) + IndexedDB (client) | Relational model fits linked data (notes ↔ entries); custom sync is manageable at 2-3 user scale |
+| Desktop shell | Tauri 2.0 | Dock presence, native multi-window, native menus, SQLite access, small binary size (~10 MB); Rust backend avoids Electron's memory overhead |
+| DB architecture | PostgreSQL (server) + SQLite/IndexedDB (client) | Relational model fits linked data (notes ↔ entries); SQLite on desktop, IndexedDB on mobile; custom sync manageable at 2-3 user scale |
 | Why not PouchDB/CouchDB | Ruled out | Document model awkward for relational links; smaller modern ecosystem |
 | Why not Turso | Ruled out for now | Browser offline sync is beta with no durability guarantees |
 | Editor | TipTap | Best Svelte 5 support; Suggestion system maps directly to wiki-links; markdown serialisation built-in |
@@ -208,6 +238,6 @@ Parsed in TipTap via custom WikiLink node with `[[` trigger and Suggestion popup
 ## UI Principles
 
 - Minimal / functional aesthetic (Linear, Notion-inspired)
-- Mobile-first responsive design
+- Desktop-first design (Tauri), responsive for mobile PWA
 - Fast navigation between time tracking and notes
 - Weekly time overview as primary dashboard
