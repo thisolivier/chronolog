@@ -31,8 +31,7 @@ Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, dat
   - `contracts`
   - `deliverables`
   - `work_types` (per-deliverable)
-  - `tags`
-  - `time_entries` (with `time_entry_tags` join table)
+  - `time_entries`
   - `notes`
   - `note_time_entries` (many-to-many link table)
   - `weekly_statuses`
@@ -73,7 +72,6 @@ Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, dat
   - Contracts per client with add/edit
   - Deliverables per contract with add/edit
   - Work types per deliverable with add/edit/reorder
-- [ ] Tag management (add/remove tags from a global list)
 - [ ] This is admin-like functionality — simple form-based UI is fine
 
 **Output**: Users can create and manage the client → contract → deliverable hierarchy and tags.
@@ -91,7 +89,6 @@ Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, dat
   - Option A: Set start time (now or manual), then later set end time
   - Option B: Manually enter duration (hh:mm)
   - Add description (free text)
-  - Select tags
 - [ ] Build "running timer" UI for start/stop workflow
 - [ ] Build time entry list view (for a given day)
 - [ ] Build edit/delete for existing time entries

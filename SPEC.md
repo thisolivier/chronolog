@@ -15,8 +15,6 @@ Client (e.g. "Big Cheese Inc.")
               └── Work Type (e.g. "Development", "Review", "Documentation")
 ```
 
-Tags are flat labels applied to time entries (e.g. "Meeting with client", "Admin", "Travel").
-
 ### Work Types
 
 Each deliverable defines its own set of allowed work types. A time entry selects one work type from the deliverable it belongs to.
@@ -41,7 +39,6 @@ Each deliverable defines its own set of allowed work types. A time entry selects
 | end_time | TIME | Nullable (set later when stopping) |
 | duration_minutes | INT | Computed or manually entered |
 | description | TEXT | Encrypted at rest |
-| tags | TEXT[] | Array of tag strings |
 | created_at | TIMESTAMP | |
 | updated_at | TIMESTAMP | Used for sync |
 
