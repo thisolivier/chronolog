@@ -1,20 +1,15 @@
-# Claude Configuration for LED Lights Monorepo
+# Claude Configuration for Chronolog
 
-## Working Trees
+## Project Overview
 
-When asked to work in a new git working tree:
-1. Create the working tree inside the `working-trees/` directory at the repository root
-2. Each working tree directory should be locked to a single Claude session at a time
-3. Before using a working tree, check if it's already in use by another session
-4. Use a lock file (e.g., `.claude-session.lock`) in the working tree to indicate active use
-5. Release the lock when the session ends or when switching away from that working tree
+Chronolog is a time-tracking and note-taking PWA for consulting work. See `SPEC.md` for the full specification and `BACKLOG.md` for the task backlog.
 
 ## Agent Directives
 
-### General (All Packages)
-- Start each response with ☀️
-- Read 'readme.md' files for the module you are working with
-- Keep code readable by verbose variable names - never abbreviate to a single letter
+### General
+- Read `SPEC.md` before making architectural decisions
+- Read `BACKLOG.md` to understand current task context
+- Keep code readable with verbose variable names — never abbreviate to a single letter
 - Keep dependencies minimal
 - Prefer simple low-code solutions to complex ones where possible
 - Pro-actively modularize the code
@@ -23,7 +18,22 @@ When asked to work in a new git working tree:
   - Add readme.md files at the root of each module to describe the architecture and subcomponents
   - Ensure readme files are updated at the end of each task
 
-Your work is deeply appreciated.
+### Tech Stack
+- SvelteKit with Svelte 5 (runes, not legacy stores)
+- TypeScript throughout
+- Drizzle ORM for PostgreSQL
+- TipTap for markdown editing
+- Dexie.js for IndexedDB (offline storage)
+- Better Auth for authentication
+- @vite-pwa/sveltekit for PWA support
+
+### Security
+- Never log or expose encryption keys, session tokens, or TOTP secrets
+- All sensitive content (note titles, note content, time entry descriptions) must be encrypted before database writes
+- Use AES-256-GCM via Node.js crypto module for encryption
+- Validate all user input on the server side
 
 ### Paths Not to Modify
 Do not modify files managed by package managers.
+
+Your work is deeply appreciated.
