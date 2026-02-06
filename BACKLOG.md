@@ -6,18 +6,23 @@ Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, dat
 
 ## Task 1: Project Scaffolding & Dev Environment
 
-**Goal**: Working SvelteKit project with tooling configured.
+**Goal**: Working SvelteKit + Tauri project with tooling configured.
 
-- [ ] Initialise SvelteKit project with Svelte 5, TypeScript, `@sveltejs/adapter-node`
+- [ ] Initialise SvelteKit project with Svelte 5, TypeScript
+- [ ] Configure dual adapter setup:
+  - `@sveltejs/adapter-static` for Tauri desktop builds
+  - `@sveltejs/adapter-node` for server deployment (PWA mobile fallback)
+- [ ] Initialise Tauri 2.0 (`src-tauri/` directory, `tauri.conf.json`, Cargo.toml)
 - [ ] Configure Vite, ESLint, Prettier
-- [ ] Install and configure `@vite-pwa/sveltekit` with basic manifest and service worker
+- [ ] Install and configure `@vite-pwa/sveltekit` with basic manifest and service worker (for mobile PWA)
 - [ ] Set up Tailwind CSS (or comparable utility CSS — to be decided during design)
 - [ ] Configure Drizzle ORM with PostgreSQL driver
 - [ ] Create initial `docker-compose.yml` for local dev (PostgreSQL + app)
-- [ ] Verify PWA installs on desktop and mobile (empty shell)
+- [ ] Verify `cargo tauri dev` launches the desktop app with SvelteKit frontend
+- [ ] Verify PWA installs on mobile (empty shell)
 - [ ] Update CLAUDE.md for this project
 
-**Output**: `npm run dev` serves a PWA-installable SvelteKit app connected to a local PostgreSQL.
+**Output**: `cargo tauri dev` serves the desktop app; `npm run dev` serves the PWA-installable SvelteKit app; both connected to a local PostgreSQL.
 
 ---
 
@@ -183,34 +188,56 @@ Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, dat
 
 ---
 
-## Task 10: Offline Support & Client-Side Sync
+## Task 10: Storage Abstraction Layer
+
+**Goal**: Unified local storage interface that works on both Tauri (SQLite) and PWA (IndexedDB).
+
+- [ ] Define a `StorageAdapter` interface with reactive query and mutation methods
+- [ ] Implement `SqliteAdapter` using `tauri-plugin-sql`:
+  - Create SQLite schema mirroring server tables
+  - Reactive queries via Svelte 5 runes (writable signals refreshed on mutation)
+- [ ] Implement `DexieAdapter` using Dexie.js (v4.3+):
+  - IndexedDB schema mirroring server tables
+  - Reactive queries via Dexie `liveQuery`
+- [ ] Platform detection (`window.__TAURI__`) to select adapter at app init
+- [ ] Store attachments as BLOBs in SQLite (desktop) or IndexedDB Blobs (mobile)
+- [ ] Write adapter integration tests for both backends
+
+**Depends on**: Task 2 (schema defines the tables to mirror)
+
+**Output**: `import { storage } from '$lib/storage'` returns the correct adapter. UI code never references SQLite or Dexie directly.
+
+---
+
+## Task 11: Offline Sync
 
 **Goal**: App works offline; data syncs when connectivity returns.
 
-- [ ] Set up Dexie.js IndexedDB schema mirroring server tables
-- [ ] Implement data sync layer:
-  - On load: pull latest from server, populate IndexedDB
-  - On write: save to IndexedDB immediately, queue server sync
+- [ ] Implement data sync layer on top of the storage abstraction (Task 10):
+  - On load: pull latest from server, populate local store
+  - On write: save to local store immediately, queue server sync
   - On reconnect: push queued changes, pull server updates
   - Conflict resolution: last-write-wins via `updated_at`
-- [ ] Configure service worker for app shell caching (precache strategy)
-- [ ] Configure Workbox Background Sync for queued API writes
-- [ ] Store attachments in IndexedDB as Blobs for offline access
+- [ ] Desktop (Tauri): sync queue with direct HTTP requests from Rust or JS
+- [ ] Mobile (PWA): configure Workbox Background Sync for queued API writes
+- [ ] Configure service worker for app shell caching (precache strategy, PWA only)
 - [ ] Add online/offline indicator in UI
 - [ ] Handle session expiry gracefully (re-auth prompt on reconnect)
-- [ ] Test offline scenarios:
+- [ ] Test offline scenarios on both platforms:
   - Create time entry offline → comes back online → synced
   - Edit note offline → comes back online → synced
   - Multiple offline edits → bulk sync
 
-**Output**: App is fully usable offline. Changes sync automatically when connectivity returns.
+**Depends on**: Task 10 (storage abstraction), Tasks 5 and 7 minimum
+
+**Output**: App is fully usable offline on both desktop and mobile. Changes sync automatically when connectivity returns.
 
 ---
 
 ## Ordering & Dependencies
 
 ```
-Task 1 (scaffolding)
+Task 1 (scaffolding + Tauri init)
   ├── Task 2 (schema) ──┐
   │     └── Task 4 (clients/contracts)
   │           └── Task 5 (time entries)
@@ -223,10 +250,11 @@ Task 7 (notes editor) ← requires Task 2, Task 3, Task 4
   └── Task 8 (wiki-links) ← requires Task 7, Task 5
   └── Task 9 (attachments) ← requires Task 7
 
-Task 10 (offline sync) ← requires Tasks 5, 7 minimum; ideally after all features
+Task 10 (storage abstraction) ← requires Task 2
+Task 11 (offline sync) ← requires Task 10, Tasks 5 and 7 minimum; ideally after all features
 ```
 
-Tasks 1-3 are the critical path. Tasks 4-6 (time tracking) and Task 7 (notes) can proceed in parallel once the foundation is in place. Task 10 (offline) wraps everything together at the end.
+Tasks 1-3 are the critical path. Tasks 4-6 (time tracking) and Task 7 (notes) can proceed in parallel once the foundation is in place. Task 10 (storage abstraction) can begin as soon as the schema is defined. Task 11 (offline sync) wraps everything together at the end.
 
 ---
 
@@ -234,6 +262,7 @@ Tasks 1-3 are the critical path. Tasks 4-6 (time tracking) and Task 7 (notes) ca
 
 Items deferred to future sprints:
 
+- **Tauri packaging & distribution**: `cargo tauri build` for macOS `.app` / `.dmg`, code signing, notarisation, `tauri-plugin-updater` for auto-updates
 - Meeting transcription service integration
 - Graph visualisation of note links
 - iCloud backing / sync
