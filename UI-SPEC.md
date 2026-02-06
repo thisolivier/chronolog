@@ -59,20 +59,21 @@ Apple Notes-inspired three-panel layout on desktop, single-panel drill-down on m
   - Each week has an editable status field in its header ("Unsubmitted", "Draft ready", etc.)
   - Weekly hour totals displayed
 
-### Focus Mode (Desktop)
+### Focus Mode / Multi-Window (Desktop)
 
-Double-clicking a note in Panel 2 enters **focus mode**:
-- Both sidebars collapse
-- Note fills the entire app area
-- Escape key or close button returns to the three-panel layout
-- Replaces the "pop-out window" concept — more reliable in an app shell
+Behaviour depends on the runtime environment:
 
-### Multi-Window (Desktop, Native Only)
-
-If running in a native app container (Tauri/Electron):
-- Right-click a note → "Open in New Window"
-- New window shows only the note editor (no sidebars)
+**Desktop (Tauri):**
+- Double-clicking a note in Panel 2 opens it in a **new OS-level window** via the Tauri multi-window API
+- The new window shows only the note editor (no sidebars) — a dedicated writing surface
 - Multiple notes can be open simultaneously in separate windows
+- Right-click a note → "Open in New Window" as an alternative to double-click
+- Each window is independently resizable, positionable, and closeable
+
+**Mobile (PWA):**
+- Double-tapping a note enters **focus mode**: both sidebars collapse, note fills the entire screen
+- Back button or swipe-right returns to the three-panel (or drill-down) layout
+- No multi-window support (browser limitation)
 
 ## Mobile Layout
 
