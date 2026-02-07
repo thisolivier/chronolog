@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { authClient } from '$lib/auth-client';
 	import { goto } from '$app/navigation';
+	import TimerWidget from '$lib/components/timer/TimerWidget.svelte';
 
 	let { data } = $props();
 
@@ -41,7 +42,22 @@
 			<p class="mt-1 text-gray-600">Time tracking and notes for consulting work.</p>
 		</div>
 
+		<!-- Timer Widget -->
+		<div class="mb-8 max-w-sm">
+			<h3 class="mb-3 text-sm font-medium text-gray-500 uppercase tracking-wide">Timer</h3>
+			<TimerWidget />
+		</div>
+
 		<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+			<a
+				href="/time"
+				class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
+			>
+				<h3 class="font-semibold text-gray-900">Time Entries</h3>
+				<p class="mt-2 text-sm text-gray-600">
+					View and manage your time tracking entries.
+				</p>
+			</a>
 			<a
 				href="/admin"
 				class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
