@@ -43,6 +43,15 @@
 
 		<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
 			<a
+				href="/admin"
+				class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
+			>
+				<h3 class="font-semibold text-gray-900">Admin</h3>
+				<p class="mt-2 text-sm text-gray-600">
+					Manage clients, contracts, deliverables, and work types.
+				</p>
+			</a>
+			<a
 				href="/settings/two-factor"
 				class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
 			>
