@@ -6,6 +6,8 @@
 	import Placeholder from '@tiptap/extension-placeholder';
 	import { Markdown } from 'tiptap-markdown';
 	import EditorToolbar from './EditorToolbar.svelte';
+	import { WikiLink } from './extensions/wiki-link.js';
+	import { AnchoredHeading } from './extensions/anchored-heading.js';
 
 	interface Props {
 		initialContent?: string;
@@ -13,6 +15,7 @@
 		noteTitle?: string;
 		onSave?: (data: { title: string; content: string; contentJson: string }) => void;
 		onTitleChange?: (title: string) => void;
+		onWikiLinkClick?: (noteId: string, headingAnchor?: string) => void;
 		readonly?: boolean;
 	}
 
@@ -22,6 +25,7 @@
 		noteTitle = '',
 		onSave,
 		onTitleChange,
+		onWikiLinkClick,
 		readonly = false
 	}: Props = $props();
 
@@ -47,10 +51,12 @@
 		editor = new Editor({
 			element: editorElement,
 			extensions: [
-				StarterKit,
+				StarterKit.configure({ heading: false }),
+				AnchoredHeading,
 				Link.configure({ openOnClick: false }),
 				Placeholder.configure({ placeholder: 'Start writing...' }),
-				Markdown
+				Markdown,
+				WikiLink,
 			],
 			content,
 			editable: !readonly,
@@ -60,6 +66,20 @@
 			},
 			onUpdate: () => {
 				triggerDebouncedsave();
+			}
+		});
+
+		// Handle wiki-link clicks
+		editorElement.addEventListener('click', (event) => {
+			const target = event.target as HTMLElement;
+			const wikiLinkElement = target.closest('[data-wiki-link]') as HTMLElement;
+			if (wikiLinkElement && onWikiLinkClick) {
+				event.preventDefault();
+				const noteId = wikiLinkElement.getAttribute('data-note-id');
+				const headingAnchor = wikiLinkElement.getAttribute('data-heading-anchor');
+				if (noteId) {
+					onWikiLinkClick(noteId, headingAnchor ?? undefined);
+				}
 			}
 		});
 	});
@@ -239,5 +259,20 @@
 		margin-left: 0;
 		font-style: italic;
 		color: #6b7280;
+	}
+
+	:global(.tiptap .wiki-link) {
+		color: #6366f1;
+		background: #eef2ff;
+		padding: 1px 4px;
+		border-radius: 3px;
+		cursor: pointer;
+		text-decoration: none;
+		font-weight: 500;
+	}
+
+	:global(.tiptap .wiki-link:hover) {
+		background: #e0e7ff;
+		color: #4f46e5;
 	}
 </style>

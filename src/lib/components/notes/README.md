@@ -4,7 +4,7 @@ WYSIWYG markdown editor components using TipTap v2.
 
 ## Architecture
 
-The notes module provides a rich text editing experience with markdown support. The editor uses TipTap core with the Starter Kit, Link, Placeholder, and Markdown extensions.
+The notes module provides a rich text editing experience with markdown support. The editor uses TipTap core with StarterKit, Link, Placeholder, Markdown, WikiLink, and AnchoredHeading extensions.
 
 ## Components
 
@@ -18,7 +18,9 @@ Main editor component with title field, toolbar, and content area.
 - Auto-save with 1.5s debounce
 - Dual format support: markdown and JSON
 - Read-only mode support
-- Prose styling for readability
+- WikiLink inline nodes with `[[syntax]]` autocomplete
+- AnchoredHeading nodes with auto-generated slug IDs
+- Click-to-navigate on wiki-link nodes
 
 **Props:**
 ```typescript
@@ -28,39 +30,22 @@ interface Props {
   noteTitle?: string;       // initial title
   onSave?: (data: { title: string; content: string; contentJson: string }) => void;
   onTitleChange?: (title: string) => void;
+  onWikiLinkClick?: (noteId: string) => void;
   readonly?: boolean;
 }
 ```
 
-**Usage:**
-```svelte
-<NoteEditor
-  noteTitle="Meeting Notes"
-  initialJson={savedJson}
-  onSave={(data) => console.log('Saving:', data)}
-  onTitleChange={(title) => console.log('Title:', title)}
-/>
-```
-
 ### EditorToolbar.svelte
 
-Formatting toolbar with active state indicators.
+Formatting toolbar with active state indicators (bold, italic, headings, lists, links).
 
-**Features:**
-- Bold (⌘B), Italic (⌘I)
-- Headings (H1, H2, H3)
-- Lists (bullet, ordered)
-- Horizontal rule
-- Link management (add/edit/remove)
-- Active state highlighting
-- Keyboard shortcuts
+### LinkedTimeEntries.svelte
 
-**Props:**
-```typescript
-interface Props {
-  editor: Editor | null;
-}
-```
+Displays time entries linked to the current note. Fetches from `/api/notes/[noteId]/time-entries` and supports unlinking entries.
+
+## Custom Extensions
+
+See `extensions/readme.md` for documentation on WikiLink, AnchoredHeading, and SuggestionDropdown.
 
 ## Svelte 5 Integration
 
@@ -71,28 +56,11 @@ TipTap doesn't have native Svelte 5 support. The integration uses:
 3. `onTransaction` callback for reactivity (toolbar state updates)
 4. Proper cleanup in `onDestroy`
 
-## Styling
-
-The editor uses:
-- Tailwind v4 utility classes for layout and interactive elements
-- Custom CSS for TipTap content styling (headings, lists, links, code, blockquotes)
-- Prose-inspired typography for readability
-- Gray-scale palette with blue accents for active states
-
 ## Data Format
 
 The editor maintains content in two formats:
 
 1. **Markdown**: Human-readable, portable format via `tiptap-markdown` extension
-2. **JSON**: TipTap's native format, preserves all editor state
+2. **JSON**: TipTap's native format, preserves all editor state including wiki-link nodes
 
 When loading content, JSON is preferred as it maintains exact formatting and structure.
-
-## Auto-save
-
-Changes trigger a debounced save after 1.5 seconds of inactivity. The `onSave` callback receives:
-- `title`: Current note title
-- `content`: Markdown serialization
-- `contentJson`: JSON serialization
-
-Both the title and editor content changes trigger the debounced save.

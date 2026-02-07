@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getNoteForUser, updateNoteForUser, deleteNoteForUser } from '$lib/server/db/queries/notes';
+import { updateNoteLinks } from '$lib/server/db/queries/note-links';
 
 /**
  * GET /api/notes/[noteId]
@@ -43,6 +44,11 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 
 	if (!note) {
 		throw error(404, 'Note not found');
+	}
+
+	// Update backlinks index from wiki-links in content
+	if (content) {
+		await updateNoteLinks(params.noteId, content);
 	}
 
 	return json({ note });

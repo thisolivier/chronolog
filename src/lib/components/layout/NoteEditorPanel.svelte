@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import NoteEditor from '$lib/components/notes/NoteEditor.svelte';
+	import LinkedTimeEntries from '$lib/components/notes/LinkedTimeEntries.svelte';
 
 	type NoteData = {
 		id: string;
@@ -20,6 +21,7 @@
 	let isLoading = $state(false);
 	let fetchError = $state<string | null>(null);
 	let lastSavedAt = $state<Date | null>(null);
+	let backlinks = $state<Array<{ sourceNoteId: string; noteTitle: string | null; headingAnchor: string | null }>>([]);
 
 	/** Fetch the full note from the API */
 	async function fetchNote(noteId: string) {
@@ -40,6 +42,22 @@
 			console.error('Error fetching note:', error);
 		} finally {
 			isLoading = false;
+		}
+	}
+
+	/** Fetch backlinks for a note from the API */
+	async function fetchBacklinks(noteId: string) {
+		try {
+			const response = await fetch(`/api/notes/${noteId}/backlinks`);
+			if (!response.ok) {
+				backlinks = [];
+				return;
+			}
+			const data = await response.json();
+			backlinks = data.backlinks ?? [];
+		} catch (backlinkError) {
+			console.error('Error fetching backlinks:', backlinkError);
+			backlinks = [];
 		}
 	}
 
@@ -105,10 +123,12 @@
 		const selectedNoteId = navigation.selectedNoteId;
 		if (selectedNoteId) {
 			fetchNote(selectedNoteId);
+			fetchBacklinks(selectedNoteId);
 		} else {
 			currentNote = null;
 			fetchError = null;
 			lastSavedAt = null;
+			backlinks = [];
 		}
 	});
 </script>
@@ -166,8 +186,30 @@
 					initialJson={currentNote.contentJson ?? ''}
 					noteTitle={currentNote.title ?? ''}
 					onSave={handleSave}
+					onWikiLinkClick={(noteId) => navigation.selectNote(noteId)}
 				/>
 			{/key}
 		</div>
+
+		{#if backlinks.length > 0}
+			<div class="border-t border-gray-200 bg-white px-6 py-3">
+				<h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Linked from</h4>
+				<div class="flex flex-wrap gap-2">
+					{#each backlinks as backlink}
+						<button
+							onclick={() => navigation.selectNote(backlink.sourceNoteId)}
+							class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-mono text-indigo-700 hover:bg-indigo-100"
+						>
+							{backlink.sourceNoteId}
+							{#if backlink.noteTitle}
+								<span class="font-sans text-gray-500">&middot; {backlink.noteTitle}</span>
+							{/if}
+						</button>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<LinkedTimeEntries noteId={currentNote.id} />
 	{/if}
 </div>

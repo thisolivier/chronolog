@@ -11,6 +11,7 @@ import {
 	weeklyStatuses,
 	attachments
 } from './schema';
+import { noteLinks } from './schema/note-links';
 
 // --- User relations ---
 
@@ -96,7 +97,9 @@ export const notesRelations = relations(notes, ({ one, many }) => ({
 		references: [contracts.id]
 	}),
 	noteTimeEntries: many(noteTimeEntries),
-	attachments: many(attachments)
+	attachments: many(attachments),
+	outgoingLinks: many(noteLinks, { relationName: 'outgoingLinks' }),
+	incomingLinks: many(noteLinks, { relationName: 'incomingLinks' })
 }));
 
 // --- Note-time entry join table relations ---
@@ -127,5 +130,20 @@ export const attachmentsRelations = relations(attachments, ({ one }) => ({
 	note: one(notes, {
 		fields: [attachments.noteId],
 		references: [notes.id]
+	})
+}));
+
+// --- Note link relations ---
+
+export const noteLinksRelations = relations(noteLinks, ({ one }) => ({
+	sourceNote: one(notes, {
+		fields: [noteLinks.sourceNoteId],
+		references: [notes.id],
+		relationName: 'outgoingLinks'
+	}),
+	targetNote: one(notes, {
+		fields: [noteLinks.targetNoteId],
+		references: [notes.id],
+		relationName: 'incomingLinks'
 	})
 }));

@@ -168,15 +168,20 @@ The content for Panel 3 when in "notes" mode. Displays a TipTap rich-text editor
 - Header bar showing note ID, last-saved timestamp, and delete button
 - TipTap editor (via `NoteEditor` component) with auto-save on content changes
 - Re-mounts the editor (via `{#key}`) when switching between notes
+- Backlinks section: shows notes that link to the current note via wiki-links
+- Linked time entries section: shows time entries associated with the note
+- Wiki-link click navigation: clicking a wiki-link navigates to the linked note
 
 **Data Loading:**
 - Fetches full note from `/api/notes/{noteId}`
-- Saves via PUT to `/api/notes/{noteId}` (title, content, contentJson)
+- Fetches backlinks from `/api/notes/{noteId}/backlinks`
+- Saves via PUT to `/api/notes/{noteId}` (title, content, contentJson; also updates backlinks index)
 - Deletes via DELETE to `/api/notes/{noteId}` with confirmation dialog
 
 **Navigation:**
 - Uses `getNavigationContext()` to watch `selectedNoteId`
 - Calls `navigation.clearSelectedNote()` after deletion
+- Wiki-link clicks call `navigation.selectNote(noteId)` to navigate
 
 ## Navigation State
 
@@ -204,4 +209,7 @@ All layout components use the navigation context from `$lib/stores/navigation.sv
 - `/api/weeks`: API endpoint for weekly summaries (used by WeekListPanel)
 - `/api/notes`: API endpoint for listing and creating notes (used by NoteListPanel)
 - `/api/notes/{noteId}`: API endpoint for fetching, updating, and deleting a note (used by NoteEditorPanel)
+- `/api/notes/{noteId}/backlinks`: API endpoint for fetching backlinks (used by NoteEditorPanel)
+- `/api/notes/{noteId}/time-entries`: API endpoint for linked time entries (used by LinkedTimeEntries)
 - `$lib/components/notes/NoteEditor.svelte`: TipTap rich-text editor component
+- `$lib/components/notes/LinkedTimeEntries.svelte`: Time entry linking component

@@ -15,6 +15,13 @@
       "when": 1770459574196,
       "tag": "0001_simple_nicolaos",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770460564335,
+      "tag": "0002_milky_purple_man",
+      "breakpoints": true
     }
   ]
 }

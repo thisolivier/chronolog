@@ -1,4 +1,4 @@
-import { eq, and, desc, like } from "drizzle-orm";
+import { eq, and, desc, like, or, ilike } from "drizzle-orm";
 import { database, notes, noteTimeEntries, contracts, clients } from "$lib/server/db";
 
 export async function listNotesForUser(userId: string) {
@@ -173,6 +173,27 @@ export async function unlinkTimeEntryFromNote(noteId: string, timeEntryId: strin
 		.where(and(eq(noteTimeEntries.noteId, noteId), eq(noteTimeEntries.timeEntryId, timeEntryId)))
 		.returning();
 	return results[0] ?? null;
+}
+
+export async function searchNotesForUser(userId: string, query: string, limit: number = 10) {
+	return database
+		.select({
+			id: notes.id,
+			title: notes.title,
+			contractId: notes.contractId
+		})
+		.from(notes)
+		.where(
+			and(
+				eq(notes.userId, userId),
+				or(
+					ilike(notes.id, `%${query}%`),
+					ilike(notes.title, `%${query}%`)
+				)
+			)
+		)
+		.orderBy(desc(notes.updatedAt))
+		.limit(limit);
 }
 
 function calculateWordCountFromJson(contentJson: string): number {
