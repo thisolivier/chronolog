@@ -4,122 +4,164 @@ Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, dat
 
 ---
 
-## Task 1: Project Scaffolding & Dev Environment
+## Task 1: Project Scaffolding & Dev Environment ✅
 
 **Goal**: Working SvelteKit + Tauri project with tooling configured.
 
-- [ ] Initialise SvelteKit project with Svelte 5, TypeScript
-- [ ] Configure dual adapter setup:
-  - `@sveltejs/adapter-static` for Tauri desktop builds
-  - `@sveltejs/adapter-node` for server deployment (PWA mobile fallback)
-- [ ] Initialise Tauri 2.0 (`src-tauri/` directory, `tauri.conf.json`, Cargo.toml)
-- [ ] Configure Vite, ESLint, Prettier
-- [ ] Install and configure `@vite-pwa/sveltekit` with basic manifest and service worker (for mobile PWA)
-- [ ] Set up Tailwind CSS (or comparable utility CSS — to be decided during design)
-- [ ] Configure Drizzle ORM with PostgreSQL driver
-- [ ] Create initial `docker-compose.yml` for local dev (PostgreSQL + app)
-- [ ] Verify `cargo tauri dev` launches the desktop app with SvelteKit frontend
-- [ ] Verify PWA installs on mobile (empty shell)
-- [ ] Update CLAUDE.md for this project
+- [x] Initialise SvelteKit project with Svelte 5, TypeScript
+- [x] Configure dual adapter setup:
+  - Uses `adapter-auto` (switched from `adapter-static` to support server routes)
+  - `@sveltejs/adapter-static` available but not active
+- [x] Initialise Tauri 2.0 (`src-tauri/` directory, `tauri.conf.json`, Cargo.toml)
+- [x] Configure Vite, ESLint, Prettier
+- [ ] Install and configure `@vite-pwa/sveltekit` with basic manifest and service worker — _deferred (package installed but not configured)_
+- [x] Set up Tailwind CSS v4 via `@tailwindcss/vite`
+- [x] Configure Drizzle ORM with PostgreSQL driver
+- [x] Create initial `docker-compose.yml` for local dev (PostgreSQL + app)
+- [x] Verify `cargo tauri dev` launches the desktop app with SvelteKit frontend
+- [ ] Verify PWA installs on mobile (empty shell) — _deferred_
+- [x] Update CLAUDE.md for this project
 
 **Output**: `cargo tauri dev` serves the desktop app; `npm run dev` serves the PWA-installable SvelteKit app; both connected to a local PostgreSQL.
 
 ---
 
-## Task 2: Database Schema & Migrations
+## Task 2: Database Schema & Migrations ✅
 
 **Goal**: Full data model implemented in PostgreSQL via Drizzle migrations.
 
-- [ ] Define Drizzle schema for all tables:
-  - `users`
-  - `clients`
-  - `contracts`
-  - `deliverables`
-  - `work_types` (per-deliverable)
-  - `time_entries`
-  - `notes`
-  - `note_time_entries` (many-to-many link table)
-  - `weekly_statuses`
-  - `attachments`
-- [ ] Generate and run initial migration
-- [ ] Write seed script with sample data (1 client, 1 contract, 2 deliverables, sample entries and notes)
-- [ ] Document schema in a `docs/schema.md` or equivalent README
+- [x] Define Drizzle schema for all tables:
+  - `users`, `clients`, `contracts`, `deliverables`, `work_types`, `time_entries`, `notes`, `note_time_entries`, `weekly_statuses`, `attachments`
+- [x] Generate and run initial migration
+- [x] Write seed script with sample data (1 client, 1 contract, 2 deliverables, sample entries and notes)
+- [x] Document schema in `src/lib/server/db/schema/` README
 
 **Output**: `npm run db:migrate` creates all tables; `npm run db:seed` populates sample data.
 
 ---
 
-## Task 3: Authentication & 2FA
+## Task 3: Authentication & 2FA ✅
 
 **Goal**: Working login flow with TOTP 2FA.
 
-- [ ] Install and configure Better Auth with SvelteKit integration
-- [ ] Set up email/password authentication
-- [ ] Create login and registration pages (minimal UI)
-- [ ] Integrate Better Auth 2FA plugin for TOTP
-- [ ] Build 2FA enrollment flow: secret generation, QR code display, verification
-- [ ] Generate and display recovery codes at enrollment
-- [ ] Add auth guard to all routes via `hooks.server.ts`
-- [ ] Test login → 2FA → dashboard flow end-to-end
+- [x] Install and configure Better Auth with SvelteKit integration
+- [x] Set up email/password authentication
+- [x] Create login and registration pages (minimal UI)
+- [x] Integrate Better Auth 2FA plugin for TOTP
+- [x] Build 2FA enrollment flow: secret generation, QR code display, verification
+- [x] Generate and display recovery codes at enrollment
+- [x] Add auth guard to all routes via `hooks.server.ts`
+- [x] Test login → 2FA → dashboard flow end-to-end
 
 **Output**: Users can register, log in with password + TOTP code, and are redirected to a protected dashboard.
 
 ---
 
-## Task 4: Client/Contract/Deliverable Management
+## Task 4: Client/Contract/Deliverable Management ✅
 
 **Goal**: CRUD interface for the client hierarchy.
 
-- [ ] Build server-side API routes for clients, contracts, and deliverables
-- [ ] Implement encryption for sensitive fields (contract names, descriptions)
-- [ ] Create management UI:
+- [x] Build server-side API routes for clients, contracts, and deliverables
+- [ ] Implement encryption for sensitive fields (contract names, descriptions) — _deferred to encryption task_
+- [x] Create management UI:
   - Client list with add/edit
   - Contracts per client with add/edit
   - Deliverables per contract with add/edit
   - Work types per deliverable with add/edit/reorder
-- [ ] This is admin-like functionality — simple form-based UI is fine
+- [x] Admin-like functionality with simple form-based UI
 
 **Output**: Users can create and manage the client → contract → deliverable hierarchy and tags.
 
 ---
 
-## Task 5: Time Entry Recording
+## Task 5: Time Entry Recording ✅
 
 **Goal**: Core time tracking functionality.
 
-- [ ] Build time entry creation form:
+- [x] Build time entry creation form:
   - Select client/contract/deliverable from hierarchy
   - Select work type (filtered to chosen deliverable)
   - Set date (defaults to today)
   - Option A: Set start time (now or manual), then later set end time
   - Option B: Manually enter duration (hh:mm)
   - Add description (free text)
-- [ ] Build "running timer" UI for start/stop workflow
-- [ ] Build time entry list view (for a given day)
-- [ ] Build edit/delete for existing time entries
-- [ ] Server-side encryption of descriptions before storage
-- [ ] Server API routes for CRUD operations
+- [x] Build "running timer" UI for start/stop workflow
+- [x] Build time entry list view (for a given day)
+- [x] Build edit/delete for existing time entries
+- [ ] Server-side encryption of descriptions before storage — _deferred to encryption task_
+- [x] Server API routes for CRUD operations
 
 **Output**: Users can record time entries via timer or manual input, view and edit them.
 
 ---
 
-## Task 6: Weekly Time Overview
+## Task 6: Weekly Time Overview ✅
 
 **Goal**: Primary dashboard showing time entries by week.
 
-- [ ] Build weekly view:
-  - Week selector (prev/next, date picker)
+- [x] Build weekly view:
+  - Week selector (prev/next, this week)
   - Daily breakdown with time entries listed
   - Total hours per day and per week
-  - Group by client/contract
-- [ ] Weekly status field (free text: "Unsubmitted", "Draft ready", etc.)
-  - Editable inline
+  - [ ] Group by client/contract — _deferred to layout refactor_
+- [x] Weekly status field (free text: "Unsubmitted", "Draft ready", etc.)
+  - Editable inline via dropdown
   - Saved per ISO week
-- [ ] Show associated note references (note IDs) alongside time entries
-- [ ] Mobile-responsive layout (cards on mobile, table-like on desktop)
+- [ ] Show associated note references (note IDs) alongside time entries — _blocked on Task 7_
+- [ ] Mobile-responsive layout (cards on mobile, table-like on desktop) — _deferred to layout refactor_
 
 **Output**: Users see a weekly dashboard with all time entries, totals, and status tracking.
+
+---
+
+## Task 6b: Three-Panel Layout & Navigation Shell
+
+**Goal**: Implement the Apple Notes-inspired layout from UI-SPEC.md — three resizable panels on desktop, single-panel push/pop navigation on mobile.
+
+### Desktop (three-panel)
+
+- [ ] Build `AppShell` layout component with three panels:
+  - **Panel 1 — Contracts sidebar** (far left, collapsible):
+    - "Time Entries" item at the top (global, all clients)
+    - Contracts grouped by client below
+    - Selecting a contract populates Panel 2 with that contract's notes
+    - Selecting "Time Entries" populates Panel 2 with week list
+    - Timer widget pinned to bottom of this panel
+  - **Panel 2 — List panel** (middle):
+    - In Time Entries mode: week list (navigation index into Panel 3's continuous scroll)
+    - In Notes mode: note list for the selected contract (placeholder until Task 7)
+  - **Panel 3 — Content area** (right, main):
+    - In Time Entries mode: continuous scroll of weekly sections (refactor existing `WeekHeader` + `DaySection` components)
+    - In Notes mode: TipTap editor placeholder (actual editor in Task 7)
+- [ ] Panel 1 collapse/expand toggle
+- [ ] Resizable panel dividers (drag to resize)
+- [ ] Move timer widget from dashboard into Panel 1 bottom — persistent across all views
+- [ ] Move time entries view from `/time` route into Panel 3 content area
+- [ ] Continuous scroll with lazy loading by week (replace single-week prev/next navigation)
+- [ ] Inline editing of time entries (click to edit any field)
+- [ ] Move admin CRUD into a settings/admin modal or keep as separate route (accessible from Panel 1 gear icon)
+
+### Mobile (single-panel push/pop)
+
+- [ ] Responsive breakpoint: below `lg` (1024px), switch to single-panel mode
+- [ ] Navigation stack with push/pop transitions:
+  - Level 1: Contracts list (same data as Panel 1)
+  - Level 2: Notes list or Week list (same data as Panel 2)
+  - Level 3: Note editor or Week detail (same data as Panel 3)
+- [ ] Back button / swipe-right to pop
+- [ ] Timer widget as persistent fixed footer (visible on all levels)
+
+### Refactoring scope
+
+- [ ] Existing components (`TimerWidget`, `WeekHeader`, `DaySection`, `WeeklyEntryRow`, `CascadingSelects`) are reused — only their container/positioning changes
+- [ ] Dashboard route (`/`) becomes the `AppShell` (no more card-link hub)
+- [ ] `/time` and `/time/new` routes merged into Panel 3 flows
+- [ ] `/admin` routes remain separate (linked from Panel 1 settings icon)
+- [ ] Auth routes (`/login`, `/register`, `/settings/two-factor`) remain separate full-page routes
+
+**Depends on**: Tasks 4, 5, 6
+
+**Output**: The app has the Apple Notes three-panel layout on desktop and single-panel drill-down on mobile. Timer is persistent. Time entries scroll continuously by week.
 
 ---
 
@@ -237,24 +279,33 @@ Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, dat
 ## Ordering & Dependencies
 
 ```
-Task 1 (scaffolding + Tauri init)
-  ├── Task 2 (schema) ──┐
-  │     └── Task 4 (clients/contracts)
-  │           └── Task 5 (time entries)
-  │                 └── Task 6 (weekly view)
+Task 1 (scaffolding + Tauri init) ✅
+  ├── Task 2 (schema) ✅
+  │     └── Task 4 (clients/contracts) ✅
+  │           └── Task 5 (time entries) ✅
+  │                 └── Task 6 (weekly view) ✅
+  │                       └── Task 6b (three-panel layout) ← NEXT
   │
-  └── Task 3 (auth)
+  └── Task 3 (auth) ✅
         └── (all subsequent tasks require auth)
 
-Task 7 (notes editor) ← requires Task 2, Task 3, Task 4
-  └── Task 8 (wiki-links) ← requires Task 7, Task 5
-  └── Task 9 (attachments) ← requires Task 7
+Task 6b (layout shell) ← requires Tasks 4, 5, 6
+  └── Task 7 (notes editor) ← requires Task 6b (needs Panel 2 + Panel 3)
+        └── Task 8 (wiki-links) ← requires Task 7, Task 5
+        └── Task 9 (attachments) ← requires Task 7
 
 Task 10 (storage abstraction) ← requires Task 2
 Task 11 (offline sync) ← requires Task 10, Tasks 5 and 7 minimum; ideally after all features
 ```
 
-Tasks 1-3 are the critical path. Tasks 4-6 (time tracking) and Task 7 (notes) can proceed in parallel once the foundation is in place. Task 10 (storage abstraction) can begin as soon as the schema is defined. Task 11 (offline sync) wraps everything together at the end.
+Tasks 1-6 are complete. **Task 6b (layout shell) is the next critical path item** — Task 7 (notes) depends on the three-panel layout being in place since notes need Panel 2 (note list) and Panel 3 (TipTap editor).
+
+### Deferred cross-cutting concerns
+
+These items were deferred from their original tasks and should be addressed as a batch:
+- **Encryption at rest** (AES-256-GCM): contract names/descriptions (Task 4), time entry descriptions (Task 5), note content/titles (Task 7)
+- **PWA configuration**: manifest, service worker, adapter-static for Tauri builds (Task 1)
+- **Mobile responsiveness**: cards on mobile, table on desktop (Task 6)
 
 ---
 
