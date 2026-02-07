@@ -13,4 +13,18 @@ Libraries tracked for this project. Used by the `context7` skill to look up docu
 
 | Library | context7_id | Version | Verified | Status |
 |---------|-------------|---------|----------|--------|
-| <!-- entries will be added as libraries are used --> | | | | |
+| svelte | /svelte/svelte | ^5.49.2 | 2026-02-07 | active |
+| @sveltejs/kit | /sveltejs/kit | ^2.50.2 | 2026-02-07 | active |
+| @tiptap/core | /ueberdosis/tiptap | ^3.19.0 | 2026-02-07 | active |
+| @tiptap/suggestion | /ueberdosis/tiptap | ^3.19.0 | 2026-02-07 | active |
+| drizzle-orm | /drizzle-team/drizzle-orm | ^0.45.1 | 2026-02-07 | active |
+| better-auth | /better-auth/better-auth | ^1.4.18 | 2026-02-07 | active |
+| tailwindcss | /tailwindlabs/tailwindcss | ^4.0.0 | 2026-02-07 | active |
+| @tauri-apps/api | /tauri-apps/tauri | ^2.0.0 | 2026-02-07 | active |
+| vitest | /vitest-dev/vitest | ^4.0.18 | 2026-02-07 | active |
+| tiptap-markdown | /aguingand/tiptap-markdown | ^0.9.0 | 2026-02-07 | active |
+
+## Notes
+
+- `@tiptap/suggestion` shares the same context7_id as `@tiptap/core` (`/ueberdosis/tiptap`) -- use the `topic` parameter to target specific sub-package docs.
+- `@tauri-apps/api` maps to `/tauri-apps/tauri` (the main Tauri monorepo).
