@@ -1,2 +1,12 @@
-// Chronolog database schema - will be populated in Task 2
-export {};
+export {
+	users,
+	clients,
+	contracts,
+	deliverables,
+	workTypes,
+	timeEntries,
+	notes,
+	noteTimeEntries,
+	weeklyStatuses,
+	attachments
+} from './schema/index';
