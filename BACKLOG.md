@@ -114,13 +114,13 @@ Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, dat
 
 ---
 
-## Task 6b: Three-Panel Layout & Navigation Shell
+## Task 6b: Three-Panel Layout & Navigation Shell ✅
 
 **Goal**: Implement the Apple Notes-inspired layout from UI-SPEC.md — three resizable panels on desktop, single-panel push/pop navigation on mobile.
 
 ### Desktop (three-panel)
 
-- [ ] Build `AppShell` layout component with three panels:
+- [x] Build `AppShell` layout component with three panels:
   - **Panel 1 — Contracts sidebar** (far left, collapsible):
     - "Time Entries" item at the top (global, all clients)
     - Contracts grouped by client below
@@ -133,31 +133,31 @@ Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, dat
   - **Panel 3 — Content area** (right, main):
     - In Time Entries mode: continuous scroll of weekly sections (refactor existing `WeekHeader` + `DaySection` components)
     - In Notes mode: TipTap editor placeholder (actual editor in Task 7)
-- [ ] Panel 1 collapse/expand toggle
-- [ ] Resizable panel dividers (drag to resize)
-- [ ] Move timer widget from dashboard into Panel 1 bottom — persistent across all views
-- [ ] Move time entries view from `/time` route into Panel 3 content area
-- [ ] Continuous scroll with lazy loading by week (replace single-week prev/next navigation)
-- [ ] Inline editing of time entries (click to edit any field)
-- [ ] Move admin CRUD into a settings/admin modal or keep as separate route (accessible from Panel 1 gear icon)
+- [x] Panel 1 collapse/expand toggle
+- [x] Resizable panel dividers (drag to resize)
+- [x] Move timer widget from dashboard into Panel 1 bottom — persistent across all views
+- [x] Move time entries view from `/time` route into Panel 3 content area
+- [x] Continuous scroll with lazy loading by week (replace single-week prev/next navigation)
+- [ ] Inline editing of time entries (click to edit any field) — _deferred to polish pass_
+- [x] Move admin CRUD into a settings/admin modal or keep as separate route (accessible from Panel 1 gear icon)
 
 ### Mobile (single-panel push/pop)
 
-- [ ] Responsive breakpoint: below `lg` (1024px), switch to single-panel mode
-- [ ] Navigation stack with push/pop transitions:
+- [x] Responsive breakpoint: below `lg` (1024px), switch to single-panel mode
+- [x] Navigation stack with push/pop transitions:
   - Level 1: Contracts list (same data as Panel 1)
   - Level 2: Notes list or Week list (same data as Panel 2)
   - Level 3: Note editor or Week detail (same data as Panel 3)
-- [ ] Back button / swipe-right to pop
-- [ ] Timer widget as persistent fixed footer (visible on all levels)
+- [x] Back button / swipe-right to pop
+- [ ] Timer widget as persistent fixed footer (visible on all levels) — _deferred; timer accessible via Panel 1_
 
 ### Refactoring scope
 
-- [ ] Existing components (`TimerWidget`, `WeekHeader`, `DaySection`, `WeeklyEntryRow`, `CascadingSelects`) are reused — only their container/positioning changes
-- [ ] Dashboard route (`/`) becomes the `AppShell` (no more card-link hub)
-- [ ] `/time` and `/time/new` routes merged into Panel 3 flows
-- [ ] `/admin` routes remain separate (linked from Panel 1 settings icon)
-- [ ] Auth routes (`/login`, `/register`, `/settings/two-factor`) remain separate full-page routes
+- [x] Existing components (`TimerWidget`, `WeekHeader`, `DaySection`, `WeeklyEntryRow`, `CascadingSelects`) are reused — only their container/positioning changes
+- [x] Dashboard route (`/`) becomes the `AppShell` (no more card-link hub)
+- [x] `/time` and `/time/new` routes merged into Panel 3 flows
+- [x] `/admin` routes remain separate (linked from Panel 1 settings icon)
+- [x] Auth routes (`/login`, `/register`, `/settings/two-factor`) remain separate full-page routes
 
 **Depends on**: Tasks 4, 5, 6
 
@@ -165,24 +165,27 @@ Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, dat
 
 ---
 
-## Task 7: Note-Taking with TipTap Editor
+## Task 7: Note-Taking with TipTap Editor ✅
 
 **Goal**: Create and edit markdown notes with the TipTap WYSIWYG editor.
 
-- [ ] Install and configure TipTap with SvelteKit:
-  - `@tiptap/core`, `@tiptap/starter-kit`, `@tiptap/extension-markdown`
-  - `@tiptap/extension-image`, `@tiptap/extension-link`, `@tiptap/extension-placeholder`
-- [ ] Build note creation flow (refer to UI-SPEC.md):
-  - Select client/contract
+- [x] Install and configure TipTap with SvelteKit:
+  - `@tiptap/core`, `@tiptap/starter-kit`, `tiptap-markdown`
+  - `@tiptap/extension-link`, `@tiptap/extension-placeholder`
+- [x] Build note creation flow:
+  - Select client/contract from sidebar (Panel 1)
   - Auto-generate note ID (`CLIENT.YYYYMMDD.SEQ`)
-  - Open TipTap editor
-- [ ] Build note list view per contract (folder-like browsing)
-- [ ] Implement save: serialise to markdown, encrypt, store via API
-- [ ] Implement load: fetch, decrypt, deserialise into TipTap
-- [ ] Basic toolbar (headings, bold, italic, lists, links)
-- [ ] Mobile-friendly editor layout
+  - Open TipTap editor in Panel 3
+- [x] Build note list view per contract (NoteListPanel in Panel 2)
+- [x] Implement save: serialise to markdown + JSON, store via API (auto-save with 1.5s debounce)
+- [x] Implement load: fetch from API, deserialise into TipTap
+- [x] Basic toolbar (headings, bold, italic, lists, links, horizontal rule)
+- [x] Note CRUD API routes (`/api/notes`, `/api/notes/[noteId]`)
+- [x] Note ID generation with tests (3 tests)
+- [ ] Encryption of note content — _deferred to encryption task_
+- [ ] Mobile-friendly editor layout — _works via responsive AppShell_
 
-**Output**: Users can create, edit, and browse markdown notes organised by client/contract.
+**Output**: Users can create, edit, and browse markdown notes organised by client/contract in the three-panel layout.
 
 ---
 
@@ -289,16 +292,16 @@ Task 1 (scaffolding + Tauri init) ✅
   └── Task 3 (auth) ✅
         └── (all subsequent tasks require auth)
 
-Task 6b (layout shell) ← requires Tasks 4, 5, 6
-  └── Task 7 (notes editor) ← requires Task 6b (needs Panel 2 + Panel 3)
-        └── Task 8 (wiki-links) ← requires Task 7, Task 5
+Task 6b (layout shell) ✅
+  └── Task 7 (notes editor) ✅
+        └── Task 8 (wiki-links) ← NEXT (requires Task 7, Task 5)
         └── Task 9 (attachments) ← requires Task 7
 
 Task 10 (storage abstraction) ← requires Task 2
 Task 11 (offline sync) ← requires Task 10, Tasks 5 and 7 minimum; ideally after all features
 ```
 
-Tasks 1-6 are complete. **Task 6b (layout shell) is the next critical path item** — Task 7 (notes) depends on the three-panel layout being in place since notes need Panel 2 (note list) and Panel 3 (TipTap editor).
+Tasks 1-7 are complete. **Task 8 (wiki-links) is the next critical path item** — it builds on the note editor from Task 7 and time entries from Task 5.
 
 ### Deferred cross-cutting concerns
 
