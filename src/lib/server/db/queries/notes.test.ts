@@ -10,15 +10,14 @@ describe('Note ID Generation', () => {
 
 	beforeAll(async () => {
 		// Create a test user
-		const userResult = await database
+		testUserId = `test-notes-${Date.now()}`;
+		await database
 			.insert(users)
 			.values({
+				id: testUserId,
 				name: 'Test User',
-				email: `test-notes-${Date.now()}@example.com`,
-				passwordHash: 'test-hash'
-			})
-			.returning();
-		testUserId = userResult[0].id;
+				email: `${testUserId}@example.com`
+			});
 
 		// Create a test client
 		const clientResult = await database

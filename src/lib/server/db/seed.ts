@@ -28,9 +28,9 @@ async function seed() {
 	const [sampleUser] = await database
 		.insert(users)
 		.values({
+			id: 'seed-admin-001',
 			email: 'admin@chronolog.dev',
-			name: 'Admin User',
-			passwordHash: '$argon2id$placeholder-hash-not-for-real-auth'
+			name: 'Admin User'
 		})
 		.returning();
 

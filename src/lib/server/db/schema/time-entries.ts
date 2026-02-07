@@ -6,7 +6,7 @@ import { workTypes } from './work-types';
 
 export const timeEntries = pgTable('time_entries', {
 	id: uuid('id').primaryKey().defaultRandom(),
-	userId: uuid('user_id')
+	userId: text('user_id')
 		.notNull()
 		.references(() => users.id, { onDelete: 'cascade' }),
 	contractId: uuid('contract_id')

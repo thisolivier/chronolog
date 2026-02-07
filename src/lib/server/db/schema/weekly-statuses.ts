@@ -5,7 +5,7 @@ export const weeklyStatuses = pgTable(
 	'weekly_statuses',
 	{
 		id: uuid('id').primaryKey().defaultRandom(),
-		userId: uuid('user_id')
+		userId: text('user_id')
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
 		weekStart: date('week_start', { mode: 'string' }).notNull(),

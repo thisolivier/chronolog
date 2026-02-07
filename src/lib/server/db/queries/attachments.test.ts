@@ -21,15 +21,14 @@ describe('Attachment Queries', () => {
 
 	beforeAll(async () => {
 		// Create a test user
-		const userResult = await database
+		testUserId = `test-attachments-${Date.now()}`;
+		await database
 			.insert(users)
 			.values({
+				id: testUserId,
 				name: 'Attachment Test User',
-				email: `test-attachments-${Date.now()}@example.com`,
-				passwordHash: 'test-hash'
-			})
-			.returning();
-		testUserId = userResult[0].id;
+				email: `${testUserId}@example.com`
+			});
 
 		// Create a test client
 		const clientResult = await database

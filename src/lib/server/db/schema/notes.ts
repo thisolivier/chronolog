@@ -4,7 +4,7 @@ import { contracts } from "./contracts";
 
 export const notes = pgTable("notes", {
 	id: text("id").primaryKey(),
-	userId: uuid("user_id")
+	userId: text("user_id")
 		.notNull()
 		.references(() => users.id, { onDelete: "cascade" }),
 	contractId: uuid("contract_id")
