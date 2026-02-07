@@ -3,36 +3,144 @@
 	import { Editor } from '@tiptap/core';
 	import StarterKit from '@tiptap/starter-kit';
 	import Link from '@tiptap/extension-link';
+	import Image from '@tiptap/extension-image';
+	import { FileHandler } from '@tiptap/extension-file-handler';
 	import Placeholder from '@tiptap/extension-placeholder';
 	import { Markdown } from 'tiptap-markdown';
 	import EditorToolbar from './EditorToolbar.svelte';
 	import { WikiLink } from './extensions/wiki-link.js';
 	import { AnchoredHeading } from './extensions/anchored-heading.js';
+	import {
+		resolveAllChronologImages,
+		revokeAllTrackedUrls,
+	} from './extensions/attachment-resolver.js';
+
+	/** MIME types accepted for file drop/paste */
+	const ALLOWED_IMAGE_MIME_TYPES = [
+		'image/jpeg',
+		'image/png',
+		'image/gif',
+		'image/webp',
+		'image/svg+xml',
+	];
+	const ALLOWED_PDF_MIME_TYPE = 'application/pdf';
+	const ALL_ALLOWED_MIME_TYPES = [...ALLOWED_IMAGE_MIME_TYPES, ALLOWED_PDF_MIME_TYPE];
 
 	interface Props {
 		initialContent?: string;
 		initialJson?: string;
 		noteTitle?: string;
+		noteId?: string;
 		onSave?: (data: { title: string; content: string; contentJson: string }) => void;
 		onTitleChange?: (title: string) => void;
 		onWikiLinkClick?: (noteId: string, headingAnchor?: string) => void;
+		onFileUpload?: (file: File) => Promise<string | null>;
 		readonly?: boolean;
 	}
 
+	/* eslint-disable @typescript-eslint/no-unused-vars */
 	let {
 		initialContent = '',
 		initialJson = '',
 		noteTitle = '',
+		// noteId is declared in Props for the parent's API contract (used to construct
+		// the onFileUpload callback) but is not consumed inside this component.
+		noteId,
 		onSave,
 		onTitleChange,
 		onWikiLinkClick,
+		onFileUpload,
 		readonly = false
 	}: Props = $props();
+	/* eslint-enable @typescript-eslint/no-unused-vars */
 
 	let editorElement: HTMLDivElement;
+	let fileInput: HTMLInputElement;
 	let editor: Editor | null = $state(null);
 	let title = $state(noteTitle);
 	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+
+	function handleAttachFileClick() {
+		fileInput?.click();
+	}
+
+	async function handleFileInputChange(event: Event) {
+		const target = event.target as HTMLInputElement;
+		const files = target.files;
+		if (!files || !editor) return;
+
+		await processUploadedFiles(editor, Array.from(files));
+
+		// Reset input so the same file can be selected again
+		target.value = '';
+	}
+
+	/**
+	 * Check whether a MIME type is an image type (as opposed to PDF).
+	 */
+	function isImageMimeType(mimeType: string): boolean {
+		return ALLOWED_IMAGE_MIME_TYPES.includes(mimeType);
+	}
+
+	/**
+	 * Process uploaded files: call onFileUpload for each, then insert into editor.
+	 * For images, inserts an inline image node. For PDFs, inserts a link.
+	 */
+	async function processUploadedFiles(
+		editorInstance: Editor,
+		files: File[],
+		insertPosition?: number,
+	): Promise<void> {
+		if (!onFileUpload) return;
+
+		for (const file of files) {
+			const chronologUrl = await onFileUpload(file);
+			if (!chronologUrl) continue;
+
+			if (isImageMimeType(file.type)) {
+				// Insert image node at the specified position or current cursor
+				if (insertPosition !== undefined) {
+					editorInstance
+						.chain()
+						.focus()
+						.insertContentAt(insertPosition, {
+							type: 'image',
+							attrs: { src: chronologUrl, alt: file.name },
+						})
+						.run();
+				} else {
+					editorInstance
+						.chain()
+						.focus()
+						.setImage({ src: chronologUrl, alt: file.name })
+						.run();
+				}
+			} else if (file.type === ALLOWED_PDF_MIME_TYPE) {
+				// Insert a link for PDFs
+				const linkContent = [
+					{
+						type: 'text',
+						marks: [{ type: 'link', attrs: { href: chronologUrl } }],
+						text: file.name || 'Attached PDF',
+					},
+				];
+
+				if (insertPosition !== undefined) {
+					editorInstance
+						.chain()
+						.focus()
+						.insertContentAt(insertPosition, linkContent)
+						.run();
+				} else {
+					editorInstance
+						.chain()
+						.focus()
+						.insertContent(linkContent)
+						.run();
+				}
+			}
+		}
+	}
 
 	onMount(() => {
 		// Determine initial content
@@ -54,17 +162,33 @@
 				StarterKit.configure({ heading: false }),
 				AnchoredHeading,
 				Link.configure({ openOnClick: false }),
+				Image.configure({ inline: true, allowBase64: false }),
+				FileHandler.configure({
+					allowedMimeTypes: ALL_ALLOWED_MIME_TYPES,
+					onDrop: (currentEditor: Editor, files: File[], dropPosition: number) => {
+						processUploadedFiles(currentEditor, files, dropPosition);
+					},
+					onPaste: (currentEditor: Editor, files: File[]) => {
+						processUploadedFiles(currentEditor, files);
+					},
+				}),
 				Placeholder.configure({ placeholder: 'Start writing...' }),
 				Markdown,
 				WikiLink,
 			],
 			content,
 			editable: !readonly,
+			onCreate: () => {
+				// Resolve any chronolog:// image URLs in the initial content
+				resolveAllChronologImages(editorElement);
+			},
 			onTransaction: () => {
 				// Force Svelte reactivity update for toolbar state
 				editor = editor;
 			},
 			onUpdate: () => {
+				// Resolve any newly inserted chronolog:// image URLs
+				resolveAllChronologImages(editorElement);
 				triggerDebouncedsave();
 			}
 		});
@@ -88,6 +212,8 @@
 		if (saveTimeout) {
 			clearTimeout(saveTimeout);
 		}
+		// Clean up all blob URLs created by the attachment resolver
+		revokeAllTrackedUrls();
 		editor?.destroy();
 	});
 
@@ -146,9 +272,19 @@
 		/>
 	</div>
 
+	<!-- Hidden file input for the toolbar Attach button -->
+	<input
+		bind:this={fileInput}
+		type="file"
+		accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,application/pdf"
+		multiple
+		class="hidden"
+		onchange={handleFileInputChange}
+	/>
+
 	<!-- Toolbar -->
 	{#if !readonly}
-		<EditorToolbar {editor} />
+		<EditorToolbar {editor} onAttachFile={handleAttachFileClick} />
 	{/if}
 
 	<!-- Editor Content -->
@@ -274,5 +410,17 @@
 	:global(.tiptap .wiki-link:hover) {
 		background: #e0e7ff;
 		color: #4f46e5;
+	}
+
+	/* Inline images */
+	:global(.tiptap img) {
+		max-width: 100%;
+		height: auto;
+		border-radius: 0.375rem;
+		margin: 0.5em 0;
+	}
+
+	:global(.tiptap img.ProseMirror-selectednode) {
+		outline: 2px solid #3b82f6;
 	}
 </style>

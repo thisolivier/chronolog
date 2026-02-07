@@ -142,20 +142,56 @@ Deletes a note and all associated time entry links.
 }
 ```
 
+## Attachment Routes
+
+### `POST /api/notes/[noteId]/attachments`
+
+Uploads a file attachment to a note. Accepts `multipart/form-data` with a `file` field.
+
+- Max file size: 10 MB
+- Allowed MIME types: image/jpeg, image/png, image/gif, image/webp, image/svg+xml, application/pdf
+
+**Response:**
+```json
+{
+  "attachment": {
+    "id": "uuid",
+    "filename": "screenshot.png",
+    "mimeType": "image/png",
+    "sizeBytes": 102400,
+    "createdAt": "2026-02-07T10:00:00Z"
+  }
+}
+```
+
+### `GET /api/notes/[noteId]/attachments`
+
+Lists all attachments for a note (metadata only, no binary data).
+
+### `GET /api/attachments/[attachmentId]`
+
+Serves the attachment binary data with correct `Content-Type` header. Responses are cacheable (`Cache-Control: immutable`).
+
+### `DELETE /api/attachments/[attachmentId]`
+
+Deletes an attachment. Verifies ownership chain (attachment -> note -> user).
+
 ## Error Responses
 
 All routes return standard HTTP error codes:
 
 - `401 Unauthorized`: User not authenticated
-- `400 Bad Request`: Missing required parameters
-- `404 Not Found`: Note not found or user doesn't have access
+- `400 Bad Request`: Missing required parameters or invalid file type/size
+- `404 Not Found`: Note or attachment not found, or user doesn't have access
 - `500 Internal Server Error`: Database or server error
 
 ## Implementation
 
-- **Queries**: `/src/lib/server/db/queries/notes.ts`
-- **Schema**: `/src/lib/server/db/schema/notes.ts`
-- **Routes**: `/src/routes/api/notes/`
+- **Note queries**: `/src/lib/server/db/queries/notes.ts`
+- **Attachment queries**: `/src/lib/server/db/queries/attachments.ts`
+- **Schema**: `/src/lib/server/db/schema/notes.ts`, `/src/lib/server/db/schema/attachments.ts`
+- **Note routes**: `/src/routes/api/notes/`
+- **Attachment routes**: `/src/routes/api/attachments/`
 
 ## Word Count Calculation
 

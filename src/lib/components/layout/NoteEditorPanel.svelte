@@ -2,6 +2,8 @@
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import NoteEditor from '$lib/components/notes/NoteEditor.svelte';
 	import LinkedTimeEntries from '$lib/components/notes/LinkedTimeEntries.svelte';
+	import AttachmentList from '$lib/components/notes/AttachmentList.svelte';
+	import { buildChronologUrl } from '$lib/components/notes/extensions/attachment-resolver.js';
 
 	type NoteData = {
 		id: string;
@@ -109,6 +111,34 @@
 		}
 	}
 
+	/** Upload a file as an attachment and return a chronolog:// URL */
+	async function handleFileUpload(file: File): Promise<string | null> {
+		const noteId = navigation.selectedNoteId;
+		if (!noteId) return null;
+
+		try {
+			const formData = new FormData();
+			formData.append('file', file);
+
+			const response = await fetch(`/api/notes/${noteId}/attachments`, {
+				method: 'POST',
+				body: formData
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				console.error('Upload failed:', errorData);
+				return null;
+			}
+
+			const data = await response.json();
+			return buildChronologUrl(data.attachment.id);
+		} catch (uploadError) {
+			console.error('Error uploading file:', uploadError);
+			return null;
+		}
+	}
+
 	/** Format a Date as a short human-readable timestamp */
 	function formatTimestamp(date: Date): string {
 		return date.toLocaleTimeString('en-US', {
@@ -185,7 +215,9 @@
 					initialContent={currentNote.content ?? ''}
 					initialJson={currentNote.contentJson ?? ''}
 					noteTitle={currentNote.title ?? ''}
+					noteId={currentNote.id}
 					onSave={handleSave}
+					onFileUpload={handleFileUpload}
 					onWikiLinkClick={(noteId) => navigation.selectNote(noteId)}
 				/>
 			{/key}
@@ -211,5 +243,6 @@
 		{/if}
 
 		<LinkedTimeEntries noteId={currentNote.id} />
+		<AttachmentList noteId={currentNote.id} />
 	{/if}
 </div>

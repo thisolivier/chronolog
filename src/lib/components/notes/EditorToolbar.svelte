@@ -3,9 +3,10 @@
 
 	interface Props {
 		editor: Editor | null;
+		onAttachFile?: () => void;
 	}
 
-	let { editor }: Props = $props();
+	let { editor, onAttachFile }: Props = $props();
 
 	function handleLink() {
 		if (!editor) return;
@@ -146,5 +147,18 @@
 		title="Link"
 	>
 		Link
+	</button>
+
+	<div class="w-px bg-gray-300 mx-1"></div>
+
+	<button
+		type="button"
+		onclick={onAttachFile}
+		disabled={!editor || !onAttachFile}
+		class="px-3 py-1.5 text-sm rounded transition-colors text-gray-600 hover:bg-gray-100
+			disabled:opacity-50 disabled:cursor-not-allowed"
+		title="Attach file"
+	>
+		Attach
 	</button>
 </div>

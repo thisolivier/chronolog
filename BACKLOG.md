@@ -212,25 +212,25 @@ Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, dat
 
 ---
 
-## Task 9: File Attachments
+## Task 9: File Attachments ✅
 
 **Goal**: Attach images and PDFs to notes.
 
-- [ ] Configure TipTap FileHandler extension for drag-and-drop
-- [ ] Build attachment upload pipeline:
+- [x] Configure TipTap FileHandler extension for drag-and-drop
+- [x] Build attachment upload pipeline:
   - Accept file via drag-drop or file picker
   - Generate attachment ID
-  - Encrypt file data server-side
-  - Store in database (or filesystem with DB metadata)
+  - [ ] Encrypt file data server-side — _deferred to encryption task_
+  - Store in database (bytea column)
   - Insert markdown reference into note (`![](chronolog://attachment/ID)`)
-- [ ] Build attachment rendering:
+- [x] Build attachment rendering:
   - Resolve `chronolog://` URLs to actual file endpoint
   - Inline image display in editor
   - PDF link display (click to open/download)
-- [ ] Image thumbnail generation (Canvas API, client-side)
-- [ ] Attachment list view per note
+- [ ] Image thumbnail generation (Canvas API, client-side) — _deferred to polish pass_
+- [x] Attachment list view per note
 
-**Output**: Users can drag-drop images and PDFs into notes; files are encrypted and stored separately.
+**Output**: Users can drag-drop images and PDFs into notes; files are stored in the database and rendered inline.
 
 ---
 
@@ -296,20 +296,21 @@ Task 1 (scaffolding + Tauri init) ✅
 Task 6b (layout shell) ✅
   └── Task 7 (notes editor) ✅
         └── Task 8 (wiki-links) ✅
-        └── Task 9 (attachments) ← NEXT (requires Task 7)
+        └── Task 9 (attachments) ✅
 
-Task 10 (storage abstraction) ← requires Task 2
+Task 10 (storage abstraction) ← NEXT (requires Task 2)
 Task 11 (offline sync) ← requires Task 10, Tasks 5 and 7 minimum; ideally after all features
 ```
 
-Tasks 1-8 are complete. **Task 9 (file attachments) is the next critical path item** — it builds on the note editor from Task 7.
+Tasks 1-9 are complete. **Task 10 (storage abstraction layer) is the next item** — it can proceed independently as it only depends on Task 2 (schema).
 
 ### Deferred cross-cutting concerns
 
 These items were deferred from their original tasks and should be addressed as a batch:
-- **Encryption at rest** (AES-256-GCM): contract names/descriptions (Task 4), time entry descriptions (Task 5), note content/titles (Task 7)
+- **Encryption at rest** (AES-256-GCM): contract names/descriptions (Task 4), time entry descriptions (Task 5), note content/titles (Task 7), attachment data (Task 9)
 - **PWA configuration**: manifest, service worker, adapter-static for Tauri builds (Task 1)
 - **Mobile responsiveness**: cards on mobile, table on desktop (Task 6)
+- **Image thumbnails**: Canvas API client-side thumbnail generation (Task 9)
 
 ---
 
