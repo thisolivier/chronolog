@@ -234,24 +234,25 @@ Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, dat
 
 ---
 
-## Task 10: Storage Abstraction Layer
+## Task 10: Storage Abstraction Layer ✅
 
 **Goal**: Unified local storage interface that works on both Tauri (SQLite) and PWA (IndexedDB).
 
-- [ ] Define a `StorageAdapter` interface with reactive query and mutation methods
-- [ ] Implement `SqliteAdapter` using `tauri-plugin-sql`:
+- [x] Define a `StorageAdapter` interface with reactive query and mutation methods
+- [x] Implement `SqliteAdapter` using `tauri-plugin-sql`:
   - Create SQLite schema mirroring server tables
-  - Reactive queries via Svelte 5 runes (writable signals refreshed on mutation)
-- [ ] Implement `DexieAdapter` using Dexie.js (v4.3+):
+  - [ ] Reactive queries via Svelte 5 runes — _deferred to Task 11 (sync integration)_
+- [x] Implement `DexieAdapter` using Dexie.js (v4.3+):
   - IndexedDB schema mirroring server tables
-  - Reactive queries via Dexie `liveQuery`
-- [ ] Platform detection (`window.__TAURI__`) to select adapter at app init
-- [ ] Store attachments as BLOBs in SQLite (desktop) or IndexedDB Blobs (mobile)
-- [ ] Write adapter integration tests for both backends
+  - [ ] Reactive queries via Dexie `liveQuery` — _deferred to Task 11 (sync integration)_
+- [x] Platform detection (`window.__TAURI__`) to select adapter at app init
+- [x] Store attachments as BLOBs in SQLite (desktop) or IndexedDB Blobs (mobile)
+- [x] Write adapter integration tests for DexieAdapter (22 tests)
+- [ ] SqliteAdapter integration tests — _requires Tauri runtime, manual testing only_
 
 **Depends on**: Task 2 (schema defines the tables to mirror)
 
-**Output**: `import { storage } from '$lib/storage'` returns the correct adapter. UI code never references SQLite or Dexie directly.
+**Output**: `import { getStorage } from '$lib/storage'` returns the correct adapter. UI code never references SQLite or Dexie directly.
 
 ---
 
@@ -298,11 +299,11 @@ Task 6b (layout shell) ✅
         └── Task 8 (wiki-links) ✅
         └── Task 9 (attachments) ✅
 
-Task 10 (storage abstraction) ← NEXT (requires Task 2)
-Task 11 (offline sync) ← requires Task 10, Tasks 5 and 7 minimum; ideally after all features
+Task 10 (storage abstraction) ✅
+Task 11 (offline sync) ← NEXT (requires Task 10, Tasks 5 and 7 minimum; ideally after all features)
 ```
 
-Tasks 1-9 are complete. **Task 10 (storage abstraction layer) is the next item** — it can proceed independently as it only depends on Task 2 (schema).
+Tasks 1-10 are complete. **Task 11 (offline sync) is the next item** — it depends on Task 10 (storage abstraction) and all feature tasks.
 
 ### Deferred cross-cutting concerns
 
