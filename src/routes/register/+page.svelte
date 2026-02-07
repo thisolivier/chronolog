@@ -27,20 +27,20 @@
 		isLoading = true;
 
 		try {
-			const { data, error } = await authClient.signUp.email({
+			const { error: signUpError } = await authClient.signUp.email({
 				name,
 				email,
 				password
 			});
 
-			if (error) {
-				errorMessage = error.message || 'Registration failed. Please try again.';
+			if (signUpError) {
+				errorMessage = signUpError.message || 'Registration failed. Please try again.';
 				isLoading = false;
 				return;
 			}
 
 			goto('/login');
-		} catch (unexpectedError) {
+		} catch (_error) {
 			errorMessage = 'An unexpected error occurred. Please try again.';
 			isLoading = false;
 		}

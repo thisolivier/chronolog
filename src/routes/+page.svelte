@@ -7,13 +7,12 @@
 	import NoteEditorPanel from '$lib/components/layout/NoteEditorPanel.svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 
-	let { data } = $props();
 	const nav = getNavigationContext();
 </script>
 
 <AppShell>
 	{#snippet panel1()}
-		<ContractsSidebar userName={data.user?.name || ''} userEmail={data.user?.email || ''} />
+		<ContractsSidebar />
 	{/snippet}
 
 	{#snippet panel2()}

@@ -1,16 +1,7 @@
 import { redirect, error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { deleteTimeEntry } from '$lib/server/db/queries/time-entries';
-import { getWeeklySummary } from '$lib/server/db/queries/time-entries-weekly';
-import {
-	getWeeklyStatus,
-	upsertWeeklyStatus
-} from '$lib/server/db/queries/weekly-statuses';
-import {
-	getMondayOfWeek,
-	getIsoWeekNumber,
-	getIsoYear
-} from '$lib/utils/iso-week';
+import { upsertWeeklyStatus } from '$lib/server/db/queries/weekly-statuses';
 
 export const load: PageServerLoad = async () => {
 	// Redirect to home page - time entries are now in the AppShell

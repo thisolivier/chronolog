@@ -1,6 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { deleteTimeEntry, getRunningTimer } from '$lib/server/db/queries/time-entries';
+import { deleteTimeEntry } from '$lib/server/db/queries/time-entries';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
 	const currentUser = locals.user;

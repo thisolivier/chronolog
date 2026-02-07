@@ -1,15 +1,17 @@
 <!-- NoteListPanel - Panel 2 content for notes mode -->
 <script lang="ts">
+	import { onMount, onDestroy } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
+	import { formatSmartDate } from '$lib/utils/format-date';
 
 	type NoteListItem = {
 		id: string;
-		title: string | null;
 		contractId: string;
-		wordCount: number;
 		isPinned: boolean;
 		createdAt: string;
 		updatedAt: string;
+		firstLine: string;
+		secondLine: string;
 	};
 
 	const navigationContext = getNavigationContext();
@@ -18,32 +20,6 @@
 	let isLoading = $state(false);
 	let isCreating = $state(false);
 	let fetchError = $state<string | null>(null);
-
-	/**
-	 * Format a date string as a relative time (e.g., "2 hours ago", "3 days ago")
-	 * or as a short date for older entries.
-	 */
-	function formatRelativeDate(dateString: string): string {
-		const date = new Date(dateString);
-		const now = new Date();
-		const differenceInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-		if (differenceInSeconds < 60) return 'just now';
-		if (differenceInSeconds < 3600) {
-			const minutes = Math.floor(differenceInSeconds / 60);
-			return `${minutes}m ago`;
-		}
-		if (differenceInSeconds < 86400) {
-			const hours = Math.floor(differenceInSeconds / 3600);
-			return `${hours}h ago`;
-		}
-		if (differenceInSeconds < 604800) {
-			const days = Math.floor(differenceInSeconds / 86400);
-			return `${days}d ago`;
-		}
-
-		return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-	}
 
 	/**
 	 * Fetch notes for the currently selected contract.
@@ -93,7 +69,14 @@
 			const createdNote = data.note;
 
 			// Prepend the new note to the list (it will appear at the top)
-			notesList = [createdNote, ...notesList];
+			notesList = [
+				{
+					...createdNote,
+					firstLine: '',
+					secondLine: ''
+				},
+				...notesList
+			];
 
 			// Select the newly created note
 			navigationContext.selectNote(createdNote.id);
@@ -102,6 +85,35 @@
 			console.error('Error creating note:', error);
 		} finally {
 			isCreating = false;
+		}
+	}
+
+	/**
+	 * Delete the currently selected note.
+	 */
+	async function handleDeleteSelectedNote() {
+		const noteId = navigationContext.selectedNoteId;
+		if (!noteId) return;
+
+		const confirmed = window.confirm(
+			'Are you sure you want to delete this note? This cannot be undone.'
+		);
+		if (!confirmed) return;
+
+		try {
+			const response = await fetch(`/api/notes/${noteId}`, { method: 'DELETE' });
+			if (!response.ok) {
+				throw new Error('Failed to delete note');
+			}
+
+			// Remove from local list
+			notesList = notesList.filter((note) => note.id !== noteId);
+
+			// Clear selection
+			navigationContext.clearSelectedNote();
+		} catch (error) {
+			console.error('Error deleting note:', error);
+			alert('Failed to delete note. Please try again.');
 		}
 	}
 
@@ -121,20 +133,53 @@
 			notesList = [];
 		}
 	});
+
+	/** Handle note-saved events from NoteEditorPanel — update preview in-place */
+	function handleNoteSaved(event: Event) {
+		const { noteId, firstLine, secondLine, updatedAt } = (event as CustomEvent).detail;
+		const noteIndex = notesList.findIndex((note) => note.id === noteId);
+		if (noteIndex !== -1) {
+			notesList[noteIndex] = {
+				...notesList[noteIndex],
+				firstLine,
+				secondLine,
+				updatedAt
+			};
+		}
+	}
+
+	onMount(() => {
+		window.addEventListener('note-saved', handleNoteSaved);
+	});
+
+	onDestroy(() => {
+		window.removeEventListener('note-saved', handleNoteSaved);
+	});
 </script>
 
 <div class="flex h-full flex-col bg-gray-50">
 	<!-- Header -->
 	<div class="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
 		<h2 class="text-sm font-semibold text-gray-900">Notes</h2>
-		<button
-			onclick={handleCreateNote}
-			disabled={isCreating || !navigationContext.selectedContractId}
-			class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700
-				disabled:cursor-not-allowed disabled:opacity-50"
-		>
-			{isCreating ? 'Creating...' : 'New Note'}
-		</button>
+		<div class="flex items-center gap-2">
+			{#if navigationContext.selectedNoteId}
+				<button
+					onclick={handleDeleteSelectedNote}
+					class="rounded-md px-2.5 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700"
+					title="Delete selected note"
+				>
+					Delete
+				</button>
+			{/if}
+			<button
+				onclick={handleCreateNote}
+				disabled={isCreating || !navigationContext.selectedContractId}
+				class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700
+					disabled:cursor-not-allowed disabled:opacity-50"
+			>
+				{isCreating ? 'Creating...' : 'New Note'}
+			</button>
+		</div>
 	</div>
 
 	<!-- Note list -->
@@ -150,9 +195,7 @@
 		{:else if notesList.length === 0}
 			<div class="flex flex-col items-center justify-center px-4 py-8 text-center">
 				<div class="text-sm text-gray-500">No notes yet</div>
-				<p class="mt-1 text-xs text-gray-400">
-					Create a note to start writing.
-				</p>
+				<p class="mt-1 text-xs text-gray-400">Create a note to start writing.</p>
 			</div>
 		{:else}
 			<div class="divide-y divide-gray-200">
@@ -161,24 +204,27 @@
 					<button
 						onclick={() => handleNoteClick(note.id)}
 						class="block w-full text-left transition-colors hover:bg-gray-100
-							{isSelected ? 'border-l-2 border-blue-600 bg-blue-50' : 'border-l-2 border-transparent'}"
+							{isSelected
+							? 'border-l-2 border-blue-600 bg-blue-50'
+							: 'border-l-2 border-transparent'}"
 					>
 						<div class="px-4 py-3">
-							<!-- Title row with pin indicator -->
-							<div class="mb-1 flex items-center gap-1.5">
+							<!-- First line: bold truncated title -->
+							<div class="mb-0.5 flex items-center gap-1.5">
 								{#if note.isPinned}
 									<span class="text-xs text-amber-500" title="Pinned">&#128204;</span>
 								{/if}
-								<span class="truncate text-sm font-medium text-gray-900">
-									{note.title || 'Untitled'}
+								<span class="truncate text-sm font-semibold text-gray-900">
+									{note.firstLine || 'Untitled'}
 								</span>
 							</div>
 
-							<!-- Metadata row: date and word count -->
-							<div class="flex items-center gap-2 text-xs text-gray-500">
-								<span>{formatRelativeDate(note.updatedAt)}</span>
-								<span class="text-gray-300">&middot;</span>
-								<span>{note.wordCount} {note.wordCount === 1 ? 'word' : 'words'}</span>
+							<!-- Second line: date prefix + second content line -->
+							<div class="truncate text-xs text-gray-500">
+								<span class="font-medium">{formatSmartDate(note.updatedAt)}</span>
+								{#if note.secondLine}
+									<span class="ml-1.5 text-gray-400">{note.secondLine}</span>
+								{/if}
 							</div>
 						</div>
 					</button>

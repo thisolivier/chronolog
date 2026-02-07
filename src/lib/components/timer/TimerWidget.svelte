@@ -1,12 +1,15 @@
 <script lang="ts">
 	import TimerDisplay from './TimerDisplay.svelte';
 	import TimerCompletionForm from './TimerCompletionForm.svelte';
+	import ContractSelect from './ContractSelect.svelte';
+	import AddTimeEntryModal from './AddTimeEntryModal.svelte';
 	import {
 		fetchTimerStatus,
 		apiStartTimer,
 		apiStopTimer,
 		apiSaveTimer,
 		apiDiscardTimer,
+		apiUpdateDraft,
 		calculateElapsedFromStartTime
 	} from './timer-api';
 
@@ -20,7 +23,14 @@
 	let isLoading = $state(true);
 	let errorMessage = $state('');
 
-	/** Check for existing running timer on mount */
+	// Draft fields for running/paused state
+	let draftContractId = $state('');
+	let draftDescription = $state('');
+	let descriptionDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+	// Modal state
+	let showAddEntryModal = $state(false);
+
 	async function checkExistingTimer() {
 		try {
 			const data = await fetchTimerStatus();
@@ -37,7 +47,7 @@
 				}
 			}
 		} catch {
-			// Silently fail — user can start a new timer
+			// Silently fail -- user can start a new timer
 		}
 		isLoading = false;
 	}
@@ -46,16 +56,37 @@
 		checkExistingTimer();
 	});
 
-	// Timer tick — runs every second when running and not paused
+	// Timer tick -- runs every second when running and not paused
 	$effect(() => {
 		if (timerState !== 'running') return;
-
 		const intervalId = setInterval(() => {
 			elapsedSeconds += 1;
 		}, 1000);
-
 		return () => clearInterval(intervalId);
 	});
+
+	// When draft contract changes, immediately persist to server
+	$effect(() => {
+		if (!entryId || !draftContractId) return;
+		if (timerState !== 'running' && timerState !== 'paused') return;
+		apiUpdateDraft(entryId, { contractId: draftContractId }).catch(() => {
+			// Best effort -- silently fail
+		});
+	});
+
+	// Debounced description update
+	function handleDescriptionInput() {
+		if (descriptionDebounceTimer) {
+			clearTimeout(descriptionDebounceTimer);
+		}
+		descriptionDebounceTimer = setTimeout(() => {
+			if (entryId && (timerState === 'running' || timerState === 'paused')) {
+				apiUpdateDraft(entryId, { description: draftDescription }).catch(() => {
+					// Best effort -- silently fail
+				});
+			}
+		}, 1500);
+	}
 
 	async function handleStart() {
 		errorMessage = '';
@@ -64,6 +95,8 @@
 			entryId = timerEntry.id;
 			startTime = timerEntry.startTime || '';
 			elapsedSeconds = 0;
+			draftContractId = '';
+			draftDescription = '';
 			timerState = 'running';
 		} catch (caughtError) {
 			errorMessage =
@@ -80,6 +113,18 @@
 	}
 
 	async function handleStop() {
+		// Flush any pending description update
+		if (descriptionDebounceTimer) {
+			clearTimeout(descriptionDebounceTimer);
+			if (entryId && draftDescription) {
+				try {
+					await apiUpdateDraft(entryId, { description: draftDescription });
+				} catch {
+					// Best effort
+				}
+			}
+		}
+
 		try {
 			const stoppedEntry = await apiStopTimer();
 			endTime = stoppedEntry.endTime || '';
@@ -120,6 +165,15 @@
 		endTime = '';
 		elapsedSeconds = 0;
 		errorMessage = '';
+		draftContractId = '';
+		draftDescription = '';
+		if (descriptionDebounceTimer) {
+			clearTimeout(descriptionDebounceTimer);
+		}
+	}
+
+	function handleAddEntryCreated() {
+		showAddEntryModal = false;
 	}
 </script>
 
@@ -127,15 +181,23 @@
 	{#if isLoading}
 		<div class="py-2 text-center text-sm text-gray-400">Loading timer...</div>
 	{:else if timerState === 'idle'}
-		<button
-			onclick={handleStart}
-			class="w-full rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700"
-		>
-			Start Timer
-		</button>
+		<div class="flex gap-2">
+			<button
+				onclick={handleStart}
+				class="flex-1 rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700"
+			>
+				Start Timer
+			</button>
+			<button
+				onclick={() => (showAddEntryModal = true)}
+				class="flex-1 rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+			>
+				Add Entry
+			</button>
+		</div>
 	{:else if timerState === 'running' || timerState === 'paused'}
 		<div class="space-y-3">
-			<div class="flex items-center justify-between">
+			<div class="flex flex-wrap items-center gap-2">
 				<TimerDisplay {elapsedSeconds} isPaused={timerState === 'paused'} />
 				<div class="flex gap-1.5">
 					{#if timerState === 'running'}
@@ -164,13 +226,39 @@
 			<div class="text-xs text-gray-500">
 				Started: {startTime ? startTime.substring(0, 5) : '--:--'}
 			</div>
+
+			<!-- Draft contract and description while timer is running -->
+			<div class="space-y-2">
+				<div>
+					<label for="draft-contract" class="block text-xs font-medium text-gray-600">
+						Contract
+					</label>
+					<div class="mt-0.5">
+						<ContractSelect bind:selectedContractId={draftContractId} compact />
+					</div>
+				</div>
+				<div>
+					<label for="draft-description" class="block text-xs font-medium text-gray-600">
+						Description
+					</label>
+					<textarea
+						id="draft-description"
+						bind:value={draftDescription}
+						oninput={handleDescriptionInput}
+						rows="2"
+						class="mt-0.5 block w-full rounded border border-gray-300 px-1.5 py-1 text-xs shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						placeholder="What are you working on?"
+					></textarea>
+				</div>
+			</div>
 		</div>
 	{:else if timerState === 'stopped'}
 		<TimerCompletionForm
-			{entryId}
 			{startTime}
 			{endTime}
 			{elapsedSeconds}
+			initialContractId={draftContractId}
+			initialDescription={draftDescription}
 			onSave={handleSave}
 			onDiscard={handleDiscard}
 		/>
@@ -182,3 +270,10 @@
 		</div>
 	{/if}
 </div>
+
+{#if showAddEntryModal}
+	<AddTimeEntryModal
+		onCreated={handleAddEntryCreated}
+		onClose={() => (showAddEntryModal = false)}
+	/>
+{/if}

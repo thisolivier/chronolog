@@ -12,14 +12,18 @@
 	- Displays a scrollable list of weeks with summaries
 	- Highlights the currently selected week from navigation context
 	- Infinite scroll with "Load More" button for older weeks
-	- Each week shows: week number, date range, total hours, status badge
+	- Filters out empty weeks (except the current week)
+	- Each week shows: formatted date, total hours, status badge
 	- Clicking a week calls navigationContext.selectWeek(weekStart)
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
-	import { resolveRoute } from '$app/paths';
-	import { formatWeekRange, formatHoursFromMinutes } from '$lib/utils/iso-week';
+	import {
+		formatWeekStartShort,
+		formatHoursFromMinutes,
+		getMondayOfWeek
+	} from '$lib/utils/iso-week';
 
 	type WeekSummary = {
 		weekStart: string;
@@ -39,9 +43,17 @@
 
 	const WEEKS_PER_PAGE = 12;
 
-	/**
-	 * Load initial weeks
-	 */
+	// Current week's Monday for filtering logic
+	const todayString = new Date().toISOString().split('T')[0];
+	const currentWeekMonday = getMondayOfWeek(todayString);
+
+	/** Filter weeks: hide empty weeks unless they are the current week */
+	const displayedWeeks = $derived(
+		weeks.filter(
+			(week) => week.totalMinutes > 0 || week.weekStart === currentWeekMonday
+		)
+	);
+
 	async function loadWeeks() {
 		isLoading = true;
 		error = null;
@@ -63,9 +75,6 @@
 		}
 	}
 
-	/**
-	 * Load more weeks (older)
-	 */
 	async function loadMoreWeeks() {
 		if (isLoadingMore || !hasMore || weeks.length === 0) {
 			return;
@@ -75,7 +84,6 @@
 		error = null;
 
 		try {
-			// Get the oldest week we have and load more before it
 			const oldestWeek = weeks[weeks.length - 1];
 			const response = await fetch(
 				`/api/weeks?count=${WEEKS_PER_PAGE}&before=${oldestWeek.weekStart}`
@@ -87,7 +95,6 @@
 			const data = await response.json();
 			const newWeeks = data.weeks ?? [];
 
-			// Filter out the first week if it's a duplicate of our oldest week
 			const filteredNewWeeks = newWeeks.filter(
 				(week: WeekSummary) => week.weekStart !== oldestWeek.weekStart
 			);
@@ -102,9 +109,6 @@
 		}
 	}
 
-	/**
-	 * Get status color classes
-	 */
 	function getStatusColor(status: string): string {
 		switch (status) {
 			case 'Submitted':
@@ -117,12 +121,8 @@
 		}
 	}
 
-	/**
-	 * Handle week selection
-	 */
 	function handleWeekClick(weekStart: string) {
 		navigationContext.selectWeek(weekStart);
-		// TODO: This will scroll Panel 3 to the selected week
 	}
 
 	onMount(() => {
@@ -131,15 +131,9 @@
 </script>
 
 <div class="flex h-full flex-col bg-gray-50">
-	<!-- Header -->
-	<div class="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
+	<!-- Mobile-only header (no button) -->
+	<div class="flex items-center border-b border-gray-200 bg-white px-4 py-3 md:hidden">
 		<h2 class="text-sm font-semibold text-gray-900">Time Entries</h2>
-		<a
-			href={resolveRoute('/time/new', {})}
-			class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-		>
-			Add Entry
-		</a>
 	</div>
 
 	<!-- Week list -->
@@ -152,13 +146,13 @@
 			<div class="mx-4 mt-4 rounded-md bg-red-50 p-4">
 				<p class="text-sm text-red-800">{error}</p>
 			</div>
-		{:else if weeks.length === 0}
+		{:else if displayedWeeks.length === 0}
 			<div class="flex items-center justify-center py-8">
 				<div class="text-sm text-gray-500">No weeks found</div>
 			</div>
 		{:else}
 			<div class="divide-y divide-gray-200">
-				{#each weeks as week (week.weekStart)}
+				{#each displayedWeeks as week (week.weekStart)}
 					{@const isSelected = navigationContext.selectedWeek === week.weekStart}
 					<button
 						onclick={() => handleWeekClick(week.weekStart)}
@@ -166,10 +160,10 @@
 							{isSelected ? 'border-l-2 border-blue-600 bg-blue-50' : 'border-l-2 border-transparent'}"
 					>
 						<div class="px-4 py-3">
-							<!-- Week number and range -->
+							<!-- Week date and hours -->
 							<div class="mb-1 flex items-center justify-between">
 								<span class="text-sm font-medium text-gray-900">
-									W{String(week.weekNumber).padStart(2, '0')} — {formatWeekRange(week.weekStart)}
+									{formatWeekStartShort(week.weekStart)}
 								</span>
 								<span class="text-xs font-medium text-gray-600">
 									{formatHoursFromMinutes(week.totalMinutes)}

@@ -196,6 +196,9 @@ export async function searchNotesForUser(userId: string, query: string, limit: n
 		.limit(limit);
 }
 
+// Re-export from shared utility so existing server imports keep working
+export { extractPreviewLines } from '$lib/utils/extract-preview-lines';
+
 function calculateWordCountFromJson(contentJson: string): number {
 	try {
 		const content = JSON.parse(contentJson);

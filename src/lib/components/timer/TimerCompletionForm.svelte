@@ -2,17 +2,19 @@
 	import CascadingSelects from './CascadingSelects.svelte';
 
 	let {
-		entryId,
 		startTime,
 		endTime,
 		elapsedSeconds,
+		initialContractId = '',
+		initialDescription = '',
 		onSave,
 		onDiscard
 	}: {
-		entryId: string;
 		startTime: string;
 		endTime: string;
 		elapsedSeconds: number;
+		initialContractId?: string;
+		initialDescription?: string;
 		onSave: (data: {
 			contractId: string;
 			deliverableId: string;
@@ -22,10 +24,10 @@
 		onDiscard: () => void;
 	} = $props();
 
-	let selectedContractId = $state('');
+	let selectedContractId = $state(initialContractId);
 	let selectedDeliverableId = $state('');
 	let selectedWorkTypeId = $state('');
-	let description = $state('');
+	let description = $state(initialDescription);
 	let isSaving = $state(false);
 
 	function formatDuration(totalSeconds: number): string {

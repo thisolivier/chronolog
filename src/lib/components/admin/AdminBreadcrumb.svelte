@@ -9,7 +9,7 @@
 
 <nav class="flex items-center gap-2 text-sm text-gray-500">
 	<a href="/admin" class="hover:text-gray-700">Admin</a>
-	{#each items as item, index}
+	{#each items as item (item.label)}
 		<span class="text-gray-400">/</span>
 		{#if item.href}
 			<a href={item.href} class="hover:text-gray-700">{item.label}</a>

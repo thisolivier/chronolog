@@ -1,10 +1,5 @@
 <script lang="ts">
-	import {
-		formatWeekRange,
-		formatHoursFromMinutes,
-		getIsoWeekNumber,
-		getIsoYear
-	} from '$lib/utils/iso-week';
+	import { formatWeekStartShort, formatHoursFromMinutes } from '$lib/utils/iso-week';
 
 	let {
 		weekStart,
@@ -18,42 +13,50 @@
 		onStatusChange: (newStatus: string) => void;
 	} = $props();
 
-	const weekNumber = $derived(getIsoWeekNumber(weekStart));
-	const isoYear = $derived(getIsoYear(weekStart));
+	// eslint-disable-next-line svelte/prefer-writable-derived -- intentionally writable: user types override prop value
+	let statusInputValue = $state(currentStatus);
+	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
-	const statusOptions = ['Unsubmitted', 'Draft ready', 'Submitted'];
+	// Sync external status changes into local state (also handles initial value)
+	$effect(() => {
+		statusInputValue = currentStatus;
+	});
 
-	async function handleStatusChange(event: Event) {
-		const select = event.target as HTMLSelectElement;
-		const newStatus = select.value;
-		await onStatusChange(newStatus);
+	function handleStatusBlur() {
+		clearTimeout(debounceTimer);
+		const trimmedValue = statusInputValue.trim();
+		if (trimmedValue !== currentStatus) {
+			onStatusChange(trimmedValue);
+		}
+	}
+
+	function handleStatusInput(event: Event) {
+		const input = event.target as HTMLInputElement;
+		statusInputValue = input.value;
+
+		clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(() => {
+			const trimmedValue = statusInputValue.trim();
+			if (trimmedValue !== currentStatus) {
+				onStatusChange(trimmedValue);
+			}
+		}, 1000);
 	}
 </script>
 
-<div class="mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-	<!-- Week title and total -->
-	<div class="mb-2 flex items-center justify-between">
-		<h2 class="text-lg font-bold text-gray-900">
-			Week {weekNumber} &mdash; {formatWeekRange(weekStart)}
-		</h2>
-		<span class="text-lg font-semibold text-gray-700">
-			{formatHoursFromMinutes(weeklyTotalMinutes)}
+<div class="mb-3 mt-6 first:mt-0">
+	<h1 class="text-lg font-bold text-gray-900">
+		{formatWeekStartShort(weekStart)}
+		<span class="font-semibold text-gray-600">
+			&middot; {formatHoursFromMinutes(weeklyTotalMinutes)}
 		</span>
-	</div>
-
-	<!-- Status row -->
-	<div class="flex items-center gap-2">
-		<label for="weekly-status-{isoYear}-{weekNumber}" class="text-sm font-medium text-gray-600">
-			Status:
-		</label>
-		<select
-			id="weekly-status-{isoYear}-{weekNumber}"
-			class="rounded-md border border-gray-300 px-2 py-1 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-			onchange={handleStatusChange}
-		>
-			{#each statusOptions as option (option)}
-				<option value={option} selected={currentStatus === option}>{option}</option>
-			{/each}
-		</select>
-	</div>
+	</h1>
+	<input
+		type="text"
+		value={statusInputValue}
+		oninput={handleStatusInput}
+		onblur={handleStatusBlur}
+		placeholder="Status..."
+		class="mt-1 w-48 border-0 border-b border-transparent bg-transparent px-0 py-0.5 text-sm text-gray-500 placeholder-gray-400 focus:border-gray-300 focus:ring-0 focus:outline-none"
+	/>
 </div>

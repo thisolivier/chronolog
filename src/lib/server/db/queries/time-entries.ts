@@ -1,4 +1,4 @@
-import { eq, and, between, sql } from 'drizzle-orm';
+import { eq, and, between } from 'drizzle-orm';
 import { database, timeEntries, contracts, clients, deliverables, workTypes } from '$lib/server/db';
 
 /** Shape returned by time entry queries that join related tables */

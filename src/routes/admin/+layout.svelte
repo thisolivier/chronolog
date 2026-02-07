@@ -1,5 +1,5 @@
 <script lang="ts">
-	let { children, data } = $props();
+	let { children } = $props();
 </script>
 
 <div class="min-h-screen bg-gray-50">

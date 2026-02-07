@@ -14,25 +14,25 @@
 		isLoading = true;
 
 		try {
-			const { data, error } = await authClient.signIn.email({
+			const { data: signInData, error: signInError } = await authClient.signIn.email({
 				email,
 				password
 			});
 
-			if (error) {
-				errorMessage = error.message || 'Login failed. Please check your credentials.';
+			if (signInError) {
+				errorMessage = signInError.message || 'Login failed. Please check your credentials.';
 				isLoading = false;
 				return;
 			}
 
-			if (data?.redirect) {
+			if (signInData?.redirect) {
 				requiresTwoFactor = true;
 				isLoading = false;
 				return;
 			}
 
 			goto('/');
-		} catch (unexpectedError) {
+		} catch (_error) {
 			errorMessage = 'An unexpected error occurred. Please try again.';
 			isLoading = false;
 		}
@@ -43,18 +43,18 @@
 		isLoading = true;
 
 		try {
-			const { data, error } = await authClient.twoFactor.verifyTotp({
+			const { error: verifyError } = await authClient.twoFactor.verifyTotp({
 				code: totpCode
 			});
 
-			if (error) {
-				errorMessage = error.message || 'Invalid 2FA code. Please try again.';
+			if (verifyError) {
+				errorMessage = verifyError.message || 'Invalid 2FA code. Please try again.';
 				isLoading = false;
 				return;
 			}
 
 			goto('/');
-		} catch (unexpectedError) {
+		} catch (_error) {
 			errorMessage = 'An unexpected error occurred. Please try again.';
 			isLoading = false;
 		}

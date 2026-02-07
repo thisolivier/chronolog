@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
-	import { resolveRoute } from '$app/paths';
 	import WeekSectionHeader from '$lib/components/weekly/WeekSectionHeader.svelte';
 	import TimeEntryCard from '$lib/components/weekly/TimeEntryCard.svelte';
-	import { getMondayOfWeek, getIsoWeekNumber, getIsoYear } from '$lib/utils/iso-week';
+	import InlineAddEntry from '$lib/components/weekly/InlineAddEntry.svelte';
+	import { getMondayOfWeek, getIsoWeekNumber, getIsoYear, formatWeekStartShort } from '$lib/utils/iso-week';
 	import { SvelteDate } from 'svelte/reactivity';
 
 	type WeekData = {
@@ -16,6 +16,7 @@
 				startTime: string | null;
 				endTime: string | null;
 				durationMinutes: number;
+				contractId: string;
 				contractName: string;
 				clientName: string;
 				clientShortCode: string;
@@ -39,24 +40,10 @@
 
 	const WEEKS_PER_BATCH = 4;
 
-	// Get the current week's Monday as starting point
+	// Get the current week's Monday and today's date for filtering
 	const today = new SvelteDate();
 	const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 	let currentWeekMonday = getMondayOfWeek(todayString);
-
-	// Calculate week starts for initial batch (current week + 3 previous)
-	function getWeekStarts(startWeek: string, count: number): string[] {
-		const starts: string[] = [];
-		let currentDate = new SvelteDate(startWeek + 'T00:00:00');
-
-		for (let index = 0; index < count; index++) {
-			starts.push(formatDate(currentDate));
-			// Move back 7 days for previous week
-			currentDate.setDate(currentDate.getDate() - 7);
-		}
-
-		return starts;
-	}
 
 	function formatDate(date: Date): string {
 		const year = date.getFullYear();
@@ -65,7 +52,19 @@
 		return `${year}-${month}-${day}`;
 	}
 
-	async function loadWeeks(weekStarts: string[]): Promise<WeekData[]> {
+	function getWeekStarts(startWeek: string, count: number): string[] {
+		const starts: string[] = [];
+		let currentDate = new SvelteDate(startWeek + 'T00:00:00');
+
+		for (let index = 0; index < count; index++) {
+			starts.push(formatDate(currentDate));
+			currentDate.setDate(currentDate.getDate() - 7);
+		}
+
+		return starts;
+	}
+
+	async function loadWeeksFromApi(weekStarts: string[]): Promise<WeekData[]> {
 		const weeksParam = weekStarts.join(',');
 		const response = await fetch(`/api/time-entries/weekly?weeks=${weeksParam}`);
 
@@ -81,8 +80,7 @@
 		isLoading = true;
 		try {
 			const weekStarts = getWeekStarts(currentWeekMonday, WEEKS_PER_BATCH);
-			const loadedWeeks = await loadWeeks(weekStarts);
-			weeks = loadedWeeks;
+			weeks = await loadWeeksFromApi(weekStarts);
 		} catch (error) {
 			console.error('Error loading initial weeks:', error);
 		} finally {
@@ -95,26 +93,32 @@
 
 		isLoading = true;
 		try {
-			// Get the oldest week currently loaded
 			const oldestWeek = weeks[weeks.length - 1];
 			if (!oldestWeek) return;
 
-			// Calculate the Monday one week before the oldest week
 			const oldestDate = new SvelteDate(oldestWeek.weekStart + 'T00:00:00');
 			oldestDate.setDate(oldestDate.getDate() - 7);
 			const nextStartWeek = formatDate(oldestDate);
 
 			const weekStarts = getWeekStarts(nextStartWeek, WEEKS_PER_BATCH);
-			const loadedWeeks = await loadWeeks(weekStarts);
+			const loadedWeeks = await loadWeeksFromApi(weekStarts);
 
 			weeks = [...weeks, ...loadedWeeks];
-
-			// For now, always allow loading more. In production, you might want to set a limit
-			// or check if we've reached a certain date in the past
 		} catch (error) {
 			console.error('Error loading more weeks:', error);
 		} finally {
 			isLoading = false;
+		}
+	}
+
+	/** Reload all currently loaded weeks (called after add/edit/delete) */
+	async function refreshWeeks() {
+		try {
+			const allWeekStarts = weeks.map((week) => week.weekStart);
+			if (allWeekStarts.length === 0) return;
+			weeks = await loadWeeksFromApi(allWeekStarts);
+		} catch (error) {
+			console.error('Error refreshing weeks:', error);
 		}
 	}
 
@@ -133,14 +137,12 @@
 				throw new Error('Failed to update status');
 			}
 
-			// Update local state
 			const weekIndex = weeks.findIndex((week) => week.weekStart === weekStart);
 			if (weekIndex !== -1) {
 				weeks[weekIndex].status = newStatus;
 			}
 		} catch (error) {
 			console.error('Error updating status:', error);
-			alert('Failed to update status. Please try again.');
 		}
 	}
 
@@ -159,21 +161,13 @@
 </script>
 
 <div class="flex h-full flex-col overflow-hidden bg-gray-50">
-	<!-- Header with actions -->
-	<div class="border-b border-gray-200 bg-white px-6 py-4">
-		<div class="flex items-center justify-between">
-			<h1 class="text-xl font-bold text-gray-900">Time Entries</h1>
-			<a
-				href={resolveRoute('/time/new', {})}
-				class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-			>
-				Add Entry
-			</a>
-		</div>
+	<!-- Mobile-only header (no Add Entry button) -->
+	<div class="border-b border-gray-200 bg-white px-6 py-4 md:hidden">
+		<h1 class="text-xl font-bold text-gray-900">Time Entries</h1>
 	</div>
 
 	<!-- Scrollable content -->
-	<div class="flex-1 overflow-y-auto px-6 py-6">
+	<div class="flex-1 overflow-y-auto px-6 py-4">
 		{#if isLoading && weeks.length === 0}
 			<div class="flex items-center justify-center py-12">
 				<p class="text-gray-500">Loading weeks...</p>
@@ -182,57 +176,67 @@
 			{#each weeks as week (week.weekStart)}
 				<div
 					data-week-start={week.weekStart}
-					class="mb-6"
 					bind:this={weekSectionRefs[week.weekStart]}
 				>
-					<WeekSectionHeader
-						weekStart={week.weekStart}
-						weeklyTotalMinutes={week.weeklyTotalMinutes}
-						currentStatus={week.status}
-						onStatusChange={(newStatus) => handleStatusChange(week.weekStart, newStatus)}
-					/>
+					{#if week.weeklyTotalMinutes === 0}
+						<!-- Empty week: heading only with suffix -->
+						<div class="mb-3 mt-6 first:mt-0">
+							<h1 class="text-lg font-bold text-gray-400">
+								{formatWeekStartShort(week.weekStart)}
+								<span class="font-normal"> &mdash; No entries this week</span>
+							</h1>
+						</div>
+					{:else}
+						<!-- Non-empty week: full breakdown, days in descending order, future days hidden -->
+						<WeekSectionHeader
+							weekStart={week.weekStart}
+							weeklyTotalMinutes={week.weeklyTotalMinutes}
+							currentStatus={week.status}
+							onStatusChange={(newStatus) => handleStatusChange(week.weekStart, newStatus)}
+						/>
 
-					<div class="space-y-4">
-						{#each week.days as day (day.date)}
-							<!-- Use DaySection but pass TimeEntryCard as the entry component -->
-							<div class="mb-4">
-								<div class="mb-2 flex items-center justify-between px-1">
-									<h3 class="text-sm font-semibold text-gray-700">
-										{new Date(day.date + 'T00:00:00').toLocaleDateString('en-US', {
-											weekday: 'long',
-											month: 'short',
-											day: 'numeric'
-										})}
-									</h3>
-									{#if day.totalMinutes > 0}
-										<span class="text-sm font-medium text-gray-500">
-											{Math.round((day.totalMinutes / 60) * 10) / 10} hrs
-										</span>
-									{/if}
-								</div>
+						{#each [...week.days].reverse() as day (day.date)}
+							{#if day.date <= todayString}
+								{#if day.entries.length > 0 || day.totalMinutes > 0}
+									<div class="mb-3">
+										<div class="mb-1 flex items-center justify-between px-1">
+											<h3 class="text-sm font-semibold text-gray-700">
+												{new Date(day.date + 'T00:00:00').toLocaleDateString('en-US', {
+													weekday: 'long',
+													month: 'short',
+													day: 'numeric'
+												})}
+											</h3>
+											{#if day.totalMinutes > 0}
+												<span class="text-sm font-medium text-gray-500">
+													{Math.round((day.totalMinutes / 60) * 10) / 10} hrs
+												</span>
+											{/if}
+										</div>
 
-								{#if day.entries.length > 0}
-									<div class="flex flex-col gap-2">
 										{#each day.entries as entry (entry.id)}
-											<TimeEntryCard {entry} />
+											<TimeEntryCard {entry} onUpdated={refreshWeeks} />
 										{/each}
+
+										<InlineAddEntry date={day.date} onEntryCreated={refreshWeeks} />
 									</div>
 								{:else}
-									<div
-										class="rounded-lg border border-dashed border-gray-200 px-4 py-3 text-center"
-									>
-										<p class="text-xs text-gray-400">No entries</p>
-										<a
-											href="{resolveRoute('/time/new', {})}?date={day.date}"
-											class="text-xs text-blue-500 hover:text-blue-700"
-										>
-											Add entry
-										</a>
+									<div class="mb-1">
+										<div class="flex items-center gap-2 px-1 py-0.5">
+											<span class="text-xs text-gray-400">
+												{new Date(day.date + 'T00:00:00').toLocaleDateString('en-US', {
+													weekday: 'short',
+													month: 'short',
+													day: 'numeric'
+												})}
+											</span>
+										</div>
+										<InlineAddEntry date={day.date} onEntryCreated={refreshWeeks} />
 									</div>
 								{/if}
-							</div>
+							{/if}
 						{/each}
-					</div>
+					{/if}
 				</div>
 			{/each}
 

@@ -87,7 +87,7 @@
 					if (form) form.requestSubmit();
 				}}
 			>
-				{#each statusOptions as option}
+				{#each statusOptions as option (option)}
 					<option value={option} selected={currentStatus === option}>{option}</option>
 				{/each}
 			</select>

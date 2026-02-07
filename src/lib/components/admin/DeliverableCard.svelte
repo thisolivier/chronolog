@@ -2,7 +2,14 @@
 	import { enhance } from '$app/forms';
 	import WorkTypeRow from './WorkTypeRow.svelte';
 
-	let { deliverable, actionBase }: { deliverable: any; actionBase: string } = $props();
+	interface DeliverableData {
+		id: string;
+		name: string;
+		sortOrder: number;
+		workTypes: Array<{ id: string; name: string; sortOrder: number }>;
+	}
+
+	let { deliverable, actionBase }: { deliverable: DeliverableData; actionBase: string } = $props();
 
 	let isEditing = $state(false);
 	let isDeleting = $state(false);

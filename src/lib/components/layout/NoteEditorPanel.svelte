@@ -4,6 +4,7 @@
 	import LinkedTimeEntries from '$lib/components/notes/LinkedTimeEntries.svelte';
 	import AttachmentList from '$lib/components/notes/AttachmentList.svelte';
 	import { buildChronologUrl } from '$lib/components/notes/extensions/attachment-resolver.js';
+	import { extractPreviewLines } from '$lib/utils/extract-preview-lines';
 
 	type NoteData = {
 		id: string;
@@ -22,7 +23,6 @@
 	let currentNote = $state<NoteData | null>(null);
 	let isLoading = $state(false);
 	let fetchError = $state<string | null>(null);
-	let lastSavedAt = $state<Date | null>(null);
 	let backlinks = $state<Array<{ sourceNoteId: string; noteTitle: string | null; headingAnchor: string | null }>>([]);
 
 	/** Fetch the full note from the API */
@@ -38,7 +38,6 @@
 			}
 			const data = await response.json();
 			currentNote = data.note;
-			lastSavedAt = null;
 		} catch (error) {
 			fetchError = error instanceof Error ? error.message : 'Unknown error loading note';
 			console.error('Error fetching note:', error);
@@ -85,29 +84,21 @@
 
 			const data = await response.json();
 			currentNote = data.note;
-			lastSavedAt = new Date();
+
+			// Notify the notes list panel to update this note's preview
+			const preview = extractPreviewLines(saveData.contentJson);
+			window.dispatchEvent(
+				new CustomEvent('note-saved', {
+					detail: {
+						noteId,
+						firstLine: preview.firstLine,
+						secondLine: preview.secondLine,
+						updatedAt: data.note.updatedAt
+					}
+				})
+			);
 		} catch (error) {
 			console.error('Error saving note:', error);
-		}
-	}
-
-	/** Delete the current note after confirmation */
-	async function handleDelete() {
-		const noteId = navigation.selectedNoteId;
-		if (!noteId) return;
-
-		const confirmed = window.confirm('Are you sure you want to delete this note? This cannot be undone.');
-		if (!confirmed) return;
-
-		try {
-			const response = await fetch(`/api/notes/${noteId}`, { method: 'DELETE' });
-			if (!response.ok) {
-				throw new Error('Failed to delete note');
-			}
-			navigation.clearSelectedNote();
-		} catch (error) {
-			console.error('Error deleting note:', error);
-			alert('Failed to delete note. Please try again.');
 		}
 	}
 
@@ -139,15 +130,6 @@
 		}
 	}
 
-	/** Format a Date as a short human-readable timestamp */
-	function formatTimestamp(date: Date): string {
-		return date.toLocaleTimeString('en-US', {
-			hour: 'numeric',
-			minute: '2-digit',
-			second: '2-digit'
-		});
-	}
-
 	// Re-fetch when selected note changes
 	$effect(() => {
 		const selectedNoteId = navigation.selectedNoteId;
@@ -157,7 +139,6 @@
 		} else {
 			currentNote = null;
 			fetchError = null;
-			lastSavedAt = null;
 			backlinks = [];
 		}
 	});
@@ -188,33 +169,12 @@
 			</div>
 		</div>
 	{:else if currentNote}
-		<!-- Header bar -->
-		<div class="border-b border-gray-200 bg-white px-6 py-3">
-			<div class="flex items-center justify-between">
-				<div class="flex items-center gap-3">
-					<span class="font-mono text-xs text-gray-400">{currentNote.id}</span>
-					{#if lastSavedAt}
-						<span class="text-xs text-gray-400">
-							Saved at {formatTimestamp(lastSavedAt)}
-						</span>
-					{/if}
-				</div>
-				<button
-					onclick={handleDelete}
-					class="rounded-md px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700"
-				>
-					Delete
-				</button>
-			</div>
-		</div>
-
 		<!-- Editor (re-mount on note change) -->
 		<div class="flex-1 overflow-hidden">
 			{#key currentNote.id}
 				<NoteEditor
 					initialContent={currentNote.content ?? ''}
 					initialJson={currentNote.contentJson ?? ''}
-					noteTitle={currentNote.title ?? ''}
 					noteId={currentNote.id}
 					onSave={handleSave}
 					onFileUpload={handleFileUpload}
@@ -227,7 +187,7 @@
 			<div class="border-t border-gray-200 bg-white px-6 py-3">
 				<h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Linked from</h4>
 				<div class="flex flex-wrap gap-2">
-					{#each backlinks as backlink}
+					{#each backlinks as backlink (backlink.sourceNoteId)}
 						<button
 							onclick={() => navigation.selectNote(backlink.sourceNoteId)}
 							class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-mono text-indigo-700 hover:bg-indigo-100"

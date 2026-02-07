@@ -11,10 +11,8 @@
 
 	let { noteId }: Props = $props();
 	let linkedEntries = $state<LinkedTimeEntry[]>([]);
-	let isLoading = $state(false);
 
 	async function fetchLinkedEntries() {
-		isLoading = true;
 		try {
 			const response = await fetch(`/api/notes/${noteId}/time-entries`);
 			if (response.ok) {
@@ -23,8 +21,6 @@
 			}
 		} catch (fetchError) {
 			console.error('Failed to fetch linked entries:', fetchError);
-		} finally {
-			isLoading = false;
 		}
 	}
 
@@ -56,7 +52,7 @@
 			Linked Time Entries
 		</h4>
 		<div class="space-y-1">
-			{#each linkedEntries as entry}
+			{#each linkedEntries as entry (entry.timeEntryId)}
 				<div
 					class="flex items-center justify-between rounded px-2 py-1 text-xs hover:bg-gray-50"
 				>

@@ -1,4 +1,4 @@
-import { and, eq, inArray, between, sum } from 'drizzle-orm';
+import { and, eq, between, sum } from 'drizzle-orm';
 import { database, timeEntries } from '$lib/server/db';
 import { listTimeEntriesForWeek, type TimeEntryWithContext } from './time-entries';
 import { getWeekDates, getSundayOfWeek } from '$lib/utils/iso-week';

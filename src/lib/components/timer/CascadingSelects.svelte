@@ -23,15 +23,12 @@
 	let deliverableList: Deliverable[] = $state([]);
 	let workTypeList: WorkType[] = $state([]);
 
-	let contractsLoaded = $state(false);
-
 	/** Fetch contracts for the current user */
 	async function loadContracts() {
 		const response = await fetch('/api/contracts');
 		if (response.ok) {
 			contractList = await response.json();
 		}
-		contractsLoaded = true;
 	}
 
 	/** Fetch deliverables when contract changes */

@@ -1,8 +1,14 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 
+	interface WorkTypeData {
+		id: string;
+		name: string;
+		sortOrder: number;
+	}
+
 	let { workType, deliverableId, actionBase }: {
-		workType: any;
+		workType: WorkTypeData;
 		deliverableId: string;
 		actionBase: string;
 	} = $props();

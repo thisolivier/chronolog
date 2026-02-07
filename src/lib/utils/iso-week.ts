@@ -127,6 +127,35 @@ export function formatTimeShort(timeString: string | null): string {
 	return timeString.substring(0, 5);
 }
 
+/** Get the ordinal suffix for a day number (e.g., 1 → "st", 2 → "nd", 3 → "rd", 4 → "th"). */
+export function getOrdinalSuffix(day: number): string {
+	if (day >= 11 && day <= 13) return 'th';
+	switch (day % 10) {
+		case 1:
+			return 'st';
+		case 2:
+			return 'nd';
+		case 3:
+			return 'rd';
+		default:
+			return 'th';
+	}
+}
+
+/** Format a Monday date string as short label (e.g., "Monday 9th Feb"). */
+export function formatWeekStartShort(mondayDateString: string): string {
+	const date = new Date(mondayDateString + 'T00:00:00');
+	const dayOfMonth = date.getDate();
+	const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
+	const month = date.toLocaleDateString('en-US', { month: 'short' });
+	return `${weekday} ${dayOfMonth}${getOrdinalSuffix(dayOfMonth)} ${month}`;
+}
+
+/** Format a Monday date string as full week label (e.g., "Week Starting Monday 9th Feb"). */
+export function formatWeekStartLabel(mondayDateString: string): string {
+	return `Week Starting ${formatWeekStartShort(mondayDateString)}`;
+}
+
 /** Format minutes as duration string (e.g., 90 -> "1h 30m"). */
 export function formatDuration(totalMinutes: number): string {
 	const hours = Math.floor(totalMinutes / 60);

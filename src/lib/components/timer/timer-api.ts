@@ -20,6 +20,8 @@ export type ContractOption = {
 	id: string;
 	name: string;
 	isActive: boolean;
+	clientId: string;
+	clientName: string;
 	clientShortCode: string;
 };
 
@@ -89,6 +91,36 @@ export async function apiDiscardTimer(entryId: string): Promise<void> {
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ entryId })
 	});
+}
+
+/** Update a draft time entry's contract and/or description while timer is running */
+export async function apiUpdateDraft(
+	entryId: string,
+	data: { contractId?: string; description?: string }
+): Promise<void> {
+	const response = await fetch(`/api/time-entries/${entryId}`, {
+		method: 'PUT',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(data)
+	});
+	if (!response.ok) throw new Error('Failed to update draft entry');
+}
+
+/** Create a manual time entry */
+export async function apiCreateManualEntry(data: {
+	date: string;
+	durationMinutes: number;
+	contractId: string;
+	description?: string;
+}): Promise<{ id: string }> {
+	const response = await fetch('/api/time-entries', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(data)
+	});
+	if (!response.ok) throw new Error('Failed to create time entry');
+	const result = await response.json();
+	return result.entry;
 }
 
 /** Calculate elapsed seconds from a start time string (HH:MM:SS) relative to now */

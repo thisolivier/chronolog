@@ -29,10 +29,8 @@
 	interface Props {
 		initialContent?: string;
 		initialJson?: string;
-		noteTitle?: string;
 		noteId?: string;
 		onSave?: (data: { title: string; content: string; contentJson: string }) => void;
-		onTitleChange?: (title: string) => void;
 		onWikiLinkClick?: (noteId: string, headingAnchor?: string) => void;
 		onFileUpload?: (file: File) => Promise<string | null>;
 		readonly?: boolean;
@@ -42,12 +40,10 @@
 	let {
 		initialContent = '',
 		initialJson = '',
-		noteTitle = '',
 		// noteId is declared in Props for the parent's API contract (used to construct
 		// the onFileUpload callback) but is not consumed inside this component.
 		noteId,
 		onSave,
-		onTitleChange,
 		onWikiLinkClick,
 		onFileUpload,
 		readonly = false
@@ -57,7 +53,6 @@
 	let editorElement: HTMLDivElement;
 	let fileInput: HTMLInputElement;
 	let editor: Editor | null = $state(null);
-	let title = $state(noteTitle);
 	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	function handleAttachFileClick() {
@@ -233,45 +228,15 @@
 			const json = JSON.stringify(editor.getJSON());
 
 			onSave({
-				title,
+				title: '',
 				content: markdown,
 				contentJson: json
 			});
-		}, 1500);
+		}, 500);
 	}
-
-	function handleTitleInput(event: Event) {
-		const target = event.target as HTMLInputElement;
-		title = target.value;
-
-		if (onTitleChange) {
-			onTitleChange(title);
-		}
-
-		// Also trigger save when title changes
-		triggerDebouncedsave();
-	}
-
-	// Update title when prop changes
-	$effect(() => {
-		title = noteTitle;
-	});
 </script>
 
 <div class="flex flex-col h-full border border-gray-200 rounded-lg overflow-hidden bg-white">
-	<!-- Title Input -->
-	<div class="border-b border-gray-200 p-4">
-		<input
-			type="text"
-			value={title}
-			oninput={handleTitleInput}
-			placeholder="Untitled"
-			{readonly}
-			class="w-full text-xl font-bold outline-none border-none bg-transparent
-				placeholder:text-gray-400 disabled:cursor-not-allowed disabled:text-gray-600"
-		/>
-	</div>
-
 	<!-- Hidden file input for the toolbar Attach button -->
 	<input
 		bind:this={fileInput}

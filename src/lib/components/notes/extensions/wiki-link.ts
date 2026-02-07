@@ -1,4 +1,4 @@
-import { Node, mergeAttributes, type Range } from '@tiptap/core';
+import { Node, mergeAttributes, InputRule, type Range } from '@tiptap/core';
 import { type Editor } from '@tiptap/core';
 import { PluginKey } from '@tiptap/pm/state';
 import { Suggestion, type SuggestionOptions } from '@tiptap/suggestion';
@@ -255,7 +255,7 @@ export const WikiLink = Node.create<{
 
 	addInputRules() {
 		return [
-			{
+			new InputRule({
 				// Match `[[...]]` when typed. The regex captures the interior.
 				find: /\[\[([^\]]+)\]\]$/,
 				handler: ({ state, range, match }) => {
@@ -276,7 +276,7 @@ export const WikiLink = Node.create<{
 					const transaction = state.tr.replaceWith(range.from, range.to, wikiLinkNode);
 					state.apply(transaction);
 				},
-			},
+			}),
 		];
 	},
 

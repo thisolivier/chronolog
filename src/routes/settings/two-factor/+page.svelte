@@ -81,7 +81,7 @@
 				});
 				enrollmentStep = 'qr-display';
 			}
-		} catch (unexpectedError) {
+		} catch (_error) {
 			errorMessage = 'An unexpected error occurred. Please try again.';
 		}
 
@@ -110,7 +110,7 @@
 			hasTwoFactorEnabled = true;
 			enrollmentStep = 'recovery-codes';
 			successMessage = 'Two-factor authentication has been enabled.';
-		} catch (unexpectedError) {
+		} catch (_error) {
 			errorMessage = 'An unexpected error occurred. Please try again.';
 		}
 
@@ -124,12 +124,12 @@
 		isLoading = true;
 
 		try {
-			const { error } = await authClient.twoFactor.disable({
+			const { error: disableError } = await authClient.twoFactor.disable({
 				password: disablePassword
 			});
 
-			if (error) {
-				errorMessage = error.message || 'Failed to disable 2FA.';
+			if (disableError) {
+				errorMessage = disableError.message || 'Failed to disable 2FA.';
 				isLoading = false;
 				return;
 			}
@@ -138,7 +138,7 @@
 			enrollmentStep = 'idle';
 			disablePassword = '';
 			successMessage = 'Two-factor authentication has been disabled.';
-		} catch (unexpectedError) {
+		} catch (_error) {
 			errorMessage = 'An unexpected error occurred. Please try again.';
 		}
 
@@ -328,7 +328,7 @@
 		</p>
 
 		<div class="mb-6 rounded-md bg-white p-4 font-mono text-sm">
-			{#each recoveryCodes as recoveryCode}
+			{#each recoveryCodes as recoveryCode (recoveryCode)}
 				<div class="py-1 text-gray-800">{recoveryCode}</div>
 			{/each}
 		</div>

@@ -1,6 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { listNotesForContract, createNoteForUser } from '$lib/server/db/queries/notes';
+import { listNotesForContract, createNoteForUser, extractPreviewLines } from '$lib/server/db/queries/notes';
 
 /**
  * GET /api/notes?contractId=X
@@ -20,15 +20,18 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	const notesList = await listNotesForContract(currentUser.id, contractId);
 
 	// Return only the fields needed for the list view
-	const notes = notesList.map((note) => ({
-		id: note.id,
-		title: note.title,
-		contractId: note.contractId,
-		wordCount: note.wordCount,
-		isPinned: note.isPinned,
-		createdAt: note.createdAt,
-		updatedAt: note.updatedAt
-	}));
+	const notes = notesList.map((note) => {
+		const preview = extractPreviewLines(note.contentJson);
+		return {
+			id: note.id,
+			contractId: note.contractId,
+			isPinned: note.isPinned,
+			createdAt: note.createdAt,
+			updatedAt: note.updatedAt,
+			firstLine: preview.firstLine,
+			secondLine: preview.secondLine
+		};
+	});
 
 	return json({ notes });
 };

@@ -1,7 +1,14 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 
-	let { contract, clientId }: { contract: any; clientId: string } = $props();
+	interface ContractData {
+		id: string;
+		name: string;
+		description: string | null;
+		isActive: boolean;
+	}
+
+	let { contract, clientId }: { contract: ContractData; clientId: string } = $props();
 
 	let isEditing = $state(false);
 	let isDeleting = $state(false);
