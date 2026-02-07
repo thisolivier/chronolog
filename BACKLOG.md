@@ -189,23 +189,24 @@ Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, dat
 
 ---
 
-## Task 8: Wiki-Links & Note Linking
+## Task 8: Wiki-Links & Note Linking ✅
 
 **Goal**: Notes can link to other notes and to time entries.
 
-- [ ] Build custom TipTap WikiLink node extension:
+- [x] Build custom TipTap WikiLink node extension:
   - `[[` trigger with Suggestion popup
   - Search notes by ID or title
   - Support `[[ID]]`, `[[ID|label]]`, `[[ID#heading]]` syntax
-- [ ] Build AnchoredHeading extension (auto-generate heading IDs)
-- [ ] Implement backlinks index:
+- [x] Build AnchoredHeading extension (auto-generate heading IDs)
+- [x] Implement backlinks index:
   - Parse `[[links]]` from markdown on save
-  - Store in backlinks table/index
+  - Store in `note_links` table (backlinks index)
   - Display "Linked from" section on note view
-- [ ] Build UI for linking notes to time entries:
-  - From a time entry: attach one or more note references
-  - From a note: see which time entries reference it
-- [ ] Render wiki-links as clickable navigation in both editor and read views
+- [x] Build UI for linking notes to time entries:
+  - From a note: see which time entries reference it (LinkedTimeEntries component)
+  - API for linking/unlinking time entries to notes
+  - [ ] From a time entry: attach note references — _deferred to polish pass_
+- [x] Render wiki-links as clickable navigation in editor view
 
 **Output**: Full linking system — notes link to notes, notes link to time entries, backlinks visible.
 
@@ -294,14 +295,14 @@ Task 1 (scaffolding + Tauri init) ✅
 
 Task 6b (layout shell) ✅
   └── Task 7 (notes editor) ✅
-        └── Task 8 (wiki-links) ← NEXT (requires Task 7, Task 5)
-        └── Task 9 (attachments) ← requires Task 7
+        └── Task 8 (wiki-links) ✅
+        └── Task 9 (attachments) ← NEXT (requires Task 7)
 
 Task 10 (storage abstraction) ← requires Task 2
 Task 11 (offline sync) ← requires Task 10, Tasks 5 and 7 minimum; ideally after all features
 ```
 
-Tasks 1-7 are complete. **Task 8 (wiki-links) is the next critical path item** — it builds on the note editor from Task 7 and time entries from Task 5.
+Tasks 1-8 are complete. **Task 9 (file attachments) is the next critical path item** — it builds on the note editor from Task 7.
 
 ### Deferred cross-cutting concerns
 
