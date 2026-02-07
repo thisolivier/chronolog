@@ -1,4 +1,4 @@
-import { error, fail } from '@sveltejs/kit';
+import { redirect, error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { deleteTimeEntry } from '$lib/server/db/queries/time-entries';
 import { getWeeklySummary } from '$lib/server/db/queries/time-entries-weekly';
@@ -12,29 +12,9 @@ import {
 	getIsoYear
 } from '$lib/utils/iso-week';
 
-export const load: PageServerLoad = async ({ locals, url }) => {
-	const currentUser = locals.user;
-	if (!currentUser) throw error(401, 'Unauthorized');
-
-	// Determine which week to show
-	const weekParam = url.searchParams.get('week'); // Expected: YYYY-MM-DD (a Monday)
-	const todayString = new Date().toISOString().split('T')[0];
-	const weekStart = weekParam || getMondayOfWeek(todayString);
-
-	// Fetch weekly summary (entries grouped by day)
-	const weeklySummary = await getWeeklySummary(currentUser.id, weekStart);
-
-	// Fetch weekly status
-	const year = getIsoYear(weekStart);
-	const weekNumber = getIsoWeekNumber(weekStart);
-	const existingStatus = await getWeeklyStatus(currentUser.id, year, weekNumber);
-	const weeklyStatus = existingStatus?.status ?? 'Unsubmitted';
-
-	return {
-		weeklySummary,
-		weekStart,
-		weeklyStatus
-	};
+export const load: PageServerLoad = async () => {
+	// Redirect to home page - time entries are now in the AppShell
+	throw redirect(302, '/');
 };
 
 export const actions: Actions = {

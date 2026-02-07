@@ -1,81 +1,38 @@
 <script lang="ts">
-	import { authClient } from '$lib/auth-client';
-	import { goto } from '$app/navigation';
-	import TimerWidget from '$lib/components/timer/TimerWidget.svelte';
+	import AppShell from '$lib/components/layout/AppShell.svelte';
+	import ContractsSidebar from '$lib/components/layout/ContractsSidebar.svelte';
+	import WeekListPanel from '$lib/components/layout/WeekListPanel.svelte';
+	import TimeEntriesPanel from '$lib/components/layout/TimeEntriesPanel.svelte';
+	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 
 	let { data } = $props();
-
-	async function handleLogout() {
-		await authClient.signOut({
-			fetchOptions: {
-				onSuccess: () => {
-					goto('/login');
-				}
-			}
-		});
-	}
+	const nav = getNavigationContext();
 </script>
 
-<div class="min-h-screen bg-gray-50">
-	<header class="border-b border-gray-200 bg-white shadow-sm">
-		<div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-			<h1 class="text-xl font-bold text-gray-900">Chronolog</h1>
-			<div class="flex items-center gap-4">
-				<span class="text-sm text-gray-600">
-					{data.user?.name || data.user?.email || 'User'}
-				</span>
-				<button
-					onclick={handleLogout}
-					class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
-				>
-					Sign out
-				</button>
+<AppShell>
+	{#snippet panel1()}
+		<ContractsSidebar userName={data.user?.name || ''} userEmail={data.user?.email || ''} />
+	{/snippet}
+
+	{#snippet panel2()}
+		{#if nav.isTimeEntriesMode}
+			<WeekListPanel />
+		{:else}
+			<!-- Notes list placeholder (Task 7) -->
+			<div class="flex h-full items-center justify-center p-4">
+				<p class="text-sm text-gray-400">Notes coming soon</p>
 			</div>
-		</div>
-	</header>
+		{/if}
+	{/snippet}
 
-	<main class="mx-auto max-w-7xl p-8">
-		<div class="mb-8">
-			<h2 class="text-2xl font-semibold text-gray-900">
-				Welcome, {data.user?.name || 'there'}
-			</h2>
-			<p class="mt-1 text-gray-600">Time tracking and notes for consulting work.</p>
-		</div>
-
-		<!-- Timer Widget -->
-		<div class="mb-8 max-w-sm">
-			<h3 class="mb-3 text-sm font-medium text-gray-500 uppercase tracking-wide">Timer</h3>
-			<TimerWidget />
-		</div>
-
-		<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-			<a
-				href="/time"
-				class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
-			>
-				<h3 class="font-semibold text-gray-900">Time Entries</h3>
-				<p class="mt-2 text-sm text-gray-600">
-					View and manage your time tracking entries.
-				</p>
-			</a>
-			<a
-				href="/admin"
-				class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
-			>
-				<h3 class="font-semibold text-gray-900">Admin</h3>
-				<p class="mt-2 text-sm text-gray-600">
-					Manage clients, contracts, deliverables, and work types.
-				</p>
-			</a>
-			<a
-				href="/settings/two-factor"
-				class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
-			>
-				<h3 class="font-semibold text-gray-900">Two-Factor Authentication</h3>
-				<p class="mt-2 text-sm text-gray-600">
-					Manage your 2FA settings and recovery codes.
-				</p>
-			</a>
-		</div>
-	</main>
-</div>
+	{#snippet panel3()}
+		{#if nav.isTimeEntriesMode}
+			<TimeEntriesPanel />
+		{:else}
+			<!-- Note editor placeholder (Task 7) -->
+			<div class="flex h-full items-center justify-center p-4">
+				<p class="text-sm text-gray-400">Select a note to view</p>
+			</div>
+		{/if}
+	{/snippet}
+</AppShell>
