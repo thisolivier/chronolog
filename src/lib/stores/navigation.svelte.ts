@@ -54,6 +54,7 @@ export interface NavigationContext {
 	selectContract: (contractId: string, clientId: string) => void;
 	selectWeek: (weekStart: string) => void;
 	selectNote: (noteId: string) => void;
+	clearSelectedNote: () => void;
 	toggleSidebar: () => void;
 	navigateMobile: (level: MobileNavigationLevel) => void;
 	goBackMobile: () => void;
@@ -116,6 +117,10 @@ export function createNavigationState(): NavigationContext {
 		state.mobileNavigationLevel = 2;
 	};
 
+	const clearSelectedNote = () => {
+		state.selectedNoteId = null;
+	};
+
 	const toggleSidebar = () => {
 		state.panel1Collapsed = !state.panel1Collapsed;
 	};
@@ -170,6 +175,7 @@ export function createNavigationState(): NavigationContext {
 		selectContract,
 		selectWeek,
 		selectNote,
+		clearSelectedNote,
 		toggleSidebar,
 		navigateMobile,
 		goBackMobile

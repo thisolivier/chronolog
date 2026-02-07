@@ -139,6 +139,45 @@ The content for Panel 3 when in "time entries" mode. Shows a continuous vertical
 - `DaySection.svelte`: Day header and entry list (reused from single week view)
 - `TimeEntryCard.svelte`: Individual entry card with API-based delete
 
+### NoteListPanel.svelte
+
+The content for Panel 2 when in "notes" mode. Shows a list of notes for the selected contract.
+
+**Features:**
+- Header with "Notes" title and "New Note" button
+- Lists notes for the currently selected contract
+- Each note shows: title (or "Untitled"), pin indicator, relative date, word count
+- Highlighted row for the currently selected note
+- Automatically re-fetches notes when the selected contract changes
+
+**Data Loading:**
+- Fetches notes from `/api/notes?contractId=...`
+- Creates notes via POST to `/api/notes`
+
+**Navigation:**
+- Uses `getNavigationContext()` to access `selectedContractId` and `selectedNoteId`
+- Calls `navigationContext.selectNote(noteId)` on click
+
+### NoteEditorPanel.svelte
+
+The content for Panel 3 when in "notes" mode. Displays a TipTap rich-text editor for the selected note.
+
+**Features:**
+- Empty state when no note is selected
+- Loading and error states with retry
+- Header bar showing note ID, last-saved timestamp, and delete button
+- TipTap editor (via `NoteEditor` component) with auto-save on content changes
+- Re-mounts the editor (via `{#key}`) when switching between notes
+
+**Data Loading:**
+- Fetches full note from `/api/notes/{noteId}`
+- Saves via PUT to `/api/notes/{noteId}` (title, content, contentJson)
+- Deletes via DELETE to `/api/notes/{noteId}` with confirmation dialog
+
+**Navigation:**
+- Uses `getNavigationContext()` to watch `selectedNoteId`
+- Calls `navigation.clearSelectedNote()` after deletion
+
 ## Navigation State
 
 All layout components use the navigation context from `$lib/stores/navigation.svelte.ts`:
@@ -146,6 +185,7 @@ All layout components use the navigation context from `$lib/stores/navigation.sv
 - `mode`: 'time-entries' | 'notes'
 - `selectedContractId`: Currently selected contract ID
 - `selectedClientId`: Client owning the selected contract
+- `selectedNoteId`: Currently selected note ID (notes mode)
 - `panel1Collapsed`: Whether the sidebar is collapsed
 
 ## Styling
@@ -162,3 +202,6 @@ All layout components use the navigation context from `$lib/stores/navigation.sv
 - `$lib/components/timer/TimerWidget.svelte`: Timer widget in sidebar
 - `/api/contracts-by-client`: API endpoint for grouped contracts data
 - `/api/weeks`: API endpoint for weekly summaries (used by WeekListPanel)
+- `/api/notes`: API endpoint for listing and creating notes (used by NoteListPanel)
+- `/api/notes/{noteId}`: API endpoint for fetching, updating, and deleting a note (used by NoteEditorPanel)
+- `$lib/components/notes/NoteEditor.svelte`: TipTap rich-text editor component
