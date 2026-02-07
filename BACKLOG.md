@@ -130,7 +130,7 @@ Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, dat
 - [ ] Install and configure TipTap with SvelteKit:
   - `@tiptap/core`, `@tiptap/starter-kit`, `@tiptap/extension-markdown`
   - `@tiptap/extension-image`, `@tiptap/extension-link`, `@tiptap/extension-placeholder`
-- [ ] Build note creation flow:
+- [ ] Build note creation flow (refer to UI-SPEC.md):
   - Select client/contract
   - Auto-generate note ID (`CLIENT.YYYYMMDD.SEQ`)
   - Open TipTap editor
