@@ -15,27 +15,17 @@
 
 	const navigationContext = getNavigationContext();
 
+	interface ClientOption {
+		id: string;
+		name: string;
+		shortCode: string;
+	}
+
 	let contractsList = $state<ContractItem[]>([]);
+	let allClients = $state<ClientOption[]>([]);
 	let isLoading = $state(true);
 	let errorMessage = $state('');
 	let showCreateModal = $state(false);
-
-	/** Extract unique clients from the loaded contracts list */
-	let uniqueClients = $derived(() => {
-		const seen: Record<string, boolean> = {};
-		const result: Array<{ id: string; name: string; shortCode: string }> = [];
-		for (const contract of contractsList) {
-			if (!seen[contract.clientId]) {
-				seen[contract.clientId] = true;
-				result.push({
-					id: contract.clientId,
-					name: contract.clientName,
-					shortCode: contract.clientShortCode
-				});
-			}
-		}
-		return result;
-	});
 
 	async function loadContracts() {
 		try {
@@ -51,8 +41,22 @@
 		}
 	}
 
+	async function loadClients() {
+		try {
+			const response = await fetch('/api/clients');
+			if (!response.ok) throw new Error('Failed to load clients');
+
+			const data = await response.json();
+			allClients = data.clients;
+		} catch (error) {
+			// Client loading failure is non-critical; the modal will just have an empty dropdown
+			console.error('Failed to load clients:', error);
+		}
+	}
+
 	$effect(() => {
 		loadContracts();
+		loadClients();
 	});
 
 	function handleTimeEntriesClick() {
@@ -65,9 +69,10 @@
 
 	function handleContractCreated() {
 		showCreateModal = false;
-		// Reload the contracts list
+		// Reload the contracts list and clients list
 		isLoading = true;
 		loadContracts();
+		loadClients();
 	}
 </script>
 
@@ -158,7 +163,7 @@
 	<!-- Contract Create Modal -->
 	{#if showCreateModal}
 		<ContractCreateModal
-			clients={uniqueClients()}
+			clients={allClients}
 			onCreated={handleContractCreated}
 			onClose={() => (showCreateModal = false)}
 		/>
