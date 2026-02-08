@@ -8,7 +8,7 @@
  *   const storage = await getStorage();
  */
 
-export type { StorageAdapter, TableName, TableRowMap } from './types';
+export type { StorageAdapter, TableName, TableRowMap, SyncQueueItem } from './types';
 export type {
 	ClientRow,
 	ContractRow,

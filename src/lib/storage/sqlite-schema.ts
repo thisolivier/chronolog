@@ -63,6 +63,7 @@ export const CREATE_TABLE_STATEMENTS: string[] = [
 		name TEXT NOT NULL,
 		description TEXT,
 		is_active INTEGER NOT NULL DEFAULT 1,
+		sort_order INTEGER NOT NULL DEFAULT 0,
 		created_at TEXT NOT NULL,
 		updated_at TEXT NOT NULL
 	)`,
@@ -141,5 +142,17 @@ export const CREATE_TABLE_STATEMENTS: string[] = [
 	`CREATE TABLE IF NOT EXISTS _blobs (
 		attachment_id TEXT PRIMARY KEY,
 		data BLOB NOT NULL
+	)`,
+	`CREATE TABLE IF NOT EXISTS _sync_queue (
+		id TEXT PRIMARY KEY,
+		table_name TEXT NOT NULL,
+		entity_id TEXT NOT NULL,
+		operation TEXT NOT NULL,
+		data TEXT NOT NULL,
+		timestamp TEXT NOT NULL
+	)`,
+	`CREATE TABLE IF NOT EXISTS _sync_meta (
+		key TEXT PRIMARY KEY,
+		value TEXT NOT NULL
 	)`
 ];

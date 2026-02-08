@@ -1,29 +1,18 @@
 <script lang="ts">
 	import { formatTimeShort, formatDuration } from '$lib/utils/iso-week';
 	import ContractSelect from '$lib/components/timer/ContractSelect.svelte';
-
-	type EntryData = {
-		id: string;
-		startTime: string | null;
-		endTime: string | null;
-		durationMinutes: number;
-		contractId: string;
-		contractName: string;
-		clientName: string;
-		clientShortCode: string;
-		deliverableName: string | null;
-		workTypeName: string | null;
-		description: string | null;
-		date: string;
-	};
+	import { getDataService } from '$lib/sync/context';
+	import type { TimeEntryDisplay } from '$lib/sync/data-types';
 
 	let {
 		entry,
 		onUpdated
 	}: {
-		entry: EntryData;
+		entry: TimeEntryDisplay;
 		onUpdated?: () => void;
 	} = $props();
+
+	const dataService = getDataService();
 
 	// Inline editing states
 	let isEditingDuration = $state(false);
@@ -71,14 +60,7 @@
 
 	async function saveField(field: string, value: unknown) {
 		try {
-			const response = await fetch(`/api/time-entries/${entry.id}`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ [field]: value })
-			});
-			if (!response.ok) {
-				throw new Error(`Failed to update ${field}`);
-			}
+			await dataService.updateTimeEntry(entry.id, { [field]: value });
 			onUpdated?.();
 		} catch (error) {
 			console.error(`Error saving ${field}:`, error);
@@ -157,12 +139,7 @@
 	async function handleDelete() {
 		isDeleting = true;
 		try {
-			const response = await fetch(`/api/time-entries/${entry.id}`, {
-				method: 'DELETE'
-			});
-			if (!response.ok) {
-				throw new Error('Failed to delete entry');
-			}
+			await dataService.deleteTimeEntry(entry.id);
 			onUpdated?.();
 		} catch (error) {
 			console.error('Error deleting entry:', error);

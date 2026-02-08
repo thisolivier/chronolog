@@ -1,37 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
+	import { getDataService } from '$lib/sync/context';
 	import WeekSectionHeader from '$lib/components/weekly/WeekSectionHeader.svelte';
 	import TimeEntryCard from '$lib/components/weekly/TimeEntryCard.svelte';
 	import InlineAddEntry from '$lib/components/weekly/InlineAddEntry.svelte';
 	import { getMondayOfWeek, getIsoWeekNumber, getIsoYear, formatWeekStartShort } from '$lib/utils/iso-week';
 	import { SvelteDate } from 'svelte/reactivity';
-
-	type WeekData = {
-		weekStart: string;
-		days: Array<{
-			date: string;
-			entries: Array<{
-				id: string;
-				startTime: string | null;
-				endTime: string | null;
-				durationMinutes: number;
-				contractId: string;
-				contractName: string;
-				clientName: string;
-				clientShortCode: string;
-				deliverableName: string | null;
-				workTypeName: string | null;
-				description: string | null;
-				date: string;
-			}>;
-			totalMinutes: number;
-		}>;
-		weeklyTotalMinutes: number;
-		status: string;
-	};
+	import type { WeekData } from '$lib/sync/data-types';
 
 	const navigation = getNavigationContext();
+	const dataService = getDataService();
 
 	let weeks = $state<WeekData[]>([]);
 	let isLoading = $state(false);
@@ -64,23 +43,15 @@
 		return starts;
 	}
 
-	async function loadWeeksFromApi(weekStarts: string[]): Promise<WeekData[]> {
-		const weeksParam = weekStarts.join(',');
-		const response = await fetch(`/api/time-entries/weekly?weeks=${weeksParam}`);
-
-		if (!response.ok) {
-			throw new Error('Failed to load weeks');
-		}
-
-		const data = await response.json();
-		return data.weeks;
+	async function loadWeeksFromService(weekStarts: string[]): Promise<WeekData[]> {
+		return dataService.getWeeklyTimeEntries(weekStarts);
 	}
 
 	async function loadInitialWeeks() {
 		isLoading = true;
 		try {
 			const weekStarts = getWeekStarts(currentWeekMonday, WEEKS_PER_BATCH);
-			weeks = await loadWeeksFromApi(weekStarts);
+			weeks = await loadWeeksFromService(weekStarts);
 		} catch (error) {
 			console.error('Error loading initial weeks:', error);
 		} finally {
@@ -101,7 +72,7 @@
 			const nextStartWeek = formatDate(oldestDate);
 
 			const weekStarts = getWeekStarts(nextStartWeek, WEEKS_PER_BATCH);
-			const loadedWeeks = await loadWeeksFromApi(weekStarts);
+			const loadedWeeks = await loadWeeksFromService(weekStarts);
 
 			weeks = [...weeks, ...loadedWeeks];
 		} catch (error) {
@@ -116,7 +87,7 @@
 		try {
 			const allWeekStarts = weeks.map((week) => week.weekStart);
 			if (allWeekStarts.length === 0) return;
-			weeks = await loadWeeksFromApi(allWeekStarts);
+			weeks = await loadWeeksFromService(allWeekStarts);
 		} catch (error) {
 			console.error('Error refreshing weeks:', error);
 		}
@@ -127,15 +98,7 @@
 		const weekNumber = getIsoWeekNumber(weekStart);
 
 		try {
-			const response = await fetch('/api/time-entries/weekly-statuses', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ year, weekNumber, status: newStatus })
-			});
-
-			if (!response.ok) {
-				throw new Error('Failed to update status');
-			}
+			await dataService.updateWeeklyStatus(year, weekNumber, newStatus);
 
 			const weekIndex = weeks.findIndex((week) => week.weekStart === weekStart);
 			if (weekIndex !== -1) {

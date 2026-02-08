@@ -26,6 +26,7 @@ export type ContractRow = {
 	name: string;
 	description: string | null;
 	isActive: boolean;
+	sortOrder: number;
 	createdAt: string;
 	updatedAt: string;
 };
@@ -182,4 +183,39 @@ export interface StorageAdapter {
 
 	/** Delete binary attachment data. */
 	deleteBlob(attachmentId: string): Promise<void>;
+
+	// ---- Sync queue storage (used by SyncQueue) ----
+
+	/** Store a pending mutation in the sync queue. */
+	putSyncQueueItem(item: SyncQueueItem): Promise<void>;
+
+	/** Retrieve all pending mutations, ordered by timestamp. */
+	getAllSyncQueueItems(): Promise<SyncQueueItem[]>;
+
+	/** Delete a single mutation from the sync queue by ID. */
+	deleteSyncQueueItem(id: string): Promise<void>;
+
+	/** Remove all mutations from the sync queue. */
+	clearSyncQueue(): Promise<void>;
+
+	// ---- Sync metadata storage (used by SyncMetadata) ----
+
+	/** Read a sync metadata value by key. Returns null if not set. */
+	getSyncMeta(key: string): Promise<string | null>;
+
+	/** Write a sync metadata key-value pair. */
+	setSyncMeta(key: string, value: string): Promise<void>;
 }
+
+// ---------------------------------------------------------------------------
+// Sync queue item type (stored in internal _sync_queue table)
+// ---------------------------------------------------------------------------
+
+export type SyncQueueItem = {
+	id: string;
+	table: string;
+	entityId: string;
+	operation: 'upsert' | 'delete';
+	data: Record<string, unknown>;
+	timestamp: string;
+};

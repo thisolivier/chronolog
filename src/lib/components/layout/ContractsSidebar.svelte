@@ -1,21 +1,15 @@
 <script lang="ts">
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
+	import { getDataService } from '$lib/sync/context';
 	import TimerWidget from '$lib/components/timer/TimerWidget.svelte';
 	import ContractCreateModal from '$lib/components/admin/ContractCreateModal.svelte';
-
-	interface ContractItem {
-		id: string;
-		name: string;
-		isActive: boolean;
-		clientId: string;
-		clientName: string;
-		clientShortCode: string;
-		noteCount: number;
-	}
+	import SyncStatusIndicator from '$lib/components/layout/SyncStatusIndicator.svelte';
+	import type { ContractsByClientResult } from '$lib/sync/data-types';
 
 	const navigationContext = getNavigationContext();
+	const dataService = getDataService();
 
-	let contractsList = $state<ContractItem[]>([]);
+	let contractsList = $state<ContractsByClientResult[]>([]);
 	let isLoading = $state(true);
 	let errorMessage = $state('');
 	let showCreateModal = $state(false);
@@ -39,11 +33,7 @@
 
 	async function loadContracts() {
 		try {
-			const response = await fetch('/api/contracts-by-client');
-			if (!response.ok) throw new Error('Failed to load contracts');
-
-			const data = await response.json();
-			contractsList = data.contracts;
+			contractsList = await dataService.getContractsByClient();
 		} catch (error) {
 			errorMessage = error instanceof Error ? error.message : 'Failed to load contracts';
 		} finally {
@@ -149,6 +139,9 @@
 			Settings
 		</a>
 	</div>
+
+	<!-- Sync Status Indicator -->
+	<SyncStatusIndicator />
 
 	<!-- Timer Widget at Bottom -->
 	<div class="flex-shrink-0 border-t border-gray-200 p-3">

@@ -67,9 +67,16 @@ The adapter is lazily initialized on first call to `getStorage()`.
 
 All row types mirror the server-side Drizzle schema but use string timestamps (ISO format) instead of Date objects. This keeps serialization simple across both storage backends.
 
+## Sync Support
+
+The StorageAdapter also provides internal tables for the sync engine (see `$lib/sync`):
+- **Sync queue** (`_syncQueue` / `_sync_queue`): pending mutations awaiting push to server
+- **Sync metadata** (`_syncMeta` / `_sync_meta`): key-value store for sync state (e.g. last sync timestamp)
+
+These are exposed via dedicated methods (`putSyncQueueItem`, `getSyncMeta`, etc.) rather than the generic CRUD interface, so they don't appear in `TableName`.
+
 ## Notes
 
 - The SqliteAdapter can only run inside a Tauri shell (no unit tests — requires Tauri runtime)
 - Attachment binary data is stored in a separate `_blobs` table/store, not in the attachments row
 - Compound primary keys (noteLinks, noteTimeEntries) use special handling in both adapters
-- No sync logic — that belongs to Task 11 (Offline Sync)

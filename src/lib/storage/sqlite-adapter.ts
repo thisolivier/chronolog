@@ -10,7 +10,7 @@
  */
 
 import Database from '@tauri-apps/plugin-sql';
-import type { StorageAdapter, TableName, TableRowMap } from './types';
+import type { StorageAdapter, TableName, TableRowMap, SyncQueueItem } from './types';
 import {
 	TABLE_NAME_MAP,
 	COMPOUND_PRIMARY_KEYS,
@@ -355,6 +355,86 @@ export class SqliteAdapter implements StorageAdapter {
 		await database.execute(
 			'DELETE FROM _blobs WHERE attachment_id = ?',
 			[attachmentId]
+		);
+	}
+
+	// ---- Sync queue storage ----
+
+	async putSyncQueueItem(item: SyncQueueItem): Promise<void> {
+		const database = this.getDatabase();
+
+		await database.execute(
+			`INSERT OR REPLACE INTO _sync_queue
+			 (id, table_name, entity_id, operation, data, timestamp)
+			 VALUES (?, ?, ?, ?, ?, ?)`,
+			[
+				item.id,
+				item.table,
+				item.entityId,
+				item.operation,
+				JSON.stringify(item.data),
+				item.timestamp
+			]
+		);
+	}
+
+	async getAllSyncQueueItems(): Promise<SyncQueueItem[]> {
+		const database = this.getDatabase();
+
+		const rawRows = await database.select<
+			{
+				id: string;
+				table_name: string;
+				entity_id: string;
+				operation: string;
+				data: string;
+				timestamp: string;
+			}[]
+		>('SELECT * FROM _sync_queue ORDER BY timestamp ASC');
+
+		return rawRows.map((row) => ({
+			id: row.id,
+			table: row.table_name,
+			entityId: row.entity_id,
+			operation: row.operation as 'upsert' | 'delete',
+			data: JSON.parse(row.data) as Record<string, unknown>,
+			timestamp: row.timestamp
+		}));
+	}
+
+	async deleteSyncQueueItem(id: string): Promise<void> {
+		const database = this.getDatabase();
+		await database.execute('DELETE FROM _sync_queue WHERE id = ?', [id]);
+	}
+
+	async clearSyncQueue(): Promise<void> {
+		const database = this.getDatabase();
+		await database.execute('DELETE FROM _sync_queue');
+	}
+
+	// ---- Sync metadata storage ----
+
+	async getSyncMeta(key: string): Promise<string | null> {
+		const database = this.getDatabase();
+
+		const rawRows = await database.select<{ value: string }[]>(
+			'SELECT value FROM _sync_meta WHERE key = ?',
+			[key]
+		);
+
+		if (rawRows.length === 0) {
+			return null;
+		}
+
+		return rawRows[0].value;
+	}
+
+	async setSyncMeta(key: string, value: string): Promise<void> {
+		const database = this.getDatabase();
+
+		await database.execute(
+			'INSERT OR REPLACE INTO _sync_meta (key, value) VALUES (?, ?)',
+			[key, value]
 		);
 	}
 }

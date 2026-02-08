@@ -1,6 +1,8 @@
 <script lang="ts">
 	import '../app.css';
+	import { onMount, onDestroy } from 'svelte';
 	import { createNavigationState, setNavigationContext } from '$lib/stores/navigation.svelte';
+	import { SyncedDataService, setDataServiceContext } from '$lib/sync';
 
 	let { children, data } = $props();
 
@@ -11,6 +13,22 @@
 	if (navState) {
 		setNavigationContext(navState);
 	}
+
+	// Initialize data service for authenticated users
+	const dataService = data.user ? new SyncedDataService() : null;
+	if (dataService) {
+		setDataServiceContext(dataService);
+	}
+
+	onMount(async () => {
+		if (dataService) {
+			await dataService.initialize();
+		}
+	});
+
+	onDestroy(() => {
+		dataService?.destroy();
+	});
 </script>
 
 {@render children()}

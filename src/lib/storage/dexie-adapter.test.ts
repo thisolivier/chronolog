@@ -38,6 +38,7 @@ function makeContractRow(overrides: Partial<ContractRow> = {}): ContractRow {
 		name: 'Support Contract',
 		description: null,
 		isActive: true,
+		sortOrder: 0,
 		createdAt: '2026-01-15T10:00:00.000Z',
 		updatedAt: '2026-01-15T10:00:00.000Z',
 		...overrides

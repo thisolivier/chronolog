@@ -11,6 +11,7 @@ import type {
 	StorageAdapter,
 	TableName,
 	TableRowMap,
+	SyncQueueItem,
 	ClientRow,
 	ContractRow,
 	DeliverableRow,
@@ -30,6 +31,11 @@ import type {
 type BlobRow = {
 	attachmentId: string;
 	data: Blob;
+};
+
+type SyncMetaRow = {
+	key: string;
+	value: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -54,6 +60,8 @@ class ChronologDatabase extends Dexie {
 	weeklyStatuses!: Table<WeeklyStatusRow, string>;
 	attachments!: Table<AttachmentRow, string>;
 	_blobs!: Table<BlobRow, string>;
+	_syncQueue!: Table<SyncQueueItem, string>;
+	_syncMeta!: Table<SyncMetaRow, string>;
 
 	constructor(databaseName: string = 'chronolog') {
 		super(databaseName);
@@ -70,6 +78,22 @@ class ChronologDatabase extends Dexie {
 			weeklyStatuses: 'id, userId, year, weekNumber',
 			attachments: 'id, noteId',
 			_blobs: 'attachmentId'
+		});
+
+		this.version(2).stores({
+			clients: 'id, userId, shortCode',
+			contracts: 'id, clientId, isActive',
+			deliverables: 'id, contractId, sortOrder',
+			workTypes: 'id, deliverableId, sortOrder',
+			timeEntries: 'id, userId, contractId, deliverableId, workTypeId, date',
+			notes: 'id, userId, contractId',
+			noteLinks: '[sourceNoteId+targetNoteId], sourceNoteId, targetNoteId',
+			noteTimeEntries: '[noteId+timeEntryId], noteId, timeEntryId',
+			weeklyStatuses: 'id, userId, year, weekNumber',
+			attachments: 'id, noteId',
+			_blobs: 'attachmentId',
+			_syncQueue: 'id, table, timestamp',
+			_syncMeta: 'key'
 		});
 	}
 }
@@ -181,5 +205,34 @@ export class DexieAdapter implements StorageAdapter {
 
 	async deleteBlob(attachmentId: string): Promise<void> {
 		await this.database._blobs.delete(attachmentId);
+	}
+
+	// ---- Sync queue storage ----
+
+	async putSyncQueueItem(item: SyncQueueItem): Promise<void> {
+		await this.database._syncQueue.put(item);
+	}
+
+	async getAllSyncQueueItems(): Promise<SyncQueueItem[]> {
+		return this.database._syncQueue.orderBy('timestamp').toArray();
+	}
+
+	async deleteSyncQueueItem(id: string): Promise<void> {
+		await this.database._syncQueue.delete(id);
+	}
+
+	async clearSyncQueue(): Promise<void> {
+		await this.database._syncQueue.clear();
+	}
+
+	// ---- Sync metadata storage ----
+
+	async getSyncMeta(key: string): Promise<string | null> {
+		const row = await this.database._syncMeta.get(key);
+		return row?.value ?? null;
+	}
+
+	async setSyncMeta(key: string, value: string): Promise<void> {
+		await this.database._syncMeta.put({ key, value });
 	}
 }

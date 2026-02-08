@@ -1,6 +1,6 @@
-# Chronolog - First 10 Tasks
+# Chronolog - Backlog
 
-Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, data model, core UI shell, and the first usable features.
+Sprint 1-2 backlog (Tasks 1-11). These tasks establish the foundation — infrastructure, data model, core UI shell, offline sync, and the first usable features. All tasks are complete.
 
 ---
 
@@ -14,7 +14,7 @@ Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, dat
   - `@sveltejs/adapter-static` available but not active
 - [x] Initialise Tauri 2.0 (`src-tauri/` directory, `tauri.conf.json`, Cargo.toml)
 - [x] Configure Vite, ESLint, Prettier
-- [ ] Install and configure `@vite-pwa/sveltekit` with basic manifest and service worker — _deferred (package installed but not configured)_
+- [x] Install and configure `@vite-pwa/sveltekit` with basic manifest and service worker — _completed in Task 11 (PWA/Workbox configuration)_
 - [x] Set up Tailwind CSS v4 via `@tailwindcss/vite`
 - [x] Configure Drizzle ORM with PostgreSQL driver
 - [x] Create initial `docker-compose.yml` for local dev (PostgreSQL + app)
@@ -107,7 +107,7 @@ Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, dat
 - [x] Weekly status field (free text: "Unsubmitted", "Draft ready", etc.)
   - Editable inline via dropdown
   - Saved per ISO week
-- [ ] Show associated note references (note IDs) alongside time entries — _blocked on Task 7_
+- [ ] Show associated note references (note IDs) alongside time entries — _deferred to polish pass (backlinks exist via Task 8, but time entry → note direction not yet in weekly view UI)_
 - [ ] Mobile-responsive layout (cards on mobile, table-like on desktop) — _deferred to layout refactor_
 
 **Output**: Users see a weekly dashboard with all time entries, totals, and status tracking.
@@ -241,10 +241,10 @@ Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, dat
 - [x] Define a `StorageAdapter` interface with reactive query and mutation methods
 - [x] Implement `SqliteAdapter` using `tauri-plugin-sql`:
   - Create SQLite schema mirroring server tables
-  - [ ] Reactive queries via Svelte 5 runes — _deferred to Task 11 (sync integration)_
+  - [x] Reactive data access — _addressed in Task 11 via SyncedDataService (service-layer reactivity using Svelte 5 $state, rather than adapter-level reactive queries)_
 - [x] Implement `DexieAdapter` using Dexie.js (v4.3+):
   - IndexedDB schema mirroring server tables
-  - [ ] Reactive queries via Dexie `liveQuery` — _deferred to Task 11 (sync integration)_
+  - [x] Reactive data access — _addressed in Task 11 via SyncedDataService (service-layer reactivity using Svelte 5 $state, rather than Dexie liveQuery)_
 - [x] Platform detection (`window.__TAURI__`) to select adapter at app init
 - [x] Store attachments as BLOBs in SQLite (desktop) or IndexedDB Blobs (mobile)
 - [x] Write adapter integration tests for DexieAdapter (22 tests)
@@ -256,21 +256,21 @@ Sprint 1-2 backlog. These tasks establish the foundation — infrastructure, dat
 
 ---
 
-## Task 11: Offline Sync
+## Task 11: Offline Sync ✅
 
 **Goal**: App works offline; data syncs when connectivity returns.
 
-- [ ] Implement data sync layer on top of the storage abstraction (Task 10):
+- [x] Implement data sync layer on top of the storage abstraction (Task 10):
   - On load: pull latest from server, populate local store
   - On write: save to local store immediately, queue server sync
   - On reconnect: push queued changes, pull server updates
   - Conflict resolution: last-write-wins via `updated_at`
-- [ ] Desktop (Tauri): sync queue with direct HTTP requests from Rust or JS
-- [ ] Mobile (PWA): configure Workbox Background Sync for queued API writes
-- [ ] Configure service worker for app shell caching (precache strategy, PWA only)
-- [ ] Add online/offline indicator in UI
-- [ ] Handle session expiry gracefully (re-auth prompt on reconnect)
-- [ ] Test offline scenarios on both platforms:
+- [x] Desktop (Tauri): sync queue with direct HTTP requests from JS (SyncFetcher)
+- [x] Mobile (PWA): configure Workbox Background Sync for queued API writes
+- [x] Configure service worker for app shell caching (precache strategy, PWA only)
+- [x] Add online/offline indicator in UI (SyncStatusIndicator component)
+- [x] Handle session expiry gracefully (re-auth prompt link in status indicator)
+- [ ] Test offline scenarios on both platforms — _manual testing, deferred to integration test pass_:
   - Create time entry offline → comes back online → synced
   - Edit note offline → comes back online → synced
   - Multiple offline edits → bulk sync
@@ -289,7 +289,7 @@ Task 1 (scaffolding + Tauri init) ✅
   │     └── Task 4 (clients/contracts) ✅
   │           └── Task 5 (time entries) ✅
   │                 └── Task 6 (weekly view) ✅
-  │                       └── Task 6b (three-panel layout) ← NEXT
+  │                       └── Task 6b (three-panel layout) ✅
   │
   └── Task 3 (auth) ✅
         └── (all subsequent tasks require auth)
@@ -300,18 +300,19 @@ Task 6b (layout shell) ✅
         └── Task 9 (attachments) ✅
 
 Task 10 (storage abstraction) ✅
-Task 11 (offline sync) ← NEXT (requires Task 10, Tasks 5 and 7 minimum; ideally after all features)
+Task 11 (offline sync) ✅
 ```
 
-Tasks 1-10 are complete. **Task 11 (offline sync) is the next item** — it depends on Task 10 (storage abstraction) and all feature tasks.
+Tasks 1-11 are complete. All core features and offline sync are implemented.
 
 ### Deferred cross-cutting concerns
 
 These items were deferred from their original tasks and should be addressed as a batch:
 - **Encryption at rest** (AES-256-GCM): contract names/descriptions (Task 4), time entry descriptions (Task 5), note content/titles (Task 7), attachment data (Task 9)
-- **PWA configuration**: manifest, service worker, adapter-static for Tauri builds (Task 1)
-- **Mobile responsiveness**: cards on mobile, table on desktop (Task 6)
+- **Tauri static build**: `adapter-static` configuration for Tauri desktop builds (currently uses `adapter-auto`)
+- **Mobile polish**: cards on mobile / table on desktop (Task 6), timer as persistent mobile footer (Task 6b)
 - **Image thumbnails**: Canvas API client-side thumbnail generation (Task 9)
+- **Inline editing**: click-to-edit time entry fields in weekly view (Task 6b)
 
 ---
 
@@ -319,11 +320,14 @@ These items were deferred from their original tasks and should be addressed as a
 
 Items deferred to future sprints:
 
-- **Tauri packaging & distribution**: `cargo tauri build` for macOS `.app` / `.dmg`, code signing, notarisation, `tauri-plugin-updater` for auto-updates
+- **Tauri packaging & distribution**: `cargo tauri build` for macOS `.app` / `.dmg` installer, code signing, notarisation, `tauri-plugin-updater` for auto-updates
+- **Encryption at rest**: AES-256-GCM for sensitive fields (see deferred concerns above)
+- **Manual platform testing**: offline sync scenarios on both Tauri and PWA
 - Meeting transcription service integration
 - Graph visualisation of note links
 - iCloud backing / sync
 - Advanced reporting and export
+- Time entry → note references in weekly view UI
 - Heading-level time entry linking (stretch goal partially addressed in Task 8)
 - Key rotation tooling
 - Automated backup verification
