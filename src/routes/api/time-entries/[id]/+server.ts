@@ -20,6 +20,8 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	if (body.contractId !== undefined) updateData.contractId = body.contractId;
 	if (body.durationMinutes !== undefined) updateData.durationMinutes = body.durationMinutes;
 	if (body.description !== undefined) updateData.description = body.description;
+	if (body.startTime !== undefined) updateData.startTime = body.startTime;
+	if (body.endTime !== undefined) updateData.endTime = body.endTime;
 
 	if (Object.keys(updateData).length === 0) {
 		return json({ error: 'No fields to update' }, { status: 400 });
