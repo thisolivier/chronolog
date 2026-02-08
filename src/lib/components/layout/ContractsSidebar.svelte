@@ -10,6 +10,7 @@
 		clientId: string;
 		clientName: string;
 		clientShortCode: string;
+		clientEmoji: string | null;
 		noteCount: number;
 	}
 
@@ -108,14 +109,15 @@
 						: 'text-gray-700 hover:bg-gray-100'}"
 					class:opacity-50={!contract.isActive}
 				>
-					<!-- Note count badge -->
+					<!-- Client emoji or short code -->
 					<span
-						class="flex h-5 min-w-5 items-center justify-center rounded-full text-xs font-medium {navigationContext.selectedContractId ===
-						contract.id
-							? 'bg-blue-200 text-blue-800'
-							: 'bg-gray-200 text-gray-600'}"
+						class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-xs {contract.clientEmoji
+							? 'text-base'
+							: navigationContext.selectedContractId === contract.id
+								? 'bg-blue-200 text-blue-800 font-medium'
+								: 'bg-gray-200 text-gray-600 font-medium'}"
 					>
-						{contract.noteCount}
+						{contract.clientEmoji ?? contract.clientShortCode.slice(0, 2)}
 					</span>
 
 					<!-- Contract name and client byline -->
@@ -128,6 +130,13 @@
 						</div>
 						<div class="truncate text-xs text-gray-400">{contract.clientName}</div>
 					</div>
+
+					<!-- Note count (right-aligned, only if > 0) -->
+					{#if contract.noteCount > 0}
+						<span class="flex-shrink-0 text-xs text-gray-400">
+							{contract.noteCount}
+						</span>
+					{/if}
 				</button>
 			{/each}
 		{/if}

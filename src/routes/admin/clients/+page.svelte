@@ -37,7 +37,7 @@
 		<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
 			<h2 class="mb-4 text-lg font-medium text-gray-900">New Client</h2>
 			<form method="POST" action="?/create" use:enhance class="space-y-4">
-				<div class="grid gap-4 sm:grid-cols-2">
+				<div class="grid gap-4 sm:grid-cols-3">
 					<div>
 						<label for="new-client-name" class="block text-sm font-medium text-gray-700">
 							Name
@@ -62,6 +62,18 @@
 							required
 							class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 							placeholder="ACME"
+						/>
+					</div>
+					<div>
+						<label for="new-client-emoji" class="block text-sm font-medium text-gray-700">
+							Emoji
+						</label>
+						<input
+							id="new-client-emoji"
+							name="emoji"
+							type="text"
+							class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+							placeholder="🏢"
 						/>
 					</div>
 				</div>
@@ -91,6 +103,9 @@
 						</th>
 						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
 							Short Code
+						</th>
+						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							Emoji
 						</th>
 						<th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
 							Actions
