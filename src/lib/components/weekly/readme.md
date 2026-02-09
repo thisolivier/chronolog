@@ -1,23 +1,18 @@
-# Weekly Time Entry Components
+# Weekly Components
 
-Components for displaying time entries organized by week and day.
+Components for weekly time entry viewing, editing, status tracking, and navigation.
 
 ## Components
 
-- **WeekHeader.svelte** — Navigation header with previous/next/current week buttons, week title, total hours, and status dropdown with form-based updates. Used by the legacy `/time` page.
-- **WeekSectionHeader.svelte** — Compact week header for the continuous-scroll layout. Shows formatted week range, total hours, and an inline status text input with debounced save.
-- **DaySection.svelte** — Day header (day name, date, daily total) with a list of time entry cards and an inline add-entry form.
-- **TimeEntryCard.svelte** — Individual time entry card with inline editing for description, duration (HH:MM), and contract. Supports API-based updates and delete with confirmation.
-- **InlineAddEntry.svelte** — Compact inline form for quickly adding a time entry within a day section. Includes duration input, contract select, and description.
-- **WeeklyEntryRow.svelte** — Simpler entry row used in the week list panel view, with form-based deletion.
+- **WeekHeader.svelte** — Week navigation buttons (previous/next/current), ISO week number, formatted date range, total hours, and status dropdown.
+- **WeekSectionHeader.svelte** — Collapsible week section header with inline status input field (debounced save).
+- **TimeEntryCard.svelte** — Displays a time entry with contract/deliverable info; switches to edit mode for modification.
+- **InlineAddEntry.svelte** — Quick-add row for creating new time entries without a modal.
+- **EditableTimeEntryRow.svelte** — Editable row with CascadingSelects for contract/deliverable/work-type, description textarea, save/cancel buttons.
 
-## Data Flow
+## Key Patterns
 
-Components receive data as props from the parent layout panels (`TimeEntriesPanel`, `WeekListPanel`). Mutations (create, update, delete) are handled via API calls within each component, with `onUpdated`/`onEntryCreated` callbacks to trigger parent re-fetches.
-
-## Related Files
-
-- `src/lib/utils/iso-week.ts` — ISO week calculation and formatting utilities
-- `src/lib/server/db/queries/time-entries-weekly.ts` — Weekly grouped query functions
-- `src/lib/server/db/queries/weekly-statuses.ts` — Weekly status CRUD operations
-- `src/lib/components/layout/TimeEntriesPanel.svelte` — Panel 3 continuous scroll component
+- **Status management**: Status tracking via `currentStatus` prop with `onStatusChange()` callback for async save.
+- **Inline editing**: TimeEntryCard toggles between display and edit modes; edit state stored locally in component.
+- **Navigation**: WeekHeader calls `onNavigatePrevious()`, `onNavigateCurrent()`, `onNavigateNext()` to change active week.
+- **Grouping**: Entries are grouped by date (Monday-Sunday) in parent container.
