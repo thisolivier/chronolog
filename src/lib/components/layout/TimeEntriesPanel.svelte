@@ -168,6 +168,16 @@
 		return getWeekDates(weekStart).filter((dateString) => dateString <= todayString);
 	}
 
+	/** Check if a week is the current week */
+	function isCurrentWeek(weekStart: string): boolean {
+		return weekStart === currentWeekMonday;
+	}
+
+	/** Find the day data for a given date in the week's days array */
+	function findDayData(week: WeekData, dateString: string) {
+		return week.days.find((day) => day.date === dateString);
+	}
+
 	// Scroll to selected week when it changes
 	$effect(() => {
 		const selectedWeek = navigation.selectedWeek;
@@ -199,9 +209,78 @@
 				<div
 					data-week-start={week.weekStart}
 					bind:this={weekSectionRefs[week.weekStart]}
+					class="-mx-6 border-b border-gray-200 px-6"
 				>
-					{#if week.weeklyTotalMinutes === 0}
-						<!-- Empty week: collapsible -->
+					{#if isCurrentWeek(week.weekStart)}
+						<!-- Current week: always solid black heading with all days visible -->
+						<WeekSectionHeader
+							weekStart={week.weekStart}
+							weeklyTotalMinutes={week.weeklyTotalMinutes}
+							currentStatus={week.status}
+							onStatusChange={(newStatus) => handleStatusChange(week.weekStart, newStatus)}
+						/>
+
+						{#each getWeekDaysUpToToday(week.weekStart) as dayDate (dayDate)}
+							{@const dayData = findDayData(week, dayDate)}
+							{#if dayData && (dayData.entries.length > 0 || dayData.totalMinutes > 0)}
+								<div class="mb-3">
+									<div class="mb-1 flex items-center justify-between px-1">
+										<h2 class="text-sm font-semibold text-gray-700">
+											{formatDayHeader(dayDate)}
+										</h2>
+										{#if dayData.totalMinutes > 0}
+											<span class="text-sm font-medium text-gray-500">
+												{Math.round((dayData.totalMinutes / 60) * 10) / 10} hrs
+											</span>
+										{/if}
+									</div>
+
+									{#each dayData.entries as entry (entry.id)}
+										<TimeEntryCard {entry} onUpdated={refreshWeeks} />
+									{/each}
+
+									{#if expandedAddEntry[dayDate]}
+										<NewEntryRow
+											date={dayDate}
+											onEntryCreated={() => handleEntryCreated(dayDate)}
+											onCancel={() => toggleAddEntry(dayDate)}
+										/>
+									{:else}
+										<button
+											onclick={() => toggleAddEntry(dayDate)}
+											class="mt-1 px-1 text-xs text-blue-500 hover:text-blue-700"
+										>
+											add entry
+										</button>
+									{/if}
+								</div>
+							{:else}
+								<div class="mb-1">
+									<div class="flex items-center gap-2 px-1 py-0.5">
+										<h2 class="text-sm font-semibold text-gray-700">
+											{formatDayHeader(dayDate)}
+										</h2>
+										{#if !expandedAddEntry[dayDate]}
+											<button
+												onclick={() => toggleAddEntry(dayDate)}
+												class="text-xs text-blue-500 hover:text-blue-700"
+											>
+												add entry
+											</button>
+										{/if}
+									</div>
+									{#if expandedAddEntry[dayDate]}
+										<NewEntryRow
+											date={dayDate}
+											onEntryCreated={() => handleEntryCreated(dayDate)}
+											onCancel={() => toggleAddEntry(dayDate)}
+										/>
+									{/if}
+								</div>
+							{/if}
+						{/each}
+					{:else if week.weeklyTotalMinutes === 0}
+						<!-- Empty past week: collapsible -->
 						<div class="mb-3 mt-6 first:mt-0">
 							<button
 								onclick={() => toggleEmptyWeek(week.weekStart)}
@@ -218,9 +297,9 @@
 							{#each getWeekDaysUpToToday(week.weekStart) as dayDate (dayDate)}
 								<div class="mb-1">
 									<div class="flex items-center gap-2 px-1 py-0.5">
-										<span class="text-sm font-semibold text-gray-700">
+										<h2 class="text-sm font-semibold text-gray-700">
 											{formatDayHeader(dayDate)}
-										</span>
+										</h2>
 										{#if !expandedAddEntry[dayDate]}
 											<button
 												onclick={() => toggleAddEntry(dayDate)}
@@ -241,7 +320,7 @@
 							{/each}
 						{/if}
 					{:else}
-						<!-- Non-empty week: full breakdown, future days hidden -->
+						<!-- Non-empty past week: full breakdown, future days hidden -->
 						<WeekSectionHeader
 							weekStart={week.weekStart}
 							weeklyTotalMinutes={week.weeklyTotalMinutes}
@@ -254,9 +333,9 @@
 								{#if day.entries.length > 0 || day.totalMinutes > 0}
 									<div class="mb-3">
 										<div class="mb-1 flex items-center justify-between px-1">
-											<h3 class="text-sm font-semibold text-gray-700">
+											<h2 class="text-sm font-semibold text-gray-700">
 												{formatDayHeader(day.date)}
-											</h3>
+											</h2>
 											{#if day.totalMinutes > 0}
 												<span class="text-sm font-medium text-gray-500">
 													{Math.round((day.totalMinutes / 60) * 10) / 10} hrs
@@ -286,9 +365,9 @@
 								{:else}
 									<div class="mb-1">
 										<div class="flex items-center gap-2 px-1 py-0.5">
-											<span class="text-sm font-semibold text-gray-700">
+											<h2 class="text-sm font-semibold text-gray-700">
 												{formatDayHeader(day.date)}
-											</span>
+											</h2>
 											{#if !expandedAddEntry[day.date]}
 												<button
 													onclick={() => toggleAddEntry(day.date)}
