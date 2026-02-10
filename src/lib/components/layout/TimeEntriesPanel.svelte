@@ -206,7 +206,7 @@
 				{#if !expandedAddEntry[dayDate]}
 					<button
 						onclick={() => toggleAddEntry(dayDate)}
-						class="text-sm leading-none text-gray-300 hover:text-blue-500"
+						class="text-sm leading-none text-gray-500 hover:text-blue-500"
 						title="Add entry"
 					>
 						+
@@ -229,7 +229,7 @@
 		{/if}
 
 		{#if entries.length > 0}
-			<div class="flex flex-col gap-1">
+			<div class="flex flex-col">
 				{#each entries as entry (entry.id)}
 					<TimeEntryCard {entry} onUpdated={refreshWeeks} />
 				{/each}
@@ -255,7 +255,7 @@
 				<div
 					data-week-start={week.weekStart}
 					bind:this={weekSectionRefs[week.weekStart]}
-					class="-mx-6 border-b border-gray-200 px-6"
+					class="-mx-6 border-b border-gray-200 px-6 pb-2 pt-2"
 				>
 					{#if isCurrentWeek(week.weekStart)}
 						<!-- Current week: always solid black heading with all days visible -->
