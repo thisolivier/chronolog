@@ -7,25 +7,25 @@ The two main divergence points are **storage** (SQLite vs. IndexedDB) and **wind
 ```
                          Shared SvelteKit App
                     ┌────────────────────────────┐
-                    │  UI Components (Svelte 5)   │
-                    │  Sync Engine                │
-                    │  Server API Client          │
-                    │  Auth (Better Auth)         │
+                    │  UI Components (Svelte 5)  │
+                    │  Sync Engine               │
+                    │  Server API Client         │
+                    │  Auth (Better Auth)        │
                     └──────────┬─────────────────┘
                                │
-                    ┌──────────┴─────────────────┐
+                    ┌──────────┴──────────────────┐
                     │   Platform Abstraction      │
                     │   Layer ($lib/platform/)    │
                     ├──────────────┬──────────────┤
                     │  Tauri impl  │   PWA impl   │
                     │  (desktop)   │   (mobile)   │
                     ├──────────────┼──────────────┤
-                    │  SQLite via  │  IndexedDB   │
-                    │  tauri-      │  via Dexie.js│
+                    │  SQLite via  │ IndexedDB    │
+                    │  tauri-      │ via Dexie.js │
                     │  plugin-sql  │              │
                     ├──────────────┼──────────────┤
                     │  OS windows  │  In-app      │
-                    │  via Webview │  focus mode / │
+                    │  via Webview │  focus mode/ │
                     │  Window API  │  navigation  │
                     └──────────────┴──────────────┘
 ```
@@ -533,7 +533,7 @@ Both platforms use the same sync logic. Only the local storage backend differs.
 
 ```
 ┌──────────────────────────────────────────────┐
-│               Sync Engine                     │
+│               Sync Engine                    │
 │         ($lib/sync/engine.ts)                │
 │                                              │
 │  1. Read local changes since last sync       │
@@ -549,7 +549,7 @@ Both platforms use the same sync logic. Only the local storage backend differs.
 │     storage.applyServerChanges(serverData)   │
 │                                              │
 │  5. Update sync timestamp                    │
-│     storage.setLastSyncTimestamp(now)         │
+│     storage.setLastSyncTimestamp(now)        │
 │                                              │
 │  Conflict: last-write-wins (updated_at)      │
 └──────────────────────────────────────────────┘
