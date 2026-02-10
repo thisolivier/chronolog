@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { formatTimeShort, formatDuration } from '$lib/utils/iso-week';
+	import { parseTimeInput } from '$lib/utils/time-parse';
 	import ContractSelect from '$lib/components/timer/ContractSelect.svelte';
 
 	type EntryData = {
@@ -26,14 +27,15 @@
 	} = $props();
 
 	// Inline editing states
-	let isEditingDuration = $state(false);
+	let isEditingTime = $state(false);
 	let isEditingContract = $state(false);
 	let isEditingDescription = $state(false);
 	let isConfirmingDelete = $state(false);
 	let isDeleting = $state(false);
 
 	// Editable values
-	let durationInputValue = $state('');
+	let timeInputValue = $state('');
+	let timeInputError = $state(false);
 	let selectedContractId = $state('');
 	let descriptionInputValue = $state('');
 	let descriptionDebounceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -45,28 +47,28 @@
 		return parts.join(' / ');
 	}
 
-	function buildTimeRange(): string {
+	/** Build the display string for the time area */
+	function buildTimeDisplay(): string {
 		if (entry.startTime && entry.endTime) {
 			return `${formatTimeShort(entry.startTime)}-${formatTimeShort(entry.endTime)}`;
 		}
 		return formatDuration(entry.durationMinutes);
 	}
 
-	/** Format minutes as HH:MM for the duration input */
-	function minutesToHhmm(totalMinutes: number): string {
-		const hours = Math.floor(totalMinutes / 60);
-		const minutes = totalMinutes % 60;
-		return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+	/** Build the calculated duration subtitle (only shown for time ranges) */
+	function buildDurationSubtitle(): string | null {
+		if (entry.startTime && entry.endTime) {
+			return formatDuration(entry.durationMinutes);
+		}
+		return null;
 	}
 
-	/** Parse HH:MM string to total minutes */
-	function hhmmToMinutes(hhmm: string): number | null {
-		const match = hhmm.match(/^(\d{1,2}):(\d{2})$/);
-		if (!match) return null;
-		const hours = parseInt(match[1], 10);
-		const minutes = parseInt(match[2], 10);
-		if (minutes >= 60) return null;
-		return hours * 60 + minutes;
+	/** Build the initial value for the time input based on current entry data */
+	function buildTimeInputDefault(): string {
+		if (entry.startTime && entry.endTime) {
+			return `${formatTimeShort(entry.startTime)}-${formatTimeShort(entry.endTime)}`;
+		}
+		return formatDuration(entry.durationMinutes);
 	}
 
 	async function saveField(field: string, value: unknown) {
@@ -85,26 +87,68 @@
 		}
 	}
 
-	// Duration editing
-	function startEditingDuration() {
-		durationInputValue = minutesToHhmm(entry.durationMinutes);
-		isEditingDuration = true;
-	}
-
-	function handleDurationBlur() {
-		const parsedMinutes = hhmmToMinutes(durationInputValue);
-		if (parsedMinutes !== null && parsedMinutes !== entry.durationMinutes && parsedMinutes > 0) {
-			saveField('durationMinutes', parsedMinutes);
+	async function saveMultipleFields(data: Record<string, unknown>) {
+		try {
+			const response = await fetch(`/api/time-entries/${entry.id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(data)
+			});
+			if (!response.ok) {
+				throw new Error('Failed to update entry');
+			}
+			onUpdated?.();
+		} catch (error) {
+			console.error('Error saving entry:', error);
 		}
-		isEditingDuration = false;
 	}
 
-	function handleDurationKeydown(event: KeyboardEvent) {
+	// Time editing
+	function startEditingTime() {
+		timeInputValue = buildTimeInputDefault();
+		timeInputError = false;
+		isEditingTime = true;
+	}
+
+	function saveTimeInput() {
+		const parsed = parseTimeInput(timeInputValue);
+		if (parsed.type === 'invalid') {
+			timeInputError = true;
+			return;
+		}
+
+		if (parsed.type === 'range') {
+			saveMultipleFields({
+				startTime: parsed.startTime,
+				endTime: parsed.endTime,
+				durationMinutes: parsed.durationMinutes
+			});
+		} else {
+			saveMultipleFields({
+				startTime: null,
+				endTime: null,
+				durationMinutes: parsed.durationMinutes
+			});
+		}
+		isEditingTime = false;
+		timeInputError = false;
+	}
+
+	function cancelTimeEdit() {
+		isEditingTime = false;
+		timeInputError = false;
+	}
+
+	function handleTimeKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
-			(event.target as HTMLInputElement).blur();
+			saveTimeInput();
 		} else if (event.key === 'Escape') {
-			isEditingDuration = false;
+			cancelTimeEdit();
 		}
+	}
+
+	function handleTimeBlur() {
+		saveTimeInput();
 	}
 
 	// Contract editing
@@ -174,12 +218,7 @@
 </script>
 
 <div class="flex items-center gap-3 border-b border-gray-100 px-1 py-2 transition-colors hover:bg-gray-50">
-	<!-- Time range -->
-	<div class="w-24 shrink-0 text-sm text-gray-500">
-		{buildTimeRange()}
-	</div>
-
-	<!-- Contract + description -->
+	<!-- LEFT: Contract + description -->
 	<div class="min-w-0 flex-1">
 		{#if isEditingContract}
 			<div class="max-w-xs">
@@ -216,27 +255,29 @@
 		{/if}
 	</div>
 
-	<!-- Duration -->
-	<div class="shrink-0">
-		{#if isEditingDuration}
+	<!-- RIGHT: Time display + delete -->
+	<div class="shrink-0 text-right">
+		{#if isEditingTime}
 			<input
 				type="text"
-				value={durationInputValue}
-				oninput={(event) => { durationInputValue = (event.target as HTMLInputElement).value; }}
-				onblur={handleDurationBlur}
-				onkeydown={handleDurationKeydown}
-				class="w-16 rounded border border-gray-300 px-1.5 py-0.5 text-center text-sm font-medium focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-				placeholder="HH:MM"
+				bind:value={timeInputValue}
+				onblur={handleTimeBlur}
+				onkeydown={handleTimeKeydown}
+				class="w-28 rounded border px-1.5 py-0.5 text-right text-sm font-medium focus:ring-1 focus:outline-none {timeInputError ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'}"
+				placeholder="2h30m or 9:00-11:30"
 				autofocus
 			/>
 		{:else}
 			<button
-				onclick={startEditingDuration}
-				class="text-sm font-medium text-gray-700 hover:text-blue-600"
-				title="Click to edit duration"
+				onclick={startEditingTime}
+				class="text-right text-sm font-bold text-gray-900 hover:text-blue-600"
+				title="Click to edit time"
 			>
-				{formatDuration(entry.durationMinutes)}
+				{buildTimeDisplay()}
 			</button>
+			{#if buildDurationSubtitle()}
+				<div class="text-xs text-gray-400">{buildDurationSubtitle()}</div>
+			{/if}
 		{/if}
 	</div>
 
