@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatWeekStartShort, formatHoursFromMinutes } from '$lib/utils/iso-week';
+	import { formatWeekStartLabel, formatHoursFromMinutes } from '$lib/utils/iso-week';
 
 	let {
 		weekStart,
@@ -46,7 +46,7 @@
 
 <div class="mb-3 mt-6 first:mt-0">
 	<h1 class="text-lg font-bold text-gray-900">
-		{formatWeekStartShort(weekStart)}
+		{formatWeekStartLabel(weekStart)}
 		<span class="font-semibold text-gray-600">
 			&middot; {formatHoursFromMinutes(weeklyTotalMinutes)}
 		</span>
