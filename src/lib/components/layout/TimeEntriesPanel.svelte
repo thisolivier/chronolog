@@ -192,6 +192,52 @@
 	});
 </script>
 
+<!--
+	Day section snippet used in all 3 week types.
+	"+" button always in the heading row; NewEntryRow expands below heading, above entries.
+-->
+{#snippet daySection(dayDate: string, entries: Array<{ id: string; startTime: string | null; endTime: string | null; durationMinutes: number; contractId: string; contractName: string; clientName: string; clientShortCode: string; deliverableName: string | null; workTypeName: string | null; description: string | null; date: string }>, totalMinutes: number)}
+	<div class="mb-3">
+		<div class="mb-1 flex items-center justify-between px-1">
+			<div class="flex items-center gap-2">
+				<h2 class="text-sm font-semibold text-gray-700">
+					{formatDayHeader(dayDate)}
+				</h2>
+				{#if !expandedAddEntry[dayDate]}
+					<button
+						onclick={() => toggleAddEntry(dayDate)}
+						class="text-sm leading-none text-gray-300 hover:text-blue-500"
+						title="Add entry"
+					>
+						+
+					</button>
+				{/if}
+			</div>
+			{#if totalMinutes > 0}
+				<span class="text-sm font-medium text-gray-500">
+					{Math.round((totalMinutes / 60) * 10) / 10} hrs
+				</span>
+			{/if}
+		</div>
+
+		{#if expandedAddEntry[dayDate]}
+			<NewEntryRow
+				date={dayDate}
+				onEntryCreated={() => handleEntryCreated(dayDate)}
+				onCancel={() => toggleAddEntry(dayDate)}
+			/>
+		{/if}
+
+		{#if entries.length > 0}
+			<div class="flex flex-col gap-1">
+				{#each entries as entry (entry.id)}
+					<TimeEntryCard {entry} onUpdated={refreshWeeks} />
+				{/each}
+			</div>
+		{/if}
+	</div>
+{/snippet}
+
 <div class="flex h-full flex-col overflow-hidden bg-gray-50">
 	<!-- Mobile-only header -->
 	<div class="border-b border-gray-200 bg-white px-6 py-4 md:hidden">
@@ -222,62 +268,7 @@
 
 						{#each getWeekDaysUpToToday(week.weekStart) as dayDate (dayDate)}
 							{@const dayData = findDayData(week, dayDate)}
-							{#if dayData && (dayData.entries.length > 0 || dayData.totalMinutes > 0)}
-								<div class="mb-3">
-									<div class="mb-1 flex items-center justify-between px-1">
-										<h2 class="text-sm font-semibold text-gray-700">
-											{formatDayHeader(dayDate)}
-										</h2>
-										{#if dayData.totalMinutes > 0}
-											<span class="text-sm font-medium text-gray-500">
-												{Math.round((dayData.totalMinutes / 60) * 10) / 10} hrs
-											</span>
-										{/if}
-									</div>
-
-									{#each dayData.entries as entry (entry.id)}
-										<TimeEntryCard {entry} onUpdated={refreshWeeks} />
-									{/each}
-
-									{#if expandedAddEntry[dayDate]}
-										<NewEntryRow
-											date={dayDate}
-											onEntryCreated={() => handleEntryCreated(dayDate)}
-											onCancel={() => toggleAddEntry(dayDate)}
-										/>
-									{:else}
-										<button
-											onclick={() => toggleAddEntry(dayDate)}
-											class="mt-1 px-1 text-xs text-blue-500 hover:text-blue-700"
-										>
-											add entry
-										</button>
-									{/if}
-								</div>
-							{:else}
-								<div class="mb-1">
-									<div class="flex items-center gap-2 px-1 py-0.5">
-										<h2 class="text-sm font-semibold text-gray-700">
-											{formatDayHeader(dayDate)}
-										</h2>
-										{#if !expandedAddEntry[dayDate]}
-											<button
-												onclick={() => toggleAddEntry(dayDate)}
-												class="text-xs text-blue-500 hover:text-blue-700"
-											>
-												add entry
-											</button>
-										{/if}
-									</div>
-									{#if expandedAddEntry[dayDate]}
-										<NewEntryRow
-											date={dayDate}
-											onEntryCreated={() => handleEntryCreated(dayDate)}
-											onCancel={() => toggleAddEntry(dayDate)}
-										/>
-									{/if}
-								</div>
-							{/if}
+							{@render daySection(dayDate, dayData?.entries ?? [], dayData?.totalMinutes ?? 0)}
 						{/each}
 					{:else if week.weeklyTotalMinutes === 0}
 						<!-- Empty past week: collapsible -->
@@ -295,28 +286,7 @@
 
 						{#if expandedEmptyWeeks[week.weekStart]}
 							{#each getWeekDaysUpToToday(week.weekStart) as dayDate (dayDate)}
-								<div class="mb-1">
-									<div class="flex items-center gap-2 px-1 py-0.5">
-										<h2 class="text-sm font-semibold text-gray-700">
-											{formatDayHeader(dayDate)}
-										</h2>
-										{#if !expandedAddEntry[dayDate]}
-											<button
-												onclick={() => toggleAddEntry(dayDate)}
-												class="text-xs text-blue-500 hover:text-blue-700"
-											>
-												add entry
-											</button>
-										{/if}
-									</div>
-									{#if expandedAddEntry[dayDate]}
-										<NewEntryRow
-											date={dayDate}
-											onEntryCreated={() => handleEntryCreated(dayDate)}
-											onCancel={() => toggleAddEntry(dayDate)}
-										/>
-									{/if}
-								</div>
+								{@render daySection(dayDate, [], 0)}
 							{/each}
 						{/if}
 					{:else}
@@ -330,62 +300,7 @@
 
 						{#each week.days as day (day.date)}
 							{#if day.date <= todayString}
-								{#if day.entries.length > 0 || day.totalMinutes > 0}
-									<div class="mb-3">
-										<div class="mb-1 flex items-center justify-between px-1">
-											<h2 class="text-sm font-semibold text-gray-700">
-												{formatDayHeader(day.date)}
-											</h2>
-											{#if day.totalMinutes > 0}
-												<span class="text-sm font-medium text-gray-500">
-													{Math.round((day.totalMinutes / 60) * 10) / 10} hrs
-												</span>
-											{/if}
-										</div>
-
-										{#each day.entries as entry (entry.id)}
-											<TimeEntryCard {entry} onUpdated={refreshWeeks} />
-										{/each}
-
-										{#if expandedAddEntry[day.date]}
-											<NewEntryRow
-												date={day.date}
-												onEntryCreated={() => handleEntryCreated(day.date)}
-												onCancel={() => toggleAddEntry(day.date)}
-											/>
-										{:else}
-											<button
-												onclick={() => toggleAddEntry(day.date)}
-												class="mt-1 px-1 text-xs text-blue-500 hover:text-blue-700"
-											>
-												add entry
-											</button>
-										{/if}
-									</div>
-								{:else}
-									<div class="mb-1">
-										<div class="flex items-center gap-2 px-1 py-0.5">
-											<h2 class="text-sm font-semibold text-gray-700">
-												{formatDayHeader(day.date)}
-											</h2>
-											{#if !expandedAddEntry[day.date]}
-												<button
-													onclick={() => toggleAddEntry(day.date)}
-													class="text-xs text-blue-500 hover:text-blue-700"
-												>
-													add entry
-												</button>
-											{/if}
-										</div>
-										{#if expandedAddEntry[day.date]}
-											<NewEntryRow
-												date={day.date}
-												onEntryCreated={() => handleEntryCreated(day.date)}
-												onCancel={() => toggleAddEntry(day.date)}
-											/>
-										{/if}
-									</div>
-								{/if}
+								{@render daySection(day.date, day.entries, day.totalMinutes)}
 							{/if}
 						{/each}
 					{/if}

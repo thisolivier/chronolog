@@ -217,7 +217,7 @@
 	}
 </script>
 
-<div class="flex items-center gap-3 border-b border-gray-200 px-1 py-2 transition-colors hover:bg-gray-50">
+<div class="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2 transition-colors hover:bg-gray-50">
 	<!-- LEFT: Contract + description -->
 	<div class="min-w-0 flex-1">
 		{#if isEditingContract}
