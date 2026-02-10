@@ -6,12 +6,13 @@
 	let isEditing = $state(false);
 	let editName = $state(client.name);
 	let editShortCode = $state(client.shortCode);
+	let editEmoji = $state(client.emoji ?? '');
 	let isDeleting = $state(false);
 </script>
 
 {#if isEditing}
 	<tr class="bg-blue-50">
-		<td class="px-6 py-3" colspan="3">
+		<td class="px-6 py-3" colspan="4">
 			<form
 				method="POST"
 				action="/admin/clients?/update"
@@ -38,6 +39,13 @@
 					bind:value={editShortCode}
 					class="w-24 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				/>
+				<input
+					name="emoji"
+					type="text"
+					bind:value={editEmoji}
+					class="w-16 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					placeholder=""
+				/>
 				<div class="ml-auto flex gap-2">
 					<button
 						type="submit"
@@ -51,6 +59,7 @@
 							isEditing = false;
 							editName = client.name;
 							editShortCode = client.shortCode;
+							editEmoji = client.emoji ?? '';
 						}}
 						class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
 					>
@@ -72,6 +81,9 @@
 		</td>
 		<td class="px-6 py-4 text-sm text-gray-500">
 			<span class="rounded bg-gray-100 px-2 py-0.5 font-mono text-xs">{client.shortCode}</span>
+		</td>
+		<td class="px-6 py-4 text-sm">
+			{client.emoji ?? ''}
 		</td>
 		<td class="px-6 py-4 text-right text-sm">
 			<div class="flex items-center justify-end gap-2">

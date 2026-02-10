@@ -10,6 +10,7 @@
 		clientId: string;
 		clientName: string;
 		clientShortCode: string;
+		clientEmoji: string | null;
 		noteCount: number;
 	}
 
@@ -113,26 +114,25 @@
 						: 'text-gray-700 hover:bg-gray-100'}"
 					class:opacity-50={!contract.isActive}
 				>
-					<!-- Note count badge -->
-					<span
-						class="flex h-5 min-w-5 items-center justify-center rounded-full text-xs font-medium {navigationContext.selectedContractId ===
-						contract.id
-							? 'bg-blue-200 text-blue-800'
-							: 'bg-gray-200 text-gray-600'}"
-					>
-						{contract.noteCount}
-					</span>
-
-					<!-- Contract name and client byline -->
-					<div class="min-w-0 flex-1">
-						<div class="truncate">
-							{contract.name}
-							{#if !contract.isActive}
-								<span class="ml-1 text-xs text-gray-400">(inactive)</span>
-							{/if}
-						</div>
-						<div class="truncate text-xs text-gray-400">{contract.clientName}</div>
+					<!-- Contract name prefixed with emoji or client short code -->
+					<div class="min-w-0 flex-1 truncate">
+						{#if contract.clientEmoji}
+							<span>{contract.clientEmoji} </span>
+						{:else}
+							<span class="text-gray-400">{contract.clientShortCode}: </span>
+						{/if}
+						{contract.name}
+						{#if !contract.isActive}
+							<span class="ml-1 text-xs text-gray-400">(inactive)</span>
+						{/if}
 					</div>
+
+					<!-- Note count (right-aligned, only if > 0) -->
+					{#if contract.noteCount > 0}
+						<span class="flex-shrink-0 text-xs text-gray-400">
+							{contract.noteCount}
+						</span>
+					{/if}
 				</button>
 			{/each}
 		{/if}
