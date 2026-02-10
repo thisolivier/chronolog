@@ -29,6 +29,62 @@ Previous completed tasks (1-10) are archived in [docs/BACKLOG-COMPLETE-1.md](doc
 
 ---
 
+## Task 12: MCP Server
+
+**Goal**: Build an MCP (Model Context Protocol) server that allows AI assistants to interact with Chronolog on behalf of a user — authenticating, creating notes, and recording time entries with note references.
+
+- [ ] Build an MCP server (standalone process) that exposes Chronolog tools:
+  - `login` — authenticate as a Chronolog user (email/password, handle 2FA)
+  - `create_note` — create a note under a given client/contract
+  - `record_time_entry` — record a time entry with client/contract/deliverable, duration or start/end, and description
+  - `link_time_entry_to_note` — attach a wiki-link reference (`[[noteId]]`) in a time entry description, linking it to an existing note
+  - `list_clients` / `list_contracts` / `list_notes` — read helpers so the AI can discover existing entities
+- [ ] Authentication: MCP server authenticates against Better Auth API, stores session token for subsequent calls
+- [ ] Time entry descriptions support wiki-link syntax (`[[noteId]]` or `[[noteId|label]]`) to reference notes
+- [ ] Error handling: clear tool error messages for invalid credentials, missing entities, validation failures
+- [ ] Documentation: usage instructions for connecting the MCP server to Claude Desktop or other MCP clients
+
+**Depends on**: Tasks 3 (auth), 5 (time entries), 7 (notes), 8 (wiki-links)
+
+**Output**: An MCP server that AI assistants can use to log into Chronolog, create notes, and record time entries with note references.
+
+---
+
+## Task 13: Contract Drag & Drop Reordering
+
+**Goal**: Allow users to manually reorder contracts in the sidebar via drag and drop.
+
+- [ ] Add a `sort_order` (integer) column to the `contracts` table
+- [ ] Implement drag-and-drop reordering in the contracts sidebar (Panel 1)
+- [ ] API endpoint to persist new ordering (`PATCH /api/contracts/reorder`)
+- [ ] Reordering should work within a client group (contracts under the same client)
+- [ ] Fallback ordering: alphabetical when no custom order is set
+
+**Depends on**: Task 4 (contracts CRUD), Task 6b (sidebar layout)
+
+**Output**: Users can drag contracts in the sidebar to reorder them, and the order persists across sessions.
+
+---
+
+## Task 14: Undo (Ctrl+Z) for Time Entries
+
+**Goal**: Add an in-memory undo stack for the time entry page, with potential for app-wide extension.
+
+- [ ] Implement an undo stack (in-memory, UI-level) for the time entry view:
+  - Track field changes (duration, description, client/contract/deliverable, etc.)
+  - `Ctrl+Z` / `Cmd+Z` reverts the most recent change
+  - `Ctrl+Shift+Z` / `Cmd+Shift+Z` for redo
+  - Stack clears on navigation away from the time entry view
+- [ ] Handle edge cases: reverting an invalid entry back to valid state, undo after save
+- [ ] Visual feedback: brief toast or indicator when undo/redo is triggered
+- [ ] (Stretch) Generalise the undo system so it can be adopted by other views (notes, admin)
+
+**Depends on**: Task 5 (time entries), Task 6b (layout)
+
+**Output**: Users can undo/redo field changes on the time entry page with keyboard shortcuts.
+
+---
+
 ## Deferred Cross-Cutting Concerns
 
 These items were deferred from their original tasks and should be addressed as a batch:
