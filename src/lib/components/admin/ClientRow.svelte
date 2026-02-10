@@ -44,7 +44,7 @@
 					type="text"
 					bind:value={editEmoji}
 					class="w-16 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-					placeholder="🏢"
+					placeholder=""
 				/>
 				<div class="ml-auto flex gap-2">
 					<button

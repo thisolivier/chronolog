@@ -109,26 +109,17 @@
 						: 'text-gray-700 hover:bg-gray-100'}"
 					class:opacity-50={!contract.isActive}
 				>
-					<!-- Client emoji or short code -->
-					<span
-						class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-xs {contract.clientEmoji
-							? 'text-base'
-							: navigationContext.selectedContractId === contract.id
-								? 'bg-blue-200 text-blue-800 font-medium'
-								: 'bg-gray-200 text-gray-600 font-medium'}"
-					>
-						{contract.clientEmoji ?? contract.clientShortCode.slice(0, 2)}
-					</span>
-
-					<!-- Contract name and client byline -->
-					<div class="min-w-0 flex-1">
-						<div class="truncate">
-							{contract.name}
-							{#if !contract.isActive}
-								<span class="ml-1 text-xs text-gray-400">(inactive)</span>
-							{/if}
-						</div>
-						<div class="truncate text-xs text-gray-400">{contract.clientName}</div>
+					<!-- Contract name prefixed with emoji or client short code -->
+					<div class="min-w-0 flex-1 truncate">
+						{#if contract.clientEmoji}
+							<span>{contract.clientEmoji} </span>
+						{:else}
+							<span class="text-gray-400">{contract.clientShortCode}: </span>
+						{/if}
+						{contract.name}
+						{#if !contract.isActive}
+							<span class="ml-1 text-xs text-gray-400">(inactive)</span>
+						{/if}
 					</div>
 
 					<!-- Note count (right-aligned, only if > 0) -->
