@@ -4,7 +4,7 @@
 	import WeekSectionHeader from '$lib/components/weekly/WeekSectionHeader.svelte';
 	import TimeEntryCard from '$lib/components/weekly/TimeEntryCard.svelte';
 	import InlineAddEntry from '$lib/components/weekly/InlineAddEntry.svelte';
-	import { getMondayOfWeek, getIsoWeekNumber, getIsoYear, formatWeekStartShort } from '$lib/utils/iso-week';
+	import { getMondayOfWeek, getIsoWeekNumber, getIsoYear, formatWeekStartLabel, formatDayHeader } from '$lib/utils/iso-week';
 	import { SvelteDate } from 'svelte/reactivity';
 
 	type WeekData = {
@@ -182,7 +182,7 @@
 						<!-- Empty week: heading only with suffix -->
 						<div class="mb-3 mt-6 first:mt-0">
 							<h1 class="text-lg font-bold text-gray-400">
-								{formatWeekStartShort(week.weekStart)}
+								{formatWeekStartLabel(week.weekStart)}
 								<span class="font-normal"> &mdash; No entries this week</span>
 							</h1>
 						</div>
@@ -195,17 +195,13 @@
 							onStatusChange={(newStatus) => handleStatusChange(week.weekStart, newStatus)}
 						/>
 
-						{#each [...week.days].reverse() as day (day.date)}
+						{#each week.days as day (day.date)}
 							{#if day.date <= todayString}
 								{#if day.entries.length > 0 || day.totalMinutes > 0}
 									<div class="mb-3">
 										<div class="mb-1 flex items-center justify-between px-1">
 											<h3 class="text-sm font-semibold text-gray-700">
-												{new Date(day.date + 'T00:00:00').toLocaleDateString('en-US', {
-													weekday: 'long',
-													month: 'short',
-													day: 'numeric'
-												})}
+												{formatDayHeader(day.date)}
 											</h3>
 											{#if day.totalMinutes > 0}
 												<span class="text-sm font-medium text-gray-500">
@@ -223,12 +219,8 @@
 								{:else}
 									<div class="mb-1">
 										<div class="flex items-center gap-2 px-1 py-0.5">
-											<span class="text-xs text-gray-400">
-												{new Date(day.date + 'T00:00:00').toLocaleDateString('en-US', {
-													weekday: 'short',
-													month: 'short',
-													day: 'numeric'
-												})}
+											<span class="text-sm font-semibold text-gray-700">
+												{formatDayHeader(day.date)}
 											</span>
 										</div>
 										<InlineAddEntry date={day.date} onEntryCreated={refreshWeeks} />

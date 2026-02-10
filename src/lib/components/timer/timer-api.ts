@@ -112,6 +112,8 @@ export async function apiCreateManualEntry(data: {
 	durationMinutes: number;
 	contractId: string;
 	description?: string;
+	startTime?: string;
+	endTime?: string;
 }): Promise<{ id: string }> {
 	const response = await fetch('/api/time-entries', {
 		method: 'POST',

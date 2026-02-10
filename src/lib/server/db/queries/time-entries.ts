@@ -1,4 +1,4 @@
-import { eq, and, between } from 'drizzle-orm';
+import { eq, and, between, asc, sql } from 'drizzle-orm';
 import { database, timeEntries, contracts, clients, deliverables, workTypes } from '$lib/server/db';
 
 /** Shape returned by time entry queries that join related tables */
@@ -60,7 +60,7 @@ export async function listTimeEntriesForDate(
 ): Promise<TimeEntryWithContext[]> {
 	return timeEntrySelectWithContext()
 		.where(and(eq(timeEntries.userId, userId), eq(timeEntries.date, date), eq(timeEntries.isDraft, false)))
-		.orderBy(timeEntries.startTime);
+		.orderBy(sql`${timeEntries.startTime} asc nulls last`, asc(timeEntries.createdAt));
 }
 
 /** List all time entries for a week (7-day range starting from weekStart) */
@@ -80,7 +80,7 @@ export async function listTimeEntriesForWeek(
 				eq(timeEntries.isDraft, false)
 			)
 		)
-		.orderBy(timeEntries.date, timeEntries.startTime);
+		.orderBy(asc(timeEntries.date), sql`${timeEntries.startTime} asc nulls last`, asc(timeEntries.createdAt));
 }
 
 /** Create a new time entry */

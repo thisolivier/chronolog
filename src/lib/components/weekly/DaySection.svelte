@@ -29,7 +29,7 @@
 
 <div class="mb-4">
 	<div class="mb-2 flex items-center justify-between px-1">
-		<h3 class="text-sm font-semibold text-gray-700">
+		<h3 class="text-sm font-bold text-gray-700">
 			{formatDayHeader(dayGroup.date)}
 		</h3>
 		{#if dayGroup.totalMinutes > 0}
@@ -45,15 +45,14 @@
 				<WeeklyEntryRow {entry} />
 			{/each}
 		</div>
-	{:else}
-		<div class="rounded-lg border border-dashed border-gray-200 px-4 py-3 text-center">
-			<p class="text-xs text-gray-400">No entries</p>
-			<a
-				href="/time/new?date={dayGroup.date}"
-				class="text-xs text-blue-500 hover:text-blue-700"
-			>
-				Add entry
-			</a>
-		</div>
 	{/if}
+
+	<div class="px-1 {hasEntries ? 'mt-1' : ''}">
+		<a
+			href="/time/new?date={dayGroup.date}"
+			class="text-xs text-blue-500 hover:text-blue-700"
+		>
+			Add entry
+		</a>
+	</div>
 </div>
