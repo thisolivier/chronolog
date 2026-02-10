@@ -3,8 +3,8 @@
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import WeekSectionHeader from '$lib/components/weekly/WeekSectionHeader.svelte';
 	import TimeEntryCard from '$lib/components/weekly/TimeEntryCard.svelte';
-	import InlineAddEntry from '$lib/components/weekly/InlineAddEntry.svelte';
-	import { getMondayOfWeek, getIsoWeekNumber, getIsoYear, formatWeekStartLabel, formatDayHeader } from '$lib/utils/iso-week';
+	import NewEntryRow from '$lib/components/weekly/NewEntryRow.svelte';
+	import { getMondayOfWeek, getIsoWeekNumber, getIsoYear, getWeekDates, formatWeekStartLabel, formatDayHeader } from '$lib/utils/iso-week';
 	import { SvelteDate } from 'svelte/reactivity';
 
 	type WeekData = {
@@ -37,6 +37,10 @@
 	let isLoading = $state(false);
 	let hasMoreWeeks = $state(true);
 	let weekSectionRefs: Record<string, HTMLElement> = {};
+
+	// UI state for add-entry and collapsible empty weeks
+	let expandedAddEntry: Record<string, boolean> = $state({});
+	let expandedEmptyWeeks: Record<string, boolean> = $state({});
 
 	const WEEKS_PER_BATCH = 4;
 
@@ -146,6 +150,24 @@
 		}
 	}
 
+	function toggleAddEntry(dateKey: string) {
+		expandedAddEntry[dateKey] = !expandedAddEntry[dateKey];
+	}
+
+	function handleEntryCreated(dateKey: string) {
+		expandedAddEntry[dateKey] = false;
+		refreshWeeks();
+	}
+
+	function toggleEmptyWeek(weekStart: string) {
+		expandedEmptyWeeks[weekStart] = !expandedEmptyWeeks[weekStart];
+	}
+
+	/** Get all dates in a week up to today */
+	function getWeekDaysUpToToday(weekStart: string): string[] {
+		return getWeekDates(weekStart).filter((dateString) => dateString <= todayString);
+	}
+
 	// Scroll to selected week when it changes
 	$effect(() => {
 		const selectedWeek = navigation.selectedWeek;
@@ -161,7 +183,7 @@
 </script>
 
 <div class="flex h-full flex-col overflow-hidden bg-gray-50">
-	<!-- Mobile-only header (no Add Entry button) -->
+	<!-- Mobile-only header -->
 	<div class="border-b border-gray-200 bg-white px-6 py-4 md:hidden">
 		<h1 class="text-xl font-bold text-gray-900">Time Entries</h1>
 	</div>
@@ -179,15 +201,47 @@
 					bind:this={weekSectionRefs[week.weekStart]}
 				>
 					{#if week.weeklyTotalMinutes === 0}
-						<!-- Empty week: heading only with suffix -->
+						<!-- Empty week: collapsible -->
 						<div class="mb-3 mt-6 first:mt-0">
-							<h1 class="text-lg font-bold text-gray-400">
+							<button
+								onclick={() => toggleEmptyWeek(week.weekStart)}
+								class="text-left text-lg font-bold text-gray-400 hover:text-gray-500"
+							>
 								{formatWeekStartLabel(week.weekStart)}
-								<span class="font-normal"> &mdash; No entries this week</span>
-							</h1>
+								{#if !expandedEmptyWeeks[week.weekStart]}
+									<span class="font-normal"> &mdash; No entries this week</span>
+								{/if}
+							</button>
 						</div>
+
+						{#if expandedEmptyWeeks[week.weekStart]}
+							{#each getWeekDaysUpToToday(week.weekStart) as dayDate (dayDate)}
+								<div class="mb-1">
+									<div class="flex items-center gap-2 px-1 py-0.5">
+										<span class="text-sm font-semibold text-gray-700">
+											{formatDayHeader(dayDate)}
+										</span>
+										{#if !expandedAddEntry[dayDate]}
+											<button
+												onclick={() => toggleAddEntry(dayDate)}
+												class="text-xs text-blue-500 hover:text-blue-700"
+											>
+												add entry
+											</button>
+										{/if}
+									</div>
+									{#if expandedAddEntry[dayDate]}
+										<NewEntryRow
+											date={dayDate}
+											onEntryCreated={() => handleEntryCreated(dayDate)}
+											onCancel={() => toggleAddEntry(dayDate)}
+										/>
+									{/if}
+								</div>
+							{/each}
+						{/if}
 					{:else}
-						<!-- Non-empty week: full breakdown, days in descending order, future days hidden -->
+						<!-- Non-empty week: full breakdown, future days hidden -->
 						<WeekSectionHeader
 							weekStart={week.weekStart}
 							weeklyTotalMinutes={week.weeklyTotalMinutes}
@@ -214,7 +268,20 @@
 											<TimeEntryCard {entry} onUpdated={refreshWeeks} />
 										{/each}
 
-										<InlineAddEntry date={day.date} onEntryCreated={refreshWeeks} />
+										{#if expandedAddEntry[day.date]}
+											<NewEntryRow
+												date={day.date}
+												onEntryCreated={() => handleEntryCreated(day.date)}
+												onCancel={() => toggleAddEntry(day.date)}
+											/>
+										{:else}
+											<button
+												onclick={() => toggleAddEntry(day.date)}
+												class="mt-1 px-1 text-xs text-blue-500 hover:text-blue-700"
+											>
+												add entry
+											</button>
+										{/if}
 									</div>
 								{:else}
 									<div class="mb-1">
@@ -222,8 +289,22 @@
 											<span class="text-sm font-semibold text-gray-700">
 												{formatDayHeader(day.date)}
 											</span>
+											{#if !expandedAddEntry[day.date]}
+												<button
+													onclick={() => toggleAddEntry(day.date)}
+													class="text-xs text-blue-500 hover:text-blue-700"
+												>
+													add entry
+												</button>
+											{/if}
 										</div>
-										<InlineAddEntry date={day.date} onEntryCreated={refreshWeeks} />
+										{#if expandedAddEntry[day.date]}
+											<NewEntryRow
+												date={day.date}
+												onEntryCreated={() => handleEntryCreated(day.date)}
+												onCancel={() => toggleAddEntry(day.date)}
+											/>
+										{/if}
 									</div>
 								{/if}
 							{/if}
