@@ -44,9 +44,7 @@ These items were deferred from their original tasks and should be addressed as a
 - [ ] `adapter-static` for Tauri builds (from Task 1)
 
 ### Polish
-- [ ] Mobile-responsive time entries: cards on mobile, table on desktop (from Task 6)
 - [ ] Image thumbnail generation via Canvas API, client-side (from Task 9)
-- [ ] Inline editing of time entries — click to edit any field (from Task 6b)
 - [ ] Timer widget as persistent fixed footer on mobile (from Task 6b)
 - [ ] From a time entry: attach note references (from Task 8)
 
