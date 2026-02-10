@@ -22,6 +22,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 			clientId: clients.id,
 			clientName: clients.name,
 			clientShortCode: clients.shortCode,
+			clientEmoji: clients.emoji,
 			noteCount: sql<number>`cast(count(${notes.id}) as int)`
 		})
 		.from(contracts)
@@ -40,6 +41,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 			clientId: row.clientId,
 			clientName: row.clientName,
 			clientShortCode: row.clientShortCode,
+			clientEmoji: row.clientEmoji,
 			noteCount: row.noteCount
 		}))
 	});

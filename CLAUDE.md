@@ -2,11 +2,11 @@
 
 ## Project Overview
 
-Chronolog is a time-tracking and note-taking app for consulting work, delivered as a Tauri 2.0 desktop app (macOS primary) with a PWA fallback for mobile. See `SPEC.md` for the full specification and `BACKLOG.md` for the task backlog.
+Chronolog is a time-tracking and note-taking app for consulting work, delivered as a Tauri 2.0 desktop app (macOS primary) with a PWA fallback for mobile. See `docs/SPEC.md` for the full specification and `BACKLOG.md` for the task backlog.
 
 ## General Directives
 - Start each response with ☀️
-- Read `SPEC.md` before making architectural decisions
+- Read `docs/SPEC.md` before making architectural decisions
 - Read `BACKLOG.md` to understand current task context
 - Keep code readable with verbose variable names — never abbreviate to a single letter
 - Keep dependencies minimal (balance with low code directive)

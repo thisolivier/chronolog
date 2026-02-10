@@ -10,7 +10,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	const body = await request.json();
-	const { date, durationMinutes, contractId, description } = body;
+	const { date, durationMinutes, contractId, description, startTime, endTime } = body;
 
 	if (!date || durationMinutes === undefined || !contractId) {
 		return json(
@@ -25,6 +25,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		date,
 		durationMinutes: Number(durationMinutes),
 		description: description || null,
+		startTime: startTime || null,
+		endTime: endTime || null,
 		isDraft: false
 	});
 

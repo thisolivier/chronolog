@@ -39,7 +39,7 @@
 	<option value="">Select a contract...</option>
 	{#each contractList as contract (contract.id)}
 		<option value={contract.id}>
-			{contract.name} — {contract.clientName}
+			{contract.clientName} — {contract.name}
 		</option>
 	{/each}
 </select>

@@ -6,30 +6,20 @@
 	import SyncStatusIndicator from '$lib/components/layout/SyncStatusIndicator.svelte';
 	import type { ContractsByClientResult } from '$lib/sync/data-types';
 
+	interface ClientOption {
+		id: string;
+		name: string;
+		shortCode: string;
+	}
+
 	const navigationContext = getNavigationContext();
 	const dataService = getDataService();
 
 	let contractsList = $state<ContractsByClientResult[]>([]);
+	let allClients = $state<ClientOption[]>([]);
 	let isLoading = $state(true);
 	let errorMessage = $state('');
 	let showCreateModal = $state(false);
-
-	/** Extract unique clients from the loaded contracts list */
-	let uniqueClients = $derived(() => {
-		const seen: Record<string, boolean> = {};
-		const result: Array<{ id: string; name: string; shortCode: string }> = [];
-		for (const contract of contractsList) {
-			if (!seen[contract.clientId]) {
-				seen[contract.clientId] = true;
-				result.push({
-					id: contract.clientId,
-					name: contract.clientName,
-					shortCode: contract.clientShortCode
-				});
-			}
-		}
-		return result;
-	});
 
 	async function loadContracts() {
 		try {
@@ -41,8 +31,22 @@
 		}
 	}
 
+	async function loadClients() {
+		try {
+			const response = await fetch('/api/clients');
+			if (!response.ok) throw new Error('Failed to load clients');
+
+			const data = await response.json();
+			allClients = data.clients;
+		} catch (error) {
+			// Client loading failure is non-critical; the modal will just have an empty dropdown
+			console.error('Failed to load clients:', error);
+		}
+	}
+
 	$effect(() => {
 		loadContracts();
+		loadClients();
 	});
 
 	function handleTimeEntriesClick() {
@@ -55,9 +59,10 @@
 
 	function handleContractCreated() {
 		showCreateModal = false;
-		// Reload the contracts list
+		// Reload the contracts list and clients list
 		isLoading = true;
 		loadContracts();
+		loadClients();
 	}
 </script>
 
@@ -98,26 +103,25 @@
 						: 'text-gray-700 hover:bg-gray-100'}"
 					class:opacity-50={!contract.isActive}
 				>
-					<!-- Note count badge -->
-					<span
-						class="flex h-5 min-w-5 items-center justify-center rounded-full text-xs font-medium {navigationContext.selectedContractId ===
-						contract.id
-							? 'bg-blue-200 text-blue-800'
-							: 'bg-gray-200 text-gray-600'}"
-					>
-						{contract.noteCount}
-					</span>
-
-					<!-- Contract name and client byline -->
-					<div class="min-w-0 flex-1">
-						<div class="truncate">
-							{contract.name}
-							{#if !contract.isActive}
-								<span class="ml-1 text-xs text-gray-400">(inactive)</span>
-							{/if}
-						</div>
-						<div class="truncate text-xs text-gray-400">{contract.clientName}</div>
+					<!-- Contract name prefixed with emoji or client short code -->
+					<div class="min-w-0 flex-1 truncate">
+						{#if contract.clientEmoji}
+							<span>{contract.clientEmoji} </span>
+						{:else}
+							<span class="text-gray-400">{contract.clientShortCode}: </span>
+						{/if}
+						{contract.name}
+						{#if !contract.isActive}
+							<span class="ml-1 text-xs text-gray-400">(inactive)</span>
+						{/if}
 					</div>
+
+					<!-- Note count (right-aligned, only if > 0) -->
+					{#if contract.noteCount > 0}
+						<span class="flex-shrink-0 text-xs text-gray-400">
+							{contract.noteCount}
+						</span>
+					{/if}
 				</button>
 			{/each}
 		{/if}
@@ -151,7 +155,7 @@
 	<!-- Contract Create Modal -->
 	{#if showCreateModal}
 		<ContractCreateModal
-			clients={uniqueClients()}
+			clients={allClients}
 			onCreated={handleContractCreated}
 			onClose={() => (showCreateModal = false)}
 		/>

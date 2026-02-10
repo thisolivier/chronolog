@@ -4,8 +4,8 @@
 	import { getDataService } from '$lib/sync/context';
 	import WeekSectionHeader from '$lib/components/weekly/WeekSectionHeader.svelte';
 	import TimeEntryCard from '$lib/components/weekly/TimeEntryCard.svelte';
-	import InlineAddEntry from '$lib/components/weekly/InlineAddEntry.svelte';
-	import { getMondayOfWeek, getIsoWeekNumber, getIsoYear, formatWeekStartShort } from '$lib/utils/iso-week';
+	import NewEntryRow from '$lib/components/weekly/NewEntryRow.svelte';
+	import { getMondayOfWeek, getIsoWeekNumber, getIsoYear, getWeekDates, formatWeekStartLabel, formatDayHeader } from '$lib/utils/iso-week';
 	import { SvelteDate } from 'svelte/reactivity';
 	import type { WeekData } from '$lib/sync/data-types';
 
@@ -16,6 +16,10 @@
 	let isLoading = $state(false);
 	let hasMoreWeeks = $state(true);
 	let weekSectionRefs: Record<string, HTMLElement> = {};
+
+	// UI state for add-entry and collapsible empty weeks
+	let expandedAddEntry: Record<string, boolean> = $state({});
+	let expandedEmptyWeeks: Record<string, boolean> = $state({});
 
 	const WEEKS_PER_BATCH = 4;
 
@@ -109,6 +113,34 @@
 		}
 	}
 
+	function toggleAddEntry(dateKey: string) {
+		expandedAddEntry[dateKey] = !expandedAddEntry[dateKey];
+	}
+
+	function handleEntryCreated(dateKey: string) {
+		expandedAddEntry[dateKey] = false;
+		refreshWeeks();
+	}
+
+	function toggleEmptyWeek(weekStart: string) {
+		expandedEmptyWeeks[weekStart] = !expandedEmptyWeeks[weekStart];
+	}
+
+	/** Get all dates in a week up to today */
+	function getWeekDaysUpToToday(weekStart: string): string[] {
+		return getWeekDates(weekStart).filter((dateString) => dateString <= todayString);
+	}
+
+	/** Check if a week is the current week */
+	function isCurrentWeek(weekStart: string): boolean {
+		return weekStart === currentWeekMonday;
+	}
+
+	/** Find the day data for a given date in the week's days array */
+	function findDayData(week: WeekData, dateString: string) {
+		return week.days.find((day) => day.date === dateString);
+	}
+
 	// Scroll to selected week when it changes
 	$effect(() => {
 		const selectedWeek = navigation.selectedWeek;
@@ -123,8 +155,54 @@
 	});
 </script>
 
+<!--
+	Day section snippet used in all 3 week types.
+	"+" button always in the heading row; NewEntryRow expands below heading, above entries.
+-->
+{#snippet daySection(dayDate: string, entries: Array<{ id: string; startTime: string | null; endTime: string | null; durationMinutes: number; contractId: string; contractName: string; clientName: string; clientShortCode: string; deliverableName: string | null; workTypeName: string | null; description: string | null; date: string }>, totalMinutes: number)}
+	<div class="mb-3">
+		<div class="mb-1 flex items-center justify-between px-1">
+			<div class="flex items-center gap-2">
+				<h2 class="text-sm font-semibold text-gray-700">
+					{formatDayHeader(dayDate)}
+				</h2>
+				{#if !expandedAddEntry[dayDate]}
+					<button
+						onclick={() => toggleAddEntry(dayDate)}
+						class="text-sm leading-none text-gray-500 hover:text-blue-500"
+						title="Add entry"
+					>
+						+
+					</button>
+				{/if}
+			</div>
+			{#if totalMinutes > 0}
+				<span class="text-sm font-medium text-gray-500">
+					{Math.round((totalMinutes / 60) * 10) / 10} hrs
+				</span>
+			{/if}
+		</div>
+
+		{#if expandedAddEntry[dayDate]}
+			<NewEntryRow
+				date={dayDate}
+				onEntryCreated={() => handleEntryCreated(dayDate)}
+				onCancel={() => toggleAddEntry(dayDate)}
+			/>
+		{/if}
+
+		{#if entries.length > 0}
+			<div class="flex flex-col">
+				{#each entries as entry (entry.id)}
+					<TimeEntryCard {entry} onUpdated={refreshWeeks} />
+				{/each}
+			</div>
+		{/if}
+	</div>
+{/snippet}
+
 <div class="flex h-full flex-col overflow-hidden bg-gray-50">
-	<!-- Mobile-only header (no Add Entry button) -->
+	<!-- Mobile-only header -->
 	<div class="border-b border-gray-200 bg-white px-6 py-4 md:hidden">
 		<h1 class="text-xl font-bold text-gray-900">Time Entries</h1>
 	</div>
@@ -140,17 +218,10 @@
 				<div
 					data-week-start={week.weekStart}
 					bind:this={weekSectionRefs[week.weekStart]}
+					class="-mx-6 border-b border-gray-200 px-6 pb-2 pt-2"
 				>
-					{#if week.weeklyTotalMinutes === 0}
-						<!-- Empty week: heading only with suffix -->
-						<div class="mb-3 mt-6 first:mt-0">
-							<h1 class="text-lg font-bold text-gray-400">
-								{formatWeekStartShort(week.weekStart)}
-								<span class="font-normal"> &mdash; No entries this week</span>
-							</h1>
-						</div>
-					{:else}
-						<!-- Non-empty week: full breakdown, days in descending order, future days hidden -->
+					{#if isCurrentWeek(week.weekStart)}
+						<!-- Current week: always solid black heading with all days visible -->
 						<WeekSectionHeader
 							weekStart={week.weekStart}
 							weeklyTotalMinutes={week.weeklyTotalMinutes}
@@ -158,45 +229,41 @@
 							onStatusChange={(newStatus) => handleStatusChange(week.weekStart, newStatus)}
 						/>
 
-						{#each [...week.days].reverse() as day (day.date)}
-							{#if day.date <= todayString}
-								{#if day.entries.length > 0 || day.totalMinutes > 0}
-									<div class="mb-3">
-										<div class="mb-1 flex items-center justify-between px-1">
-											<h3 class="text-sm font-semibold text-gray-700">
-												{new Date(day.date + 'T00:00:00').toLocaleDateString('en-US', {
-													weekday: 'long',
-													month: 'short',
-													day: 'numeric'
-												})}
-											</h3>
-											{#if day.totalMinutes > 0}
-												<span class="text-sm font-medium text-gray-500">
-													{Math.round((day.totalMinutes / 60) * 10) / 10} hrs
-												</span>
-											{/if}
-										</div>
-
-										{#each day.entries as entry (entry.id)}
-											<TimeEntryCard {entry} onUpdated={refreshWeeks} />
-										{/each}
-
-										<InlineAddEntry date={day.date} onEntryCreated={refreshWeeks} />
-									</div>
-								{:else}
-									<div class="mb-1">
-										<div class="flex items-center gap-2 px-1 py-0.5">
-											<span class="text-xs text-gray-400">
-												{new Date(day.date + 'T00:00:00').toLocaleDateString('en-US', {
-													weekday: 'short',
-													month: 'short',
-													day: 'numeric'
-												})}
-											</span>
-										</div>
-										<InlineAddEntry date={day.date} onEntryCreated={refreshWeeks} />
-									</div>
+						{#each getWeekDaysUpToToday(week.weekStart) as dayDate (dayDate)}
+							{@const dayData = findDayData(week, dayDate)}
+							{@render daySection(dayDate, dayData?.entries ?? [], dayData?.totalMinutes ?? 0)}
+						{/each}
+					{:else if week.weeklyTotalMinutes === 0}
+						<!-- Empty past week: collapsible -->
+						<div class="mb-3 mt-6 first:mt-0">
+							<button
+								onclick={() => toggleEmptyWeek(week.weekStart)}
+								class="text-left text-lg font-bold text-gray-400 hover:text-gray-500"
+							>
+								{formatWeekStartLabel(week.weekStart)}
+								{#if !expandedEmptyWeeks[week.weekStart]}
+									<span class="font-normal"> &mdash; No entries this week</span>
 								{/if}
+							</button>
+						</div>
+
+						{#if expandedEmptyWeeks[week.weekStart]}
+							{#each getWeekDaysUpToToday(week.weekStart) as dayDate (dayDate)}
+								{@render daySection(dayDate, [], 0)}
+							{/each}
+						{/if}
+					{:else}
+						<!-- Non-empty past week: full breakdown, future days hidden -->
+						<WeekSectionHeader
+							weekStart={week.weekStart}
+							weeklyTotalMinutes={week.weeklyTotalMinutes}
+							currentStatus={week.status}
+							onStatusChange={(newStatus) => handleStatusChange(week.weekStart, newStatus)}
+						/>
+
+						{#each week.days as day (day.date)}
+							{#if day.date <= todayString}
+								{@render daySection(day.date, day.entries, day.totalMinutes)}
 							{/if}
 						{/each}
 					{/if}

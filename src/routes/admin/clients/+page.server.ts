@@ -23,13 +23,14 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const name = formData.get('name')?.toString().trim();
 		const shortCode = formData.get('short_code')?.toString().trim();
+		const emoji = formData.get('emoji')?.toString().trim() || null;
 
 		if (!name || !shortCode) {
 			return fail(400, { error: 'Name and short code are required.', name, shortCode });
 		}
 
 		try {
-			await createClient(currentUser.id, name, shortCode);
+			await createClient(currentUser.id, name, shortCode, emoji);
 		} catch (databaseError: unknown) {
 			const errorMessage =
 				databaseError instanceof Error ? databaseError.message : 'Unknown error';
@@ -54,13 +55,19 @@ export const actions: Actions = {
 		const clientId = formData.get('client_id')?.toString();
 		const name = formData.get('name')?.toString().trim();
 		const shortCode = formData.get('short_code')?.toString().trim();
+		const emojiRaw = formData.get('emoji')?.toString().trim();
+		const emoji = emojiRaw === '' || emojiRaw === undefined ? null : emojiRaw;
 
 		if (!clientId || !name || !shortCode) {
 			return fail(400, { error: 'Client ID, name, and short code are required.' });
 		}
 
 		try {
-			const updatedClient = await updateClient(clientId, currentUser.id, { name, shortCode });
+			const updatedClient = await updateClient(clientId, currentUser.id, {
+				name,
+				shortCode,
+				emoji
+			});
 			if (!updatedClient) {
 				return fail(404, { error: 'Client not found.' });
 			}

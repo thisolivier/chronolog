@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatWeekStartShort, formatHoursFromMinutes } from '$lib/utils/iso-week';
+	import { formatWeekStartLabel, formatHoursFromMinutes } from '$lib/utils/iso-week';
 
 	let {
 		weekStart,
@@ -45,18 +45,20 @@
 </script>
 
 <div class="mb-3 mt-6 first:mt-0">
-	<h1 class="text-lg font-bold text-gray-900">
-		{formatWeekStartShort(weekStart)}
-		<span class="font-semibold text-gray-600">
-			&middot; {formatHoursFromMinutes(weeklyTotalMinutes)}
-		</span>
-	</h1>
-	<input
-		type="text"
-		value={statusInputValue}
-		oninput={handleStatusInput}
-		onblur={handleStatusBlur}
-		placeholder="Status..."
-		class="mt-1 w-48 border-0 border-b border-transparent bg-transparent px-0 py-0.5 text-sm text-gray-500 placeholder-gray-400 focus:border-gray-300 focus:ring-0 focus:outline-none"
-	/>
+	<div class="flex items-center justify-between">
+		<h1 class="text-lg font-bold text-gray-900">
+			{formatWeekStartLabel(weekStart)}
+			<span class="font-semibold text-gray-600">
+				&middot; {formatHoursFromMinutes(weeklyTotalMinutes)}
+			</span>
+		</h1>
+		<input
+			type="text"
+			value={statusInputValue}
+			oninput={handleStatusInput}
+			onblur={handleStatusBlur}
+			placeholder="Status..."
+			class="w-48 border-0 border-b border-transparent bg-transparent px-0 py-0.5 text-right text-sm text-gray-500 placeholder-gray-400 focus:border-gray-300 focus:ring-0 focus:outline-none"
+		/>
+	</div>
 </div>

@@ -18,10 +18,15 @@ export async function getClientForUser(clientId: string, userId: string) {
 	return results[0] ?? null;
 }
 
-export async function createClient(userId: string, name: string, shortCode: string) {
+export async function createClient(
+	userId: string,
+	name: string,
+	shortCode: string,
+	emoji?: string | null
+) {
 	const results = await database
 		.insert(clients)
-		.values({ userId, name, shortCode })
+		.values({ userId, name, shortCode, emoji: emoji ?? null })
 		.returning();
 	return results[0];
 }
@@ -29,7 +34,7 @@ export async function createClient(userId: string, name: string, shortCode: stri
 export async function updateClient(
 	clientId: string,
 	userId: string,
-	data: { name?: string; shortCode?: string }
+	data: { name?: string; shortCode?: string; emoji?: string | null }
 ) {
 	const results = await database
 		.update(clients)
