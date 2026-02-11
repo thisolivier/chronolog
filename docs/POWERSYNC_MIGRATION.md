@@ -69,12 +69,14 @@ WebKit OPFS reliability in Tauri's webview. The spike (Phase 0) validates this b
 - **Note**: Source Postgres runs natively on host (not in Docker). Docker Compose only
   runs PowerSync service and bucket storage, connecting to host via `host.docker.internal`
 
-### Phase 3: PowerSync DataService Implementation
-- Implement DataService interface backed by PowerSync
-- SQL queries for local reads (replace in-memory joins)
-- PowerSync mutations for writes
-- Sync status indicator integration
-- Tests for connector, SQL queries, sync cycle
+### Phase 3: PowerSync DataService Implementation (COMPLETE)
+- Implemented `PowerSyncDataService` backed by PowerSync's local SQLite
+- SQL queries for local reads replace in-memory joins (notes, time entries, contracts, etc.)
+- PowerSync CRUD mutations for writes, queued and uploaded via `BackendConnector.uploadData()`
+- Sync status exposed via PowerSync's `connected` / `lastSyncedAt` reactive properties
+- BackendConnector maps CRUD operations to existing REST API endpoints
+- Schema definitions for all 10 tables in PowerSync format
+- JWT auth connector: fetches tokens from `/api/auth/powersync/token`, JWKS endpoint for verification
 
 ### Phase 4: Cleanup & Polish
 - Remove unused storage adapters (Dexie, custom SQLite)
@@ -84,101 +86,93 @@ WebKit OPFS reliability in Tauri's webview. The spike (Phase 0) validates this b
 
 ## PowerSync Configuration Reference
 
-### Sync Rules (draft)
+### Sync Rules (`config/sync_rules.yaml`)
+
+PowerSync data queries must SELECT from a single table -- JOINs and subqueries are not supported. To make this work, all tables have a denormalized `user_id` column so each table can be filtered directly.
+
 ```yaml
 bucket_definitions:
-  user_clients:
+  # Single bucket per user containing all their data
+  user_data[]:
     parameters: SELECT request.user_id() as user_id
     data:
-      - SELECT * FROM clients WHERE user_id = bucket.user_id
-
-  user_contracts:
-    parameters: SELECT request.user_id() as user_id
-    data:
-      - SELECT c.* FROM contracts c
-        JOIN clients cl ON c.client_id = cl.id
-        WHERE cl.user_id = bucket.user_id
-
-  user_deliverables:
-    parameters: SELECT request.user_id() as user_id
-    data:
-      - SELECT d.* FROM deliverables d
-        JOIN contracts c ON d.contract_id = c.id
-        JOIN clients cl ON c.client_id = cl.id
-        WHERE cl.user_id = bucket.user_id
-
-  user_work_types:
-    parameters: SELECT request.user_id() as user_id
-    data:
-      - SELECT wt.* FROM work_types wt
-        JOIN deliverables d ON wt.deliverable_id = d.id
-        JOIN contracts c ON d.contract_id = c.id
-        JOIN clients cl ON c.client_id = cl.id
-        WHERE cl.user_id = bucket.user_id
-
-  user_time_entries:
-    parameters: SELECT request.user_id() as user_id
-    data:
-      - SELECT * FROM time_entries WHERE user_id = bucket.user_id
-
-  user_notes:
-    parameters: SELECT request.user_id() as user_id
-    data:
-      - SELECT * FROM notes WHERE user_id = bucket.user_id
-
-  user_note_links:
-    parameters: SELECT request.user_id() as user_id
-    data:
-      - SELECT nl.* FROM note_links nl
-        JOIN notes n ON nl.source_note_id = n.id
-        WHERE n.user_id = bucket.user_id
-
-  user_note_time_entries:
-    parameters: SELECT request.user_id() as user_id
-    data:
-      - SELECT nte.* FROM note_time_entries nte
-        JOIN notes n ON nte.note_id = n.id
-        WHERE n.user_id = bucket.user_id
-
-  user_weekly_statuses:
-    parameters: SELECT request.user_id() as user_id
-    data:
-      - SELECT * FROM weekly_statuses WHERE user_id = bucket.user_id
-
-  user_attachments:
-    parameters: SELECT request.user_id() as user_id
-    data:
-      - SELECT a.id, a.note_id, a.filename, a.mime_type, a.size_bytes, a.created_at
-        FROM attachments a
-        JOIN notes n ON a.note_id = n.id
-        WHERE n.user_id = bucket.user_id
+      - SELECT * FROM clients WHERE clients.user_id = bucket.user_id
+      - SELECT * FROM contracts WHERE contracts.user_id = bucket.user_id
+      - SELECT * FROM deliverables WHERE deliverables.user_id = bucket.user_id
+      - SELECT * FROM work_types WHERE work_types.user_id = bucket.user_id
+      - SELECT * FROM time_entries WHERE time_entries.user_id = bucket.user_id
+      - SELECT * FROM notes WHERE notes.user_id = bucket.user_id
+      - SELECT * FROM note_links WHERE note_links.user_id = bucket.user_id
+      - SELECT * FROM note_time_entries WHERE note_time_entries.user_id = bucket.user_id
+      - SELECT * FROM weekly_statuses WHERE weekly_statuses.user_id = bucket.user_id
+      - SELECT id, note_id, user_id, filename, mime_type, size_bytes, created_at FROM attachments WHERE attachments.user_id = bucket.user_id
 ```
 
-Note: Attachment binary data (bytea column) should NOT sync via PowerSync. Use a separate file storage mechanism.
+Key design decisions:
+- **Single parameterized bucket** (`user_data[]`) instead of separate buckets per table. This simplifies configuration and sync lifecycle.
+- **Denormalized `user_id`** on every table (including `contracts`, `deliverables`, `work_types`, `note_links`, `note_time_entries`, `attachments`) avoids the need for JOINs.
+- **Attachment binary data** (bytea column) is excluded from sync via explicit column selection. Binary blobs should use a separate file storage mechanism.
 
-### Docker Compose (self-hosted, Postgres-only)
+### Docker Compose (`docker-compose.yml`)
+
+The source PostgreSQL database runs **natively on the host** (not in Docker). Docker Compose only runs the PowerSync service and its bucket storage database, connecting to the host DB via `host.docker.internal`.
+
 ```yaml
 services:
+  # NOTE: The source PostgreSQL database runs natively on the host (not in Docker).
+  # It must have wal_level=logical set. Run: ALTER SYSTEM SET wal_level = logical;
+  # Then restart Postgres. See config/init-db.sql for replication user setup.
+
+  powersync-storage:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: powersync_storage
+      POSTGRES_DB: powersync_storage
+    ports:
+      - "5431:5432"
+    volumes:
+      - powersync_storage_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d powersync_storage"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   powersync:
     image: journeyapps/powersync-service:latest
+    restart: unless-stopped
+    command: ["start", "-r", "unified"]
+    depends_on:
+      powersync-storage:
+        condition: service_healthy
     ports:
       - "8080:8080"
     volumes:
-      - ./config/powersync.yaml:/config/powersync.yaml
-    depends_on:
-      source-db:
-        condition: service_healthy
-
-  # PowerSync bucket storage (separate from app DB)
-  powersync-storage:
-    image: postgres:17
+      - ./config:/config
     environment:
-      POSTGRES_PASSWORD: ps_storage
-      POSTGRES_DB: powersync_storage
+      PS_DATA_SOURCE_URI: "postgresql://powersync_repl:powersync_repl_password@host.docker.internal:5432/chronolog"
+      PS_STORAGE_SOURCE_URI: "postgresql://postgres:powersync_storage@powersync-storage:5432/powersync_storage"
+      PS_JWKS_URL: "http://host.docker.internal:5173/api/auth/powersync/jwks"
+      PS_PORT: "8080"
+      POWERSYNC_CONFIG_PATH: "/config/powersync.yaml"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/liveness || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  powersync_storage_data:
 ```
+
+Key details:
+- **Bucket storage** on port 5431 (to avoid conflict with host Postgres on 5432)
+- **PowerSync service** connects to host DB via `host.docker.internal:5432` using a dedicated replication user (`powersync_repl`)
+- **JWKS endpoint** points to the SvelteKit app at `host.docker.internal:5173`
+- **Unified mode** (`-r unified`) runs replication and API in a single process
 
 ### Vite Config Additions
 ```typescript
@@ -270,5 +264,5 @@ Decouple UI components from direct `fetch()` calls. This creates a stable interf
 
 1. **Attachment binary sync** — PowerSync can't sync bytea blobs efficiently. Options: separate file storage (S3/local), lazy-load from server, or keep current custom blob handling.
 2. **Note ID generation** — Currently `shortCode.YYYYMMDD.SEQ`. With PowerSync, IDs should be generated client-side (UUID) and server can assign display ID on sync.
-3. **Sync Rules JOIN limitations** — PowerSync Sync Rules don't support JOINs in some configurations. Need to verify the draft rules above work.
-4. **COOP/COEP vs better-auth** — Cross-origin isolation headers may interfere with auth flows. Test during spike.
+3. ~~**Sync Rules JOIN limitations**~~ — **Resolved.** PowerSync data queries do not support JOINs. Fixed by denormalizing `user_id` onto all tables (`contracts`, `deliverables`, `work_types`, `note_links`, `note_time_entries`, `attachments`). All sync rules now use simple single-table WHERE clauses. See `config/sync_rules.yaml`.
+4. ~~**COOP/COEP vs better-auth**~~ — **Resolved.** COOP/COEP headers applied per-route (only on pages that use PowerSync), avoiding interference with auth flows.

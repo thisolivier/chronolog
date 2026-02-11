@@ -106,14 +106,5 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	// Let Better Auth handle its own API routes
-	const response = await svelteKitHandler({ event, resolve, auth, building });
-
-	// Cross-origin isolation headers for PowerSync WASM (OPFS requires these).
-	// Only apply to /spike for now to avoid breaking auth/OAuth flows elsewhere.
-	if (event.url.pathname.startsWith('/spike')) {
-		response.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
-		response.headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
-	}
-
-	return response;
+	return svelteKitHandler({ event, resolve, auth, building });
 };

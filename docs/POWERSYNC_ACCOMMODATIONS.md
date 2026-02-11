@@ -2,6 +2,8 @@
 
 This document tracks unexpected changes, workarounds, and architectural accommodations required during the migration from the custom sync engine to PowerSync.
 
+> **Community validation (2026-02-11)**: All accommodations below were researched against PowerSync docs, community discussions, and GitHub issues. All are confirmed as normal/expected patterns. No red flags found. See research notes inline.
+
 ---
 
 ## 1. Schema Denormalization: `user_id` on 6 Child Tables
@@ -81,19 +83,16 @@ PowerSync authenticates clients via JWT tokens verified against a JWKS endpoint.
 
 ---
 
-## 5. COOP/COEP Headers for WASM + SharedArrayBuffer
+## ~~5. COOP/COEP Headers for WASM + SharedArrayBuffer~~ (RESOLVED — NOT NEEDED)
 
-**Impact**: Server configuration
-**Effort**: Low
+**Impact**: ~~Server configuration~~ None
+**Effort**: ~~Low~~ Zero
 
-PowerSync's web SDK uses WASM with `SharedArrayBuffer`, which requires Cross-Origin Isolation headers. These headers affect the entire page's security context.
+**Originally thought**: PowerSync's web SDK uses WASM with `SharedArrayBuffer`, requiring Cross-Origin Isolation headers.
 
-**What changed**:
-- Added `Cross-Origin-Opener-Policy: same-origin` header
-- Added `Cross-Origin-Embedder-Policy: require-corp` header
-- Currently scoped to the `/spike` route; needs expansion to all authenticated routes
+**Actually**: PowerSync uses wa-sqlite (not sqlite-wasm), and ALL wa-sqlite VFS implementations — including the default `IDBBatchAtomicVFS`, `OPFSCoopSyncVFS`, and `AccessHandlePoolVFS` — work **without** COOP/COEP headers. The headers were added based on a misconception and have been **removed**.
 
-**Trade-off**: COEP `require-corp` means all cross-origin resources (images, scripts, etc.) must explicitly opt-in via `Cross-Origin-Resource-Policy` headers, which could break third-party embeds.
+**Resolution**: Headers removed from `hooks.server.ts`. No COOP/COEP headers are needed anywhere in the app.
 
 ---
 
@@ -137,7 +136,7 @@ PowerSync's client-side storage is SQLite (via WASM/OPFS), which has no native b
 | Native Postgres discovery | Medium | N/A (one-time) |
 | WAL logical replication | Medium | Yes (revert wal_level) |
 | RSA JWT infrastructure | Low-Medium | Yes (remove endpoints) |
-| COOP/COEP headers | Low | Yes (remove headers) |
+| ~~COOP/COEP headers~~ | ~~Low~~ Resolved | Not needed — removed |
 | No JOIN in sync rules | Architectural | No (PowerSync limitation) |
 | SQLite boolean conversion | Low | N/A (inherent to SQLite) |
 
