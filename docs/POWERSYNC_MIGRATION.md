@@ -52,29 +52,22 @@ WebKit OPFS reliability in Tauri's webview. The spike (Phase 0) validates this b
 
 ## Migration Phases
 
-### Phase 0: Spike (this branch) ← CURRENT
+### Phase 0: Spike (COMPLETE)
 **Goal**: Validate PowerSync works in both browser and Tauri webview.
-- Install @powersync/web + @journeyapps/wa-sqlite
-- Configure Vite (WASM exclusions, worker format, COOP/COEP headers)
-- Initialize PowerSync client-side with a test schema
-- Verify OPFS/wa-sqlite works in Chrome and Tauri WebKit
-- Test basic read/write against local SQLite (no server sync yet)
-- **Exit criteria**: PowerSync SQLite initializes and queries work on both platforms
+- 10/10 tests passed in Chrome (see Spike Results below)
 
-### Phase 1: Base PR — DataService Abstraction (separate branch from main)
+### Phase 1: DataService Abstraction (COMPLETE)
 **Goal**: Decouple components from direct fetch() so other features aren't blocked.
-- Define a `DataService` interface with all read/write methods components need
-- Implement with direct fetch() (same behavior as current)
-- Refactor components to use `getDataService()` context instead of fetch()
-- This PR can merge independently — no sync dependency
-- Future: swap DataService implementation for PowerSync
+- See "Phase 1" section below for full details
 
-### Phase 2: PowerSync Infrastructure (after spike validates, new branch)
-- Set up PowerSync Service (Docker Compose, self-hosted, Postgres-only storage)
-- Configure Postgres WAL for logical replication
-- Write Sync Rules YAML (define what data each user gets)
-- Add JWT token endpoint (/api/powersync-token)
-- Implement BackendConnector (fetchCredentials + uploadData)
+### Phase 2: PowerSync Infrastructure (COMPLETE)
+- Docker Compose: PowerSync service + bucket storage Postgres (source DB runs natively)
+- Postgres WAL: logical replication enabled, replication user + publication created
+- Sync Rules: 7 per-user bucket definitions for all 10 tables (`config/sync_rules.yaml`)
+- JWT auth: RSA key pair generation, JWKS endpoint, token endpoint
+- BackendConnector: fetchCredentials + uploadData mapping CRUD to REST API
+- **Note**: Source Postgres runs natively on host (not in Docker). Docker Compose only
+  runs PowerSync service and bucket storage, connecting to host via `host.docker.internal`
 
 ### Phase 3: PowerSync DataService Implementation
 - Implement DataService interface backed by PowerSync
