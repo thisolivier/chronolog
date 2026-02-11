@@ -14,8 +14,6 @@ Invoke this skill proactively when you encounter ANY of the following during imp
 - **First-time library usage**: Using a library feature or API you have low confidence about (e.g., sync rules syntax, replication config, WASM setup)
 - **Workarounds**: Working around a limitation in a library, service, or framework (e.g., "no JOINs allowed, so I need to denormalize")
 - **Schema or infrastructure changes driven by a dependency**: A library requires you to change your database schema, add infrastructure, or alter server config
-- **Patterns not in official docs**: Doing something that the official documentation does not explicitly show or endorse
-- **Contradicting training data**: When your training data suggests one approach but the library seems to require another
 - **"This feels wrong" signal**: Any moment where the approach feels like it might be a hack, over-engineering, or against the grain of the tool
 
 Do NOT invoke for:

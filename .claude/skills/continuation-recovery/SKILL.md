@@ -25,20 +25,20 @@ From the continuation summary and environment, collect:
 - **Branch name**: from `git branch --show-current`
 - **Task keywords**: 2-3 specific nouns from the summary (e.g., "offline sync", "conflict resolution")
 
-### 2. Run ONE targeted episodic memory search
+### 2. Search episodic memory
 
 Use the `mcp__plugin_episodic-memory_episodic-memory__search` tool with:
 - `query`: an array of 2-4 specific terms (project name + branch or task keywords)
-- `limit`: 10
+- `limit`: 15
 - `mode`: "both"
 
 Example:
 ```
 query: ["chronolog", "offline-sync", "conflict resolution"]
-limit: 10
+limit: 15
 ```
 
-Do NOT run multiple searches. One precise search beats three broad ones.
+If the first search returns fewer than 3 results, run a **second broader search** using just the project name and a single general keyword (e.g., `["chronolog", "migration"]`). Cap at 2 searches total.
 
 ### 3. Extract only actionable items
 
@@ -58,7 +58,7 @@ If findings contain information NOT already in the project's `MEMORY.md`, append
 - Gotcha: [problem] -- fix: [solution]
 ```
 
-Keep additions under 10 lines. If everything is already captured, do not write anything.
+Keep additions under 15 lines. If everything is already captured, do not write anything.
 
 ### 5. Resume work
 
