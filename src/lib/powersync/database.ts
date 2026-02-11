@@ -1,108 +1,91 @@
 /**
  * PowerSync Database Initialization
  *
- * Creates and manages the PowerSync database instance.
+ * Creates and manages the PowerSync database singleton.
  * Must only be called client-side (browser/Tauri webview).
  *
- * For the spike, we initialize without a server connection
- * to validate that local SQLite (OPFS/wa-sqlite) works.
+ * Connects to the ChronologConnector for server-side sync
+ * (push local changes, pull remote changes).
  */
 
 import type { PowerSyncDatabase as PowerSyncDatabaseType } from '@powersync/web';
 
-let database: PowerSyncDatabaseType | null = null;
-let initializationPromise: Promise<PowerSyncDatabaseType> | null = null;
-
-export type PowerSyncInitResult = {
-	database: PowerSyncDatabaseType;
-	storageType: string;
-	diagnostics: {
-		opfsAvailable: boolean;
-		sharedWorkerAvailable: boolean;
-		userAgent: string;
-	};
-};
+let powerSyncInstance: PowerSyncDatabaseType | null = null;
+let connectionPromise: Promise<PowerSyncDatabaseType> | null = null;
 
 /**
- * Detect which storage features are available in the current environment.
- */
-function detectCapabilities() {
-	return {
-		opfsAvailable: typeof navigator !== 'undefined' && 'storage' in navigator,
-		sharedWorkerAvailable: typeof SharedWorker !== 'undefined',
-		userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'
-	};
-}
-
-/**
- * Initialize the PowerSync database.
- * Returns the database instance plus diagnostic info about the storage backend.
+ * Connect to PowerSync with the backend connector.
  *
- * This is a singleton — calling it multiple times returns the same instance.
+ * Creates a new PowerSyncDatabase instance, wires up the
+ * ChronologConnector, and starts syncing. Returns the connected
+ * database. This is idempotent — subsequent calls return the
+ * same instance.
  */
-export async function initPowerSync(): Promise<PowerSyncInitResult> {
-	if (database) {
-		return {
-			database,
-			storageType: 'cached',
-			diagnostics: detectCapabilities()
-		};
+export async function connectPowerSync(): Promise<PowerSyncDatabaseType> {
+	if (powerSyncInstance) {
+		return powerSyncInstance;
 	}
 
-	if (initializationPromise) {
-		const existingDatabase = await initializationPromise;
-		return {
-			database: existingDatabase,
-			storageType: 'cached',
-			diagnostics: detectCapabilities()
-		};
+	if (connectionPromise) {
+		return connectionPromise;
 	}
 
-	initializationPromise = createDatabase();
-	const newDatabase = await initializationPromise;
-	database = newDatabase;
+	connectionPromise = createAndConnectDatabase();
+	powerSyncInstance = await connectionPromise;
 
-	return {
-		database: newDatabase,
-		storageType: 'fresh',
-		diagnostics: detectCapabilities()
-	};
+	return powerSyncInstance;
 }
 
-async function createDatabase(): Promise<PowerSyncDatabaseType> {
-	// Dynamic import — ensures this code only loads client-side
+async function createAndConnectDatabase(): Promise<PowerSyncDatabaseType> {
+	// Dynamic imports — ensures this code only loads client-side
 	const { PowerSyncDatabase } = await import('@powersync/web');
 	const { AppSchema } = await import('./schema');
+	const { ChronologConnector } = await import('./connector');
 
-	const diagnostics = detectCapabilities();
+	const sharedWorkerAvailable = typeof SharedWorker !== 'undefined';
 
-	const powerSyncDatabase = new PowerSyncDatabase({
+	const database = new PowerSyncDatabase({
 		schema: AppSchema,
 		database: {
-			dbFilename: 'chronolog-spike.db'
+			dbFilename: 'chronolog.db'
 		},
 		flags: {
-			enableMultiTabs: diagnostics.sharedWorkerAvailable
+			enableMultiTabs: sharedWorkerAvailable
 		}
 	});
 
-	return powerSyncDatabase;
-}
+	const connector = new ChronologConnector();
+	await database.connect(connector);
 
-/**
- * Get the current database instance (null if not initialized).
- */
-export function getPowerSyncDatabase(): PowerSyncDatabaseType | null {
 	return database;
 }
 
 /**
- * Close and reset the database instance.
+ * Get the PowerSync database singleton.
+ *
+ * If the database has not been initialized yet, this will
+ * call `connectPowerSync()` to create and connect it.
  */
-export async function closePowerSync(): Promise<void> {
-	if (database) {
-		await database.close();
-		database = null;
-		initializationPromise = null;
+export async function getPowerSyncDatabase(): Promise<PowerSyncDatabaseType> {
+	if (powerSyncInstance) {
+		return powerSyncInstance;
+	}
+
+	return connectPowerSync();
+}
+
+/**
+ * Disconnect and tear down the PowerSync database.
+ *
+ * Closes the underlying connection and resets the singleton
+ * so the next call to `connectPowerSync()` or
+ * `getPowerSyncDatabase()` will create a fresh instance.
+ */
+export async function disconnectPowerSync(): Promise<void> {
+	if (powerSyncInstance) {
+		await powerSyncInstance.disconnectAndClear();
+		await powerSyncInstance.close();
+		powerSyncInstance = null;
+		connectionPromise = null;
 	}
 }

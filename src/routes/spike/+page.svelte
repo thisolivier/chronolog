@@ -84,14 +84,19 @@
 		startTime = performance.now();
 		let database: import('@powersync/web').PowerSyncDatabase | null = null;
 		try {
-			const { initPowerSync } = await import('$lib/powersync/database');
-			const initResult = await initPowerSync();
+			const { PowerSyncDatabase } = await import('@powersync/web');
+			const { AppSchema } = await import('$lib/powersync/schema');
+			const sharedWorkerAvailable = typeof SharedWorker !== 'undefined';
+			database = new PowerSyncDatabase({
+				schema: AppSchema,
+				database: { dbFilename: 'chronolog-spike.db' },
+				flags: { enableMultiTabs: sharedWorkerAvailable }
+			});
 			const initDuration = performance.now() - startTime;
-			database = initResult.database;
 			updateResult(
 				'Database Init',
 				'pass',
-				`SQLite ready. OPFS: ${initResult.diagnostics.opfsAvailable}, SharedWorker: ${initResult.diagnostics.sharedWorkerAvailable}`,
+				`SQLite ready. OPFS: ${hasOPFS}, SharedWorker: ${sharedWorkerAvailable}`,
 				initDuration
 			);
 		} catch (initError) {
@@ -102,25 +107,28 @@
 			return;
 		}
 
+		// After successful init, database is guaranteed non-null (early return on failure above)
+		const confirmedDatabase = database!;
+
 		// ─── Test 5: Write to Local SQLite ───
 		addResult('Local Write', 'pending', 'Inserting test rows...');
 		startTime = performance.now();
 		try {
 			const now = new Date().toISOString();
 
-			await database.execute(
+			await confirmedDatabase.execute(
 				`INSERT OR REPLACE INTO clients (id, user_id, name, short_code, created_at, updated_at)
 				 VALUES (?, ?, ?, ?, ?, ?)`,
 				['spike-client-1', 'spike-user', 'Spike Test Client', 'STC', now, now]
 			);
 
-			await database.execute(
+			await confirmedDatabase.execute(
 				`INSERT OR REPLACE INTO contracts (id, client_id, name, description, is_active, sort_order, created_at, updated_at)
 				 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 				['spike-contract-1', 'spike-client-1', 'Test Contract', 'A test contract', 1, 0, now, now]
 			);
 
-			await database.execute(
+			await confirmedDatabase.execute(
 				`INSERT OR REPLACE INTO notes (id, user_id, contract_id, title, content, content_json, word_count, is_pinned, created_at, updated_at)
 				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 				[
@@ -151,9 +159,9 @@
 		addResult('Local Read', 'pending', 'Querying test rows...');
 		startTime = performance.now();
 		try {
-			const allClients = await database.getAll('SELECT * FROM clients');
-			const allContracts = await database.getAll('SELECT * FROM contracts');
-			const allNotes = await database.getAll('SELECT * FROM notes');
+			const allClients = await confirmedDatabase.getAll('SELECT * FROM clients');
+			const allContracts = await confirmedDatabase.getAll('SELECT * FROM contracts');
+			const allNotes = await confirmedDatabase.getAll('SELECT * FROM notes');
 			const readDuration = performance.now() - startTime;
 			updateResult(
 				'Local Read',
@@ -170,7 +178,7 @@
 		addResult('JOIN Query', 'pending', 'Testing cross-table join...');
 		startTime = performance.now();
 		try {
-			const joinResult = await database.getAll(
+			const joinResult = await confirmedDatabase.getAll(
 				`SELECT n.title, n.content, c.name as contract_name, cl.name as client_name
 				 FROM notes n
 				 JOIN contracts c ON n.contract_id = c.id
@@ -205,7 +213,7 @@
 				}, 3000);
 
 				(async () => {
-					for await (const watchResult of database!.watch(
+					for await (const watchResult of confirmedDatabase.watch(
 						'SELECT COUNT(*) as count FROM notes',
 						[],
 						{ signal: abortController.signal }
@@ -242,11 +250,11 @@
 		addResult('Cleanup', 'pending', 'Deleting test data...');
 		startTime = performance.now();
 		try {
-			await database.execute('DELETE FROM notes WHERE id LIKE ?', ['spike-%']);
-			await database.execute('DELETE FROM contracts WHERE id LIKE ?', ['spike-%']);
-			await database.execute('DELETE FROM clients WHERE id LIKE ?', ['spike-%']);
+			await confirmedDatabase.execute('DELETE FROM notes WHERE id LIKE ?', ['spike-%']);
+			await confirmedDatabase.execute('DELETE FROM contracts WHERE id LIKE ?', ['spike-%']);
+			await confirmedDatabase.execute('DELETE FROM clients WHERE id LIKE ?', ['spike-%']);
 
-			const remaining = await database.getAll('SELECT COUNT(*) as count FROM clients');
+			const remaining = await confirmedDatabase.getAll('SELECT COUNT(*) as count FROM clients');
 			const cleanupDuration = performance.now() - startTime;
 			updateResult(
 				'Cleanup',
@@ -263,7 +271,7 @@
 		addResult('Upload Queue', 'pending', 'Testing CRUD queue tracking...');
 		startTime = performance.now();
 		try {
-			const queueStats = await database.getUploadQueueStats();
+			const queueStats = await confirmedDatabase.getUploadQueueStats();
 			const queueDuration = performance.now() - startTime;
 			updateResult(
 				'Upload Queue',

@@ -2,6 +2,14 @@ services:
   postgres:
     image: postgres:17
     restart: unless-stopped
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "max_replication_slots=10"
     environment:
       POSTGRES_USER: chronolog
       POSTGRES_PASSWORD: chronolog
@@ -10,6 +18,56 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./config/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chronolog -d chronolog"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  powersync-storage:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: powersync_storage
+      POSTGRES_DB: powersync_storage
+    ports:
+      - "5431:5432"
+    volumes:
+      - powersync_storage_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d powersync_storage"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  powersync:
+    image: journeyapps/powersync-service:latest
+    restart: unless-stopped
+    command: ["start", "-r", "unified"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      powersync-storage:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config:/config
+    environment:
+      PS_DATA_SOURCE_URI: "postgresql://powersync_repl:powersync_repl_password@postgres:5432/chronolog"
+      PS_STORAGE_SOURCE_URI: "postgresql://postgres:powersync_storage@powersync-storage:5432/powersync_storage"
+      PS_JWKS_URL: "http://host.docker.internal:5173/api/auth/powersync/jwks"
+      PS_PORT: "8080"
+      POWERSYNC_CONFIG_PATH: "/config/powersync.yaml"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/liveness || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
 volumes:
   postgres_data:
+  powersync_storage_data:
