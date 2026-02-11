@@ -122,12 +122,10 @@ If any accommodation has NOT been validated against community patterns, flag it:
 
 ## Integration with pattern-validator
 
-During implementation, **pattern-validator does not auto-invoke on its own**. This skill is the entry point. It invokes pattern-validator as a child in two situations:
+**Pattern-validator does not auto-invoke.** This skill is the only entry point (besides direct user invocation). It invokes pattern-validator as a child in two situations:
 
 1. **Guttering**: When guttering is detected (see above), invoke `/pattern-validator` to check the underlying assumption before allowing further attempts.
 2. **Post-stage audit**: When reviewing accommodations that have not been validated, invoke `/pattern-validator` to check them against community practices. Mark validated entries so they are not re-researched.
-
-During **planning phases**, pattern-validator may still auto-invoke independently.
 
 ## Output
 
