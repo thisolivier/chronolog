@@ -1,48 +1,21 @@
 # Sync rules for Chronolog PowerSync service
 # Defines per-user data buckets using request.user_id() (JWT sub claim)
+#
+# All tables have a denormalized user_id column for PowerSync compatibility.
+# PowerSync data queries must SELECT from a single table (no JOINs/subqueries).
 
 bucket_definitions:
-  # Tables with direct user_id column
+  # Single bucket per user containing all their data
   user_data[]:
     parameters: SELECT request.user_id() as user_id
     data:
       - SELECT * FROM clients WHERE clients.user_id = bucket.user_id
+      - SELECT * FROM contracts WHERE contracts.user_id = bucket.user_id
+      - SELECT * FROM deliverables WHERE deliverables.user_id = bucket.user_id
+      - SELECT * FROM work_types WHERE work_types.user_id = bucket.user_id
       - SELECT * FROM time_entries WHERE time_entries.user_id = bucket.user_id
       - SELECT * FROM notes WHERE notes.user_id = bucket.user_id
+      - SELECT * FROM note_links WHERE note_links.user_id = bucket.user_id
+      - SELECT * FROM note_time_entries WHERE note_time_entries.user_id = bucket.user_id
       - SELECT * FROM weekly_statuses WHERE weekly_statuses.user_id = bucket.user_id
-
-  # Contracts: owned via clients.user_id
-  user_contracts[]:
-    parameters: SELECT request.user_id() as user_id
-    data:
-      - SELECT contracts.* FROM contracts JOIN clients ON contracts.client_id = clients.id WHERE clients.user_id = bucket.user_id
-
-  # Deliverables: owned via contracts -> clients.user_id
-  user_deliverables[]:
-    parameters: SELECT request.user_id() as user_id
-    data:
-      - SELECT deliverables.* FROM deliverables JOIN contracts ON deliverables.contract_id = contracts.id JOIN clients ON contracts.client_id = clients.id WHERE clients.user_id = bucket.user_id
-
-  # Work types: owned via deliverables -> contracts -> clients.user_id
-  user_work_types[]:
-    parameters: SELECT request.user_id() as user_id
-    data:
-      - SELECT work_types.* FROM work_types JOIN deliverables ON work_types.deliverable_id = deliverables.id JOIN contracts ON deliverables.contract_id = contracts.id JOIN clients ON contracts.client_id = clients.id WHERE clients.user_id = bucket.user_id
-
-  # Note links: owned via notes.user_id (source note)
-  user_note_links[]:
-    parameters: SELECT request.user_id() as user_id
-    data:
-      - SELECT note_links.* FROM note_links JOIN notes ON note_links.source_note_id = notes.id WHERE notes.user_id = bucket.user_id
-
-  # Note-time entry associations: owned via notes.user_id
-  user_note_time_entries[]:
-    parameters: SELECT request.user_id() as user_id
-    data:
-      - SELECT note_time_entries.* FROM note_time_entries JOIN notes ON note_time_entries.note_id = notes.id WHERE notes.user_id = bucket.user_id
-
-  # Attachments: owned via notes.user_id
-  user_attachments[]:
-    parameters: SELECT request.user_id() as user_id
-    data:
-      - SELECT attachments.* FROM attachments JOIN notes ON attachments.note_id = notes.id WHERE notes.user_id = bucket.user_id
+      - SELECT id, note_id, user_id, filename, mime_type, size_bytes, created_at FROM attachments WHERE attachments.user_id = bucket.user_id

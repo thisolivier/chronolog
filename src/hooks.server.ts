@@ -66,7 +66,8 @@ async function ensureAppUser(authUser: { id: string; email: string; name: string
 
 			await database.insert(contracts).values({
 				clientId: internalClient.id,
-				name: 'General'
+				name: 'General',
+				userId: authUser.id
 			});
 		}
 

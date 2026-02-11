@@ -63,7 +63,8 @@ async function seed() {
 		.values({
 			clientId: bigCheeseClient.id,
 			name: 'Install new cheese system',
-			description: 'Full system installation and configuration'
+			description: 'Full system installation and configuration',
+			userId: sampleUser.id
 		})
 		.returning();
 
@@ -72,7 +73,8 @@ async function seed() {
 		.values({
 			clientId: internalClient.id,
 			name: 'Internal operations',
-			description: 'Administrative and internal tasks'
+			description: 'Administrative and internal tasks',
+			userId: sampleUser.id
 		})
 		.returning();
 
@@ -84,7 +86,8 @@ async function seed() {
 		.values({
 			contractId: cheeseContract.id,
 			name: 'Onboarding',
-			sortOrder: 0
+			sortOrder: 0,
+			userId: sampleUser.id
 		})
 		.returning();
 
@@ -93,7 +96,8 @@ async function seed() {
 		.values({
 			contractId: cheeseContract.id,
 			name: 'Implementation',
-			sortOrder: 1
+			sortOrder: 1,
+			userId: sampleUser.id
 		})
 		.returning();
 
@@ -102,7 +106,8 @@ async function seed() {
 		.values({
 			contractId: internalContract.id,
 			name: 'Administration',
-			sortOrder: 0
+			sortOrder: 0,
+			userId: sampleUser.id
 		})
 		.returning();
 
@@ -111,7 +116,8 @@ async function seed() {
 		.values({
 			contractId: internalContract.id,
 			name: 'Training',
-			sortOrder: 1
+			sortOrder: 1,
+			userId: sampleUser.id
 		})
 		.returning();
 
@@ -119,15 +125,15 @@ async function seed() {
 
 	// --- Create work types ---
 	const workTypeValues = [
-		{ deliverableId: cheeseOnboarding.id, name: 'Documentation', sortOrder: 0 },
-		{ deliverableId: cheeseOnboarding.id, name: 'Meeting', sortOrder: 1 },
-		{ deliverableId: cheeseImplementation.id, name: 'Development', sortOrder: 0 },
-		{ deliverableId: cheeseImplementation.id, name: 'Review', sortOrder: 1 },
-		{ deliverableId: cheeseImplementation.id, name: 'Testing', sortOrder: 2 },
-		{ deliverableId: internalAdmin.id, name: 'Email', sortOrder: 0 },
-		{ deliverableId: internalAdmin.id, name: 'Planning', sortOrder: 1 },
-		{ deliverableId: internalTraining.id, name: 'Study', sortOrder: 0 },
-		{ deliverableId: internalTraining.id, name: 'Workshop', sortOrder: 1 }
+		{ deliverableId: cheeseOnboarding.id, name: 'Documentation', sortOrder: 0, userId: sampleUser.id },
+		{ deliverableId: cheeseOnboarding.id, name: 'Meeting', sortOrder: 1, userId: sampleUser.id },
+		{ deliverableId: cheeseImplementation.id, name: 'Development', sortOrder: 0, userId: sampleUser.id },
+		{ deliverableId: cheeseImplementation.id, name: 'Review', sortOrder: 1, userId: sampleUser.id },
+		{ deliverableId: cheeseImplementation.id, name: 'Testing', sortOrder: 2, userId: sampleUser.id },
+		{ deliverableId: internalAdmin.id, name: 'Email', sortOrder: 0, userId: sampleUser.id },
+		{ deliverableId: internalAdmin.id, name: 'Planning', sortOrder: 1, userId: sampleUser.id },
+		{ deliverableId: internalTraining.id, name: 'Study', sortOrder: 0, userId: sampleUser.id },
+		{ deliverableId: internalTraining.id, name: 'Workshop', sortOrder: 1, userId: sampleUser.id }
 	];
 
 	const insertedWorkTypes = await database.insert(workTypes).values(workTypeValues).returning();
@@ -242,17 +248,20 @@ async function seed() {
 		{
 			noteId: designNote.id,
 			timeEntryId: insertedTimeEntries[0].id,
-			headingAnchor: 'design-review'
+			headingAnchor: 'design-review',
+			userId: sampleUser.id
 		},
 		{
 			noteId: designNote.id,
 			timeEntryId: insertedTimeEntries[1].id,
-			headingAnchor: null
+			headingAnchor: null,
+			userId: sampleUser.id
 		},
 		{
 			noteId: planningNote.id,
 			timeEntryId: insertedTimeEntries[3].id,
-			headingAnchor: null
+			headingAnchor: null,
+			userId: sampleUser.id
 		}
 	]);
 

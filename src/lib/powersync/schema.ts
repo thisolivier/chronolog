@@ -24,6 +24,7 @@ const clientsTable = new Table(
 
 const contractsTable = new Table(
 	{
+		user_id: column.text,
 		client_id: column.text,
 		name: column.text,
 		description: column.text,
@@ -37,6 +38,7 @@ const contractsTable = new Table(
 
 const deliverablesTable = new Table(
 	{
+		user_id: column.text,
 		contract_id: column.text,
 		name: column.text,
 		sort_order: column.integer,
@@ -48,6 +50,7 @@ const deliverablesTable = new Table(
 
 const workTypesTable = new Table(
 	{
+		user_id: column.text,
 		deliverable_id: column.text,
 		name: column.text,
 		sort_order: column.integer
@@ -90,6 +93,7 @@ const notesTable = new Table(
 
 const noteLinksTable = new Table(
 	{
+		user_id: column.text,
 		source_note_id: column.text,
 		target_note_id: column.text,
 		heading_anchor: column.text,
@@ -100,6 +104,7 @@ const noteLinksTable = new Table(
 
 const noteTimeEntriesTable = new Table(
 	{
+		user_id: column.text,
 		note_id: column.text,
 		time_entry_id: column.text,
 		heading_anchor: column.text
@@ -122,6 +127,7 @@ const weeklyStatusesTable = new Table(
 
 const attachmentsTable = new Table(
 	{
+		user_id: column.text,
 		note_id: column.text,
 		filename: column.text,
 		mime_type: column.text,

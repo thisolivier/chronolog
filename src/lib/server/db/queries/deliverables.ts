@@ -21,11 +21,12 @@ export async function getDeliverable(deliverableId: string, contractId: string) 
 export async function createDeliverable(
 	contractId: string,
 	name: string,
-	sortOrder: number
+	sortOrder: number,
+	userId: string
 ) {
 	const results = await database
 		.insert(deliverables)
-		.values({ contractId, name, sortOrder })
+		.values({ contractId, name, sortOrder, userId })
 		.returning();
 	return results[0];
 }

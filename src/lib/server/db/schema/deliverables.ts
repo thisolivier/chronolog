@@ -1,8 +1,10 @@
 import { integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { contracts } from './contracts';
+import { users } from './users';
 
 export const deliverables = pgTable('deliverables', {
 	id: uuid('id').primaryKey().defaultRandom(),
+	userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
 	contractId: uuid('contract_id')
 		.notNull()
 		.references(() => contracts.id, { onDelete: 'cascade' }),

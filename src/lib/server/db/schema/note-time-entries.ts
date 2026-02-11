@@ -1,10 +1,12 @@
 import { pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
 import { notes } from './notes';
 import { timeEntries } from './time-entries';
+import { users } from './users';
 
 export const noteTimeEntries = pgTable(
 	'note_time_entries',
 	{
+		userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
 		noteId: text('note_id')
 			.notNull()
 			.references(() => notes.id, { onDelete: 'cascade' }),

@@ -47,7 +47,8 @@ describe('Attachment Queries', () => {
 			.values({
 				clientId: testClientId,
 				name: 'Attachment Test Contract',
-				isActive: true
+				isActive: true,
+				userId: testUserId
 			})
 			.returning();
 		testContractId = contractResult[0].id;
@@ -80,7 +81,8 @@ describe('Attachment Queries', () => {
 			testFilename,
 			testMimeType,
 			testSizeBytes,
-			testFileData
+			testFileData,
+			testUserId
 		);
 
 		expect(attachment.id).toBeDefined();
@@ -102,14 +104,16 @@ describe('Attachment Queries', () => {
 			'file1.png',
 			'image/png',
 			100,
-			Buffer.from('data1')
+			Buffer.from('data1'),
+			testUserId
 		);
 		const attachment2 = await createAttachment(
 			testNoteId,
 			'file2.pdf',
 			'application/pdf',
 			200,
-			Buffer.from('data2')
+			Buffer.from('data2'),
+			testUserId
 		);
 
 		const attachmentList = await listAttachmentsForNote(testNoteId);
@@ -136,7 +140,8 @@ describe('Attachment Queries', () => {
 			testFilename,
 			testMimeType,
 			testSizeBytes,
-			testFileData
+			testFileData,
+			testUserId
 		);
 
 		const fetched = await getAttachment(created.id);
@@ -164,7 +169,8 @@ describe('Attachment Queries', () => {
 			'to-delete.png',
 			'image/png',
 			50,
-			Buffer.from('delete-me')
+			Buffer.from('delete-me'),
+			testUserId
 		);
 
 		const wasDeleted = await deleteAttachment(created.id);
