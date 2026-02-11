@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { authClient } from '$lib/auth-client';
-	import { goto } from '$app/navigation';
 
 	let email = $state('');
 	let password = $state('');
@@ -31,7 +30,9 @@
 				return;
 			}
 
-			goto('/');
+			// Full page reload so the root layout re-mounts with the
+			// authenticated user and initializes navigation context.
+			window.location.href = '/';
 		} catch (_error) {
 			errorMessage = 'An unexpected error occurred. Please try again.';
 			isLoading = false;
@@ -53,7 +54,9 @@
 				return;
 			}
 
-			goto('/');
+			// Full page reload so the root layout re-mounts with the
+			// authenticated user and initializes navigation context.
+			window.location.href = '/';
 		} catch (_error) {
 			errorMessage = 'An unexpected error occurred. Please try again.';
 			isLoading = false;
