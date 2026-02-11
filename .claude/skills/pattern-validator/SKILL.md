@@ -1,20 +1,30 @@
 ---
 name: pattern-validator
-description: Validate unfamiliar implementation patterns against community practices before committing to them. Claude should invoke this proactively when encountering a pattern it has not seen before, a workaround for a library limitation, or an architectural decision that feels unusual. Also use when the user says "validate this pattern", "is this normal", "check if this approach is standard", or "explore online if this is normal".
+description: Validate unfamiliar implementation patterns against community practices. Auto-invokes during planning; called by accommodation-tracker during implementation. Also use when the user says "validate this pattern", "is this normal", or "check if this approach is standard".
 ---
 
 # Pattern Validator
 
-A lightweight pre-check that validates unfamiliar implementation patterns against community practices BEFORE committing to an approach. This fires during implementation, not after.
+Validate unfamiliar implementation patterns against community practices. Can be invoked directly by the user, called by the accommodation-tracker during guttering or post-stage audits, or auto-invoked during planning.
 
-## When Claude should auto-invoke this skill
+## When this skill is used
 
-Invoke this skill proactively when you encounter ANY of the following during implementation:
+### Auto-invoke during planning phases
+
+Proactively invoke this skill when you encounter any of the following **during planning** (before implementation begins):
 
 - **First-time library usage**: Using a library feature or API you have low confidence about (e.g., sync rules syntax, replication config, WASM setup)
 - **Workarounds**: Working around a limitation in a library, service, or framework (e.g., "no JOINs allowed, so I need to denormalize")
 - **Schema or infrastructure changes driven by a dependency**: A library requires you to change your database schema, add infrastructure, or alter server config
 - **"This feels wrong" signal**: Any moment where the approach feels like it might be a hack, over-engineering, or against the grain of the tool
+
+### During implementation
+
+Do **not** auto-invoke this skill during implementation. During implementation, the **accommodation-tracker** is the entry point and will invoke this skill when needed (guttering detection, post-stage audit).
+
+### User-invoked
+
+Always run when the user explicitly asks to validate a pattern (e.g., `/pattern-validator`, "is this normal", "check if this approach is standard").
 
 Do NOT invoke for:
 - Standard CRUD operations
@@ -104,10 +114,10 @@ If no accommodations file exists and the finding is a RED FLAG, create one. For 
 
 ## Integration with accommodation-tracker
 
-- **Pattern-validator** is the early warning system -- it fires DURING implementation as a pre-check
-- **Accommodation-tracker** is the audit -- it fires AFTER a stage to review all accumulated workarounds
+- **Accommodation-tracker** is the parent skill during implementation -- it runs DURING and AFTER implementation stages, detecting guttering and auditing workarounds
+- **Pattern-validator** is called by accommodation-tracker when needed: during guttering (to check assumptions) and during post-stage audits (to validate unresearched accommodations)
+- During **planning phases**, pattern-validator auto-invokes independently
 - When pattern-validator logs a CAUTION or RED FLAG to the accommodations file, it marks the entry as `validated` so the accommodation-tracker does not re-research it
-- The accommodation-tracker may flag items that slipped past pattern-validator (patterns that seemed normal at first but accumulated into a concerning trend)
 
 ## Speed guidance
 

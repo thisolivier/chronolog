@@ -12,24 +12,24 @@ Track and document unexpected workarounds, architectural changes, repeated faile
 ### Post-stage audit (invoke explicitly)
 
 Use this skill **after each major implementation stage** to audit what changed unexpectedly. Also invoke when:
-- The pattern-validator skill flags something as CAUTION or RED FLAG
 - The user asks to review what workarounds were made
 - You notice the implementation has drifted significantly from the original plan
 - A task required 3+ unexpected changes to make something work
 
 ### Guttering detection (self-monitor continuously)
 
-During implementation, watch for these signals that indicate you are stuck in a loop:
+During implementation, count your attempts at solving any given problem. If you have taken **3 or more attempts** to solve the same problem without success, you are guttering. Examples:
 
-- **Repeated edits**: 3+ edits to the same file/function targeting the same issue without resolving it
-- **Recurring errors**: searching for or encountering the same error message 3+ times
-- **Revert cycles**: reverting a change and trying a variation of the same approach
-- **Dependency churn**: adding, removing, or swapping the same dependency or config value
+- Adding a feature caused compile errors. Fixing those errors failed. The next fix also failed. That's 3 attempts — stop.
+- A config change broke tests. You tried a different value. That also broke tests. You tried a third value. Stop.
+- You refactored a function, it introduced a bug, you fixed the bug but introduced another, you fixed that but the original issue returned. Stop.
+
+The specific mechanism doesn't matter — what matters is that you've tried and failed 3 times at the same underlying problem.
 
 When you detect guttering:
 
 1. **Stop** implementation of the current approach
-2. **Record** the guttering event in the accommodations file as an in-progress item using this format:
+2. **Record** the guttering event in the accommodations file as an in-progress item:
    ```markdown
    ## N. [GUTTERING] Short description of what you're stuck on
 
@@ -37,9 +37,10 @@ When you detect guttering:
    **Attempts**: [number of attempts so far]
    **Approach tried**: [brief description of what you've been repeating]
    ```
-3. **Surface it to the user**: "I've made N attempts at [X] without success. Before trying again, I'd suggest: (a) validate the underlying assumption with `/pattern-validator`, (b) try a fundamentally different approach, or (c) continue iterating. What would you prefer?"
-4. **Wait** for user direction before continuing
-5. If eventually resolved, update the guttering entry to a full accommodation entry with what finally worked
+3. **Invoke `/pattern-validator`** proactively on the underlying assumption or approach to check whether the direction is sound
+4. Based on the pattern-validator result, you may make up to **2 more attempts** to solve the problem
+5. If still unresolved after those 2 attempts, or if the approach has **deviated significantly from the original plan**, **halt** and explain the situation to the user: what you tried, why it isn't working, and what the pattern-validator found
+6. If eventually resolved, update the guttering entry to a full accommodation entry with what finally worked
 
 ## Instructions
 
@@ -121,13 +122,12 @@ If any accommodation has NOT been validated against community patterns, flag it:
 
 ## Integration with pattern-validator
 
-When the pattern-validator skill flags a CAUTION or RED FLAG:
-1. Open or create the accommodations file for the current task
-2. Add an entry documenting the finding
-3. Include the pattern-validator's verdict and research summary
-4. Mark it as validated (since pattern-validator already did the research)
+During implementation, **pattern-validator does not auto-invoke on its own**. This skill is the entry point. It invokes pattern-validator as a child in two situations:
 
-Guttering events may also trigger pattern-validator. When you surface a guttering event to the user and they choose option (a) — validate the underlying assumption — invoke `/pattern-validator` with a description of the assumption you've been working under.
+1. **Guttering**: When guttering is detected (see above), invoke `/pattern-validator` to check the underlying assumption before allowing further attempts.
+2. **Post-stage audit**: When reviewing accommodations that have not been validated, invoke `/pattern-validator` to check them against community practices. Mark validated entries so they are not re-researched.
+
+During **planning phases**, pattern-validator may still auto-invoke independently.
 
 ## Output
 
