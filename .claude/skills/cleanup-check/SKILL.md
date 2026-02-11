@@ -1,7 +1,10 @@
 ---
-description: Check for orphaned worktrees and stale branches
+name: cleanup-check
+description: Check for orphaned worktrees and stale branches. Use when the user mentions stale branches, orphaned worktrees, or wants to see what can be cleaned up in the repository.
 allowed-tools: Bash(git:*), Bash(gh:*)
 ---
+
+# Cleanup Check
 
 Analyze the repository for cleanup opportunities. This is read-only - no modifications.
 

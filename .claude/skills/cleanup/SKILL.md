@@ -1,12 +1,14 @@
 ---
-description: Clean up orphaned worktrees and stale branches
+name: cleanup
+description: Clean up orphaned worktrees and stale branches from the repository. Use when the user wants to remove stale branches, prune worktrees, or tidy up the git repository.
 allowed-tools: Bash(git:*), Bash(gh:*)
-argument-hint: [--dry-run]
 ---
+
+# Cleanup
 
 Clean up orphaned worktrees and stale branches from the repository.
 
-If $ARGUMENTS contains "--dry-run", only show what would be cleaned without executing.
+Before executing any cleanup, ask the user whether they want a dry run (preview only) or a live cleanup using AskUserQuestion.
 
 ## Step 1: Identify Cleanup Targets
 
