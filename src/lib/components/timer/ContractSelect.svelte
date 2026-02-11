@@ -1,5 +1,8 @@
 <script lang="ts">
-	import type { ContractOption } from './timer-api';
+	import { getDataService } from '$lib/services/context';
+	import type { ContractOption } from '$lib/services/types';
+
+	const dataService = getDataService();
 
 	let {
 		selectedContractId = $bindable(''),
@@ -14,10 +17,7 @@
 
 	async function loadContracts() {
 		try {
-			const response = await fetch('/api/contracts');
-			if (response.ok) {
-				contractList = await response.json();
-			}
+			contractList = await dataService.getContracts();
 		} catch {
 			// Silently fail — contract list will remain empty
 		}

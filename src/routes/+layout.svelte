@@ -1,6 +1,8 @@
 <script lang="ts">
 	import '../app.css';
 	import { createNavigationState, setNavigationContext } from '$lib/stores/navigation.svelte';
+	import { setDataServiceContext } from '$lib/services/context';
+	import { FetchDataService } from '$lib/services/fetch-data-service';
 
 	let { children, data } = $props();
 
@@ -10,6 +12,12 @@
 	const navState = data.user ? createNavigationState() : null;
 	if (navState) {
 		setNavigationContext(navState);
+	}
+
+	// Initialize data service for authenticated users
+	// Future: swap FetchDataService for PowerSync-backed implementation
+	if (data.user) {
+		setDataServiceContext(new FetchDataService());
 	}
 </script>
 

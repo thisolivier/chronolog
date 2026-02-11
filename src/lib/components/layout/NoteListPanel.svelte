@@ -2,21 +2,14 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
+	import { getDataService } from '$lib/services/context';
 	import { formatSmartDate } from '$lib/utils/format-date';
-
-	type NoteListItem = {
-		id: string;
-		contractId: string;
-		isPinned: boolean;
-		createdAt: string;
-		updatedAt: string;
-		firstLine: string;
-		secondLine: string;
-	};
+	import type { NoteSummary } from '$lib/services/types';
 
 	const navigationContext = getNavigationContext();
+	const dataService = getDataService();
 
-	let notesList = $state<NoteListItem[]>([]);
+	let notesList = $state<NoteSummary[]>([]);
 	let isLoading = $state(false);
 	let isCreating = $state(false);
 	let fetchError = $state<string | null>(null);
@@ -29,13 +22,7 @@
 		fetchError = null;
 
 		try {
-			const response = await fetch(`/api/notes?contractId=${encodeURIComponent(contractId)}`);
-			if (!response.ok) {
-				throw new Error('Failed to load notes');
-			}
-
-			const data = await response.json();
-			notesList = data.notes ?? [];
+			notesList = await dataService.getNotesForContract(contractId);
 		} catch (error) {
 			fetchError = error instanceof Error ? error.message : 'An error occurred';
 			console.error('Error loading notes:', error);
@@ -55,18 +42,7 @@
 		fetchError = null;
 
 		try {
-			const response = await fetch('/api/notes', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ contractId })
-			});
-
-			if (!response.ok) {
-				throw new Error('Failed to create note');
-			}
-
-			const data = await response.json();
-			const createdNote = data.note;
+			const createdNote = await dataService.createNote(contractId);
 
 			// Prepend the new note to the list (it will appear at the top)
 			notesList = [
@@ -101,10 +77,7 @@
 		if (!confirmed) return;
 
 		try {
-			const response = await fetch(`/api/notes/${noteId}`, { method: 'DELETE' });
-			if (!response.ok) {
-				throw new Error('Failed to delete note');
-			}
+			await dataService.deleteNote(noteId);
 
 			// Remove from local list
 			notesList = notesList.filter((note) => note.id !== noteId);

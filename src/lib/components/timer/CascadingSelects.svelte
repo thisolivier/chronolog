@@ -1,13 +1,8 @@
 <script lang="ts">
-	type Contract = {
-		id: string;
-		name: string;
-		clientName: string;
-		clientShortCode: string;
-		isActive: boolean;
-	};
-	type Deliverable = { id: string; name: string };
-	type WorkType = { id: string; name: string };
+	import { getDataService } from '$lib/services/context';
+	import type { ContractOption, DeliverableOption, WorkTypeOption } from '$lib/services/types';
+
+	const dataService = getDataService();
 
 	let {
 		selectedContractId = $bindable(''),
@@ -19,16 +14,13 @@
 		selectedWorkTypeId: string;
 	} = $props();
 
-	let contractList: Contract[] = $state([]);
-	let deliverableList: Deliverable[] = $state([]);
-	let workTypeList: WorkType[] = $state([]);
+	let contractList: ContractOption[] = $state([]);
+	let deliverableList: DeliverableOption[] = $state([]);
+	let workTypeList: WorkTypeOption[] = $state([]);
 
 	/** Fetch contracts for the current user */
 	async function loadContracts() {
-		const response = await fetch('/api/contracts');
-		if (response.ok) {
-			contractList = await response.json();
-		}
+		contractList = await dataService.getContracts();
 	}
 
 	/** Fetch deliverables when contract changes */
@@ -37,10 +29,7 @@
 			deliverableList = [];
 			return;
 		}
-		const response = await fetch(`/api/deliverables?contractId=${contractId}`);
-		if (response.ok) {
-			deliverableList = await response.json();
-		}
+		deliverableList = await dataService.getDeliverables(contractId);
 	}
 
 	/** Fetch work types when deliverable changes */
@@ -49,10 +38,7 @@
 			workTypeList = [];
 			return;
 		}
-		const response = await fetch(`/api/work-types?deliverableId=${deliverableId}`);
-		if (response.ok) {
-			workTypeList = await response.json();
-		}
+		workTypeList = await dataService.getWorkTypes(deliverableId);
 	}
 
 	// Load contracts on mount

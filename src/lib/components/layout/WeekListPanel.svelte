@@ -19,20 +19,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
+	import { getDataService } from '$lib/services/context';
 	import {
 		formatWeekStartShort,
 		formatHoursFromMinutes,
 		getMondayOfWeek
 	} from '$lib/utils/iso-week';
+	import type { WeekSummary } from '$lib/services/types';
 
-	type WeekSummary = {
-		weekStart: string;
-		year: number;
-		weekNumber: number;
-		totalMinutes: number;
-		status: string;
-	};
-
+	const dataService = getDataService();
 	const navigationContext = getNavigationContext();
 
 	let weeks = $state<WeekSummary[]>([]);
@@ -59,13 +54,7 @@
 		error = null;
 
 		try {
-			const response = await fetch(`/api/weeks?count=${WEEKS_PER_PAGE}`);
-			if (!response.ok) {
-				throw new Error('Failed to load weeks');
-			}
-
-			const data = await response.json();
-			weeks = data.weeks ?? [];
+			weeks = await dataService.getWeekSummaries(WEEKS_PER_PAGE);
 			hasMore = weeks.length >= WEEKS_PER_PAGE;
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'An error occurred';
@@ -85,15 +74,7 @@
 
 		try {
 			const oldestWeek = weeks[weeks.length - 1];
-			const response = await fetch(
-				`/api/weeks?count=${WEEKS_PER_PAGE}&before=${oldestWeek.weekStart}`
-			);
-			if (!response.ok) {
-				throw new Error('Failed to load more weeks');
-			}
-
-			const data = await response.json();
-			const newWeeks = data.weeks ?? [];
+			const newWeeks = await dataService.getWeekSummaries(WEEKS_PER_PAGE, oldestWeek.weekStart);
 
 			const filteredNewWeeks = newWeeks.filter(
 				(week: WeekSummary) => week.weekStart !== oldestWeek.weekStart

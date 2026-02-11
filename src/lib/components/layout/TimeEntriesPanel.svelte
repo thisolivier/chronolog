@@ -1,36 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
+	import { getDataService } from '$lib/services/context';
 	import WeekSectionHeader from '$lib/components/weekly/WeekSectionHeader.svelte';
 	import TimeEntryCard from '$lib/components/weekly/TimeEntryCard.svelte';
 	import NewEntryRow from '$lib/components/weekly/NewEntryRow.svelte';
 	import { getMondayOfWeek, getIsoWeekNumber, getIsoYear, getWeekDates, formatWeekStartLabel, formatDayHeader } from '$lib/utils/iso-week';
 	import { SvelteDate } from 'svelte/reactivity';
+	import type { WeekData } from '$lib/services/types';
 
-	type WeekData = {
-		weekStart: string;
-		days: Array<{
-			date: string;
-			entries: Array<{
-				id: string;
-				startTime: string | null;
-				endTime: string | null;
-				durationMinutes: number;
-				contractId: string;
-				contractName: string;
-				clientName: string;
-				clientShortCode: string;
-				deliverableName: string | null;
-				workTypeName: string | null;
-				description: string | null;
-				date: string;
-			}>;
-			totalMinutes: number;
-		}>;
-		weeklyTotalMinutes: number;
-		status: string;
-	};
-
+	const dataService = getDataService();
 	const navigation = getNavigationContext();
 
 	let weeks = $state<WeekData[]>([]);
@@ -69,15 +48,7 @@
 	}
 
 	async function loadWeeksFromApi(weekStarts: string[]): Promise<WeekData[]> {
-		const weeksParam = weekStarts.join(',');
-		const response = await fetch(`/api/time-entries/weekly?weeks=${weeksParam}`);
-
-		if (!response.ok) {
-			throw new Error('Failed to load weeks');
-		}
-
-		const data = await response.json();
-		return data.weeks;
+		return dataService.getWeeklyTimeEntries(weekStarts);
 	}
 
 	async function loadInitialWeeks() {
@@ -131,15 +102,7 @@
 		const weekNumber = getIsoWeekNumber(weekStart);
 
 		try {
-			const response = await fetch('/api/time-entries/weekly-statuses', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ year, weekNumber, status: newStatus })
-			});
-
-			if (!response.ok) {
-				throw new Error('Failed to update status');
-			}
+			await dataService.updateWeeklyStatus(year, weekNumber, newStatus);
 
 			const weekIndex = weeks.findIndex((week) => week.weekStart === weekStart);
 			if (weekIndex !== -1) {

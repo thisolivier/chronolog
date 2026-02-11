@@ -1,8 +1,10 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { formatTimeShort, formatDuration } from '$lib/utils/iso-week';
 	import { parseTimeInput } from '$lib/utils/time-parse';
+	import { getDataService } from '$lib/services/context';
+
+	const dataService = getDataService();
 
 	type EntryData = {
 		id: string;
@@ -21,6 +23,7 @@
 	let { entry }: { entry: EntryData } = $props();
 
 	let isConfirmingDelete = $state(false);
+	let isDeleting = $state(false);
 	let isEditingTime = $state(false);
 	let timeInputValue = $state('');
 	let isInputInvalid = $state(false);
@@ -77,29 +80,22 @@
 		isInputInvalid = false;
 
 		try {
-			const body: Record<string, unknown> = {
+			const updateData: Record<string, unknown> = {
 				durationMinutes: parseResult.durationMinutes
 			};
 
 			if (parseResult.type === 'range') {
-				body.startTime = parseResult.startTime;
-				body.endTime = parseResult.endTime;
+				updateData.startTime = parseResult.startTime;
+				updateData.endTime = parseResult.endTime;
 			} else {
 				// Duration-only: clear start/end times
-				body.startTime = null;
-				body.endTime = null;
+				updateData.startTime = null;
+				updateData.endTime = null;
 			}
 
-			const response = await fetch(`/api/time-entries/${entry.id}`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(body)
-			});
-
-			if (response.ok) {
-				isEditingTime = false;
-				await invalidateAll();
-			}
+			await dataService.updateTimeEntry(entry.id, updateData as Record<string, unknown>);
+			isEditingTime = false;
+			await invalidateAll();
 		} finally {
 			isSaving = false;
 		}
@@ -122,6 +118,19 @@
 				saveTimeEdit();
 			}
 		}, 100);
+	}
+
+	async function handleDelete() {
+		isDeleting = true;
+		try {
+			await dataService.deleteTimeEntry(entry.id);
+			await invalidateAll();
+		} catch (error) {
+			console.error('Error deleting entry:', error);
+		} finally {
+			isDeleting = false;
+			isConfirmingDelete = false;
+		}
 	}
 </script>
 
@@ -176,18 +185,17 @@
 	<!-- DELETE button -->
 	<div class="flex shrink-0 items-center">
 		{#if isConfirmingDelete}
-			<form method="POST" action="/time?/delete" use:enhance>
-				<input type="hidden" name="entry_id" value={entry.id} />
-				<button
-					type="submit"
-					class="rounded px-2 py-0.5 text-xs text-red-600 hover:bg-red-50"
-				>
-					Confirm
-				</button>
-			</form>
+			<button
+				onclick={handleDelete}
+				disabled={isDeleting}
+				class="rounded px-2 py-0.5 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
+			>
+				{isDeleting ? '...' : 'Confirm'}
+			</button>
 			<button
 				onclick={() => (isConfirmingDelete = false)}
-				class="rounded px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-50"
+				disabled={isDeleting}
+				class="rounded px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-50 disabled:opacity-50"
 			>
 				Cancel
 			</button>
