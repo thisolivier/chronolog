@@ -35,6 +35,16 @@ Your work is deeply appreciated.
 - Write tests for new features
 - Ensure all tests can be run with a single command
 
+## Active Development Branch
+
+**All new work should branch from `powersync-spike`, not `main`.**
+
+This branch is the base for an in-progress migration to PowerSync (offline sync via Postgres WAL replication). It contains the spike validation and migration plan. A DataService abstraction layer will be added here next, which all feature work should build on top of.
+
+- See `docs/POWERSYNC_MIGRATION.md` for the full plan and architecture
+- When creating new feature branches, branch from `powersync-spike`
+- PRs should target `powersync-spike` until the migration is complete and merged to `main`
+
 ## Working Trees
 
 When asked to work in a new git working tree:
