@@ -39,7 +39,7 @@ When you detect guttering:
    ```
 3. **Invoke `/pattern-validator`** proactively on the underlying assumption or approach to check whether the direction is sound
 4. Based on the pattern-validator result, you may make up to **2 more attempts** to solve the problem
-5. If still unresolved after those 2 attempts, or if the approach has **deviated significantly from the original plan**, **halt** and explain the situation to the user: what you tried, why it isn't working, and what the pattern-validator found
+5. If still unresolved after those 2 attempts, or if the approach has **deviated significantly from the original plan** (e.g. introduced significant new architecture/dependencies, or significantly reworked existing architecture in ways the plan did not expect), **halt** and explain the situation to the user: what you tried, why it isn't working, and what the pattern-validator found
 6. If eventually resolved, update the guttering entry to a full accommodation entry with what finally worked
 
 ## Instructions
