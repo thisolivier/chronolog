@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
 	import { formatTimeShort, formatDuration } from '$lib/utils/iso-week';
 	import { parseTimeInput } from '$lib/utils/time-parse';
 	import { getDataService } from '$lib/services/context';
@@ -95,7 +94,6 @@
 
 			await dataService.updateTimeEntry(entry.id, updateData as Record<string, unknown>);
 			isEditingTime = false;
-			await invalidateAll();
 		} finally {
 			isSaving = false;
 		}
@@ -124,7 +122,6 @@
 		isDeleting = true;
 		try {
 			await dataService.deleteTimeEntry(entry.id);
-			await invalidateAll();
 		} catch (error) {
 			console.error('Error deleting entry:', error);
 		} finally {

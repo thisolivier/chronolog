@@ -239,91 +239,39 @@ No console errors or warnings.
 ### Verdict
 **PowerSync is viable.** The Web SDK works correctly in SvelteKit with the Vite config (`optimizeDeps.exclude`, `worker.format: 'es'`). COOP/COEP headers applied per-route to avoid breaking auth. All critical operations (schema, write, read, join, watch, queue) function correctly.
 
-## Phase 1: Base PR — DataService Abstraction
+## Phase 1: Base PR — DataService Abstraction (COMPLETE)
 
 ### Purpose
 Decouple UI components from direct `fetch()` calls. This creates a stable interface that can be backed by either server fetch (current) or PowerSync (future), unblocking other feature work.
 
-### Current State
-Components call `fetch('/api/...')` directly in 29 places across 12 files. There's a partial abstraction in `timer-api.ts` for timer operations.
+### What Was Done
 
-### Proposed DataService Interface
+**Phase 1a** — Defined interface, types, and implementation in `src/lib/services/`:
+- `data-service.ts` — DataService interface with 28 methods across 7 domains
+- `types.ts` — 20+ shared type definitions
+- `fetch-data-service.ts` — Implementation via `fetch()` (current behavior)
+- `fetch-helpers.ts` — Shared HTTP helpers (fetchJson, postJson, putJson, deleteRequest)
+- `context.ts` — Svelte context provider (setDataServiceContext / getDataService)
+- `index.ts` — Barrel exports
 
-```typescript
-// src/lib/services/data-service.ts
+**Phase 1b** — Refactored 15 components + root layout to use `getDataService()`:
+- Replaced all direct `fetch('/api/...')` calls with `dataService.methodName()`
+- Net -184 lines (151 added, 335 removed) — cleaner, more declarative data access
+- Wired context in `+layout.svelte` for authenticated users
 
-export interface DataService {
-  // ── Contracts ──
-  getContractsByClient(): Promise<ContractsByClientResult[]>;
-  getContracts(): Promise<ContractOption[]>;
-  createContract(data: CreateContractInput): Promise<ContractRecord>;
+**Phase 1c** — QA validation:
+- 0 type errors, 163 tests pass
+- No remaining direct fetch() calls in components
+- Architectural review completed (minor findings addressed)
 
-  // ── Clients ──
-  getClients(): Promise<ClientSummary[]>;
-
-  // ── Notes ──
-  getNotesForContract(contractId: string): Promise<NoteSummary[]>;
-  getNoteById(noteId: string): Promise<NoteDetail>;
-  createNote(contractId: string): Promise<NoteSummary>;
-  updateNote(noteId: string, data: UpdateNoteInput): Promise<NoteDetail>;
-  deleteNote(noteId: string): Promise<void>;
-  getNoteBacklinks(noteId: string): Promise<Backlink[]>;
-
-  // ── Attachments ──
-  getNoteAttachments(noteId: string): Promise<AttachmentSummary[]>;
-  uploadAttachment(noteId: string, file: File): Promise<{ id: string }>;
-  deleteAttachment(attachmentId: string): Promise<void>;
-
-  // ── Note-Time Entry Links ──
-  getNoteTimeEntries(noteId: string): Promise<NoteTimeEntryLink[]>;
-  unlinkNoteTimeEntry(noteId: string, timeEntryId: string): Promise<void>;
-
-  // ── Time Entries ──
-  getWeeklyTimeEntries(weekStarts: string[]): Promise<WeekData[]>;
-  getWeekSummaries(count: number, before?: string): Promise<WeekSummary[]>;
-  createTimeEntry(data: CreateTimeEntryInput): Promise<{ id: string }>;
-  updateTimeEntry(entryId: string, data: Partial<TimeEntryFields>): Promise<void>;
-  deleteTimeEntry(entryId: string): Promise<void>;
-  updateWeeklyStatus(year: number, weekNumber: number, status: string): Promise<void>;
-
-  // ── Timer ──
-  getTimerStatus(): Promise<TimerStatus>;
-  startTimer(contractId?: string): Promise<TimerEntry>;
-  stopTimer(): Promise<TimerEntry>;
-  saveTimer(data: SaveTimerInput): Promise<void>;
-  discardTimer(entryId: string): Promise<void>;
-
-  // ── Deliverables & Work Types ──
-  getDeliverables(contractId: string): Promise<DeliverableOption[]>;
-  getWorkTypes(deliverableId: string): Promise<WorkTypeOption[]>;
-}
-```
-
-### Implementation Strategy
-
-**Phase 1a** — Define the interface and types in `src/lib/services/`:
-- `data-service.ts` — interface + type definitions
-- `fetch-data-service.ts` — implementation via `fetch()` (current behavior, extracted from components)
-- `context.ts` — Svelte context provider (`setDataService()` / `getDataService()`)
-
-**Phase 1b** — Refactor components to use `getDataService()`:
-- Replace direct `fetch()` calls with `dataService.methodName()`
-- Move `timer-api.ts` functions into the DataService
-- Each component gets the service via `const dataService = getDataService()`
-
-**Phase 1c** — Tests:
-- Unit tests for the DataService interface contract
-- Verify components still work identically
+### Files Changed
+- **New**: `src/lib/services/` (6 files — see `src/lib/services/readme.md`)
+- **Modified**: 15 component files + `src/routes/+layout.svelte`
 
 ### What This Enables
 - Other features can build on `DataService` methods immediately
 - PowerSync migration (Phase 2-3) only needs a new implementation of the same interface
 - Components never need to change again for sync backend swaps
-
-### Files Changed
-- **New**: `src/lib/services/data-service.ts`, `fetch-data-service.ts`, `context.ts`, `types.ts`
-- **Modified**: ~12 component files (replace fetch() with dataService calls)
-- **Deleted**: `src/lib/components/timer/timer-api.ts` (absorbed into DataService)
 
 ## Open Questions
 
