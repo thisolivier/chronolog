@@ -138,6 +138,20 @@ export class SyncEngine {
 			const pushResult = await this.push();
 			allErrors.push(...pushResult.errors);
 
+			// Only pull if push succeeded — pulling while mutations are pending
+			// would overwrite local reads (the UI uses local storage when pending > 0,
+			// but pull would still write stale server data into local storage).
+			if (pushResult.errors.length > 0) {
+				this.state = 'error';
+				this.lastError = allErrors[0];
+				return {
+					pulled: 0,
+					pushed: pushResult.pushed,
+					conflicts: pushResult.conflicts,
+					errors: allErrors
+				};
+			}
+
 			// Then pull — get server changes
 			const pullResult = await this.pull();
 			allErrors.push(...pullResult.errors);

@@ -331,9 +331,8 @@ describe('generateNoteIdLocally', () => {
 		expect(noteId).toBe(`ACME.${today}.002`);
 	});
 
-	it('should throw for nonexistent contract', async () => {
-		await expect(
-			generateNoteIdLocally(storage, 'nonexistent')
-		).rejects.toThrow('Contract not found');
+	it('should return fallback ID for nonexistent contract', async () => {
+		const noteId = await generateNoteIdLocally(storage, 'nonexistent');
+		expect(noteId).toMatch(/^offline-[a-f0-9]{8}-\d+$/);
 	});
 });

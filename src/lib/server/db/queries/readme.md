@@ -33,7 +33,7 @@ Query modules encapsulate all SQL logic for their domain. They are called by Sve
 The sync-related modules (`sync-pull.ts`, `sync-push.ts`, `sync-push-join-tables.ts`, `sync.ts`) support the offline sync protocol:
 
 - **Pull** (`sync-pull.ts`): Accepts a `since` timestamp and returns all rows across all syncable tables that have been updated after that timestamp. Used by `GET /api/sync/pull`.
-- **Push** (`sync-push.ts`): Accepts an array of client mutations and upserts them into server tables using last-write-wins conflict resolution via `updatedAt`. Used by `POST /api/sync/push`.
+- **Push** (`sync-push.ts`): Accepts an array of client mutations and upserts them into server tables using last-write-wins conflict resolution via `updatedAt`. Used by `POST /api/sync/push`. Includes `deserializeTimestampFields()` to convert ISO string timestamps to Date objects for Drizzle, and `deduplicateMutations()` to prevent intra-batch conflicts when multiple mutations target the same entity.
 - **Push join tables** (`sync-push-join-tables.ts`): Handles sync for many-to-many join tables (`note_time_entries`, `note_links`) which have composite primary keys.
 
 ## Tests

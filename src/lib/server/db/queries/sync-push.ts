@@ -76,6 +76,27 @@ const TABLE_CONFIGS: Record<string, TableConfig> = {
 	}
 };
 
+/**
+ * Known timestamp column names that use Drizzle's `timestamp()` type (mode: 'date').
+ * Values for these columns arrive from the client as ISO strings but must be
+ * converted to Date objects before passing to Drizzle insert/update.
+ */
+const TIMESTAMP_COLUMNS = new Set(['createdAt', 'updatedAt']);
+
+/**
+ * Convert known timestamp string fields in mutation data to Date objects
+ * so Drizzle's PgTimestamp can call .toISOString() on them.
+ */
+function deserializeTimestampFields(data: Record<string, unknown>): Record<string, unknown> {
+	const result = { ...data };
+	for (const column of TIMESTAMP_COLUMNS) {
+		if (typeof result[column] === 'string') {
+			result[column] = new Date(result[column] as string);
+		}
+	}
+	return result;
+}
+
 /** Apply a batch of client mutations, returning applied/conflict counts. */
 export async function pushChanges(
 	userId: string,
@@ -100,6 +121,23 @@ export async function pushChanges(
 	};
 }
 
+/**
+ * Deduplicate mutations: when multiple mutations target the same entity in one batch,
+ * keep only the last one (which has the most recent data). This prevents intra-batch
+ * conflicts where the server's updatedAt from an earlier mutation in the same batch
+ * is newer than the clientUpdatedAt of a later mutation.
+ */
+function deduplicateMutations(mutations: SyncMutation[], idField: string): SyncMutation[] {
+	const lastByEntityId = new Map<string, SyncMutation>();
+	for (const mutation of mutations) {
+		const entityId = mutation.data[idField] as string;
+		if (entityId) {
+			lastByEntityId.set(entityId, mutation);
+		}
+	}
+	return [...lastByEntityId.values()];
+}
+
 /** Process mutations for a specific table. */
 async function pushTableChanges(
 	userId: string,
@@ -114,10 +152,13 @@ async function pushTableChanges(
 	const config = TABLE_CONFIGS[tableName];
 	if (!config) return { applied: 0, conflicts: 0 };
 
+	// Deduplicate: keep only the latest mutation per entity to avoid intra-batch conflicts
+	const deduped = deduplicateMutations(mutations, config.idField);
+
 	let applied = 0;
 	let conflicts = 0;
 
-	for (const mutation of mutations) {
+	for (const mutation of deduped) {
 		const result = await applyMutation(userId, config, mutation);
 		if (result === 'applied') applied++;
 		else if (result === 'conflict') conflicts++;
@@ -180,8 +221,8 @@ async function applyUpsert(
 		}
 	}
 
-	// Build the data payload, enforcing protected columns
-	const entityData = { ...mutation.data };
+	// Build the data payload, converting timestamp strings to Date objects for Drizzle
+	const entityData = deserializeTimestampFields(mutation.data);
 
 	// Enforce userId on tables that have it (security: client can't push data for other users)
 	if (config.protectedColumns?.includes('userId')) {

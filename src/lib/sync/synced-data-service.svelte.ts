@@ -15,6 +15,7 @@ import { SyncEngine } from './sync-engine.svelte';
 import { SyncQueue } from './sync-queue';
 import { SyncMetadata } from './sync-metadata';
 import { createOnlineStatus, type OnlineStatus } from './online-status.svelte';
+import type { ContractRow, ClientRow } from '$lib/storage/types';
 import type { SyncState, SyncResult } from './types';
 import type {
 	ContractsByClientResult,
@@ -93,6 +94,15 @@ export class SyncedDataService {
 		return this.engine?.authExpired ?? false;
 	}
 
+	/**
+	 * Whether it's safe to read from server APIs.
+	 * When there are pending mutations, local storage has data the server doesn't
+	 * know about yet — so reads should use local storage to avoid hiding unsynced items.
+	 */
+	private get isServerSynced(): boolean {
+		return this.isOnline && this.pendingCount === 0 && this.syncState !== 'error';
+	}
+
 	// -- Lifecycle --
 
 	async initialize(): Promise<void> {
@@ -130,11 +140,16 @@ export class SyncedDataService {
 	// -- Contracts sidebar --
 
 	async getContractsByClient(): Promise<ContractsByClientResult[]> {
-		if (this.isOnline) {
+		if (this.isServerSynced) {
 			try {
 				const response = await fetch('/api/contracts-by-client');
 				if (!response.ok) throw new Error('Server error');
 				const data = await response.json();
+
+				// Cache contracts and clients locally so offline operations
+				// (like note ID generation) can find them even if sync hasn't pulled yet
+				await this.cacheContractData(data.contracts);
+
 				return data.contracts;
 			} catch {
 				// Fall through to local
@@ -143,14 +158,66 @@ export class SyncedDataService {
 		return queryContractsByClient(this.storage);
 	}
 
+	/**
+	 * Cache contract and client data from the API response into local storage.
+	 * Uses bulkPut to upsert without destroying existing data.
+	 */
+	private async cacheContractData(
+		contracts: ContractsByClientResult[]
+	): Promise<void> {
+		try {
+			// Dedupe clients by ID
+			const clientMap = new Map<string, ClientRow>();
+			const contractRows: ContractRow[] = [];
+
+			const now = new Date().toISOString();
+
+			for (const contract of contracts) {
+				if (!clientMap.has(contract.clientId)) {
+					// Check if client already exists in local storage to preserve timestamps
+					const existingClient = await this.storage.getById('clients', contract.clientId);
+					clientMap.set(contract.clientId, {
+						id: contract.clientId,
+						userId: existingClient?.userId ?? '',
+						name: contract.clientName,
+						shortCode: contract.clientShortCode,
+						createdAt: existingClient?.createdAt ?? now,
+						updatedAt: existingClient?.updatedAt ?? now
+					});
+				}
+
+				const existingContract = await this.storage.getById('contracts', contract.id);
+				contractRows.push({
+					id: contract.id,
+					clientId: contract.clientId,
+					name: contract.name,
+					description: existingContract?.description ?? null,
+					isActive: contract.isActive,
+					sortOrder: contract.sortOrder,
+					createdAt: existingContract?.createdAt ?? now,
+					updatedAt: existingContract?.updatedAt ?? now
+				});
+			}
+
+			if (clientMap.size > 0) {
+				await this.storage.bulkPut('clients', [...clientMap.values()]);
+			}
+			if (contractRows.length > 0) {
+				await this.storage.bulkPut('contracts', contractRows);
+			}
+		} catch {
+			// Caching failure shouldn't break the UI
+		}
+	}
+
 	// -- Notes (delegated) --
 
 	async getNotesForContract(contractId: string): Promise<NoteSummary[]> {
-		return fetchNotesForContract(this.storage, this.isOnline, contractId);
+		return fetchNotesForContract(this.storage, this.isServerSynced, contractId);
 	}
 
 	async getNoteById(noteId: string): Promise<NoteDetail | null> {
-		return fetchNoteById(this.storage, this.isOnline, noteId);
+		return fetchNoteById(this.storage, this.isServerSynced, noteId);
 	}
 
 	async createNote(contractId: string): Promise<{ note: NoteDetail }> {
@@ -168,7 +235,7 @@ export class SyncedDataService {
 	// -- Time entries (delegated) --
 
 	async getWeeklyTimeEntries(weekStarts: string[]): Promise<WeekData[]> {
-		return fetchWeeklyTimeEntries(this.storage, this.isOnline, weekStarts);
+		return fetchWeeklyTimeEntries(this.storage, this.isServerSynced, weekStarts);
 	}
 
 	async createTimeEntry(data: TimeEntryCreateData): Promise<{ id: string }> {
@@ -192,7 +259,7 @@ export class SyncedDataService {
 	// -- Timer (delegated) --
 
 	async getTimerStatus(): Promise<{ timer: TimerEntry | null }> {
-		return fetchTimerStatus(this.storage, this.isOnline);
+		return fetchTimerStatus(this.storage, this.isServerSynced);
 	}
 
 	async startTimer(contractId?: string): Promise<TimerEntry> {

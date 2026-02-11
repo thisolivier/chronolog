@@ -258,10 +258,16 @@ export async function generateNoteIdLocally(
 	contractId: string
 ): Promise<string> {
 	const contract = await storage.getById('contracts', contractId);
-	if (!contract) throw new Error('Contract not found in local storage');
+	if (!contract) {
+		// Contract not yet in local storage (e.g., created just before going offline).
+		// Use a UUID-based fallback ID. The server will accept any text ID.
+		return `offline-${crypto.randomUUID().slice(0, 8)}-${Date.now()}`;
+	}
 
 	const client = await storage.getById('clients', contract.clientId);
-	if (!client) throw new Error('Client not found in local storage');
+	if (!client) {
+		return `offline-${crypto.randomUUID().slice(0, 8)}-${Date.now()}`;
+	}
 
 	const shortCode = client.shortCode;
 	const today = new Date();

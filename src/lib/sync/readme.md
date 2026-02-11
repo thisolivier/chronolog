@@ -46,7 +46,7 @@ Client-side sync engine and data service layer for offline-first data synchroniz
 | `service-time-entries.ts` | Time entry CRUD operations (create, update, delete, list by week) |
 | `service-timer.ts` | Timer operations (start, stop, get running timer) |
 | `data-types.ts` | Type definitions for service method return values |
-| `local-queries.ts` | Offline query helpers — computes joined data from local storage |
+| `local-queries.ts` | Offline query helpers — computes joined data from local storage, generates note IDs offline |
 | `context.ts` | Svelte context helpers — setDataServiceContext / getDataService |
 | `sync-engine.svelte.ts` | Sync orchestrator — coordinates push/pull cycles |
 | `sync-queue.ts` | Mutation queue — stores pending local changes |
@@ -93,15 +93,16 @@ The service is initialized in `+layout.svelte` and provided via context.
 
 ## Data Access Strategy
 
-- **Online reads**: Server APIs (give us computed/joined data). Local storage updated in background.
+- **Online reads**: Server APIs when fully synced; falls back to local storage when there are pending mutations (via `isServerSynced` check) to avoid hiding unsynced items.
 - **Offline reads**: Local storage with client-side joins in `local-queries.ts`.
 - **Writes**: Always update local storage. Online: also call server API. Offline: queue mutation for sync.
+- **Local caching**: When fetching contracts from the server API, the service caches contract and client data into local storage (`cacheContractData()`), ensuring offline operations like note ID generation have the data they need.
 - **Periodic sync**: Every 30 seconds when online. Immediate sync on offline-to-online transition.
 
 ## Sync Protocol
 
 1. **Push first**: Local mutations sent to `POST /api/sync/push`
-2. **Then pull**: Changed rows fetched from `GET /api/sync/pull?since={timestamp}`
+2. **Then pull** (only if push succeeded): Changed rows fetched from `GET /api/sync/pull?since={timestamp}`. Pull is skipped when push has errors to prevent overwriting local data with stale server data.
 3. **Last-write-wins**: Server resolves conflicts using `updatedAt` timestamps
 
 ## Error Handling
