@@ -46,6 +46,8 @@
 		"vitest": "^4.0.18"
 	},
 	"dependencies": {
+		"@journeyapps/wa-sqlite": "^1.4.1",
+		"@powersync/web": "^1.32.0",
 		"@sveltejs/adapter-node": "^5.5.2",
 		"@tauri-apps/api": "^2.0.0",
 		"@tauri-apps/plugin-sql": "^2.0.0",

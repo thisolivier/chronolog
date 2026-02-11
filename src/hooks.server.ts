@@ -13,7 +13,7 @@ import { eq } from 'drizzle-orm';
  * Routes that do not require authentication.
  * All other routes will redirect unauthenticated users to /login.
  */
-const publicRoutes = ['/login', '/register', '/api/auth'];
+const publicRoutes = ['/login', '/register', '/api/auth', '/spike'];
 
 function isPublicRoute(pathname: string): boolean {
 	return publicRoutes.some((route) => pathname === route || pathname.startsWith(route + '/'));
@@ -105,5 +105,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	// Let Better Auth handle its own API routes
-	return svelteKitHandler({ event, resolve, auth, building });
+	const response = await svelteKitHandler({ event, resolve, auth, building });
+
+	// Cross-origin isolation headers for PowerSync WASM (OPFS requires these).
+	// Only apply to /spike for now to avoid breaking auth/OAuth flows elsewhere.
+	if (event.url.pathname.startsWith('/spike')) {
+		response.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+		response.headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
+	}
+
+	return response;
 };
