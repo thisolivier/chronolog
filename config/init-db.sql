@@ -1,8 +1,22 @@
--- PowerSync replication user setup
--- This script runs on first database initialization only.
+-- PowerSync replication setup for Chronolog
+--
+-- Run this against your PostgreSQL database to configure replication for PowerSync.
+-- Prerequisites:
+--   1. wal_level must be set to 'logical':
+--      ALTER SYSTEM SET wal_level = logical;
+--      Then restart PostgreSQL.
+--   2. Database migrations must have been applied (tables must exist).
+--
+-- Safe to run multiple times (uses IF NOT EXISTS / DO blocks).
 
 -- Create a replication role for PowerSync
-CREATE ROLE powersync_repl WITH REPLICATION LOGIN PASSWORD 'powersync_repl_password';
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'powersync_repl') THEN
+    CREATE ROLE powersync_repl WITH REPLICATION LOGIN PASSWORD 'powersync_repl_password';
+  END IF;
+END
+$$;
 
 -- Grant read access to existing tables in the public schema
 GRANT USAGE ON SCHEMA public TO powersync_repl;
@@ -12,6 +26,8 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO powersync_repl;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO powersync_repl;
 
 -- Create a publication for all Chronolog tables used by PowerSync
+-- (Drop first if exists to allow re-running)
+DROP PUBLICATION IF EXISTS powersync_publication;
 CREATE PUBLICATION powersync_publication FOR TABLE
   clients,
   contracts,
