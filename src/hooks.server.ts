@@ -13,7 +13,7 @@ import { eq } from 'drizzle-orm';
  * Routes that do not require authentication.
  * All other routes will redirect unauthenticated users to /login.
  */
-const publicRoutes = ['/login', '/register', '/api/auth', '/spike', '/api/auth/powersync/jwks'];
+const publicRoutes = ['/login', '/register', '/api/auth', '/api/auth/powersync/jwks'];
 
 function isPublicRoute(pathname: string): boolean {
 	return publicRoutes.some((route) => pathname === route || pathname.startsWith(route + '/'));
