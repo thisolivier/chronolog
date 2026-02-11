@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { parseTimeInput } from '$lib/utils/time-parse';
-	import { apiCreateManualEntry } from '$lib/components/timer/timer-api';
+	import { getDataService } from '$lib/services/context';
 	import ContractSelect from '$lib/components/timer/ContractSelect.svelte';
+	import type { CreateTimeEntryInput } from '$lib/services/types';
+
+	const dataService = getDataService();
 
 	let {
 		date,
@@ -38,7 +41,7 @@
 		timeInputError = false;
 
 		try {
-			const entryData: Parameters<typeof apiCreateManualEntry>[0] = {
+			const entryData: CreateTimeEntryInput = {
 				date,
 				durationMinutes: parsed.durationMinutes,
 				contractId: selectedContractId,
@@ -50,7 +53,7 @@
 				entryData.endTime = parsed.endTime;
 			}
 
-			await apiCreateManualEntry(entryData);
+			await dataService.createTimeEntry(entryData);
 			onEntryCreated();
 		} catch (error) {
 			console.error('Error creating entry:', error);

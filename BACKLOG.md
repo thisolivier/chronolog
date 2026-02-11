@@ -4,28 +4,38 @@ Previous completed tasks (1-10) are archived in [docs/BACKLOG-COMPLETE-1.md](doc
 
 ---
 
-## Task 11: Offline Sync
+## Task 11: Offline Sync (PowerSync Migration)
 
-**Goal**: App works offline; data syncs when connectivity returns.
+**Goal**: App works offline; data syncs when connectivity returns. Using PowerSync (Postgres WAL replication → client SQLite) instead of a custom sync engine.
 
-- [ ] Implement data sync layer on top of the storage abstraction (Task 10):
-  - On load: pull latest from server, populate local store
-  - On write: save to local store immediately, queue server sync
-  - On reconnect: push queued changes, pull server updates
-  - Conflict resolution: last-write-wins via `updated_at`
-- [ ] Desktop (Tauri): sync queue with direct HTTP requests from Rust or JS
-- [ ] Mobile (PWA): configure Workbox Background Sync for queued API writes
-- [ ] Configure service worker for app shell caching (precache strategy, PWA only)
-- [ ] Add online/offline indicator in UI
-- [ ] Handle session expiry gracefully (re-auth prompt on reconnect)
-- [ ] Test offline scenarios on both platforms:
-  - Create time entry offline → comes back online → synced
-  - Edit note offline → comes back online → synced
-  - Multiple offline edits → bulk sync
+**Migration plan**: See `docs/POWERSYNC_MIGRATION.md` for full architecture, spike results, and phase breakdown.
 
-**Depends on**: Task 10 (storage abstraction), Tasks 5 and 7
+- [x] Spike: Validate PowerSync Web SDK in SvelteKit + Tauri WebKit (10/10 tests pass)
+- [ ] **Phase 1 — DataService abstraction** (base PR, `powersync-spike` branch):
+  - [ ] Define `DataService` interface covering all 29 component fetch patterns
+  - [ ] Implement `FetchDataService` (same behavior as current direct fetch)
+  - [ ] Refactor ~12 components to use `getDataService()` context instead of direct `fetch()`
+  - [ ] Tests for DataService contract
+- [ ] **Phase 2 — PowerSync infrastructure**:
+  - [ ] Self-hosted PowerSync Service (Docker Compose, Postgres-only storage)
+  - [ ] Postgres WAL logical replication configuration
+  - [ ] Sync Rules YAML (10 tables, user-scoped via bucket parameters)
+  - [ ] JWT token endpoint for PowerSync auth
+  - [ ] BackendConnector (`fetchCredentials` + `uploadData`)
+- [ ] **Phase 3 — PowerSync DataService implementation**:
+  - [ ] Implement DataService backed by PowerSync local SQLite
+  - [ ] SQL queries for reads (replace in-memory joins)
+  - [ ] PowerSync mutations for writes
+  - [ ] Sync status indicator in UI
+  - [ ] Tests for connector, SQL queries, sync cycle
+- [ ] **Phase 4 — Cleanup & polish**:
+  - [ ] Remove unused storage adapters (Dexie, custom SQLite)
+  - [ ] Tauri + PWA end-to-end testing
+  - [ ] Update documentation
 
-**Output**: App is fully usable offline on both desktop and mobile. Changes sync automatically when connectivity returns.
+**Depends on**: Task 10 (storage abstraction)
+
+**Output**: App is fully usable offline on both desktop and mobile. Changes sync automatically via PowerSync when connectivity returns.
 
 ---
 

@@ -1,15 +1,48 @@
 services:
-  postgres:
+  # NOTE: The source PostgreSQL database runs natively on the host (not in Docker).
+  # It must have wal_level=logical set. Run: ALTER SYSTEM SET wal_level = logical;
+  # Then restart Postgres. See config/init-db.sql for replication user setup.
+
+  powersync-storage:
     image: postgres:17
     restart: unless-stopped
     environment:
-      POSTGRES_USER: chronolog
-      POSTGRES_PASSWORD: chronolog
-      POSTGRES_DB: chronolog
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: powersync_storage
+      POSTGRES_DB: powersync_storage
     ports:
-      - "5432:5432"
+      - "5431:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - powersync_storage_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d powersync_storage"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  powersync:
+    image: journeyapps/powersync-service:latest
+    restart: unless-stopped
+    command: ["start", "-r", "unified"]
+    depends_on:
+      powersync-storage:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config:/config
+    environment:
+      PS_DATA_SOURCE_URI: "postgresql://powersync_repl:powersync_repl_password@host.docker.internal:5432/chronolog"
+      PS_STORAGE_SOURCE_URI: "postgresql://postgres:powersync_storage@powersync-storage:5432/powersync_storage"
+      PS_JWKS_URL: "http://host.docker.internal:5173/api/auth/powersync/jwks"
+      PS_PORT: "8080"
+      POWERSYNC_CONFIG_PATH: "/config/powersync.yaml"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/liveness || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
 volumes:
-  postgres_data:
+  powersync_storage_data:

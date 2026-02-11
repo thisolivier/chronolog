@@ -22,7 +22,8 @@ export async function createAttachment(
 	filename: string,
 	mimeType: string,
 	sizeBytes: number,
-	data: Buffer
+	data: Buffer,
+	userId: string
 ): Promise<Attachment> {
 	const results = await database
 		.insert(attachments)
@@ -31,7 +32,8 @@ export async function createAttachment(
 			filename,
 			mimeType,
 			sizeBytes,
-			data
+			data,
+			userId
 		})
 		.returning();
 

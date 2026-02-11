@@ -159,10 +159,10 @@ export async function deleteNoteForUser(userId: string, noteId: string) {
 	return results[0] ?? null;
 }
 
-export async function linkTimeEntryToNote(noteId: string, timeEntryId: string) {
+export async function linkTimeEntryToNote(noteId: string, timeEntryId: string, userId: string) {
 	const results = await database
 		.insert(noteTimeEntries)
-		.values({ noteId, timeEntryId })
+		.values({ noteId, timeEntryId, userId })
 		.returning();
 	return results[0];
 }

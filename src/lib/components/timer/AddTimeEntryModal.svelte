@@ -1,6 +1,8 @@
 <script lang="ts">
 	import ContractSelect from './ContractSelect.svelte';
-	import { apiCreateManualEntry } from './timer-api';
+	import { getDataService } from '$lib/services/context';
+
+	const dataService = getDataService();
 
 	let {
 		onCreated,
@@ -46,7 +48,7 @@
 		isSaving = true;
 		errorMessage = '';
 		try {
-			await apiCreateManualEntry({
+			await dataService.createTimeEntry({
 				date: entryDate,
 				durationMinutes,
 				contractId: selectedContractId,

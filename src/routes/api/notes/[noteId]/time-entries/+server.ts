@@ -41,7 +41,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
 	const { timeEntryId } = body;
 	if (!timeEntryId) throw error(400, 'timeEntryId is required');
 
-	const link = await linkTimeEntryToNote(noteId, timeEntryId);
+	const link = await linkTimeEntryToNote(noteId, timeEntryId, currentUser.id);
 	return json({ link });
 };
 

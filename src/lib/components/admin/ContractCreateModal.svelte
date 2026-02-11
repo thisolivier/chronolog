@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { getDataService } from '$lib/services/context';
+
 	interface ClientOption {
 		id: string;
 		name: string;
@@ -10,6 +12,8 @@
 		onCreated: () => void;
 		onClose: () => void;
 	}
+
+	const dataService = getDataService();
 
 	let { clients, onCreated, onClose }: Props = $props();
 
@@ -29,21 +33,12 @@
 		submitError = '';
 
 		try {
-			const response = await fetch('/api/contracts', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					clientId: selectedClientId,
-					name: contractName.trim(),
-					description: contractDescription.trim() || null,
-					isActive
-				})
+			await dataService.createContract({
+				clientId: selectedClientId,
+				name: contractName.trim(),
+				description: contractDescription.trim() || null,
+				isActive
 			});
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.message || 'Failed to create contract');
-			}
 
 			onCreated();
 		} catch (error) {
