@@ -1,15 +1,10 @@
 ---
-description: Extract session work into a PR via git worktree isolation
+name: extract-session-pr
+description: Extract current session's changes into a PR via git worktree isolation, without modifying the working directory. Use when the user wants to create a PR from session work, extract changes to a pull request, or ship current progress while continuing to work.
 allowed-tools: Read, Bash(git:*, gh:*, mkdir:*, cp:*, rm:*, cat:*, date:*, test:*, which:*)
 ---
 
-<!--
-This command extracts the current session's changes into a PR without
-modifying the working directory, allowing other agents to continue working.
-
-Usage: /extract-session-pr
-No arguments required - operates on current working directory changes.
--->
+# Extract Session PR
 
 ## Step 1: Validate Environment
 

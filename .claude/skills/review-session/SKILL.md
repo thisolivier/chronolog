@@ -1,16 +1,19 @@
 ---
-description: Analyze current session for tool usage, efficiency, and user corrections
+name: review-session
+description: Analyze current session for tool usage, efficiency, and user corrections. Use when the user asks to review the session, analyze performance, evaluate tool usage patterns, or wants a session retrospective.
 allowed-tools: Read, Write, Glob
 ---
 
-Analyze this session's tool, command, and skill usage. Evaluate success and provide improvement recommendations.
+# Review Session
+
+Analyze this session's tool and skill usage. Evaluate success and provide improvement recommendations.
 
 ## Step 1: Gather Session Context
 
 Review the full conversation history and identify:
 
 1. **Tools used** - All invocations (Bash, Read, Write, Edit, Grep, Glob, Task, WebFetch, etc.)
-2. **Skills invoked** - Any `/skill-name` commands executed
+2. **Skills invoked** - Any `/skill-name` skills used
 3. **Agent delegations** - Task tool calls to subagents
 4. **User questions asked** - AskUserQuestion tool usage
 
