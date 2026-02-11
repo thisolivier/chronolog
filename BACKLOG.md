@@ -85,6 +85,38 @@ Previous completed tasks (1-10) are archived in [docs/BACKLOG-COMPLETE-1.md](doc
 
 ---
 
+## Task 15: Rename and delete function for contracts
+
+**Goal**: Add an element which can open a drop down menu with rename and delete options for a contract.
+
+- [ ] Create new always present 'Deleted Client' and 'Deleted Contract' client and contract database entities
+  - Should always be seeded in new projects
+  - Should never listed in UI or dropdowns
+- [ ] If either the client or contract for a time entry is removed:
+  - 'Formerly associated with: Client/Contract' added as a new line to the time entry description. 
+  - The client and contract should be updated to 'Deleted Client' and 'Deleted Contract'.
+- [ ] Implement an on hover (...) elipsis menu element which appears on desktop when a user hovers over a contract.
+- [ ] On mobile, the menu element should permenantly appear when the contract is open (middle panel) in the header.
+- [ ] Tapping on the menu should show a list of options
+  - Rename, which allows the contract name to be re-typed. Return key saves, esc cancels.
+  - Delete, with a confirm modal, which will remove delete the contract.
+
+**Output**: The user can rename and delete contracts using UI elements on desktop and mobile.
+
+---
+
+## Task 16: All Notes line item in contracts panel
+
+**Goal**: Add an 'All Notes' item below 'time entries' which shows all notes in date created order.
+
+ - [ ] All notes view should be added as a sibling to Time Entries in the left most panel
+ - [ ] All notes should be the default view when loading the application in desktop mode
+ - [ ] The 'create note' button should not be visible in the all notes view.
+
+ **Output**: The user sees all notes when they log in.
+
+___
+
 ## Deferred Cross-Cutting Concerns
 
 These items were deferred from their original tasks and should be addressed as a batch:
