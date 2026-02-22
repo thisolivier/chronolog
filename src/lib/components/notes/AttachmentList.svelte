@@ -1,25 +1,19 @@
 <script lang="ts">
+	import { getDataService } from '$lib/services/context';
+	import type { AttachmentSummary } from '$lib/services/types';
+
 	interface Props {
 		noteId: string;
 	}
 
-	type AttachmentInfo = {
-		id: string;
-		filename: string;
-		mimeType: string;
-		sizeBytes: number;
-		createdAt: string;
-	};
+	const dataService = getDataService();
 
 	let { noteId }: Props = $props();
-	let attachmentItems = $state<AttachmentInfo[]>([]);
+	let attachmentItems = $state<AttachmentSummary[]>([]);
+
 	async function fetchAttachments() {
 		try {
-			const response = await fetch(`/api/notes/${noteId}/attachments`);
-			if (response.ok) {
-				const data = await response.json();
-				attachmentItems = data.attachments;
-			}
+			attachmentItems = await dataService.getNoteAttachments(noteId);
 		} catch (fetchError) {
 			console.error('Failed to fetch attachments:', fetchError);
 		}
@@ -27,9 +21,7 @@
 
 	async function deleteAttachment(attachmentId: string) {
 		try {
-			await fetch(`/api/attachments/${attachmentId}`, {
-				method: 'DELETE'
-			});
+			await dataService.deleteAttachment(attachmentId);
 			attachmentItems = attachmentItems.filter(
 				(attachment) => attachment.id !== attachmentId
 			);

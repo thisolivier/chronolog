@@ -3,15 +3,10 @@
 	import TimerCompletionForm from './TimerCompletionForm.svelte';
 	import ContractSelect from './ContractSelect.svelte';
 	import AddTimeEntryModal from './AddTimeEntryModal.svelte';
-	import {
-		fetchTimerStatus,
-		apiStartTimer,
-		apiStopTimer,
-		apiSaveTimer,
-		apiDiscardTimer,
-		apiUpdateDraft,
-		calculateElapsedFromStartTime
-	} from './timer-api';
+	import { getDataService } from '$lib/services/context';
+	import { calculateElapsedFromStartTime } from './timer-api';
+
+	const dataService = getDataService();
 
 	type TimerState = 'idle' | 'running' | 'paused' | 'stopped';
 
@@ -33,7 +28,7 @@
 
 	async function checkExistingTimer() {
 		try {
-			const data = await fetchTimerStatus();
+			const data = await dataService.getTimerStatus();
 			if (data.timer) {
 				entryId = data.timer.id;
 				startTime = data.timer.startTime || '';
@@ -69,7 +64,7 @@
 	$effect(() => {
 		if (!entryId || !draftContractId) return;
 		if (timerState !== 'running' && timerState !== 'paused') return;
-		apiUpdateDraft(entryId, { contractId: draftContractId }).catch(() => {
+		dataService.updateTimeEntry(entryId, { contractId: draftContractId }).catch(() => {
 			// Best effort -- silently fail
 		});
 	});
@@ -81,7 +76,7 @@
 		}
 		descriptionDebounceTimer = setTimeout(() => {
 			if (entryId && (timerState === 'running' || timerState === 'paused')) {
-				apiUpdateDraft(entryId, { description: draftDescription }).catch(() => {
+				dataService.updateTimeEntry(entryId, { description: draftDescription }).catch(() => {
 					// Best effort -- silently fail
 				});
 			}
@@ -91,7 +86,7 @@
 	async function handleStart() {
 		errorMessage = '';
 		try {
-			const timerEntry = await apiStartTimer();
+			const timerEntry = await dataService.startTimer();
 			entryId = timerEntry.id;
 			startTime = timerEntry.startTime || '';
 			elapsedSeconds = 0;
@@ -118,7 +113,7 @@
 			clearTimeout(descriptionDebounceTimer);
 			if (entryId && draftDescription) {
 				try {
-					await apiUpdateDraft(entryId, { description: draftDescription });
+					await dataService.updateTimeEntry(entryId, { description: draftDescription });
 				} catch {
 					// Best effort
 				}
@@ -126,7 +121,7 @@
 		}
 
 		try {
-			const stoppedEntry = await apiStopTimer();
+			const stoppedEntry = await dataService.stopTimer();
 			endTime = stoppedEntry.endTime || '';
 			elapsedSeconds = stoppedEntry.durationMinutes * 60;
 			timerState = 'stopped';
@@ -142,7 +137,7 @@
 		description: string;
 	}) {
 		try {
-			await apiSaveTimer({ entryId, ...data });
+			await dataService.saveTimer({ entryId, ...data });
 			resetTimer();
 		} catch {
 			errorMessage = 'Failed to save time entry';
@@ -151,7 +146,7 @@
 
 	async function handleDiscard() {
 		try {
-			await apiDiscardTimer(entryId);
+			await dataService.discardTimer(entryId);
 		} catch {
 			// Best effort discard
 		}

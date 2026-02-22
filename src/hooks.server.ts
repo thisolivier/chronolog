@@ -13,7 +13,7 @@ import { eq } from 'drizzle-orm';
  * Routes that do not require authentication.
  * All other routes will redirect unauthenticated users to /login.
  */
-const publicRoutes = ['/login', '/register', '/api/auth'];
+const publicRoutes = ['/login', '/register', '/api/auth', '/api/auth/powersync/jwks'];
 
 function isPublicRoute(pathname: string): boolean {
 	return publicRoutes.some((route) => pathname === route || pathname.startsWith(route + '/'));
@@ -66,7 +66,8 @@ async function ensureAppUser(authUser: { id: string; email: string; name: string
 
 			await database.insert(contracts).values({
 				clientId: internalClient.id,
-				name: 'General'
+				name: 'General',
+				userId: authUser.id
 			});
 		}
 

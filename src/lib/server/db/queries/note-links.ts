@@ -41,7 +41,7 @@ export async function getOutgoingLinksForNote(sourceNoteId: string) {
  * Deletes all existing outgoing links for the source note, then inserts
  * new links for any valid target note IDs found in the content.
  */
-export async function updateNoteLinks(sourceNoteId: string, markdownContent: string) {
+export async function updateNoteLinks(sourceNoteId: string, markdownContent: string, userId: string) {
 	const parsedLinks = parseWikiLinks(sourceNoteId, markdownContent);
 
 	// Delete all existing outgoing links for this note
@@ -62,7 +62,8 @@ export async function updateNoteLinks(sourceNoteId: string, markdownContent: str
 				validLinks.map((link) => ({
 					sourceNoteId,
 					targetNoteId: link.targetNoteId,
-					headingAnchor: link.headingAnchor
+					headingAnchor: link.headingAnchor,
+					userId
 				}))
 			);
 		}

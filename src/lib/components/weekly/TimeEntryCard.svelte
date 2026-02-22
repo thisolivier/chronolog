@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { formatTimeShort, formatDuration } from '$lib/utils/iso-week';
 	import { parseTimeInput } from '$lib/utils/time-parse';
+	import { getDataService } from '$lib/services/context';
 	import ContractSelect from '$lib/components/timer/ContractSelect.svelte';
+
+	const dataService = getDataService();
 
 	type EntryData = {
 		id: string;
@@ -73,14 +76,7 @@
 
 	async function saveField(field: string, value: unknown) {
 		try {
-			const response = await fetch(`/api/time-entries/${entry.id}`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ [field]: value })
-			});
-			if (!response.ok) {
-				throw new Error(`Failed to update ${field}`);
-			}
+			await dataService.updateTimeEntry(entry.id, { [field]: value } as Record<string, unknown>);
 			onUpdated?.();
 		} catch (error) {
 			console.error(`Error saving ${field}:`, error);
@@ -89,14 +85,7 @@
 
 	async function saveMultipleFields(data: Record<string, unknown>) {
 		try {
-			const response = await fetch(`/api/time-entries/${entry.id}`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(data)
-			});
-			if (!response.ok) {
-				throw new Error('Failed to update entry');
-			}
+			await dataService.updateTimeEntry(entry.id, data as Record<string, unknown>);
 			onUpdated?.();
 		} catch (error) {
 			console.error('Error saving entry:', error);
@@ -201,12 +190,7 @@
 	async function handleDelete() {
 		isDeleting = true;
 		try {
-			const response = await fetch(`/api/time-entries/${entry.id}`, {
-				method: 'DELETE'
-			});
-			if (!response.ok) {
-				throw new Error('Failed to delete entry');
-			}
+			await dataService.deleteTimeEntry(entry.id);
 			onUpdated?.();
 		} catch (error) {
 			console.error('Error deleting entry:', error);

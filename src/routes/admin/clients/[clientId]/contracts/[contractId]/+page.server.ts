@@ -81,7 +81,7 @@ export const actions: Actions = {
 
 		if (!name) return fail(400, { error: 'Deliverable name is required.' });
 
-		await createDeliverable(contract.id, name, sortOrder);
+		await createDeliverable(contract.id, name, sortOrder, currentUser.id);
 		return { success: true };
 	},
 
@@ -152,7 +152,7 @@ export const actions: Actions = {
 			return fail(400, { error: 'Deliverable ID and work type name are required.' });
 		}
 
-		await createWorkType(deliverableId, name, sortOrder);
+		await createWorkType(deliverableId, name, sortOrder, currentUser.id);
 		return { success: true };
 	},
 

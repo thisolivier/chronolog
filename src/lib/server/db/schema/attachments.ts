@@ -1,6 +1,7 @@
 import { customType } from 'drizzle-orm/pg-core';
 import { integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { notes } from './notes';
+import { users } from './users';
 
 const bytea = customType<{ data: Buffer }>({
 	dataType() {
@@ -10,6 +11,7 @@ const bytea = customType<{ data: Buffer }>({
 
 export const attachments = pgTable('attachments', {
 	id: uuid('id').primaryKey().defaultRandom(),
+	userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
 	noteId: text('note_id')
 		.notNull()
 		.references(() => notes.id, { onDelete: 'cascade' }),

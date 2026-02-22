@@ -22,11 +22,12 @@ export async function createContract(
 	clientId: string,
 	name: string,
 	description: string | null,
-	isActive: boolean
+	isActive: boolean,
+	userId: string
 ) {
 	const results = await database
 		.insert(contracts)
-		.values({ clientId, name, description, isActive })
+		.values({ clientId, name, description, isActive, userId })
 		.returning();
 	return results[0];
 }

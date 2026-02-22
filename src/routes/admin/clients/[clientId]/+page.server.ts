@@ -68,7 +68,7 @@ export const actions: Actions = {
 			return fail(400, { error: 'Contract name is required.' });
 		}
 
-		await createContract(client.id, name, description, isActive);
+		await createContract(client.id, name, description, isActive, currentUser.id);
 		return { success: true };
 	},
 

@@ -43,6 +43,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		throw error(403, 'Client does not belong to this user');
 	}
 
-	const contract = await createContract(clientId, name, description ?? null, isActive ?? true);
+	const contract = await createContract(clientId, name, description ?? null, isActive ?? true, currentUser.id);
 	return json({ contract }, { status: 201 });
 };

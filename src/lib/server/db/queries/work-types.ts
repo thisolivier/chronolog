@@ -12,11 +12,12 @@ export async function listWorkTypesForDeliverable(deliverableId: string) {
 export async function createWorkType(
 	deliverableId: string,
 	name: string,
-	sortOrder: number
+	sortOrder: number,
+	userId: string
 ) {
 	const results = await database
 		.insert(workTypes)
-		.values({ deliverableId, name, sortOrder })
+		.values({ deliverableId, name, sortOrder, userId })
 		.returning();
 	return results[0];
 }

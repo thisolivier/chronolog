@@ -48,7 +48,7 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 
 	// Update backlinks index from wiki-links in content
 	if (content) {
-		await updateNoteLinks(params.noteId, content);
+		await updateNoteLinks(params.noteId, content, currentUser.id);
 	}
 
 	return json({ note });

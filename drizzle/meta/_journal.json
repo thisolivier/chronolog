@@ -43,6 +43,13 @@
       "when": 1770543021591,
       "tag": "0005_friendly_polaris",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1770789102952,
+      "tag": "0006_far_norrin_radd",
+      "breakpoints": true
     }
   ]
 }

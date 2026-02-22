@@ -55,7 +55,8 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
 		file.name,
 		file.type,
 		file.size,
-		fileBuffer
+		fileBuffer,
+		currentUser.id
 	);
 
 	return json({

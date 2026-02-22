@@ -36,7 +36,8 @@ describe('Note ID Generation', () => {
 			.values({
 				clientId: testClientId,
 				name: 'Test Contract',
-				isActive: true
+				isActive: true,
+				userId: testUserId
 			})
 			.returning();
 		testContractId = contractResult[0].id;
