@@ -6,7 +6,12 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 	const currentUser = locals.user;
 	if (!currentUser) throw error(401, 'Unauthorized');
 
-	const body = await request.json();
+	let body;
+	try {
+		body = await request.json();
+	} catch {
+		throw error(400, 'Invalid JSON in request body');
+	}
 	const { entryId, contractId, deliverableId, workTypeId, description } = body;
 
 	if (!entryId) {

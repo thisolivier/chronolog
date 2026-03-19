@@ -37,7 +37,12 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
 	const note = await getNoteForUser(noteId, currentUser.id);
 	if (!note) throw error(404, 'Note not found');
 
-	const body = await request.json();
+	let body;
+	try {
+		body = await request.json();
+	} catch {
+		throw error(400, 'Invalid JSON in request body');
+	}
 	const { timeEntryId } = body;
 	if (!timeEntryId) throw error(400, 'timeEntryId is required');
 

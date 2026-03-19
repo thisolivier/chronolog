@@ -1,4 +1,4 @@
-import { json } from '@sveltejs/kit';
+import { json, error } from '@sveltejs/kit';
 import { getWeeklyStatus, upsertWeeklyStatus } from '$lib/server/db/queries/weekly-statuses';
 import type { RequestHandler } from './$types';
 
@@ -39,7 +39,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
-	const body = await request.json();
+	let body;
+	try {
+		body = await request.json();
+	} catch {
+		throw error(400, 'Invalid JSON in request body');
+	}
 	const { year, weekNumber, status } = body;
 
 	if (!year || !weekNumber || !status) {
