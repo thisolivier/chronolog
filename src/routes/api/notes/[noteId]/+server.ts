@@ -31,7 +31,12 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 	const currentUser = locals.user;
 	if (!currentUser) throw error(401, 'Unauthorized');
 
-	const body = await request.json();
+	let body;
+	try {
+		body = await request.json();
+	} catch {
+		throw error(400, 'Invalid JSON in request body');
+	}
 	const { title, content, contentJson } = body;
 
 	const note = await updateNoteForUser(

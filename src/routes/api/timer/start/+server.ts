@@ -12,7 +12,12 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		throw error(409, 'A timer is already running. Stop it before starting a new one.');
 	}
 
-	const body = await request.json();
+	let body;
+	try {
+		body = await request.json();
+	} catch {
+		throw error(400, 'Invalid JSON in request body');
+	}
 	const contractId = body.contractId;
 
 	if (!contractId) {
