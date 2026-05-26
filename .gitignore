@@ -38,3 +38,6 @@ vite.config.ts.timestamp-*
 
 # PowerSync dev JWT private key
 config/dev-private.pem
+
+# E2E test session file (generated at runtime)
+.e2e-session.json

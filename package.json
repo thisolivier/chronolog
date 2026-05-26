@@ -18,6 +18,7 @@
 		"db:studio": "drizzle-kit studio",
 		"lint": "eslint .",
 		"test": "vitest run",
+		"test:e2e": "vitest run --config vitest.config.e2e.ts",
 		"test:watch": "vitest"
 	},
 	"devDependencies": {

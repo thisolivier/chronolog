@@ -17,6 +17,7 @@ export default defineConfig({
 		format: 'es'
 	},
 	test: {
-		include: ['src/**/*.test.ts']
+		include: ['src/**/*.test.ts'],
+		exclude: ['src/e2e/**', 'node_modules/**']
 	}
 });
