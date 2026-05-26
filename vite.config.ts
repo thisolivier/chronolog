@@ -7,6 +7,9 @@ export default defineConfig({
 		tailwindcss(),
 		sveltekit(),
 	],
+	server: {
+		allowedHosts: ['app']
+	},
 	optimizeDeps: {
 		exclude: ['@powersync/web']
 	},

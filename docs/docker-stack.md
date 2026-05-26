@@ -62,12 +62,18 @@ All services are on the `chronolog` bridge network. No host-networking (`host.do
 - PowerSync exposes port 8080 for the sync WebSocket endpoint.
 - When starting fresh, you may need to wipe volumes (`docker compose down -v`) to re-run the Postgres init scripts (replication role, publication).
 
-## JWT Auth (Dev)
+## JWT Auth
 
-A static RSA keypair is generated for dev in `config/`:
+PowerSync authenticates client connections using JWTs signed by the app server.
 
-- `config/dev-public.pem` — public key (committed)
-- `config/dev-private.pem` — private key (gitignored)
-- `config/dev-jwk.json` — JWK representation of public key (committed)
+**Endpoints:**
+- `GET /api/powersync/jwks` — public JWKS endpoint (no auth required). PowerSync fetches this to verify client tokens.
+- `GET|POST /api/powersync/token` — returns a signed JWT for an authenticated user.
 
-The public key components are embedded in `config/powersync.yaml` under `client_auth.jwks.keys`. For production, replace with proper key management.
+**How it works:**
+- The app generates an RSA key pair in-memory on first use (cached for server lifetime).
+- PowerSync is configured with `jwks_uri` pointing to the app's JWKS endpoint (`http://app:5173/api/powersync/jwks` on the Docker network).
+- Keys rotate on app restart; PowerSync re-fetches JWKS automatically.
+- Single-user simplification: no per-user token scoping. All tokens use subject `chronolog-user`.
+
+**Infrastructure-only mode note:** When running only the infrastructure containers (without the `app` container), PowerSync cannot fetch JWKS from the app. This is fine — JWKS is only needed when a client connects to sync, not for replication.

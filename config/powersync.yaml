@@ -20,11 +20,5 @@ sync_rules:
   path: sync_rules.yaml
 
 client_auth:
-  jwks:
-    keys:
-      - kty: 'RSA'
-        n: 'rU4ihhsoCAs09yzcazlfOyryVqAOdfXTz9y3zJgfNDpuhivTLrSJBDrovy3RAJd5vMqxQMwdarbtkUuUKKEekfF6S-1nPWMva20TrLIP8Syj0vOXZxY2IKoKP6EedQPmIO205RNYbKpK7BGQPsaBnZLjDgjRYSBDEaKAA8SgQiYUZqHrqfhsmFsTYaIF3CBcS5mXhW3C9JIvErpGTykgVaWak5r0rmAvILr6rV-As_w7egxH7KoXgdyWfcGIddUQmgkoXMNGjodoVAFl95GR6xRjKTqLEWTYyMvkf5Xc3hh-cUQblt7eDUygDFfDr9JHGAxZFL_SQlI-2nnohGb3wQ'
-        e: 'AQAB'
-        alg: 'RS256'
-        kid: 'chronolog-dev-1'
+  jwks_uri: http://app:5173/api/powersync/jwks
   audience: ["powersync"]
