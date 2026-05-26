@@ -5,6 +5,8 @@
 	import LinkedTimeEntries from '$lib/components/notes/LinkedTimeEntries.svelte';
 	import AttachmentList from '$lib/components/notes/AttachmentList.svelte';
 	import { buildChronologUrl } from '$lib/components/notes/extensions/attachment-resolver.js';
+	import { exportAsMarkdown, exportAsPdf } from '$lib/components/notes/note-export';
+	import '$lib/components/notes/print-styles.css';
 	import { extractPreviewLines } from '$lib/utils/extract-preview-lines';
 	import type { NoteDetail, Backlink } from '$lib/services/types';
 
@@ -15,6 +17,21 @@
 	let isLoading = $state(false);
 	let fetchError = $state<string | null>(null);
 	let backlinks = $state<Backlink[]>([]);
+	let showExportMenu = $state(false);
+
+	$effect(() => {
+		if (showExportMenu) {
+			const handleClick = (event: MouseEvent) => {
+				const target = event.target as HTMLElement;
+				if (!target.closest('[data-export-menu]')) {
+					showExportMenu = false;
+				}
+			};
+			// Delay to avoid the opening click from immediately closing
+			setTimeout(() => document.addEventListener('click', handleClick), 0);
+			return () => document.removeEventListener('click', handleClick);
+		}
+	});
 
 	/** Fetch the full note via DataService */
 	async function fetchNote(noteId: string) {
@@ -126,6 +143,38 @@
 			</div>
 		</div>
 	{:else if currentNote}
+		<!-- Note header with export actions -->
+		<div class="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2">
+			<span class="text-xs font-mono text-gray-400">{currentNote.id}</span>
+			<div class="relative" data-export-menu>
+				<button
+					type="button"
+					onclick={() => { showExportMenu = !showExportMenu; }}
+					class="inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+				>
+					Export ▾
+				</button>
+				{#if showExportMenu}
+					<div class="absolute right-0 top-full z-10 mt-1 w-44 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+						<button
+							type="button"
+							onclick={() => { exportAsMarkdown(currentNote?.title ?? null, currentNote?.content ?? null); showExportMenu = false; }}
+							class="block w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-100"
+						>
+							Export as Markdown
+						</button>
+						<button
+							type="button"
+							onclick={() => { exportAsPdf(); showExportMenu = false; }}
+							class="block w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-100"
+						>
+							Export as PDF
+						</button>
+					</div>
+				{/if}
+			</div>
+		</div>
+
 		<!-- Editor (re-mount on note change) -->
 		<div class="flex-1 overflow-hidden">
 			{#key currentNote.id}

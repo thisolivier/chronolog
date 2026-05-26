@@ -19,6 +19,12 @@ Comprehensive documentation of the Chronolog application's user interface, cover
 | 11 | [Spike Page](11-spike-page.md) | PowerSync WASM SQLite diagnostic test runner |
 | 12 | [Component Inventory](12-component-inventory.md) | Complete list of all Svelte components, TipTap extensions, and route pages |
 | 13 | [Styling Patterns](13-styling-patterns.md) | Tailwind CSS patterns, color palette, typography, component classes |
+| -- | [Current Layout Analysis](current-layout-analysis.md) | Sprint 012: Analysis of 3-panel timesheet issues, what works, what doesn't |
+| -- | [Reference App Research](reference-app-research.md) | Sprint 012: Patterns from Day One, Toggl, Harvest, Fantastical, and others |
+| -- | [Wireframes](wireframes-timesheet-redesign.md) | Sprint 012: ASCII wireframes for desktop, mobile, WeekStrip, entry cards, empty states |
+| -- | [Visual Hierarchy Spec](visual-hierarchy-spec.md) | Sprint 012: Warm palette, client colors, description-first cards, today treatment |
+| -- | [Notes Integration Design](notes-integration-design.md) | Sprint 012: Note-time entry linking, preview popovers, navigation flows |
+| -- | **[Timesheet Redesign Spec](timesheet-redesign-spec.md)** | **Sprint 012: Final design specification — the primary deliverable** |
 
 ## Architecture Summary
 

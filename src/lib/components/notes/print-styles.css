@@ -1,0 +1,208 @@
+/**
+ * Print stylesheet for clean PDF export via window.print().
+ *
+ * Hides all app chrome (sidebar, note list, toolbar, backlinks, etc.)
+ * and renders only the TipTap editor content at full width with
+ * print-friendly typography.
+ */
+
+@media print {
+	/* ------------------------------------------------------------------ */
+	/* Page setup                                                         */
+	/* ------------------------------------------------------------------ */
+
+	@page {
+		margin: 2.5cm;
+		size: A4;
+	}
+
+	body {
+		print-color-adjust: exact;
+		-webkit-print-color-adjust: exact;
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Hide app chrome                                                    */
+	/* ------------------------------------------------------------------ */
+
+	nav,
+	aside,
+	header,
+	footer,
+	/* Sidebar and note-list panels */
+	[data-panel='sidebar'],
+	[data-panel='note-list'],
+	/* Editor toolbar row (uses border-b bg-gray-50) */
+	.border-b.bg-gray-50,
+	/* Toolbar wrapper inside NoteEditor.svelte */
+	.flex.items-center:has(.border-b.bg-gray-50),
+	/* Backlinks / linked time-entries section */
+	.border-t.border-gray-200.bg-white,
+	/* File input for attachments */
+	input[type='file'],
+	/* Interactive buttons outside prose content */
+	button {
+		display: none !important;
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Make the editor content full-width and visible                     */
+	/* ------------------------------------------------------------------ */
+
+	.prose {
+		max-width: 100% !important;
+		width: 100% !important;
+		padding: 0 !important;
+		margin: 0 !important;
+		visibility: visible !important;
+	}
+
+	/* Ensure every ancestor container is visible and unstyled */
+	body,
+	body > *,
+	[data-sveltekit-body] > *,
+	main,
+	.flex-1,
+	.overflow-hidden {
+		visibility: visible !important;
+		overflow: visible !important;
+		height: auto !important;
+		max-height: none !important;
+		position: static !important;
+	}
+
+	/* Strip backgrounds, borders and shadows from layout wrappers */
+	.bg-gray-50,
+	.bg-white,
+	.border,
+	.border-gray-200,
+	.rounded-lg {
+		background: white !important;
+		border: none !important;
+		border-radius: 0 !important;
+		box-shadow: none !important;
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Print typography                                                   */
+	/* ------------------------------------------------------------------ */
+
+	.tiptap,
+	.ProseMirror {
+		font-family: Georgia, 'Times New Roman', serif !important;
+		font-size: 12pt !important;
+		line-height: 1.6 !important;
+		color: black !important;
+		padding: 0 !important;
+		min-height: auto !important;
+	}
+
+	.tiptap h1 {
+		font-size: 24pt !important;
+		margin-top: 0 !important;
+		page-break-after: avoid !important;
+	}
+
+	.tiptap h2 {
+		font-size: 18pt !important;
+		page-break-after: avoid !important;
+	}
+
+	.tiptap h3 {
+		font-size: 14pt !important;
+		page-break-after: avoid !important;
+	}
+
+	.tiptap p {
+		orphans: 3 !important;
+		widows: 3 !important;
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Code blocks                                                        */
+	/* ------------------------------------------------------------------ */
+
+	.tiptap pre {
+		background-color: #f6f8fa !important;
+		border: 1px solid #e1e4e8 !important;
+		border-radius: 4px !important;
+		padding: 0.75em 1em !important;
+		font-size: 9pt !important;
+		page-break-inside: avoid !important;
+		white-space: pre-wrap !important;
+		word-wrap: break-word !important;
+	}
+
+	.tiptap pre code {
+		font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace !important;
+		font-size: 9pt !important;
+	}
+
+	.tiptap code {
+		background-color: #f3f4f6 !important;
+		padding: 0.15em 0.3em !important;
+		border-radius: 3px !important;
+		font-size: 0.9em !important;
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Links — show URL after link text                                   */
+	/* ------------------------------------------------------------------ */
+
+	.tiptap a {
+		color: black !important;
+		text-decoration: underline !important;
+	}
+
+	.tiptap a::after {
+		content: ' (' attr(href) ')';
+		font-size: 0.8em;
+		color: #666;
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Images                                                             */
+	/* ------------------------------------------------------------------ */
+
+	.tiptap img {
+		max-width: 100% !important;
+		page-break-inside: avoid !important;
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Blockquotes                                                        */
+	/* ------------------------------------------------------------------ */
+
+	.tiptap blockquote {
+		border-left: 3px solid #ccc !important;
+		color: #333 !important;
+		page-break-inside: avoid !important;
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Lists                                                              */
+	/* ------------------------------------------------------------------ */
+
+	.tiptap ul,
+	.tiptap ol {
+		page-break-inside: avoid !important;
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Horizontal rules                                                   */
+	/* ------------------------------------------------------------------ */
+
+	.tiptap hr {
+		border-top: 1px solid #ccc !important;
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Wiki-links — render as plain text                                  */
+	/* ------------------------------------------------------------------ */
+
+	.tiptap .wiki-link {
+		background: none !important;
+		color: black !important;
+		padding: 0 !important;
+	}
+}

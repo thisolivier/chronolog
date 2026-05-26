@@ -46,6 +46,14 @@ interface Props {
 
 Formatting toolbar with active state indicators (bold, italic, headings, lists, links, code blocks).
 
+### note-export.ts
+
+Utility module for exporting note content. Provides `exportAsMarkdown` (downloads `.md` file with title heading) and `exportAsPdf` (triggers browser print dialog). Includes `sanitizeFilename` and `buildMarkdownExportContent` helpers.
+
+### print-styles.css
+
+Print stylesheet (`@media print`) for clean PDF export via `window.print()`. Hides app chrome, shows only note content with serif typography, proper margins, and code block styling.
+
 ### LinkedTimeEntries.svelte
 
 Displays time entries linked to the current note. Fetches from `/api/notes/[noteId]/time-entries` and supports unlinking entries.
