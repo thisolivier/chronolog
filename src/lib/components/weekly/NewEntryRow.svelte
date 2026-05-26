@@ -2,6 +2,7 @@
 	import { parseTimeInput } from '$lib/utils/time-parse';
 	import { getDataService } from '$lib/services/context';
 	import ContractSelect from '$lib/components/timer/ContractSelect.svelte';
+	import DeliverableSelect from '$lib/components/timer/DeliverableSelect.svelte';
 	import type { CreateTimeEntryInput } from '$lib/services/types';
 
 	const dataService = getDataService();
@@ -17,10 +18,24 @@
 	} = $props();
 
 	let selectedContractId = $state('');
+	let selectedDeliverableId = $state('');
 	let descriptionInput = $state('');
 	let timeInputValue = $state('');
 	let timeInputError = $state(false);
 	let isSubmitting = $state(false);
+
+	// Track previous contract to detect changes and reset deliverable
+	let previousContractId = $state('');
+
+	$effect(() => {
+		if (selectedContractId !== previousContractId) {
+			if (previousContractId !== '') {
+				// Contract changed — reset deliverable selection
+				selectedDeliverableId = '';
+			}
+			previousContractId = selectedContractId;
+		}
+	});
 
 	const canSubmit = $derived(
 		selectedContractId !== '' && timeInputValue.trim() !== '' && !timeInputError
@@ -45,6 +60,7 @@
 				date,
 				durationMinutes: parsed.durationMinutes,
 				contractId: selectedContractId,
+				deliverableId: selectedDeliverableId || undefined,
 				description: descriptionInput.trim() || undefined
 			};
 
@@ -81,11 +97,20 @@
 </script>
 
 <div class="flex items-center gap-3 border-b border-gray-100 px-1 py-2">
-	<!-- LEFT: Contract + description -->
+	<!-- LEFT: Contract + deliverable + description -->
 	<div class="min-w-0 flex-1">
 		<div class="max-w-xs">
 			<ContractSelect bind:selectedContractId compact={true} />
 		</div>
+		{#if selectedContractId}
+			<div class="mt-0.5 max-w-xs">
+				<DeliverableSelect
+					contractId={selectedContractId}
+					bind:selectedDeliverableId
+					compact={true}
+				/>
+			</div>
+		{/if}
 		<input
 			type="text"
 			bind:value={descriptionInput}

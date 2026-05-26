@@ -18,6 +18,8 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	const updateData: Record<string, unknown> = {};
 
 	if (body.contractId !== undefined) updateData.contractId = body.contractId;
+	if (body.deliverableId !== undefined) updateData.deliverableId = body.deliverableId;
+	if (body.workTypeId !== undefined) updateData.workTypeId = body.workTypeId;
 	if (body.durationMinutes !== undefined) updateData.durationMinutes = body.durationMinutes;
 	if (body.description !== undefined) updateData.description = body.description;
 	if (body.startTime !== undefined) updateData.startTime = body.startTime;

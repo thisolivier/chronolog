@@ -159,7 +159,7 @@
 	Day section snippet used in all 3 week types.
 	"+" button always in the heading row; NewEntryRow expands below heading, above entries.
 -->
-{#snippet daySection(dayDate: string, entries: Array<{ id: string; startTime: string | null; endTime: string | null; durationMinutes: number; contractId: string; contractName: string; clientName: string; clientShortCode: string; deliverableName: string | null; workTypeName: string | null; description: string | null; date: string }>, totalMinutes: number)}
+{#snippet daySection(dayDate: string, entries: Array<{ id: string; startTime: string | null; endTime: string | null; durationMinutes: number; contractId: string; contractName: string; clientName: string; clientShortCode: string; deliverableId: string | null; deliverableName: string | null; workTypeId: string | null; workTypeName: string | null; description: string | null; date: string }>, totalMinutes: number)}
 	<div class="mb-3">
 		<div class="mb-1 flex items-center justify-between px-1">
 			<div class="flex items-center gap-2">

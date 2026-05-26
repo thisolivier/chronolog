@@ -111,6 +111,8 @@ export type CreateTimeEntryInput = {
 	date: string;
 	durationMinutes: number;
 	contractId: string;
+	deliverableId?: string | null;
+	workTypeId?: string | null;
 	description?: string;
 	startTime?: string;
 	endTime?: string;
@@ -138,7 +140,9 @@ export type TimeEntryDisplay = {
 	contractName: string;
 	clientName: string;
 	clientShortCode: string;
+	deliverableId: string | null;
 	deliverableName: string | null;
+	workTypeId: string | null;
 	workTypeName: string | null;
 	description: string | null;
 	date: string;

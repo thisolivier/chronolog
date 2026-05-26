@@ -481,6 +481,45 @@ describe('FetchDataService', () => {
 			expect(getLastFetchBody(mockFetch)).toEqual(input);
 			expect(result).toEqual({ id: 'te-new' });
 		});
+
+		it('includes deliverableId and workTypeId when provided', async () => {
+			mockFetch.mockResolvedValueOnce(
+				mockJsonResponse({ entry: { id: 'te-with-deliverable' } })
+			);
+
+			const input = {
+				date: '2026-02-03',
+				durationMinutes: 120,
+				contractId: 'c1',
+				deliverableId: 'd1',
+				workTypeId: 'wt1',
+				description: 'Deliverable work'
+			};
+			const result = await service.createTimeEntry(input);
+
+			const [url, options] = getLastFetchCall(mockFetch);
+			expect(url).toBe('/api/time-entries');
+			expect(options?.method).toBe('POST');
+			expect(getLastFetchBody(mockFetch)).toEqual(input);
+			expect(result).toEqual({ id: 'te-with-deliverable' });
+		});
+
+		it('sends deliverableId as null when not provided', async () => {
+			mockFetch.mockResolvedValueOnce(
+				mockJsonResponse({ entry: { id: 'te-no-deliverable' } })
+			);
+
+			const input = {
+				date: '2026-02-03',
+				durationMinutes: 30,
+				contractId: 'c1'
+			};
+			await service.createTimeEntry(input);
+
+			const body = getLastFetchBody(mockFetch) as Record<string, unknown>;
+			expect(body.deliverableId).toBeUndefined();
+			expect(body.workTypeId).toBeUndefined();
+		});
 	});
 
 	describe('updateTimeEntry', () => {
@@ -493,6 +532,39 @@ describe('FetchDataService', () => {
 			expect(url).toBe('/api/time-entries/te1');
 			expect(options?.method).toBe('PUT');
 			expect(getLastFetchBody(mockFetch)).toEqual({ durationMinutes: 90 });
+		});
+
+		it('can update deliverableId', async () => {
+			mockFetch.mockResolvedValueOnce(mockJsonResponse({}));
+
+			await service.updateTimeEntry('te1', { deliverableId: 'd1' });
+
+			const body = getLastFetchBody(mockFetch) as Record<string, unknown>;
+			expect(body.deliverableId).toBe('d1');
+		});
+
+		it('can clear deliverableId by setting to null', async () => {
+			mockFetch.mockResolvedValueOnce(mockJsonResponse({}));
+
+			await service.updateTimeEntry('te1', { deliverableId: null });
+
+			const body = getLastFetchBody(mockFetch) as Record<string, unknown>;
+			expect(body.deliverableId).toBeNull();
+		});
+
+		it('can update contract and clear deliverable together', async () => {
+			mockFetch.mockResolvedValueOnce(mockJsonResponse({}));
+
+			await service.updateTimeEntry('te1', {
+				contractId: 'c2',
+				deliverableId: null,
+				workTypeId: null
+			});
+
+			const body = getLastFetchBody(mockFetch) as Record<string, unknown>;
+			expect(body.contractId).toBe('c2');
+			expect(body.deliverableId).toBeNull();
+			expect(body.workTypeId).toBeNull();
 		});
 	});
 

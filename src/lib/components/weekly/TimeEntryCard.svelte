@@ -3,6 +3,7 @@
 	import { parseTimeInput } from '$lib/utils/time-parse';
 	import { getDataService } from '$lib/services/context';
 	import ContractSelect from '$lib/components/timer/ContractSelect.svelte';
+	import DeliverableSelect from '$lib/components/timer/DeliverableSelect.svelte';
 	import type { TimeEntryFields } from '$lib/services/types';
 
 	const dataService = getDataService();
@@ -16,7 +17,9 @@
 		contractName: string;
 		clientName: string;
 		clientShortCode: string;
+		deliverableId: string | null;
 		deliverableName: string | null;
+		workTypeId: string | null;
 		workTypeName: string | null;
 		description: string | null;
 		date: string;
@@ -41,6 +44,7 @@
 	let timeInputValue = $state('');
 	let timeInputError = $state(false);
 	let selectedContractId = $state('');
+	let selectedDeliverableId = $state('');
 	let descriptionInputValue = $state('');
 	let descriptionDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -144,16 +148,39 @@
 	// Contract editing
 	function startEditingContract() {
 		selectedContractId = entry.contractId;
+		selectedDeliverableId = entry.deliverableId ?? '';
 		isEditingContract = true;
 	}
 
-	// Watch for contract selection changes
+	// Watch for contract selection changes — reset deliverable when contract changes
 	$effect(() => {
 		if (isEditingContract && selectedContractId && selectedContractId !== entry.contractId) {
-			saveField('contractId', selectedContractId);
-			isEditingContract = false;
+			selectedDeliverableId = '';
 		}
 	});
+
+	function saveContractAndDeliverable() {
+		const updates: Record<string, unknown> = {};
+		if (selectedContractId !== entry.contractId) {
+			updates.contractId = selectedContractId;
+			// When contract changes, clear deliverable and work type
+			updates.deliverableId = null;
+			updates.workTypeId = null;
+		} else if (selectedDeliverableId !== (entry.deliverableId ?? '')) {
+			updates.deliverableId = selectedDeliverableId || null;
+			// When deliverable changes, clear work type
+			updates.workTypeId = null;
+		}
+
+		if (Object.keys(updates).length > 0) {
+			saveMultipleFields(updates);
+		}
+		isEditingContract = false;
+	}
+
+	function cancelContractEdit() {
+		isEditingContract = false;
+	}
 
 	// Description editing
 	function startEditingDescription() {
@@ -206,14 +233,39 @@
 	<!-- LEFT: Contract + description -->
 	<div class="min-w-0 flex-1">
 		{#if isEditingContract}
-			<div class="max-w-xs">
-				<ContractSelect bind:selectedContractId compact={true} />
+			<div class="space-y-1">
+				<div class="max-w-xs">
+					<ContractSelect bind:selectedContractId compact={true} />
+				</div>
+				{#if selectedContractId}
+					<div class="max-w-xs">
+						<DeliverableSelect
+							contractId={selectedContractId}
+							bind:selectedDeliverableId
+							compact={true}
+						/>
+					</div>
+				{/if}
+				<div class="flex items-center gap-1">
+					<button
+						onclick={saveContractAndDeliverable}
+						class="rounded px-2 py-0.5 text-xs font-medium text-blue-600 hover:bg-blue-50"
+					>
+						Done
+					</button>
+					<button
+						onclick={cancelContractEdit}
+						class="rounded px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-100"
+					>
+						Cancel
+					</button>
+				</div>
 			</div>
 		{:else}
 			<button
 				onclick={startEditingContract}
 				class="text-left text-sm font-medium text-gray-900 hover:text-blue-600"
-				title="Click to change contract"
+				title="Click to change contract or deliverable"
 			>
 				{buildContextLabel()}
 			</button>

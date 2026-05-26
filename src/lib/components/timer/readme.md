@@ -10,6 +10,7 @@ The timer widget is split across several files:
 - **TimerDisplay.svelte** -- Formats and displays elapsed time as HH:MM:SS.
 - **TimerCompletionForm.svelte** -- Form shown after stopping the timer. Allows selecting contract/deliverable/work type and entering a description before saving. Accepts optional `initialContractId` and `initialDescription` props to pre-populate from the running-state draft.
 - **ContractSelect.svelte** -- Reusable dropdown showing "Contract -- Client" for each option. Fetches from `/api/contracts` on mount. Supports a `compact` prop for smaller inline variant. Uses `$bindable()` for two-way binding of `selectedContractId`.
+- **DeliverableSelect.svelte** -- Reusable dropdown showing deliverables for a given contract. Fetches from `/api/deliverables?contractId=...` and re-fetches when contractId changes. Only renders when deliverables are available. Supports `compact` prop. Uses `$bindable()` for `selectedDeliverableId`.
 - **AddTimeEntryModal.svelte** -- Modal overlay for creating manual time entries. Includes date picker, HH:MM duration input, contract select, and description. Calls `apiCreateManualEntry` on submit.
 - **CascadingSelects.svelte** -- Reusable cascading select component for contract -> deliverable -> work type hierarchy. Fetches options from API endpoints.
 - **timer-api.ts** -- API client functions for timer operations (start, stop, save, discard, status check, draft update, manual entry creation) and time calculation utilities.

@@ -10,7 +10,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	const body = await request.json();
-	const { date, durationMinutes, contractId, description, startTime, endTime } = body;
+	const { date, durationMinutes, contractId, deliverableId, workTypeId, description, startTime, endTime } = body;
 
 	if (!date || durationMinutes === undefined || !contractId) {
 		return json(
@@ -22,6 +22,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const entry = await createTimeEntry({
 		userId: currentUser.id,
 		contractId,
+		deliverableId: deliverableId || null,
+		workTypeId: workTypeId || null,
 		date,
 		durationMinutes: Number(durationMinutes),
 		description: description || null,
