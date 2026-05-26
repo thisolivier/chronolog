@@ -20,5 +20,5 @@ sync_rules:
   path: sync_rules.yaml
 
 client_auth:
-  jwks_uri: http://app:5173/api/powersync/jwks
+  jwks_uri: !env PS_JWKS_URI
   audience: ["powersync"]

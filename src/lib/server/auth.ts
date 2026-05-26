@@ -18,6 +18,9 @@ export const auth = betterAuth({
 		expiresIn: 60 * 60 * 24 * 30, // 30 days in seconds
 		updateAge: 60 * 60 * 24 // refresh session daily
 	},
+	trustedOrigins: [
+		'http://100.110.206.54:5173'
+	],
 	plugins: [
 		twoFactor({
 			issuer: 'Chronolog'

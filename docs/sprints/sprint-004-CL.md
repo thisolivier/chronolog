@@ -1,11 +1,11 @@
 # Sprint 004 — CL: Wire PowerSyncDataService
 
-**Status:** active
+**Status:** signed-off
 **Type:** standard
 **Backlog items:** CL-2
 **Depends on:** Sprint 002-CL (DataService abstraction — merged), Sprint 003-IF (sync rules + auth — merged)
-**Branch:** (to be filled by Team PM)
-**Working tree:** (to be filled by Team PM)
+**Branch:** `sprint-004-CL/wire-powersync-data-service`
+**Working tree:** `/Users/olivier/sites/chronolog/.claude/worktrees/sprint-004-CL`
 
 ## Objectives
 
@@ -111,8 +111,17 @@ and `src/lib/powersync/schema.ts`. You may need to update the schema but the ini
 it should POST/PUT/DELETE to the same API endpoints that FetchDataService uses. This keeps
 the server-side logic unchanged.
 
-(Team PM: write progress notes here.)
+- **Schema updated**: Removed spike's denormalized `user_id` from 6 tables (contracts, deliverables, work_types, note_links, note_time_entries, attachments). Kept `user_id` on 4 tables that have it in Postgres (clients, notes, time_entries, weekly_statuses). Added missing `emoji` column to clients. Fixed indexes.
+- **BackendConnector implemented**: `fetchCredentials()` → `/api/powersync/token` (correct path). `uploadData()` drains CRUD queue, maps to REST endpoints for notes, time_entries, clients, contracts, weekly_statuses, attachments. Skips server-managed tables (note_links, note_time_entries).
+- **PowerSyncDataService implemented**: Full 28-method DataService implementation. Queries-read (8 functions), queries-time (3 functions), mutations (14 functions). All `user_id` inserts removed from mutations.
+- **Env var toggle wired**: `PUBLIC_SYNC_MODE=powersync|fetch` via `import.meta.env`. Layout starts with FetchDataService, async-swaps to PowerSyncDataService when in powersync mode.
+- **45 new tests**: 11 connector tests + 34 data service tests. All pass.
+- **Verification**: 247/247 tests pass, `npm run check` clean (3 pre-existing errors), `npm run build` succeeds.
 
 ## Sign-off
 
-(Team PM fills this when done)
+- **Branch**: `sprint-004-CL/wire-powersync-data-service`
+- **Tests**: 247 passed, 10 skipped (pre-existing integration tests needing Postgres)
+- **Check**: 3 pre-existing errors (hooks.server.ts, powersync-auth.ts) — zero new errors
+- **Build**: Succeeds
+- **Status**: signed-off

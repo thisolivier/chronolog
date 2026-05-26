@@ -16,6 +16,7 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:seed": "tsx src/lib/server/db/seed.ts",
 		"db:studio": "drizzle-kit studio",
+		"db:reset-password": "tsx scripts/reset-password.ts",
 		"lint": "eslint .",
 		"test": "vitest run",
 		"test:e2e": "vitest run --config vitest.config.e2e.ts",

@@ -1,9 +1,16 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     restart: unless-stopped
     ports:
       - "5173:5173"
+    volumes:
+      - ./src:/app/src
+      - ./static:/app/static
+      - ./vite.config.ts:/app/vite.config.ts
+      - ./svelte.config.js:/app/svelte.config.js
     environment:
       DATABASE_URL: postgresql://chronolog:chronolog@postgres:5432/chronolog
       ENCRYPTION_KEY: dev-encryption-key-for-docker-stack-000
@@ -72,6 +79,7 @@ services:
       PS_DATA_SOURCE_URI: "postgresql://powersync_repl:powersync_repl_password@postgres:5432/chronolog"
       PS_STORAGE_SOURCE_URI: "postgresql://powersync:powersync_storage@bucket-storage:5432/powersync_storage"
       PS_PORT: "8080"
+      PS_JWKS_URI: "http://app:5173/api/powersync/jwks"
     healthcheck:
       test: ["CMD-SHELL", "node -e \"http=require('http');http.get('http://localhost:8080/probes/liveness',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))\""]
       interval: 10s

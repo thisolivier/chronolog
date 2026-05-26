@@ -1,4 +1,5 @@
-FROM node:20-alpine
+# ---- Build stage ----
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
@@ -7,8 +8,21 @@ RUN npm ci
 
 COPY . .
 RUN npm run prepare 2>/dev/null || true
+RUN npm run build
 
-EXPOSE 5173
+# ---- Production stage ----
+FROM node:20-alpine
 
-# Run migrations then start dev server
-CMD ["sh", "-c", "npx drizzle-kit migrate && npm run dev -- --host 0.0.0.0"]
+WORKDIR /app
+
+# Copy built output, migrations, and dependencies
+COPY --from=build /app/build ./build
+COPY --from=build /app/package*.json ./
+COPY --from=build /app/drizzle ./drizzle
+COPY --from=build /app/drizzle.config.ts ./
+COPY --from=build /app/node_modules ./node_modules
+
+EXPOSE 3000
+
+# Run migrations then start production server
+CMD ["sh", "-c", "npx drizzle-kit migrate && node build"]
