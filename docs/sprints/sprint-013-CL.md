@@ -1,6 +1,6 @@
 # Sprint 013 — CL: Note Export (CL-5)
 
-**Status:** pending
+**Status:** signed-off
 **Type:** standard
 **Backlog items:** CL-5
 **Depends on:** Sprint 012-CL (MD editor — merged)
@@ -75,13 +75,13 @@ File: create `src/lib/components/notes/print-styles.css` or add to the existing 
 
 ## Acceptance Criteria
 
-- [ ] "Export as Markdown" button in note editor
-- [ ] "Export as PDF" button in note editor
-- [ ] MD export downloads `.md` file with title heading
-- [ ] PDF export produces clean output (via print or library)
-- [ ] All existing tests pass + new tests
-- [ ] `npm run check` passes
-- [ ] `npm run build` succeeds
+- [x] "Export as Markdown" button in note editor
+- [x] "Export as PDF" button in note editor
+- [x] MD export downloads `.md` file with title heading
+- [x] PDF export produces clean output (via print stylesheet)
+- [x] All existing tests pass + new tests (239 total)
+- [x] `npm run check` passes (no new errors; 4 pre-existing)
+- [x] `npm run build` succeeds
 
 ## Notes
 
@@ -92,3 +92,21 @@ adding a PDF generation library. The user has a browser — use it.
 contains the raw markdown. No conversion needed for MD export.
 
 **Docker stack must be running** for the dev server.
+
+## Sign-off
+
+**Branch:** `sprint-013-CL/note-export`
+**Commit:** `6af6a4c`
+**Worktree:** `/Users/olivier/sites/chronolog/.claude/worktrees/sprint-012-CL`
+
+### Results
+- **Tests:** 239/239 passed (15 test files), including 20 new note-export tests
+- **Build:** Succeeds
+- **Check:** 4 pre-existing errors, 0 new errors
+
+### What was delivered
+1. **note-export.ts** — `exportAsMarkdown()` creates a Blob and triggers `.md` download with title heading prepended (skips if title already present). `exportAsPdf()` calls `window.print()`. Includes `sanitizeFilename()` and `buildMarkdownExportContent()` helpers.
+2. **print-styles.css** — `@media print` stylesheet: hides sidebar/toolbar/backlinks/attachments, shows only note content full-width with Georgia serif at 12pt, A4 2.5cm margins. Code blocks preserved with light background and monospace font. Page break avoidance on headings, code blocks, and blockquotes. Links show URLs via `::after`.
+3. **NoteEditorPanel.svelte** — Added "Export" dropdown in a new header bar (note ID on left, dropdown on right) with "Export as Markdown" and "Export as PDF" options. Click-outside handler closes the menu.
+4. **note-export.test.ts** — 20 tests: 13 for `sanitizeFilename` (safety, edge cases, Unicode, length limit) + 7 for `buildMarkdownExportContent` (title prepending, deduplication, null/empty handling).
+5. **Zero new dependencies** — PDF export uses `window.print()` per the "keep dependencies minimal" directive.

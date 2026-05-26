@@ -1,10 +1,11 @@
 # Sprint 012 — UX: Timesheet Layout Redesign (UX-2)
 
-**Status:** pending
+**Status:** signed-off
 **Type:** research / design
 **Backlog items:** UX-2
 **Depends on:** Sprint 011-UX (app documentation — merged)
 **Branch:** `sprint-012-UX/timesheet-redesign`
+**Working tree:** `/Users/olivier/sites/chronolog/.claude/worktrees/sprint-012-UX`
 
 ## Objectives
 
@@ -100,14 +101,14 @@ Include:
 
 ## Acceptance Criteria
 
-- [ ] Current layout analyzed with specific issues identified
-- [ ] Layout patterns researched from 3+ reference apps
-- [ ] Desktop wireframes for the new timesheet view
-- [ ] Mobile wireframes
-- [ ] Visual hierarchy specification
-- [ ] Notes integration considered
-- [ ] Design spec document produced at `docs/ux/timesheet-redesign-spec.md`
-- [ ] Rationale for every design decision (no unjustified choices)
+- [x] Current layout analyzed with specific issues identified
+- [x] Layout patterns researched from 3+ reference apps
+- [x] Desktop wireframes for the new timesheet view
+- [x] Mobile wireframes
+- [x] Visual hierarchy specification
+- [x] Notes integration considered
+- [x] Design spec document produced at `docs/ux/timesheet-redesign-spec.md`
+- [x] Rationale for every design decision (no unjustified choices)
 
 ## Notes
 
@@ -119,3 +120,24 @@ with no functional purpose, remove it. Subtle warmth and readability, not flashy
 
 **The user is a solo consultant.** The timesheet is used daily for tracking billable work
 across 3-5 client contracts. Speed of entry and clarity of review are paramount.
+
+## Progress Notes
+
+- **Task 1 (Analyze current layout):** Complete. Read all 13 UX docs from sprint 011 and source code for all timesheet-related components. Produced `docs/ux/current-layout-analysis.md` with 10 specific issues identified, component inventory (17 components), and full data flow documentation.
+- **Task 2 (Research layout patterns):** Complete. Researched 9 reference apps across 3 categories (journal, time-tracking, calendar). Produced `docs/ux/reference-app-research.md` with synthesized findings and 7 concrete recommendations.
+- **Task 3 (Design wireframes):** Complete. Produced `docs/ux/wireframes-timesheet-redesign.md` with 8 wireframe sections covering desktop full/collapsed, WeekStrip detail, day section anatomy, week header, mobile 3-level navigation, 4 empty states, and timer indicator states.
+- **Task 4 (Visual hierarchy):** Complete. Produced `docs/ux/visual-hierarchy-spec.md` with 10 sections: color system (stone palette + 8 client colors), typography hierarchy (17 elements), 15-level visual weight ranking, card states, day/week styling, spacing system, interactive affordances, status badges, and today treatment. All with Tailwind classes and accessibility validation.
+- **Task 5 (Notes integration):** Complete. Produced `docs/ux/notes-integration-design.md` with 10 sections covering linked note indicators on cards, picker modal, heading anchor selection, preview popovers, redesigned linked entries in notes, edge cases, layout accommodation, and wireframes.
+- **Task 6 (Design specification):** Complete. Produced `docs/ux/timesheet-redesign-spec.md` synthesizing all research into a 362-line implementation-ready spec with problem statement, 7 design principles, layout architecture, component redesign mapping, migration path (6 phases), component cleanup list, trade-offs/alternatives, and open questions.
+
+## Sign-off
+
+All 8 acceptance criteria met. 7 documents committed to branch `sprint-012-UX/timesheet-redesign` (3,261 lines total). The design spec at `docs/ux/timesheet-redesign-spec.md` is the primary deliverable — it references the 5 supporting documents for detailed wireframes, visual specifications, and notes integration design.
+
+**Key design decisions:**
+1. Eliminate WeekListPanel in time mode → 2-panel layout with inline WeekStrip
+2. Description-first entry cards with client color borders
+3. Stone (warm gray) palette replacing pure gray
+4. Today emphasis via amber background + badge
+5. Persistent timer indicator in top bar
+6. Note-time linking via lightweight inline indicators + preview popovers

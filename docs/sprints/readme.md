@@ -4,9 +4,11 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
-| 012-UX | User Experience | UX-2 — Timesheet redesign research | dispatched |
+| 012-UX | User Experience | UX-2 — Timesheet redesign research | merged |
 | 012-CL | Client | CL-4 — Markdown editor enhancements | merged |
-| 013-CL | Client | CL-5 — Note export (MD + PDF) | dispatched |
+| 013-CL | Client | CL-5 — Note export (MD + PDF) | merged |
+| 013-UX | User Experience | UX-3 — Note-time linking UX | dispatched |
+| 014-QA | Quality Assurance | QA-H — Phase 2 regression | dispatched |
 
 ## Completed Sprints
 
