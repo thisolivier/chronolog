@@ -4,9 +4,8 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
-| 009-CL | Client | CL-7 — Hours in week status | dispatched |
-| 010-CL | Client | CL-6 — Deliverable selector | dispatched |
-| 011-UX | User Experience | UX-1 — Document existing app | dispatched |
+| 012-UX | User Experience | UX-2 — Timesheet redesign research | dispatched |
+| 012-CL | Client | CL-4 — Markdown editor enhancements | dispatched |
 
 ## Completed Sprints
 
@@ -21,6 +20,9 @@
 | 006-CL | Client | Phase F — PWA offline shell | merged |
 | 007-QA | Quality Assurance | Playwright POC — Tauri UI testing | merged |
 | 008-QA | Quality Assurance | Phase G — GATES B & C + E2E | merged |
+| 009-CL | Client | CL-7 — Hours in week status | merged |
+| 010-CL | Client | CL-6 — Deliverable selector | merged |
+| 011-UX | User Experience | UX-1 — Document existing app | merged |
 
 ## Closed Sprints
 
