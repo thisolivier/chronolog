@@ -7,6 +7,11 @@
  *
  * Column types: column.text, column.integer, column.real
  * Booleans are stored as integers (0/1) in SQLite.
+ * Timestamps are stored as ISO text strings.
+ *
+ * user_id is kept only on tables that have it in the Postgres schema
+ * (clients, time_entries, notes, weekly_statuses) so synced data
+ * round-trips correctly. Tables without user_id in Postgres omit it.
  */
 
 import { column, Schema, Table } from '@powersync/web';
@@ -16,15 +21,15 @@ const clientsTable = new Table(
 		user_id: column.text,
 		name: column.text,
 		short_code: column.text,
+		emoji: column.text,
 		created_at: column.text,
 		updated_at: column.text
 	},
-	{ indexes: { by_user: ['user_id'] } }
+	{ indexes: {} }
 );
 
 const contractsTable = new Table(
 	{
-		user_id: column.text,
 		client_id: column.text,
 		name: column.text,
 		description: column.text,
@@ -38,7 +43,6 @@ const contractsTable = new Table(
 
 const deliverablesTable = new Table(
 	{
-		user_id: column.text,
 		contract_id: column.text,
 		name: column.text,
 		sort_order: column.integer,
@@ -50,7 +54,6 @@ const deliverablesTable = new Table(
 
 const workTypesTable = new Table(
 	{
-		user_id: column.text,
 		deliverable_id: column.text,
 		name: column.text,
 		sort_order: column.integer
@@ -73,7 +76,7 @@ const timeEntriesTable = new Table(
 		created_at: column.text,
 		updated_at: column.text
 	},
-	{ indexes: { by_user: ['user_id'], by_contract: ['contract_id'], by_date: ['date'] } }
+	{ indexes: { by_contract: ['contract_id'], by_date: ['date'] } }
 );
 
 const notesTable = new Table(
@@ -88,12 +91,11 @@ const notesTable = new Table(
 		created_at: column.text,
 		updated_at: column.text
 	},
-	{ indexes: { by_user: ['user_id'], by_contract: ['contract_id'] } }
+	{ indexes: { by_contract: ['contract_id'] } }
 );
 
 const noteLinksTable = new Table(
 	{
-		user_id: column.text,
 		source_note_id: column.text,
 		target_note_id: column.text,
 		heading_anchor: column.text,
@@ -104,7 +106,6 @@ const noteLinksTable = new Table(
 
 const noteTimeEntriesTable = new Table(
 	{
-		user_id: column.text,
 		note_id: column.text,
 		time_entry_id: column.text,
 		heading_anchor: column.text
@@ -122,12 +123,11 @@ const weeklyStatusesTable = new Table(
 		created_at: column.text,
 		updated_at: column.text
 	},
-	{ indexes: { by_user_week: ['user_id', 'year', 'week_number'] } }
+	{ indexes: { by_year_week: ['year', 'week_number'] } }
 );
 
 const attachmentsTable = new Table(
 	{
-		user_id: column.text,
 		note_id: column.text,
 		filename: column.text,
 		mime_type: column.text,

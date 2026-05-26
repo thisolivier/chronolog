@@ -15,12 +15,23 @@
 		setNavigationContext(navState);
 	}
 
-	// Initialize data service for authenticated users.
-	// A DelegatingDataService wraps the active implementation so that
-	// existing component references remain valid if we swap backends.
+	// Start with FetchDataService — works in all modes and renders immediately.
 	const delegatingService = data.user ? new DelegatingDataService(new FetchDataService()) : null;
 	if (delegatingService) {
 		setDataServiceContext(delegatingService);
+	}
+
+	// In powersync mode, asynchronously connect and swap the delegate.
+	const syncMode = import.meta.env.PUBLIC_SYNC_MODE as string | undefined;
+	if (data.user && delegatingService && syncMode === 'powersync') {
+		import('$lib/powersync/database').then(async ({ connectPowerSync }) => {
+			const { PowerSyncDataService } = await import('$lib/powersync/powersync-data-service');
+			const database = await connectPowerSync();
+			delegatingService.setDelegate(new PowerSyncDataService(database));
+			console.log('[Chronolog] PowerSync connected — switched to PowerSyncDataService');
+		}).catch((error) => {
+			console.error('[Chronolog] PowerSync init failed — staying on FetchDataService:', error);
+		});
 	}
 </script>
 
