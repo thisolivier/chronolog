@@ -1,11 +1,11 @@
 # Sprint 003 — IF: Single-User Sync Rules + Schema
 
-**Status:** active
+**Status:** signed-off
 **Type:** standard
 **Backlog items:** IF-2
 **Depends on:** Sprint 002-IF (Docker stack — merged)
-**Branch:** (to be filled by Team PM)
-**Working tree:** (to be filled by Team PM)
+**Branch:** `sprint-003-IF/sync-rules-schema-auth`
+**Working tree:** `/Users/olivier/sites/chronolog/.claude/worktrees/sprint-003-IF`
 
 ## Objectives
 
@@ -77,13 +77,13 @@ This sprint prepares the server-side configuration so the PowerSync client can c
 
 ## Acceptance Criteria
 
-- [ ] Sync rules use a single global bucket with whole-table syncs (no per-user filtering)
-- [ ] No unnecessary `user_id` denormalisation in the schema
-- [ ] `/api/auth/powersync/token` endpoint returns a signed JWT
-- [ ] `/api/auth/powersync/jwks` endpoint returns the public key
-- [ ] PowerSync service successfully connects and replicates with the new sync rules
-- [ ] All existing tests pass
-- [ ] `docs/docker-stack.md` updated if needed
+- [x] Sync rules use a single global bucket with whole-table syncs (no per-user filtering)
+- [x] No unnecessary `user_id` denormalisation in the schema
+- [x] `/api/powersync/token` endpoint returns a signed JWT (moved from `/api/auth/powersync/token` to avoid Better Auth catch-all conflict)
+- [x] `/api/powersync/jwks` endpoint returns the public key (moved from `/api/auth/powersync/jwks` for same reason)
+- [x] PowerSync service successfully connects and replicates with the new sync rules
+- [x] All existing tests pass (202 passed, 10 skipped — DB integration tests skip without local Postgres)
+- [x] `docs/docker-stack.md` updated with JWT auth documentation
 
 ## Notes
 
@@ -98,8 +98,23 @@ Cherry-pick and simplify — strip multi-user token scoping.
 **Single-user simplification**: The epic explicitly states no `request.user_id()` parameter
 in sync rules, no per-table `WHERE user_id = ...`. One global bucket, one signing identity.
 
-(Team PM: write progress notes here.)
+**Progress notes:**
+- Sync rules already correct on main from sprint 002-IF — verified, no changes needed.
+- Schema clean — no denormalized `user_id` columns from the spike were ever merged to main. No migration needed.
+- JWT auth endpoints implemented using `jose` library with in-memory RSA key generation (keys rotate on restart, PowerSync re-fetches JWKS automatically).
+- Endpoints moved from `/api/auth/powersync/*` to `/api/powersync/*` — Better Auth's `svelteKitHandler` intercepts all `/api/auth/*` routes before SvelteKit's router, causing 404s.
+- Added `server.allowedHosts: ['app']` to vite.config.ts — Vite blocked requests from Docker service name hostname.
+- PowerSync config switched from embedded static RSA key to `jwks_uri` pointing to app server.
+- E2E verified: PowerSync fetches JWKS from app (HTTP 200), replication active, sync rules loaded.
 
 ## Sign-off
 
-(Team PM fills this when done)
+**Status:** signed-off
+**Date:** 2026-05-26
+**Branch:** `sprint-003-IF/sync-rules-schema-auth`
+**Commit:** `2873773`
+
+**Summary:**
+All acceptance criteria met. PowerSync JWT auth endpoints implemented and verified end-to-end. Sync rules and schema were already clean on main (no changes needed). PowerSync service connects to source Postgres, loads sync rules, and replicates successfully. The app serves JWKS to PowerSync over the Docker network for token verification. 202 tests pass.
+
+**Deviation from spec:** Auth endpoints placed at `/api/powersync/*` instead of `/api/auth/powersync/*` due to Better Auth route conflict. This is a better pattern anyway — keeps PowerSync API surface separate from the auth provider.
