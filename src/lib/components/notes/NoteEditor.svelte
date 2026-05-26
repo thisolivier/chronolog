@@ -2,6 +2,8 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { Editor } from '@tiptap/core';
 	import StarterKit from '@tiptap/starter-kit';
+	import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+	import { common, createLowlight } from 'lowlight';
 	import Link from '@tiptap/extension-link';
 	import Image from '@tiptap/extension-image';
 	import { FileHandler } from '@tiptap/extension-file-handler';
@@ -54,6 +56,10 @@
 	let fileInput: HTMLInputElement;
 	let editor: Editor | null = $state(null);
 	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+
+	let editorMode: 'rendered' | 'raw' = $state('rendered');
+	let rawMarkdownContent: string = $state('');
+	let isSyncingFromRaw = false;
 
 	function handleAttachFileClick() {
 		fileInput?.click();
@@ -154,7 +160,8 @@
 		editor = new Editor({
 			element: editorElement,
 			extensions: [
-				StarterKit.configure({ heading: false }),
+				StarterKit.configure({ heading: false, codeBlock: false }),
+			CodeBlockLowlight.configure({ lowlight: createLowlight(common) }),
 				AnchoredHeading,
 				Link.configure({ openOnClick: false }),
 				Image.configure({ inline: true, allowBase64: false }),
@@ -212,8 +219,50 @@
 		editor?.destroy();
 	});
 
+	function toggleEditorMode() {
+		if (!editor) return;
+
+		if (editorMode === 'rendered') {
+			// Switch to raw: extract markdown from TipTap
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			rawMarkdownContent = (editor.storage as any).markdown.getMarkdown();
+			editorMode = 'raw';
+		} else {
+			// Switch to rendered: parse raw markdown back into TipTap
+			isSyncingFromRaw = true;
+			editor.commands.setContent(rawMarkdownContent);
+			isSyncingFromRaw = false;
+			editorMode = 'rendered';
+		}
+	}
+
+	function handleRawInput() {
+		if (!onSave) return;
+
+		if (saveTimeout) {
+			clearTimeout(saveTimeout);
+		}
+
+		saveTimeout = setTimeout(() => {
+			if (!editor) return;
+
+			// Sync raw markdown to TipTap (silently) to get matching JSON
+			isSyncingFromRaw = true;
+			editor.commands.setContent(rawMarkdownContent);
+			isSyncingFromRaw = false;
+
+			const json = JSON.stringify(editor.getJSON());
+
+			onSave({
+				title: '',
+				content: rawMarkdownContent,
+				contentJson: json
+			});
+		}, 500);
+	}
+
 	function triggerDebouncedsave() {
-		if (!editor || !onSave) return;
+		if (!editor || !onSave || isSyncingFromRaw) return;
 
 		if (saveTimeout) {
 			clearTimeout(saveTimeout);
@@ -249,12 +298,34 @@
 
 	<!-- Toolbar -->
 	{#if !readonly}
-		<EditorToolbar {editor} onAttachFile={handleAttachFileClick} />
+		<div class="flex items-center">
+			<div class="flex-grow overflow-x-auto">
+				<EditorToolbar {editor} onAttachFile={handleAttachFileClick} />
+			</div>
+			<button
+				type="button"
+				onclick={toggleEditorMode}
+				class="px-3 py-1.5 text-xs rounded transition-colors mx-2 whitespace-nowrap border
+					{editorMode === 'raw' ? 'bg-blue-100 text-blue-700 border-blue-200 font-semibold' : 'text-gray-500 hover:bg-gray-100 border-gray-200'}"
+				title="Toggle raw markdown view"
+			>
+				{editorMode === 'raw' ? '◆ Raw' : '◇ Rich'}
+			</button>
+		</div>
 	{/if}
 
 	<!-- Editor Content -->
 	<div class="flex-grow overflow-y-auto">
-		<div bind:this={editorElement} class="prose prose-sm max-w-none p-4"></div>
+		{#if editorMode === 'raw'}
+			<textarea
+				bind:value={rawMarkdownContent}
+				oninput={handleRawInput}
+				class="w-full h-full p-4 font-mono text-sm resize-none outline-none bg-white"
+				placeholder="Write markdown here..."
+			></textarea>
+		{:else}
+			<div bind:this={editorElement} class="prose prose-sm max-w-none p-4"></div>
+		{/if}
 	</div>
 </div>
 
@@ -341,11 +412,24 @@
 	}
 
 	:global(.tiptap pre) {
-		background-color: #1f2937;
-		color: #f9fafb;
-		padding: 1em;
+		position: relative;
+		background-color: #f6f8fa;
+		color: #24292e;
+		padding: 2.5rem 1rem 1rem;
 		border-radius: 0.5em;
 		overflow-x: auto;
+		border: 1px solid #e1e4e8;
+	}
+
+	:global(.tiptap pre::before) {
+		content: attr(data-language);
+		position: absolute;
+		top: 0.5rem;
+		right: 0.75rem;
+		font-size: 0.75rem;
+		color: #6a737d;
+		text-transform: uppercase;
+		font-family: system-ui, sans-serif;
 	}
 
 	:global(.tiptap pre code) {
@@ -353,6 +437,28 @@
 		padding: 0;
 		color: inherit;
 	}
+
+	/* highlight.js github-light theme tokens */
+	:global(.tiptap pre code .hljs-keyword) { color: #d73a49; }
+	:global(.tiptap pre code .hljs-string) { color: #032f62; }
+	:global(.tiptap pre code .hljs-comment) { color: #6a737d; font-style: italic; }
+	:global(.tiptap pre code .hljs-function) { color: #6f42c1; }
+	:global(.tiptap pre code .hljs-number) { color: #005cc5; }
+	:global(.tiptap pre code .hljs-title) { color: #6f42c1; }
+	:global(.tiptap pre code .hljs-built_in) { color: #e36209; }
+	:global(.tiptap pre code .hljs-attr) { color: #005cc5; }
+	:global(.tiptap pre code .hljs-selector-tag) { color: #22863a; }
+	:global(.tiptap pre code .hljs-selector-class) { color: #6f42c1; }
+	:global(.tiptap pre code .hljs-selector-id) { color: #005cc5; }
+	:global(.tiptap pre code .hljs-meta) { color: #005cc5; }
+	:global(.tiptap pre code .hljs-type) { color: #d73a49; }
+	:global(.tiptap pre code .hljs-params) { color: #24292e; }
+	:global(.tiptap pre code .hljs-literal) { color: #005cc5; }
+	:global(.tiptap pre code .hljs-symbol) { color: #005cc5; }
+	:global(.tiptap pre code .hljs-variable) { color: #e36209; }
+	:global(.tiptap pre code .hljs-template-variable) { color: #005cc5; }
+	:global(.tiptap pre code .hljs-addition) { color: #22863a; background: #f0fff4; }
+	:global(.tiptap pre code .hljs-deletion) { color: #b31d28; background: #ffeef0; }
 
 	:global(.tiptap blockquote) {
 		border-left: 4px solid #e5e7eb;

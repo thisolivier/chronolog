@@ -1,10 +1,10 @@
 # Notes Components
 
-WYSIWYG markdown editor components using TipTap v2.
+WYSIWYG markdown editor components using TipTap v3.
 
 ## Architecture
 
-The notes module provides a rich text editing experience with markdown support. The editor uses TipTap core with StarterKit, Link, Image, FileHandler, Placeholder, Markdown, WikiLink, and AnchoredHeading extensions.
+The notes module provides a rich text editing experience with markdown support. The editor uses TipTap core with StarterKit, CodeBlockLowlight (syntax highlighting via lowlight), Link, Image, FileHandler, Placeholder, Markdown, WikiLink, and AnchoredHeading extensions.
 
 ## Components
 
@@ -21,6 +21,8 @@ Main editor component with title field, toolbar, and content area.
 - WikiLink inline nodes with `[[syntax]]` autocomplete
 - AnchoredHeading nodes with auto-generated slug IDs
 - Click-to-navigate on wiki-link nodes
+- Code blocks with syntax highlighting (CodeBlockLowlight + lowlight, github-light theme)
+- Raw/rendered mode toggle (switch between WYSIWYG and raw markdown textarea)
 - Inline image support via drag-drop, paste, or programmatic insertion
 - File handler for images (jpeg/png/gif/webp/svg) and PDFs
 - `chronolog://attachment/{uuid}` URL resolution for embedded images
@@ -42,7 +44,7 @@ interface Props {
 
 ### EditorToolbar.svelte
 
-Formatting toolbar with active state indicators (bold, italic, headings, lists, links).
+Formatting toolbar with active state indicators (bold, italic, headings, lists, links, code blocks).
 
 ### LinkedTimeEntries.svelte
 

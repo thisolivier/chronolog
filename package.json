@@ -58,6 +58,7 @@
 		"@tauri-apps/api": "^2.0.0",
 		"@tauri-apps/plugin-sql": "^2.0.0",
 		"@tiptap/core": "^3.19.0",
+		"@tiptap/extension-code-block-lowlight": "^3.23.6",
 		"@tiptap/extension-file-handler": "^3.19.0",
 		"@tiptap/extension-image": "^3.19.0",
 		"@tiptap/extension-link": "^3.19.0",
@@ -69,6 +70,8 @@
 		"dexie": "^4.3.0",
 		"drizzle-orm": "^0.45.1",
 		"jose": "^6.2.3",
+		"jsdom": "^29.1.1",
+		"lowlight": "^3.3.0",
 		"postgres": "^3.4.0",
 		"qrcode": "^1.5.4",
 		"tiptap-markdown": "^0.9.0"

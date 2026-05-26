@@ -149,6 +149,18 @@
 		Link
 	</button>
 
+	<button
+		type="button"
+		onclick={() => editor?.chain().focus().toggleCodeBlock().run()}
+		disabled={!editor}
+		class="px-3 py-1.5 text-sm rounded transition-colors
+			{editor?.isActive('codeBlock') ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-gray-600 hover:bg-gray-100'}
+			disabled:opacity-50 disabled:cursor-not-allowed"
+		title="Code Block"
+	>
+		&lt;/&gt;
+	</button>
+
 	<div class="w-px bg-gray-300 mx-1"></div>
 
 	<button
