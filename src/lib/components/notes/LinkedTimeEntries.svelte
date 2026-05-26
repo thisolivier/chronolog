@@ -1,24 +1,19 @@
 <script lang="ts">
+	import { getDataService } from '$lib/services/context';
+	import type { NoteTimeEntryLink } from '$lib/services/types';
+
 	interface Props {
 		noteId: string;
 	}
 
-	type LinkedTimeEntry = {
-		noteId: string;
-		timeEntryId: string;
-		headingAnchor: string | null;
-	};
+	const dataService = getDataService();
 
 	let { noteId }: Props = $props();
-	let linkedEntries = $state<LinkedTimeEntry[]>([]);
+	let linkedEntries = $state<NoteTimeEntryLink[]>([]);
 
 	async function fetchLinkedEntries() {
 		try {
-			const response = await fetch(`/api/notes/${noteId}/time-entries`);
-			if (response.ok) {
-				const data = await response.json();
-				linkedEntries = data.timeEntries;
-			}
+			linkedEntries = await dataService.getNoteTimeEntries(noteId);
 		} catch (fetchError) {
 			console.error('Failed to fetch linked entries:', fetchError);
 		}
@@ -26,11 +21,7 @@
 
 	async function unlinkEntry(timeEntryId: string) {
 		try {
-			await fetch(`/api/notes/${noteId}/time-entries`, {
-				method: 'DELETE',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ timeEntryId })
-			});
+			await dataService.unlinkNoteTimeEntry(noteId, timeEntryId);
 			linkedEntries = linkedEntries.filter(
 				(entry) => entry.timeEntryId !== timeEntryId
 			);

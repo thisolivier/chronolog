@@ -1,43 +1,29 @@
 <script lang="ts">
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
+	import { getDataService } from '$lib/services/context';
 	import NoteEditor from '$lib/components/notes/NoteEditor.svelte';
 	import LinkedTimeEntries from '$lib/components/notes/LinkedTimeEntries.svelte';
 	import AttachmentList from '$lib/components/notes/AttachmentList.svelte';
 	import { buildChronologUrl } from '$lib/components/notes/extensions/attachment-resolver.js';
 	import { extractPreviewLines } from '$lib/utils/extract-preview-lines';
-
-	type NoteData = {
-		id: string;
-		title: string | null;
-		content: string | null;
-		contentJson: string | null;
-		contractId: string;
-		wordCount: number;
-		isPinned: boolean;
-		createdAt: string;
-		updatedAt: string;
-	};
+	import type { NoteDetail, Backlink } from '$lib/services/types';
 
 	const navigation = getNavigationContext();
+	const dataService = getDataService();
 
-	let currentNote = $state<NoteData | null>(null);
+	let currentNote = $state<NoteDetail | null>(null);
 	let isLoading = $state(false);
 	let fetchError = $state<string | null>(null);
-	let backlinks = $state<Array<{ sourceNoteId: string; noteTitle: string | null; headingAnchor: string | null }>>([]);
+	let backlinks = $state<Backlink[]>([]);
 
-	/** Fetch the full note from the API */
+	/** Fetch the full note via DataService */
 	async function fetchNote(noteId: string) {
 		isLoading = true;
 		fetchError = null;
 		currentNote = null;
 
 		try {
-			const response = await fetch(`/api/notes/${noteId}`);
-			if (!response.ok) {
-				throw new Error(`Failed to load note (${response.status})`);
-			}
-			const data = await response.json();
-			currentNote = data.note;
+			currentNote = await dataService.getNoteById(noteId);
 		} catch (error) {
 			fetchError = error instanceof Error ? error.message : 'Unknown error loading note';
 			console.error('Error fetching note:', error);
@@ -46,44 +32,29 @@
 		}
 	}
 
-	/** Fetch backlinks for a note from the API */
+	/** Fetch backlinks for a note via DataService */
 	async function fetchBacklinks(noteId: string) {
 		try {
-			const response = await fetch(`/api/notes/${noteId}/backlinks`);
-			if (!response.ok) {
-				backlinks = [];
-				return;
-			}
-			const data = await response.json();
-			backlinks = data.backlinks ?? [];
+			backlinks = await dataService.getNoteBacklinks(noteId);
 		} catch (backlinkError) {
 			console.error('Error fetching backlinks:', backlinkError);
 			backlinks = [];
 		}
 	}
 
-	/** Save note content via PUT API */
+	/** Save note content via DataService */
 	async function handleSave(saveData: { title: string; content: string; contentJson: string }) {
 		const noteId = navigation.selectedNoteId;
 		if (!noteId) return;
 
 		try {
-			const response = await fetch(`/api/notes/${noteId}`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					title: saveData.title,
-					content: saveData.content,
-					contentJson: saveData.contentJson
-				})
+			const updatedNote = await dataService.updateNote(noteId, {
+				title: saveData.title,
+				content: saveData.content,
+				contentJson: saveData.contentJson
 			});
 
-			if (!response.ok) {
-				throw new Error('Failed to save note');
-			}
-
-			const data = await response.json();
-			currentNote = data.note;
+			currentNote = updatedNote;
 
 			// Notify the notes list panel to update this note's preview
 			const preview = extractPreviewLines(saveData.contentJson);
@@ -93,7 +64,7 @@
 						noteId,
 						firstLine: preview.firstLine,
 						secondLine: preview.secondLine,
-						updatedAt: data.note.updatedAt
+						updatedAt: updatedNote.updatedAt
 					}
 				})
 			);
@@ -108,22 +79,8 @@
 		if (!noteId) return null;
 
 		try {
-			const formData = new FormData();
-			formData.append('file', file);
-
-			const response = await fetch(`/api/notes/${noteId}/attachments`, {
-				method: 'POST',
-				body: formData
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				console.error('Upload failed:', errorData);
-				return null;
-			}
-
-			const data = await response.json();
-			return buildChronologUrl(data.attachment.id);
+			const result = await dataService.uploadAttachment(noteId, file);
+			return buildChronologUrl(result.id);
 		} catch (uploadError) {
 			console.error('Error uploading file:', uploadError);
 			return null;

@@ -1,40 +1,22 @@
 <script lang="ts">
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
+	import { getDataService } from '$lib/services/context';
 	import TimerWidget from '$lib/components/timer/TimerWidget.svelte';
 	import ContractCreateModal from '$lib/components/admin/ContractCreateModal.svelte';
-
-	interface ContractItem {
-		id: string;
-		name: string;
-		isActive: boolean;
-		clientId: string;
-		clientName: string;
-		clientShortCode: string;
-		clientEmoji: string | null;
-		noteCount: number;
-	}
+	import type { ContractsByClientResult, ClientSummary } from '$lib/services/types';
 
 	const navigationContext = getNavigationContext();
+	const dataService = getDataService();
 
-	interface ClientOption {
-		id: string;
-		name: string;
-		shortCode: string;
-	}
-
-	let contractsList = $state<ContractItem[]>([]);
-	let allClients = $state<ClientOption[]>([]);
+	let contractsList = $state<ContractsByClientResult[]>([]);
+	let allClients = $state<ClientSummary[]>([]);
 	let isLoading = $state(true);
 	let errorMessage = $state('');
 	let showCreateModal = $state(false);
 
 	async function loadContracts() {
 		try {
-			const response = await fetch('/api/contracts-by-client');
-			if (!response.ok) throw new Error('Failed to load contracts');
-
-			const data = await response.json();
-			contractsList = data.contracts;
+			contractsList = await dataService.getContractsByClient();
 		} catch (error) {
 			errorMessage = error instanceof Error ? error.message : 'Failed to load contracts';
 		} finally {
@@ -44,11 +26,7 @@
 
 	async function loadClients() {
 		try {
-			const response = await fetch('/api/clients');
-			if (!response.ok) throw new Error('Failed to load clients');
-
-			const data = await response.json();
-			allClients = data.clients;
+			allClients = await dataService.getClients();
 		} catch (error) {
 			// Client loading failure is non-critical; the modal will just have an empty dropdown
 			console.error('Failed to load clients:', error);
