@@ -1,0 +1,8 @@
+node_modules
+.git
+.env
+.env.local
+src-tauri
+build
+.svelte-kit
+*.log

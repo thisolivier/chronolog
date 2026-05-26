@@ -35,3 +35,6 @@ vite.config.ts.timestamp-*
 
 # Claude session locks
 .claude-session.lock
+
+# PowerSync dev JWT private key
+config/dev-private.pem

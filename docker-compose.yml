@@ -1,7 +1,24 @@
 services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      DATABASE_URL: postgresql://chronolog:chronolog@postgres:5432/chronolog
+      ENCRYPTION_KEY: dev-encryption-key-for-docker-stack-000
+      BETTER_AUTH_SECRET: dev-auth-secret-for-docker-stack-0000
+      BETTER_AUTH_URL: http://localhost:5173
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - chronolog
+
   postgres:
     image: postgres:17
     restart: unless-stopped
+    command: ["postgres", "-c", "wal_level=logical"]
     environment:
       POSTGRES_USER: chronolog
       POSTGRES_PASSWORD: chronolog
@@ -10,6 +27,64 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./config/init-db.sql:/docker-entrypoint-initdb.d/init-replication.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chronolog -d chronolog"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chronolog
+
+  bucket-storage:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: powersync
+      POSTGRES_PASSWORD: powersync_storage
+      POSTGRES_DB: powersync_storage
+    volumes:
+      - bucket_storage_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U powersync -d powersync_storage"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chronolog
+
+  powersync:
+    image: journeyapps/powersync-service:latest
+    restart: unless-stopped
+    command: ["start", "-r", "unified"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      bucket-storage:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config/powersync.yaml:/config/powersync.yaml
+      - ./config/sync_rules.yaml:/config/sync_rules.yaml
+    environment:
+      POWERSYNC_CONFIG_PATH: /config/powersync.yaml
+      PS_DATA_SOURCE_URI: "postgresql://powersync_repl:powersync_repl_password@postgres:5432/chronolog"
+      PS_STORAGE_SOURCE_URI: "postgresql://powersync:powersync_storage@bucket-storage:5432/powersync_storage"
+      PS_PORT: "8080"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"http=require('http');http.get('http://localhost:8080/probes/liveness',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - chronolog
+
+networks:
+  chronolog:
+    driver: bridge
 
 volumes:
   postgres_data:
+  bucket_storage_data:
