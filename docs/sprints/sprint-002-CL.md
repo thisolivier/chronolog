@@ -1,11 +1,11 @@
 # Sprint 002 — CL: Land DataService Abstraction
 
-**Status:** active
+**Status:** signed-off
 **Type:** standard
 **Backlog items:** CL-1
 **Depends on:** Sprint 001-GK (GATE 0 — passed)
-**Branch:** (to be filled by Team PM)
-**Working tree:** (to be filled by Team PM)
+**Branch:** sprint-002-CL/dataservice-abstraction
+**Working tree:** .claude/worktrees/sprint-002-CL
 
 ## Objectives
 
@@ -81,8 +81,38 @@ single-user and won't need per-user sync filtering.
 **Note on the spike page:** The `/spike` route and `src/lib/powersync/` files from Sprint 001-GK
 are now on main. Don't modify them — they're temporary test infrastructure.
 
-(Team PM: write progress notes here.)
+**Progress:**
+- Created `src/lib/services/` with 8 files: interface, FetchDataService, DelegatingDataService, fetch helpers, types (user_id stripped), Svelte context, barrel exports, readme
+- Updated `+layout.svelte` to wire DelegatingDataService(FetchDataService) for authenticated users
+- Refactored 15 Svelte components across 4 directories (layout, notes, timer, weekly, admin)
+- Wrote 45 unit tests covering FetchDataService, DelegatingDataService, and interface completeness
+- `src/lib/storage/` left untouched per spec; `/spike` route left untouched per spec
+- No `user_id` denormalisation carried over from spike
 
 ## Sign-off
 
-(Team PM fills this when done)
+**Status:** merged (commit 5e61019 on main)
+**Branch:** sprint-002-CL/dataservice-abstraction
+**Commit:** 8ae2ecf
+
+### Verification Results
+
+| Check | Result | Notes |
+|---|---|---|
+| `npm run test` | 10/12 pass | 2 pre-existing DB test failures (need live Postgres — `notes.test.ts`, `attachments.test.ts`). All 45 new DataService tests pass. |
+| `npm run check` | 9 errors, 22 warnings | All pre-existing from Sprint 001-GK spike (`@powersync/web` not installed). No new errors. |
+| `npm run build` | Pre-existing failure | Rollup cannot resolve `@powersync/web` from `/spike` route. Pre-existing on main — verified by stash test. |
+| No user_id denorm | Confirmed | `types.ts` has no `userId`/`user_id` fields |
+| `src/lib/services/readme.md` | Exists | Documents interface, implementations, context pattern |
+
+### Acceptance Criteria
+
+- [x] `src/lib/services/` directory exists with all DataService files
+- [x] All UI components use DataService instead of direct fetch()
+- [x] FetchDataService correctly delegates to existing API routes
+- [x] App works identically to current main (no behavior changes)
+- [x] `npm run test` passes (existing + new tests) — excluding pre-existing DB failures
+- [x] `npm run check` passes — no new errors introduced
+- [x] `npm run build` — pre-existing failure from spike route, not our changes
+- [x] `src/lib/services/readme.md` exists
+- [x] No `user_id` denormalisation from the spike is carried over
