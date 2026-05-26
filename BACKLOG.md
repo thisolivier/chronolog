@@ -4,28 +4,38 @@ Previous completed tasks (1-10) are archived in [docs/BACKLOG-COMPLETE-1.md](doc
 
 ---
 
-## Task 11: Offline Sync
+## Task 11: Offline Sync (Self-Hosted PowerSync, Single-User)
 
-**Goal**: App works offline; data syncs when connectivity returns.
+**Goal**: App works offline on both Tauri desktop (primary) and the PWA; data syncs when
+connectivity returns. Delivered via self-hosted PowerSync rather than a custom sync engine.
 
-- [ ] Implement data sync layer on top of the storage abstraction (Task 10):
-  - On load: pull latest from server, populate local store
-  - On write: save to local store immediately, queue server sync
-  - On reconnect: push queued changes, pull server updates
-  - Conflict resolution: last-write-wins via `updated_at`
-- [ ] Desktop (Tauri): sync queue with direct HTTP requests from Rust or JS
-- [ ] Mobile (PWA): configure Workbox Background Sync for queued API writes
-- [ ] Configure service worker for app shell caching (precache strategy, PWA only)
-- [ ] Add online/offline indicator in UI
-- [ ] Handle session expiry gracefully (re-auth prompt on reconnect)
-- [ ] Test offline scenarios on both platforms:
-  - Create time entry offline → comes back online → synced
-  - Edit note offline → comes back online → synced
-  - Multiple offline edits → bulk sync
+**Approach & rationale**: See [docs/EPIC-OFFLINE-SYNC.md](docs/EPIC-OFFLINE-SYNC.md). The custom
+sync engine (`task-11-offline-sync`, ~2,300 lines) is abandoned. Single-account-per-instance
+removes the spike's worst accommodation (per-user denormalisation) and flattens sync rules. The
+PowerSync stack runs on the **remote machine**.
 
-**Depends on**: Task 10 (storage abstraction), Tasks 5 and 7
+- [ ] **Phase A — Containerised remote stack**: single Docker Compose with source Postgres
+      (containerised, `wal_level=logical`) + bucket-storage Postgres + PowerSync service, all on the
+      internal Docker network (removes the spike's host-networking edits)
+- [ ] **Phase B — Single-user sync rules + schema**: one global `SELECT * FROM <table>` bucket (no
+      per-user filtering); resolve the spike's denormalised `user_id` columns (see epic Open
+      Questions); reconcile migrations on a clean DB
+- [ ] **Phase C — Land `DataService` abstraction on `main`**: cherry-pick Phase 1 from
+      `powersync-spike` as a standalone PR (decouples UI from sync backend)
+- [ ] **Phase D — Wire `PowerSyncDataService`**: local SQL reads, connector `uploadData()` → REST
+      API, reactive sync-status surface, simplified single-user JWT auth
+- [ ] **Phase E — GATE A (blocking): Tauri/WebKit validation**: full Tauri build; confirm
+      OPFS-backed SQLite sync (schema, read/write, `db.watch()`, full sync cycle) works reliably in
+      the macOS WebKit webview
+- [ ] **Phase F — PWA offline**: service worker / app-shell caching, OPFS-with-IndexedDB fallback,
+      online/offline indicator, graceful session-expiry-on-reconnect handling
+- [ ] **Phase G — GATES B & C + E2E**: offline round-trip on both platforms (create/edit offline →
+      reconnect → synced to source + second client); confirm attachment lazy-load strategy
 
-**Output**: App is fully usable offline on both desktop and mobile. Changes sync automatically when connectivity returns.
+**Depends on**: Task 10 (storage abstraction), Tasks 5 and 7; `powersync-spike` branch
+
+**Output**: App is fully usable offline on desktop and mobile. Changes sync automatically when
+connectivity returns, via a self-hosted PowerSync stack on the remote machine.
 
 ---
 
@@ -157,6 +167,19 @@ These items were deferred from their original tasks and should be addressed as a
 ### PWA configuration
 - [ ] Manifest and service worker via `@vite-pwa/sveltekit` (from Task 1)
 - [ ] `adapter-static` for Tauri builds (from Task 1)
+
+### Notes — export & rich content
+- [ ] **Markdown export of notes**: export a note (or selection) as a `.md` file. The editor already
+      uses `tiptap-markdown`, so serialisation exists — add a download/save action (Tauri: write to
+      disk via fs plugin; PWA: Blob download). Resolve `chronolog://` attachment URLs and wiki-links
+      to a sensible export form.
+- [ ] **PDF export of notes**: render a note to PDF (e.g. print-to-PDF of the rendered HTML, or a
+      headless render). Decide between client-side (browser print / `window.print()` styling) and a
+      server-side render for consistent output across platforms.
+- [ ] **Rich code-block syntax highlighting**: the editor currently uses StarterKit's plain code
+      block (monospace, no highlighting). Replace with `@tiptap/extension-code-block-lowlight` +
+      `lowlight` for language-aware syntax highlighting; add a language selector to the editor
+      toolbar and ensure highlighting survives Markdown round-trips.
 
 ### Polish
 - [ ] Image thumbnail generation via Canvas API, client-side (from Task 9)
