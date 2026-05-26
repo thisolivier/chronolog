@@ -1,6 +1,6 @@
 # Sprint 001 — CL: Land DataService Abstraction
 
-**Status:** active
+**Status:** closed (superseded — Tauri spike must pass first, see sprint-001-GK.md. Becomes sprint-002-CL.)
 **Type:** standard
 **Backlog items:** CL-1
 **Depends on:** none

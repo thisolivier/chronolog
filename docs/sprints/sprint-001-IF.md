@@ -1,6 +1,6 @@
 # Sprint 001 — IF: Containerised Remote Stack
 
-**Status:** active
+**Status:** closed (superseded — Tauri spike must pass first, see sprint-001-CL.md. Becomes sprint-002-IF.)
 **Type:** standard
 **Backlog items:** IF-1
 **Depends on:** none
