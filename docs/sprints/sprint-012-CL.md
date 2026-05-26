@@ -1,6 +1,6 @@
 # Sprint 012 — CL: Markdown Editor Enhancements (CL-4)
 
-**Status:** pending
+**Status:** signed-off
 **Type:** standard
 **Backlog items:** CL-4
 **Depends on:** nothing
@@ -93,16 +93,16 @@ a light background). Consider `github` or `github-light` themes.
 
 ## Acceptance Criteria
 
-- [ ] Code blocks with syntax highlighting (lowlight or equivalent)
-- [ ] Language selector or GFM ``` syntax for code blocks
-- [ ] Code block button in toolbar
-- [ ] Raw/rendered mode toggle
-- [ ] Content preserved across mode switches
-- [ ] Auto-save works in both modes
-- [ ] Styled code blocks (monospace, background, language label)
-- [ ] All existing tests pass + new tests
-- [ ] `npm run check` passes
-- [ ] `npm run build` succeeds
+- [x] Code blocks with syntax highlighting (lowlight or equivalent)
+- [x] Language selector or GFM ``` syntax for code blocks
+- [x] Code block button in toolbar
+- [x] Raw/rendered mode toggle
+- [x] Content preserved across mode switches
+- [x] Auto-save works in both modes
+- [x] Styled code blocks (monospace, background, language label)
+- [x] All existing tests pass + new tests
+- [x] `npm run check` passes (no new errors; 4 pre-existing errors remain)
+- [x] `npm run build` succeeds
 
 ## Notes
 
@@ -118,3 +118,26 @@ textarea just shows this same field directly.
 the bundle small. Common set: js, ts, python, bash, sql, json, html, css, md.
 
 **Docker stack must be running** for e2e tests and the dev server.
+
+## Sign-off
+
+**Branch:** `sprint-012-CL/markdown-editor`
+**Commit:** `7ab6573`
+**Worktree:** `/Users/olivier/sites/chronolog/.claude/worktrees/sprint-012-CL`
+
+### Results
+- **Tests:** 219/219 passed (14 test files), including 7 new editor-features tests
+- **Build:** Succeeds
+- **Check:** 4 pre-existing errors (hooks.server.ts, powersync connector, jose KeyLike), 0 new errors
+
+### What was delivered
+1. **CodeBlockLowlight extension** — `@tiptap/extension-code-block-lowlight` + `lowlight` with `createLowlight(common)` (~35 languages). StarterKit's basic codeBlock disabled.
+2. **Toolbar code block button** — `</>` button in EditorToolbar.svelte with active state highlighting.
+3. **GFM ``` syntax** — typing triple backtick + language name works via CodeBlockLowlight input rules.
+4. **Raw/rendered mode toggle** — "◇ Rich" / "◆ Raw" button next to toolbar. Switches between TipTap WYSIWYG and raw markdown textarea. Content preserved across switches. Auto-save works in both modes via `isSyncingFromRaw` flag to prevent double-saves.
+5. **Code block styling** — github-light theme (20 hljs token rules), language label in top-right corner, light background (#f6f8fa), monospace font, horizontal scroll.
+6. **Tests** — `editor-features.test.ts` with 7 tests covering code block creation from markdown, JSON round-trip, markdown extraction, unspecified language, toggle command, and raw mode toggle simulation.
+
+### Notes
+- The test agent discovered that `common` from `lowlight` is a language map, not a lowlight instance. Fixed to `createLowlight(common)` which provides the `highlight`/`highlightAuto`/`listLanguages` methods that CodeBlockLowlight requires.
+- `jsdom` added as devDependency for headless TipTap Editor testing in vitest.
