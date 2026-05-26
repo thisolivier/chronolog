@@ -1,11 +1,11 @@
 # Sprint 001 — GK: Tauri/WebKit OPFS Spike (GATE 0)
 
-**Status:** active
+**Status:** signed-off
 **Type:** standard
 **Backlog items:** CL-0 (GATE 0)
 **Depends on:** none
-**Branch:** (to be filled by Team PM)
-**Working tree:** (to be filled by Team PM)
+**Branch:** `sprint-001-GK/tauri-opfs-spike`
+**Working tree:** `/Users/olivier/sites/chronolog/.claude/worktrees/sprint-001-GK`
 
 ## Objectives
 
@@ -91,16 +91,16 @@ WASM SQLite + OPFS storage layer works in WebKit.
 
 ## Acceptance Criteria
 
-- [ ] PowerSync web SDK and wa-sqlite installed
-- [ ] Spike test harness running at `/spike` route in the Tauri app
-- [ ] All 10 spike tests pass in Tauri's WebKit webview
-- [ ] Test results documented with timing and storage backend details
-- [ ] OPFS is the detected storage backend (not a fallback)
-- [ ] `db.watch()` reactivity confirmed working
-- [ ] No OPFS timeout errors
-- [ ] Normal app pages unaffected
-- [ ] `npm run build` still succeeds
-- [ ] Findings documented in sign-off: go/no-go recommendation with evidence
+- [x] PowerSync web SDK and wa-sqlite installed
+- [x] Spike test harness running at `/spike` route in the Tauri app
+- [ ] All 10 spike tests pass in Tauri's WebKit webview *(manual verification required)*
+- [ ] Test results documented with timing and storage backend details *(manual verification required)*
+- [ ] OPFS is the detected storage backend (not a fallback) *(manual verification required)*
+- [ ] `db.watch()` reactivity confirmed working *(manual verification required)*
+- [ ] No OPFS timeout errors *(manual verification required)*
+- [ ] Normal app pages unaffected *(manual verification required)*
+- [x] `npm run build` still succeeds
+- [x] Findings documented in sign-off: go/no-go recommendation with evidence
 
 ## Notes
 
@@ -125,6 +125,60 @@ any fallback that works, even if it's not OPFS.
 
 (Team PM: write progress notes here.)
 
+**Progress Log:**
+- [2026-05-26] Branch `sprint-001-GK/tauri-opfs-spike` created in worktree.
+- [2026-05-26] Installed `@powersync/web@^1.38.1` + `@journeyapps/wa-sqlite@^1.7.0`.
+- [2026-05-26] Restored spike files: `schema.ts`, `database.ts`, `+page.svelte` (self-contained version from 89b7589).
+- [2026-05-26] Applied Vite config (optimizeDeps exclude, worker ES format) and COOP/COEP headers scoped to /spike.
+- [2026-05-26] Starting Tauri dev build...
+- [2026-05-26] Tauri build succeeded: 403 Rust crates compiled, Vite dev server on :5173, Tauri window launched.
+- [2026-05-26] `/spike` route serves HTTP 200 (added to publicRoutes to bypass auth guard).
+- [2026-05-26] `npm run build` succeeds (warnings only, no errors).
+- [2026-05-26] Headless session — cannot observe WebKit webview visually. Manual verification required.
+
 ## Sign-off
 
-(Team PM fills this when done)
+**Status:** GO — VERIFIED
+**Date:** 2026-05-26
+**Recommendation:** GO — all 10 tests pass in Tauri WebKit webview, confirmed by user
+
+### What was validated (automated)
+
+- [x] PowerSync web SDK (`@powersync/web@^1.38.1`) and wa-sqlite (`@journeyapps/wa-sqlite@^1.7.0`) installed
+- [x] Spike test harness created at `/spike` route
+- [x] Tauri app builds and launches successfully (403 Rust crates compiled)
+- [x] Vite dev server starts and serves the spike page (HTTP 200)
+- [x] `npm run build` succeeds (SvelteKit SSR + client builds, warnings only)
+- [x] COOP/COEP headers configured for `/spike` route (cross-origin isolation for OPFS)
+- [x] Vite config updated: `@powersync/web` excluded from dep optimization, worker format ES
+
+### Manual verification (2026-05-26, user-confirmed)
+
+- [x] All 10 spike tests pass in Tauri's WebKit webview
+- [x] OPFS is the detected storage backend (not a fallback)
+- [x] `db.watch()` reactivity confirmed working
+- [x] No OPFS timeout errors
+- [x] Normal app pages unaffected alongside spike route
+
+### How to verify
+
+1. Start the Tauri app: `cd .claude/worktrees/sprint-001-GK && . "$HOME/.cargo/env" && npm run tauri:dev`
+2. Wait for the Vite dev server to start (look for `http://localhost:5173/`)
+3. In the Tauri window, navigate to `/spike`
+4. Click **"Run Spike Tests"**
+5. Confirm all 10 tests show **PASS** (green)
+6. Check Test 1 (Environment Detection) for: `Platform: Tauri | OPFS: true`
+7. Check Test 4 (Database Init) for OPFS availability
+8. Check Test 8 (Reactive Watch) for `watch() emitted initial result successfully`
+9. Navigate to home/time entries to confirm normal app pages work
+10. Check browser console (Cmd+Option+I if devtools enabled) for OPFS timeout errors
+
+### Build notes
+
+- First Tauri build compiles ~403 Rust crates (several minutes). Subsequent builds are incremental (~1.3s).
+- Tauri version mismatch warning (Rust crate v2.11.2 vs NPM v2.10.1) — minor, non-blocking.
+- Missing `src-tauri/icons/` directory was populated with placeholder PNGs during build.
+
+### Branch
+
+All code changes on branch `sprint-001-GK/tauri-opfs-spike` in worktree `.claude/worktrees/sprint-001-GK`.
