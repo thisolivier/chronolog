@@ -141,20 +141,22 @@
 							{isSelected ? 'border-l-2 border-blue-600 bg-blue-50' : 'border-l-2 border-transparent'}"
 					>
 						<div class="px-4 py-3">
-							<!-- Week date and hours -->
-							<div class="mb-1 flex items-center justify-between">
+							<!-- Week date -->
+							<div class="mb-1">
 								<span class="text-sm font-medium text-gray-900">
 									{formatWeekStartShort(week.weekStart)}
 								</span>
-								<span class="text-xs font-medium text-gray-600">
-									{formatHoursFromMinutes(week.totalMinutes)}
-								</span>
 							</div>
 
-							<!-- Status badge -->
-							<div class="flex items-center gap-2">
-								<div class="h-2 w-2 rounded-full {getStatusColor(week.status)}"></div>
-								<span class="text-xs text-gray-600">{week.status}</span>
+							<!-- Status badge with hours -->
+							<div class="flex items-center justify-between">
+								<div class="flex items-center gap-2">
+									<div class="h-2 w-2 rounded-full {getStatusColor(week.status)}"></div>
+									<span class="text-xs text-gray-600">{week.status}</span>
+								</div>
+								<span class="text-xs font-medium text-gray-500">
+									{formatHoursFromMinutes(week.totalMinutes)}
+								</span>
 							</div>
 						</div>
 					</button>

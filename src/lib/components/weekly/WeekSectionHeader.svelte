@@ -48,17 +48,20 @@
 	<div class="flex items-center justify-between">
 		<h1 class="text-lg font-bold text-gray-900">
 			{formatWeekStartLabel(weekStart)}
-			<span class="font-semibold text-gray-600">
-				&middot; {formatHoursFromMinutes(weeklyTotalMinutes)}
-			</span>
 		</h1>
-		<input
-			type="text"
-			value={statusInputValue}
-			oninput={handleStatusInput}
-			onblur={handleStatusBlur}
-			placeholder="Status..."
-			class="w-48 border-0 border-b border-transparent bg-transparent px-0 py-0.5 text-right text-sm text-gray-500 placeholder-gray-400 focus:border-gray-300 focus:ring-0 focus:outline-none"
-		/>
+		<div class="flex items-center gap-2">
+			<span class="text-sm font-medium text-gray-500">
+				{formatHoursFromMinutes(weeklyTotalMinutes)}
+			</span>
+			<span class="text-gray-300">&middot;</span>
+			<input
+				type="text"
+				value={statusInputValue}
+				oninput={handleStatusInput}
+				onblur={handleStatusBlur}
+				placeholder="Status..."
+				class="w-36 border-0 border-b border-transparent bg-transparent px-0 py-0.5 text-right text-sm text-gray-500 placeholder-gray-400 focus:border-gray-300 focus:ring-0 focus:outline-none"
+			/>
+		</div>
 	</div>
 </div>
