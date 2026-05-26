@@ -7,6 +7,12 @@ export default defineConfig({
 		tailwindcss(),
 		sveltekit(),
 	],
+	optimizeDeps: {
+		exclude: ['@powersync/web']
+	},
+	worker: {
+		format: 'es'
+	},
 	test: {
 		include: ['src/**/*.test.ts']
 	}

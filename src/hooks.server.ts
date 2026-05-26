@@ -13,7 +13,7 @@ import { eq } from 'drizzle-orm';
  * Routes that do not require authentication.
  * All other routes will redirect unauthenticated users to /login.
  */
-const publicRoutes = ['/login', '/register', '/api/auth'];
+const publicRoutes = ['/login', '/register', '/api/auth', '/spike'];
 
 function isPublicRoute(pathname: string): boolean {
 	return publicRoutes.some((route) => pathname === route || pathname.startsWith(route + '/'));
@@ -102,6 +102,18 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Auth guard: redirect unauthenticated users to login for protected routes
 	if (!sessionData && !isPublicRoute(event.url.pathname)) {
 		throw redirect(303, '/login');
+	}
+
+	// COOP/COEP headers for OPFS access on the spike route
+	if (event.url.pathname.startsWith('/spike')) {
+		return resolve(event, {
+			transformPageChunk: ({ html }) => html,
+			filterSerializedResponseHeaders: () => true
+		}).then((response) => {
+			response.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+			response.headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
+			return response;
+		});
 	}
 
 	// Let Better Auth handle its own API routes
