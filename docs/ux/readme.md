@@ -25,6 +25,7 @@ Comprehensive documentation of the Chronolog application's user interface, cover
 | -- | [Visual Hierarchy Spec](visual-hierarchy-spec.md) | Sprint 012: Warm palette, client colors, description-first cards, today treatment |
 | -- | [Notes Integration Design](notes-integration-design.md) | Sprint 012: Note-time entry linking, preview popovers, navigation flows |
 | -- | **[Timesheet Redesign Spec](timesheet-redesign-spec.md)** | **Sprint 012: Final design specification — the primary deliverable** |
+| -- | **[Note-Time Linking Spec](note-time-linking-spec.md)** | **Sprint 013: Inline wiki-links in descriptions, parse-on-save, autocomplete** |
 
 ## Architecture Summary
 
