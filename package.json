@@ -19,10 +19,14 @@
 		"lint": "eslint .",
 		"test": "vitest run",
 		"test:e2e": "vitest run --config vitest.config.e2e.ts",
-		"test:watch": "vitest"
+		"test:watch": "vitest",
+		"test:playwright": "playwright test",
+		"test:playwright:ui": "playwright test --ui",
+		"test:playwright:chromium": "playwright test --project=chromium"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.39.2",
+		"@playwright/test": "^1.60.0",
 		"@sveltejs/adapter-auto": "^7.0.0",
 		"@sveltejs/adapter-static": "^3.0.0",
 		"@sveltejs/kit": "^2.50.2",

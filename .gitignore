@@ -41,3 +41,9 @@ config/dev-private.pem
 
 # E2E test session file (generated at runtime)
 .e2e-session.json
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/e2e-playwright/.auth/user.json
