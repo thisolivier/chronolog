@@ -20,8 +20,25 @@ The current task backlog is in [`BACKLOG.md`](BACKLOG.md) at the project root.
 ### Prerequisites
 
 - **Node.js** (v20+) and npm
-- **Docker** (for local PostgreSQL)
-- **Rust** toolchain (for Tauri desktop builds — `rustup` recommended)
+- **Docker** and Docker Compose (for PostgreSQL and the PowerSync stack)
+- **Rust** toolchain (for Tauri desktop builds)
+- **Xcode Command Line Tools** (macOS — `xcode-select --install`)
+
+### Installing the Rust toolchain
+
+If you don't already have Rust installed:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+Follow the prompts (defaults are fine), then activate it in your current shell:
+
+```bash
+source "$HOME/.cargo/env"
+```
+
+Verify with `rustc --version`. Rustup will manage updates via `rustup update`.
 
 ### First-time setup
 
@@ -37,7 +54,6 @@ cp .env.example .env
 # Edit .env — the defaults work for local dev with Docker
 
 # 4. Start PostgreSQL (Docker)
-docker context use desktop-linux   # required on macOS with Docker Desktop
 docker compose up -d
 
 # 5. Run database migrations
@@ -46,17 +62,14 @@ npm run db:migrate
 # 6. Seed sample data (optional)
 npm run db:seed
 
-# 7. Start the dev server
+# 7. Start the dev server (web only)
 npm run dev
-```
 
-The app is available at `http://localhost:5173`.
-
-To run the Tauri desktop app instead:
-
-```bash
+# 8. Or start the Tauri desktop app (requires Rust)
 npm run tauri:dev
 ```
+
+The web app is available at `http://localhost:5173`. The Tauri app opens as a native window.
 
 ### Resuming development
 

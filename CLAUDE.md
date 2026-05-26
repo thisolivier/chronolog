@@ -11,6 +11,9 @@ Chronolog is a time-tracking and note-taking app for consulting work, delivered 
 - Keep code readable with verbose variable names — never abbreviate to a single letter
 - Keep dependencies minimal (balance with low code directive)
 - Prefer simple low-code solutions to complex ones where possible (balance with minimal dependency directive)
+- Use local and virtual environments where possible
+  - You can install global packages where required
+  - When installing global packages, never override or disrupt system or OS packages
 - When working on complex tasks, always use a todo list
 - When working on tasks which involve multiple stages or components, use the following strategies
   - Always work using sub-agents and report progress back to the main agent
@@ -18,9 +21,18 @@ Chronolog is a time-tracking and note-taking app for consulting work, delivered 
   - Establish what can be run in parallel with sub-agents and what is blocking
   - Review the todo list and parallel/sequential strategy after each few tasks complete
 - Use the `context7` skill proactively for library/API documentation — don't wait to be asked
+- Use the `release-version` skill when preparing releases — follow semantic versioning conventions
 - ALWAYS ask for permission before editing this file
 
 Your work is deeply appreciated.
+
+## Repository Layout
+
+- `src/` — SvelteKit application source (routes, components, lib)
+- `src-tauri/` — Tauri 2.0 Rust backend
+- `drizzle/` — database migrations
+- `docs/` — specification and documentation
+- `static/` — static assets
 
 ## Codebase Health
 - Pro-actively modularize the code
@@ -33,6 +45,7 @@ Your work is deeply appreciated.
   - Ensure readme files are up to date at the end of each task
   - Readme files do not need to list every feature of the code, just the broad strokes
 - Write tests for new features
+- Run tests after every feature completion
 - Ensure all tests can be run with a single command
 
 ## Working Trees
@@ -45,4 +58,5 @@ When asked to work in a new git working tree:
 5. Release the lock when the session ends or when switching away from that working tree
 
 ## Paths Not to Modify
-Do not modify files managed by package managers.
+- Do not modify files managed by package managers.
+- ALWAYS ask for permission before editing this file
