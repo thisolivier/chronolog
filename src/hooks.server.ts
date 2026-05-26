@@ -104,16 +104,21 @@ export const handle: Handle = async ({ event, resolve }) => {
 		throw redirect(303, '/login');
 	}
 
-	// COOP/COEP headers for OPFS access on the spike route
-	if (event.url.pathname.startsWith('/spike')) {
-		return resolve(event, {
+	// COOP/COEP headers for OPFS access — required for PowerSync's SharedArrayBuffer/OPFS.
+	// Applied globally when PUBLIC_SYNC_MODE is 'powersync', or just on /spike otherwise.
+	// Uses 'credentialless' for COEP to avoid breaking cross-origin resources (fonts, CDN).
+	const syncMode = process.env.PUBLIC_SYNC_MODE ?? '';
+	const needsCrossOriginIsolation =
+		syncMode === 'powersync' || event.url.pathname.startsWith('/spike');
+
+	if (needsCrossOriginIsolation) {
+		const response = await resolve(event, {
 			transformPageChunk: ({ html }) => html,
 			filterSerializedResponseHeaders: () => true
-		}).then((response) => {
-			response.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
-			response.headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
-			return response;
 		});
+		response.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+		response.headers.set('Cross-Origin-Embedder-Policy', 'credentialless');
+		return response;
 	}
 
 	// Let Better Auth handle its own API routes
