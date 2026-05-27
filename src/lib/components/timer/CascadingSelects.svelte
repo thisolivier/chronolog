@@ -70,13 +70,13 @@
 
 <div class="space-y-2">
 	<div>
-		<label for="contract-select" class="block text-xs font-medium text-gray-600">
+		<label for="contract-select" class="block text-xs font-medium text-stone-600">
 			Contract <span class="text-red-500">*</span>
 		</label>
 		<select
 			id="contract-select"
 			bind:value={selectedContractId}
-			class="mt-0.5 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+			class="mt-0.5 block w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 		>
 			<option value="">Select a contract...</option>
 			{#each contractList as contract (contract.id)}
@@ -89,13 +89,13 @@
 
 	{#if selectedContractId && deliverableList.length > 0}
 		<div>
-			<label for="deliverable-select" class="block text-xs font-medium text-gray-600">
+			<label for="deliverable-select" class="block text-xs font-medium text-stone-600">
 				Deliverable
 			</label>
 			<select
 				id="deliverable-select"
 				bind:value={selectedDeliverableId}
-				class="mt-0.5 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+				class="mt-0.5 block w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 			>
 				<option value="">Select a deliverable...</option>
 				{#each deliverableList as deliverable (deliverable.id)}
@@ -107,13 +107,13 @@
 
 	{#if selectedDeliverableId && workTypeList.length > 0}
 		<div>
-			<label for="work-type-select" class="block text-xs font-medium text-gray-600">
+			<label for="work-type-select" class="block text-xs font-medium text-stone-600">
 				Work Type
 			</label>
 			<select
 				id="work-type-select"
 				bind:value={selectedWorkTypeId}
-				class="mt-0.5 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+				class="mt-0.5 block w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 			>
 				<option value="">Select a work type...</option>
 				{#each workTypeList as workType (workType.id)}

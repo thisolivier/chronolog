@@ -10,6 +10,7 @@ import type {
 	Backlink,
 	AttachmentSummary,
 	NoteTimeEntryLink,
+	LinkedTimeEntryDisplay,
 	TimeEntryFields,
 	CreateTimeEntryInput,
 	WeekData,
@@ -113,11 +114,15 @@ export class FetchDataService implements DataService {
 
 	// -- Note-Time Entry Links --
 
-	async getNoteTimeEntries(noteId: string): Promise<NoteTimeEntryLink[]> {
-		const data = await fetchJson<{ timeEntries: NoteTimeEntryLink[] }>(
+	async getNoteTimeEntries(noteId: string): Promise<LinkedTimeEntryDisplay[]> {
+		const data = await fetchJson<{ timeEntries: LinkedTimeEntryDisplay[] }>(
 			`/api/notes/${noteId}/time-entries`
 		);
 		return data.timeEntries;
+	}
+
+	async linkNoteTimeEntry(noteId: string, timeEntryId: string, headingAnchor?: string): Promise<void> {
+		await postJson(`/api/notes/${noteId}/time-entries`, { timeEntryId, headingAnchor });
 	}
 
 	async unlinkNoteTimeEntry(noteId: string, timeEntryId: string): Promise<void> {

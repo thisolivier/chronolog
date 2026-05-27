@@ -40,6 +40,7 @@ export async function queryContractsByClient(
 		client_name: string;
 		client_short_code: string;
 		client_emoji: string | null;
+		client_color_index: number | null;
 		note_count: number;
 	}>(`
 		SELECT
@@ -50,6 +51,7 @@ export async function queryContractsByClient(
 			clients.name AS client_name,
 			clients.short_code AS client_short_code,
 			clients.emoji AS client_emoji,
+			COALESCE(clients.color_index, 0) AS client_color_index,
 			COUNT(notes.id) AS note_count
 		FROM contracts
 		JOIN clients ON clients.id = contracts.client_id
@@ -66,6 +68,7 @@ export async function queryContractsByClient(
 		clientName: row.client_name,
 		clientShortCode: row.client_short_code,
 		clientEmoji: row.client_emoji,
+		clientColorIndex: row.client_color_index ?? 0,
 		noteCount: row.note_count
 	}));
 }
@@ -80,6 +83,7 @@ export async function queryContracts(
 		client_id: string;
 		client_name: string;
 		client_short_code: string;
+		client_color_index: number | null;
 	}>(`
 		SELECT
 			contracts.id,
@@ -87,7 +91,8 @@ export async function queryContracts(
 			contracts.is_active,
 			contracts.client_id,
 			clients.name AS client_name,
-			clients.short_code AS client_short_code
+			clients.short_code AS client_short_code,
+			COALESCE(clients.color_index, 0) AS client_color_index
 		FROM contracts
 		JOIN clients ON clients.id = contracts.client_id
 		ORDER BY contracts.sort_order
@@ -99,7 +104,8 @@ export async function queryContracts(
 		isActive: toBoolean(row.is_active),
 		clientId: row.client_id,
 		clientName: row.client_name,
-		clientShortCode: row.client_short_code
+		clientShortCode: row.client_short_code,
+		clientColorIndex: row.client_color_index ?? 0
 	}));
 }
 

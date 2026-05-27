@@ -1,5 +1,5 @@
 import { eq, and, desc, like, or, ilike } from "drizzle-orm";
-import { database, notes, noteTimeEntries, contracts, clients } from "$lib/server/db";
+import { database, notes, noteTimeEntries, contracts, clients, timeEntries } from "$lib/server/db";
 
 export async function listNotesForUser(userId: string) {
 	return database
@@ -118,12 +118,14 @@ export async function updateNoteForUser(
 	noteId: string,
 	title?: string,
 	content?: string,
-	contentJson?: string
+	contentJson?: string,
+	contractId?: string
 ) {
 	const updateData: {
 		title?: string | null;
 		content?: string | null;
 		contentJson?: string | null;
+		contractId?: string;
 		wordCount?: number;
 		updatedAt: Date;
 	} = {
@@ -139,6 +141,9 @@ export async function updateNoteForUser(
 	if (contentJson !== undefined) {
 		updateData.contentJson = contentJson;
 		updateData.wordCount = calculateWordCountFromJson(contentJson);
+	}
+	if (contractId !== undefined) {
+		updateData.contractId = contractId;
 	}
 
 	const results = await database
@@ -159,10 +164,10 @@ export async function deleteNoteForUser(userId: string, noteId: string) {
 	return results[0] ?? null;
 }
 
-export async function linkTimeEntryToNote(noteId: string, timeEntryId: string) {
+export async function linkTimeEntryToNote(noteId: string, timeEntryId: string, headingAnchor?: string) {
 	const results = await database
 		.insert(noteTimeEntries)
-		.values({ noteId, timeEntryId })
+		.values({ noteId, timeEntryId, headingAnchor: headingAnchor ?? null })
 		.returning();
 	return results[0];
 }
@@ -173,6 +178,32 @@ export async function unlinkTimeEntryFromNote(noteId: string, timeEntryId: strin
 		.where(and(eq(noteTimeEntries.noteId, noteId), eq(noteTimeEntries.timeEntryId, timeEntryId)))
 		.returning();
 	return results[0] ?? null;
+}
+
+export async function getLinkedTimeEntriesForNote(noteId: string, userId: string) {
+	return database
+		.select({
+			timeEntryId: noteTimeEntries.timeEntryId,
+			noteId: noteTimeEntries.noteId,
+			headingAnchor: noteTimeEntries.headingAnchor,
+			date: timeEntries.date,
+			description: timeEntries.description,
+			durationMinutes: timeEntries.durationMinutes,
+			contractName: contracts.name,
+			clientName: clients.name,
+		clientColorIndex: clients.colorIndex,
+		})
+		.from(noteTimeEntries)
+		.innerJoin(timeEntries, eq(noteTimeEntries.timeEntryId, timeEntries.id))
+		.innerJoin(contracts, eq(timeEntries.contractId, contracts.id))
+		.innerJoin(clients, eq(contracts.clientId, clients.id))
+		.where(
+			and(
+				eq(noteTimeEntries.noteId, noteId),
+				eq(timeEntries.userId, userId)
+			)
+		)
+		.orderBy(desc(timeEntries.date));
 }
 
 export async function searchNotesForUser(userId: string, query: string, limit: number = 10) {

@@ -98,7 +98,7 @@
 				return 'bg-yellow-500';
 			case 'Unsubmitted':
 			default:
-				return 'bg-gray-400';
+				return 'bg-stone-400';
 		}
 	}
 
@@ -111,17 +111,17 @@
 	});
 </script>
 
-<div class="flex h-full flex-col bg-gray-50">
+<div class="flex h-full flex-col bg-stone-50">
 	<!-- Mobile-only header (no button) -->
-	<div class="flex items-center border-b border-gray-200 bg-white px-4 py-3 md:hidden">
-		<h2 class="text-sm font-semibold text-gray-900">Time Entries</h2>
+	<div class="flex items-center border-b border-stone-200 bg-white px-4 py-3 md:hidden">
+		<h2 class="text-sm font-semibold text-stone-900">Time Entries</h2>
 	</div>
 
 	<!-- Week list -->
 	<div class="flex-1 overflow-y-auto">
 		{#if isLoading}
 			<div class="flex items-center justify-center py-8">
-				<div class="text-sm text-gray-500">Loading weeks...</div>
+				<div class="text-sm text-stone-500">Loading weeks...</div>
 			</div>
 		{:else if error}
 			<div class="mx-4 mt-4 rounded-md bg-red-50 p-4">
@@ -129,34 +129,32 @@
 			</div>
 		{:else if displayedWeeks.length === 0}
 			<div class="flex items-center justify-center py-8">
-				<div class="text-sm text-gray-500">No weeks found</div>
+				<div class="text-sm text-stone-500">No weeks found</div>
 			</div>
 		{:else}
-			<div class="divide-y divide-gray-200">
+			<div class="divide-y divide-stone-200">
 				{#each displayedWeeks as week (week.weekStart)}
 					{@const isSelected = navigationContext.selectedWeek === week.weekStart}
 					<button
 						onclick={() => handleWeekClick(week.weekStart)}
-						class="block w-full text-left transition-colors hover:bg-gray-100
+						class="block w-full text-left transition-colors hover:bg-stone-100
 							{isSelected ? 'border-l-2 border-blue-600 bg-blue-50' : 'border-l-2 border-transparent'}"
 					>
 						<div class="px-4 py-3">
-							<!-- Week date -->
-							<div class="mb-1">
-								<span class="text-sm font-medium text-gray-900">
+							<!-- Week date and hours -->
+							<div class="mb-1 flex items-center justify-between">
+								<span class="text-sm font-medium text-stone-900">
 									{formatWeekStartShort(week.weekStart)}
+								</span>
+								<span class="text-xs font-medium text-stone-600">
+									{formatHoursFromMinutes(week.totalMinutes)}
 								</span>
 							</div>
 
-							<!-- Status badge with hours -->
-							<div class="flex items-center justify-between">
-								<div class="flex items-center gap-2">
-									<div class="h-2 w-2 rounded-full {getStatusColor(week.status)}"></div>
-									<span class="text-xs text-gray-600">{week.status}</span>
-								</div>
-								<span class="text-xs font-medium text-gray-500">
-									{formatHoursFromMinutes(week.totalMinutes)}
-								</span>
+							<!-- Status badge -->
+							<div class="flex items-center gap-2">
+								<div class="h-2 w-2 rounded-full {getStatusColor(week.status)}"></div>
+								<span class="text-xs text-stone-600">{week.status}</span>
 							</div>
 						</div>
 					</button>
@@ -165,12 +163,12 @@
 
 			<!-- Load more button -->
 			{#if hasMore}
-				<div class="border-t border-gray-200 p-4">
+				<div class="border-t border-stone-200 p-4">
 					<button
 						onclick={loadMoreWeeks}
 						disabled={isLoadingMore}
-						class="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700
-							hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+						class="w-full rounded-md border border-stone-300 bg-white px-4 py-2 text-sm text-stone-700
+							hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
 					>
 						{isLoadingMore ? 'Loading...' : 'Load More'}
 					</button>

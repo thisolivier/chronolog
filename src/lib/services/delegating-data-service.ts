@@ -19,6 +19,7 @@ import type {
 	Backlink,
 	AttachmentSummary,
 	NoteTimeEntryLink,
+	LinkedTimeEntryDisplay,
 	TimeEntryFields,
 	CreateTimeEntryInput,
 	WeekData,
@@ -104,8 +105,12 @@ export class DelegatingDataService implements DataService {
 
 	// ── Note-Time Entry Links ─────────────────────────────────
 
-	getNoteTimeEntries(noteId: string): Promise<NoteTimeEntryLink[]> {
+	getNoteTimeEntries(noteId: string): Promise<LinkedTimeEntryDisplay[]> {
 		return this.delegate.getNoteTimeEntries(noteId);
+	}
+
+	linkNoteTimeEntry(noteId: string, timeEntryId: string, headingAnchor?: string): Promise<void> {
+		return this.delegate.linkNoteTimeEntry(noteId, timeEntryId, headingAnchor);
 	}
 
 	unlinkNoteTimeEntry(noteId: string, timeEntryId: string): Promise<void> {

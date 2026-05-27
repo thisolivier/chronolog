@@ -16,7 +16,8 @@ export const GET: RequestHandler = async ({ locals }) => {
 			isActive: contracts.isActive,
 			clientId: contracts.clientId,
 			clientName: clients.name,
-			clientShortCode: clients.shortCode
+			clientShortCode: clients.shortCode,
+			clientColorIndex: clients.colorIndex
 		})
 		.from(contracts)
 		.innerJoin(clients, eq(contracts.clientId, clients.id))

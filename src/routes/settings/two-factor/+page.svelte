@@ -163,8 +163,8 @@
 		<a href="/" class="text-sm text-blue-600 hover:text-blue-500">&larr; Back to dashboard</a>
 	</div>
 
-	<h1 class="mb-2 text-2xl font-bold text-gray-900">Two-Factor Authentication</h1>
-	<p class="mb-8 text-gray-600">
+	<h1 class="mb-2 text-2xl font-bold text-stone-900">Two-Factor Authentication</h1>
+	<p class="mb-8 text-stone-600">
 		Add an extra layer of security to your account using a TOTP authenticator app.
 	</p>
 
@@ -198,20 +198,20 @@
 			<span class="font-medium text-green-800">Two-factor authentication is enabled</span>
 		</div>
 
-		<p class="mb-6 text-sm text-gray-600">
+		<p class="mb-6 text-sm text-stone-600">
 			To disable 2FA, enter your password below.
 		</p>
 
 		<div class="space-y-4">
 			<div>
-				<label for="disable-password" class="block text-sm font-medium text-gray-700">
+				<label for="disable-password" class="block text-sm font-medium text-stone-700">
 					Password
 				</label>
 				<input
 					id="disable-password"
 					type="password"
 					bind:value={disablePassword}
-					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 					placeholder="Enter your password"
 				/>
 			</div>
@@ -228,21 +228,21 @@
 {/snippet}
 
 {#snippet enrollmentStartView()}
-	<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-		<p class="mb-6 text-sm text-gray-600">
+	<div class="rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
+		<p class="mb-6 text-sm text-stone-600">
 			Use an authenticator app like Google Authenticator, Authy, or 1Password to scan a QR code.
 		</p>
 
 		<div class="space-y-4">
 			<div>
-				<label for="current-password" class="block text-sm font-medium text-gray-700">
+				<label for="current-password" class="block text-sm font-medium text-stone-700">
 					Password
 				</label>
 				<input
 					id="current-password"
 					type="password"
 					bind:value={currentPassword}
-					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 					placeholder="Enter your password to begin"
 				/>
 			</div>
@@ -259,10 +259,10 @@
 {/snippet}
 
 {#snippet qrCodeView()}
-	<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-		<h2 class="mb-4 text-lg font-semibold text-gray-900">Scan the QR Code</h2>
+	<div class="rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
+		<h2 class="mb-4 text-lg font-semibold text-stone-900">Scan the QR Code</h2>
 
-		<p class="mb-4 text-sm text-gray-600">
+		<p class="mb-4 text-sm text-stone-600">
 			Scan this QR code with your authenticator app, then enter the 6-digit code below to verify.
 		</p>
 
@@ -273,17 +273,17 @@
 		</div>
 
 		<details class="mb-6">
-			<summary class="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+			<summary class="cursor-pointer text-sm text-stone-500 hover:text-stone-700">
 				Cannot scan? Enter the URI manually
 			</summary>
-			<code class="mt-2 block break-all rounded-md bg-gray-100 p-3 text-xs text-gray-700">
+			<code class="mt-2 block break-all rounded-md bg-stone-100 p-3 text-xs text-stone-700">
 				{totpUri}
 			</code>
 		</details>
 
 		<div class="space-y-4">
 			<div>
-				<label for="verification-code" class="block text-sm font-medium text-gray-700">
+				<label for="verification-code" class="block text-sm font-medium text-stone-700">
 					Verification Code
 				</label>
 				<input
@@ -293,7 +293,7 @@
 					autocomplete="one-time-code"
 					maxlength="6"
 					bind:value={verificationCode}
-					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 					placeholder="Enter 6-digit code"
 				/>
 			</div>
@@ -309,7 +309,7 @@
 
 				<button
 					onclick={resetFlow}
-					class="rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+					class="rounded-md border border-stone-300 bg-white px-4 py-2 text-stone-700 hover:bg-stone-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 				>
 					Cancel
 				</button>
@@ -320,16 +320,16 @@
 
 {#snippet recoveryCodesView()}
 	<div class="rounded-lg border border-yellow-200 bg-yellow-50 p-6">
-		<h2 class="mb-2 text-lg font-semibold text-gray-900">Save Your Recovery Codes</h2>
+		<h2 class="mb-2 text-lg font-semibold text-stone-900">Save Your Recovery Codes</h2>
 
-		<p class="mb-4 text-sm text-gray-600">
+		<p class="mb-4 text-sm text-stone-600">
 			These recovery codes can be used to access your account if you lose your authenticator device.
 			Each code can only be used once. <strong>Save them in a secure location.</strong>
 		</p>
 
 		<div class="mb-6 rounded-md bg-white p-4 font-mono text-sm">
 			{#each recoveryCodes as recoveryCode (recoveryCode)}
-				<div class="py-1 text-gray-800">{recoveryCode}</div>
+				<div class="py-1 text-stone-800">{recoveryCode}</div>
 			{/each}
 		</div>
 

@@ -9,6 +9,7 @@ import type {
 	Backlink,
 	AttachmentSummary,
 	NoteTimeEntryLink,
+	LinkedTimeEntryDisplay,
 	TimeEntryFields,
 	CreateTimeEntryInput,
 	WeekData,
@@ -43,7 +44,8 @@ export interface DataService {
 	deleteAttachment(attachmentId: string): Promise<void>;
 
 	// Note-Time Entry Links
-	getNoteTimeEntries(noteId: string): Promise<NoteTimeEntryLink[]>;
+	getNoteTimeEntries(noteId: string): Promise<LinkedTimeEntryDisplay[]>;
+	linkNoteTimeEntry(noteId: string, timeEntryId: string, headingAnchor?: string): Promise<void>;
 	unlinkNoteTimeEntry(noteId: string, timeEntryId: string): Promise<void>;
 
 	// Time Entries

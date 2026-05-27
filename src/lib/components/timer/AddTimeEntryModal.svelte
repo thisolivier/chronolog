@@ -84,21 +84,21 @@
 	onclick={handleBackdropClick}
 >
 	<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-		<h2 class="mb-4 text-lg font-semibold text-gray-900">Add Time Entry</h2>
+		<h2 class="mb-4 text-lg font-semibold text-stone-900">Add Time Entry</h2>
 
 		<div class="space-y-3">
 			<div>
-				<label for="entry-date" class="block text-xs font-medium text-gray-600">Date</label>
+				<label for="entry-date" class="block text-xs font-medium text-stone-600">Date</label>
 				<input
 					id="entry-date"
 					type="date"
 					bind:value={entryDate}
-					class="mt-0.5 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-0.5 block w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				/>
 			</div>
 
 			<div>
-				<label for="entry-duration" class="block text-xs font-medium text-gray-600">
+				<label for="entry-duration" class="block text-xs font-medium text-stone-600">
 					Duration (HH:MM)
 				</label>
 				<input
@@ -106,12 +106,12 @@
 					type="text"
 					bind:value={durationText}
 					placeholder="1:30"
-					class="mt-0.5 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-0.5 block w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				/>
 			</div>
 
 			<div>
-				<label for="entry-contract" class="block text-xs font-medium text-gray-600">
+				<label for="entry-contract" class="block text-xs font-medium text-stone-600">
 					Contract <span class="text-red-500">*</span>
 				</label>
 				<div class="mt-0.5">
@@ -120,14 +120,14 @@
 			</div>
 
 			<div>
-				<label for="entry-description" class="block text-xs font-medium text-gray-600">
+				<label for="entry-description" class="block text-xs font-medium text-stone-600">
 					Description
 				</label>
 				<textarea
 					id="entry-description"
 					bind:value={description}
 					rows="2"
-					class="mt-0.5 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-0.5 block w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 					placeholder="What did you work on?"
 				></textarea>
 			</div>
@@ -147,7 +147,7 @@
 			</button>
 			<button
 				onclick={onClose}
-				class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+				class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
 			>
 				Cancel
 			</button>

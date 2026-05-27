@@ -1,5 +1,5 @@
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
-import type { JWK, KeyLike } from 'jose';
+import type { JWK, CryptoKey as JoseCryptoKey } from 'jose';
 
 const POWERSYNC_KEY_ID = 'chronolog-dev-1';
 const POWERSYNC_ALGORITHM = 'RS256';
@@ -11,9 +11,9 @@ const TOKEN_EXPIRATION_SECONDS = 60 * 60; // 1 hour
  * to verify tokens, so in-memory generation works fine -- keys rotate
  * on restart and PowerSync re-fetches automatically.
  */
-let cachedKeyPair: { publicKey: KeyLike; privateKey: KeyLike } | null = null;
+let cachedKeyPair: { publicKey: JoseCryptoKey; privateKey: JoseCryptoKey } | null = null;
 
-async function getOrCreateKeyPair(): Promise<{ publicKey: KeyLike; privateKey: KeyLike }> {
+async function getOrCreateKeyPair(): Promise<{ publicKey: JoseCryptoKey; privateKey: JoseCryptoKey }> {
 	if (cachedKeyPair) {
 		return cachedKeyPair;
 	}

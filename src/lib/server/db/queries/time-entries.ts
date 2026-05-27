@@ -19,6 +19,7 @@ export type TimeEntryWithContext = {
 	contractName: string;
 	clientName: string;
 	clientShortCode: string;
+	clientColorIndex: number;
 	deliverableName: string | null;
 	workTypeName: string | null;
 };
@@ -43,6 +44,7 @@ function timeEntrySelectWithContext() {
 			contractName: contracts.name,
 			clientName: clients.name,
 			clientShortCode: clients.shortCode,
+			clientColorIndex: clients.colorIndex,
 			deliverableName: deliverables.name,
 			workTypeName: workTypes.name
 		})

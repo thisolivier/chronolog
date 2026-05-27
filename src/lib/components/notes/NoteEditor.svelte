@@ -285,7 +285,7 @@
 	}
 </script>
 
-<div class="flex flex-col h-full border border-gray-200 rounded-lg overflow-hidden bg-white">
+<div class="flex flex-col h-full border border-stone-200 rounded-lg overflow-hidden bg-white">
 	<!-- Hidden file input for the toolbar Attach button -->
 	<input
 		bind:this={fileInput}
@@ -306,7 +306,7 @@
 				type="button"
 				onclick={toggleEditorMode}
 				class="px-3 py-1.5 text-xs rounded transition-colors mx-2 whitespace-nowrap border
-					{editorMode === 'raw' ? 'bg-blue-100 text-blue-700 border-blue-200 font-semibold' : 'text-gray-500 hover:bg-gray-100 border-gray-200'}"
+					{editorMode === 'raw' ? 'bg-blue-100 text-blue-700 border-blue-200 font-semibold' : 'text-stone-500 hover:bg-stone-100 border-stone-200'}"
 				title="Toggle raw markdown view"
 			>
 				{editorMode === 'raw' ? '◆ Raw' : '◇ Rich'}

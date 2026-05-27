@@ -130,10 +130,10 @@
 	});
 </script>
 
-<div class="flex h-full flex-col bg-gray-50">
+<div class="flex h-full flex-col bg-stone-50">
 	<!-- Header -->
-	<div class="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
-		<h2 class="text-sm font-semibold text-gray-900">Notes</h2>
+	<div class="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-3">
+		<h2 class="text-sm font-semibold text-stone-900">Notes</h2>
 		<div class="flex items-center gap-2">
 			{#if navigationContext.selectedNoteId}
 				<button
@@ -159,7 +159,7 @@
 	<div class="flex-1 overflow-y-auto">
 		{#if isLoading}
 			<div class="flex items-center justify-center py-8">
-				<div class="text-sm text-gray-500">Loading notes...</div>
+				<div class="text-sm text-stone-500">Loading notes...</div>
 			</div>
 		{:else if fetchError}
 			<div class="mx-4 mt-4 rounded-md bg-red-50 p-4">
@@ -167,16 +167,16 @@
 			</div>
 		{:else if notesList.length === 0}
 			<div class="flex flex-col items-center justify-center px-4 py-8 text-center">
-				<div class="text-sm text-gray-500">No notes yet</div>
-				<p class="mt-1 text-xs text-gray-400">Create a note to start writing.</p>
+				<div class="text-sm text-stone-500">No notes yet</div>
+				<p class="mt-1 text-xs text-stone-400">Create a note to start writing.</p>
 			</div>
 		{:else}
-			<div class="divide-y divide-gray-200">
+			<div class="divide-y divide-stone-200">
 				{#each notesList as note (note.id)}
 					{@const isSelected = navigationContext.selectedNoteId === note.id}
 					<button
 						onclick={() => handleNoteClick(note.id)}
-						class="block w-full text-left transition-colors hover:bg-gray-100
+						class="block w-full text-left transition-colors hover:bg-stone-100
 							{isSelected
 							? 'border-l-2 border-blue-600 bg-blue-50'
 							: 'border-l-2 border-transparent'}"
@@ -187,16 +187,16 @@
 								{#if note.isPinned}
 									<span class="text-xs text-amber-500" title="Pinned">&#128204;</span>
 								{/if}
-								<span class="truncate text-sm font-semibold text-gray-900">
+								<span class="truncate text-sm font-semibold text-stone-900">
 									{note.firstLine || 'Untitled'}
 								</span>
 							</div>
 
 							<!-- Second line: date prefix + second content line -->
-							<div class="truncate text-xs text-gray-500">
+							<div class="truncate text-xs text-stone-500">
 								<span class="font-medium">{formatSmartDate(note.updatedAt)}</span>
 								{#if note.secondLine}
-									<span class="ml-1.5 text-gray-400">{note.secondLine}</span>
+									<span class="ml-1.5 text-stone-400">{note.secondLine}</span>
 								{/if}
 							</div>
 						</div>

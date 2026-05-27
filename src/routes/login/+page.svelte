@@ -64,11 +64,11 @@
 	}
 </script>
 
-<div class="flex min-h-screen items-center justify-center bg-gray-50">
+<div class="flex min-h-screen items-center justify-center bg-stone-50">
 	<div class="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-md">
 		<div class="text-center">
-			<h1 class="text-3xl font-bold text-gray-900">Chronolog</h1>
-			<p class="mt-2 text-gray-600">
+			<h1 class="text-3xl font-bold text-stone-900">Chronolog</h1>
+			<p class="mt-2 text-stone-600">
 				{requiresTwoFactor ? 'Enter your 2FA code' : 'Sign in to your account'}
 			</p>
 		</div>
@@ -82,7 +82,7 @@
 		{#if requiresTwoFactor}
 			<form onsubmit={handleTwoFactorVerification} class="space-y-6">
 				<div>
-					<label for="totp-code" class="block text-sm font-medium text-gray-700">
+					<label for="totp-code" class="block text-sm font-medium text-stone-700">
 						Authentication Code
 					</label>
 					<input
@@ -93,7 +93,7 @@
 						maxlength="6"
 						bind:value={totpCode}
 						required
-						class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 						placeholder="Enter 6-digit code"
 					/>
 				</div>
@@ -109,19 +109,19 @@
 		{:else}
 			<form onsubmit={handleLogin} class="space-y-6">
 				<div>
-					<label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+					<label for="email" class="block text-sm font-medium text-stone-700">Email</label>
 					<input
 						id="email"
 						type="email"
 						bind:value={email}
 						required
-						class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 						placeholder="you@example.com"
 					/>
 				</div>
 
 				<div>
-					<label for="password" class="block text-sm font-medium text-gray-700">
+					<label for="password" class="block text-sm font-medium text-stone-700">
 						Password
 					</label>
 					<input
@@ -129,7 +129,7 @@
 						type="password"
 						bind:value={password}
 						required
-						class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 						placeholder="Your password"
 					/>
 				</div>
@@ -144,7 +144,7 @@
 			</form>
 		{/if}
 
-		<p class="text-center text-sm text-gray-600">
+		<p class="text-center text-sm text-stone-600">
 			Don't have an account?
 			<a href="/register" class="font-medium text-blue-600 hover:text-blue-500">Register</a>
 		</p>

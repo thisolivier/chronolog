@@ -66,21 +66,21 @@
 	aria-label="Create new contract"
 >
 	<div class="mx-4 w-full max-w-md rounded-lg bg-white shadow-xl">
-		<div class="border-b border-gray-200 px-6 py-4">
-			<h2 class="text-lg font-semibold text-gray-900">New Contract</h2>
+		<div class="border-b border-stone-200 px-6 py-4">
+			<h2 class="text-lg font-semibold text-stone-900">New Contract</h2>
 		</div>
 
 		<form onsubmit={handleSubmit} class="space-y-4 px-6 py-4">
 			<!-- Client select -->
 			<div>
-				<label for="client-select" class="mb-1 block text-sm font-medium text-gray-700">
+				<label for="client-select" class="mb-1 block text-sm font-medium text-stone-700">
 					Client
 				</label>
 				<select
 					id="client-select"
 					bind:value={selectedClientId}
 					required
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
 				>
 					<option value="">Select a client...</option>
 					{#each clients as client (client.id)}
@@ -91,7 +91,7 @@
 
 			<!-- Contract name -->
 			<div>
-				<label for="contract-name" class="mb-1 block text-sm font-medium text-gray-700">
+				<label for="contract-name" class="mb-1 block text-sm font-medium text-stone-700">
 					Name
 				</label>
 				<input
@@ -100,13 +100,13 @@
 					bind:value={contractName}
 					required
 					placeholder="Contract name"
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
 				/>
 			</div>
 
 			<!-- Description -->
 			<div>
-				<label for="contract-description" class="mb-1 block text-sm font-medium text-gray-700">
+				<label for="contract-description" class="mb-1 block text-sm font-medium text-stone-700">
 					Description
 				</label>
 				<textarea
@@ -114,14 +114,14 @@
 					bind:value={contractDescription}
 					rows={3}
 					placeholder="Optional description"
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
 				></textarea>
 			</div>
 
 			<!-- Active toggle -->
 			<label class="flex items-center gap-2">
-				<input type="checkbox" bind:checked={isActive} class="rounded border-gray-300" />
-				<span class="text-sm text-gray-700">Active</span>
+				<input type="checkbox" bind:checked={isActive} class="rounded border-stone-300" />
+				<span class="text-sm text-stone-700">Active</span>
 			</label>
 
 			{#if submitError}
@@ -133,7 +133,7 @@
 				<button
 					type="button"
 					onclick={onClose}
-					class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+					class="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50"
 				>
 					Cancel
 				</button>

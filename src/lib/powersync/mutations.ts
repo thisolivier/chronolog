@@ -182,6 +182,11 @@ export async function updateNote(
 		parameterValues.push(data.isPinned ? 1 : 0);
 	}
 
+	if (data.contractId !== undefined) {
+		setClauses.push('contract_id = ?');
+		parameterValues.push(data.contractId);
+	}
+
 	const timestamp = nowISO();
 	setClauses.push('updated_at = ?');
 	parameterValues.push(timestamp);

@@ -4,28 +4,29 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
-| 012-UX | User Experience | UX-2 — Timesheet redesign research | merged |
-| 012-CL | Client | CL-4 — Markdown editor enhancements | merged |
-| 013-CL | Client | CL-5 — Note export (MD + PDF) | merged |
-| 013-UX | User Experience | UX-3 — Note-time linking UX | dispatched |
-| 014-QA | Quality Assurance | QA-H — Phase 2 regression | dispatched |
+| 004-CL | Client | Phase D — Wire PowerSyncDataService | active |
+| 018-QA | QA | Manual testing backlog | pending (manual testing) |
 
 ## Completed Sprints
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 017-CL | Client | Timesheet redesign (UX-2 impl) | merged |
+| 016-CL | Client | Note move between contracts | merged |
+| 015-UX | UX | Future feature recommendations (UX-4) | signed-off |
+| 014-CL | Client | Note-time entry linking (CL-8) | merged |
+| 014-QA | QA | Full feature verification (Tasks 1-10 + sync infra) | conditionally passed |
+| 013-UX | UX | Note-time linking UX (UX-3) | signed-off |
+| 013-CL | Client | Note export MD+PDF (CL-5) | merged |
+| 012-UX | UX | Timesheet layout redesign (UX-2) | signed-off |
+| 012-CL | Client | Markdown editor + code blocks (CL-4) | merged |
+| 011-UX | UX | Document existing app (UX-1) | merged |
+| 010-CL | Client | Deliverable selector (CL-6) | merged |
+| 009-CL | Client | Hours total in week status (CL-7) | merged |
 | 001-GK | Gate Keeper | GATE 0 — Tauri/WebKit OPFS spike | signed-off (GO) |
 | 002-IF | Infrastructure | Phase A — Containerised stack | merged |
 | 002-CL | Client | Phase C — DataService abstraction | merged |
 | 003-IF | Infrastructure | Phase B — Sync rules + schema + auth | merged |
-| 004-CL | Client | Phase D — Wire PowerSyncDataService | merged |
-| 005-QA | Quality Assurance | QA Gate — CLI test harness + e2e verification | merged |
-| 006-CL | Client | Phase F — PWA offline shell | merged |
-| 007-QA | Quality Assurance | Playwright POC — Tauri UI testing | merged |
-| 008-QA | Quality Assurance | Phase G — GATES B & C + E2E | merged |
-| 009-CL | Client | CL-7 — Hours in week status | merged |
-| 010-CL | Client | CL-6 — Deliverable selector | merged |
-| 011-UX | User Experience | UX-1 — Document existing app | merged |
 
 ## Closed Sprints
 

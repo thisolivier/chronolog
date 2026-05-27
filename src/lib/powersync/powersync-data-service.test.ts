@@ -134,7 +134,8 @@ describe('PowerSyncDataService', () => {
 					isActive: true,
 					clientId: 'cl-1',
 					clientName: 'Acme Corp',
-					clientShortCode: 'AC'
+					clientShortCode: 'AC',
+					clientColorIndex: 0
 				}
 			];
 			vi.mocked(queryContracts).mockResolvedValueOnce(mockContracts);
@@ -157,6 +158,7 @@ describe('PowerSyncDataService', () => {
 					clientName: 'Acme Corp',
 					clientShortCode: 'AC',
 					clientEmoji: null,
+					clientColorIndex: 0,
 					noteCount: 5
 				}
 			];
@@ -494,14 +496,38 @@ describe('PowerSyncDataService', () => {
 			expect(mutateDeleteAttachment).toHaveBeenCalledWith(mockDatabase, 'a-1');
 		});
 
-		it('getNoteTimeEntries delegates correctly', async () => {
+		it('getNoteTimeEntries delegates and enriches correctly', async () => {
 			const mockLinks = [{ noteId: 'n-1', timeEntryId: 'te-1', headingAnchor: null }];
 			vi.mocked(queryNoteTimeEntries).mockResolvedValueOnce(mockLinks);
+			mockDatabase.getAll.mockResolvedValueOnce([
+				{ date: '2026-01-01', description: 'Test work', duration_minutes: 60, contract_name: 'Project A', client_name: 'Client X', client_color_index: 2 }
+			]);
 
 			const result = await service.getNoteTimeEntries('n-1');
 
 			expect(queryNoteTimeEntries).toHaveBeenCalledWith(mockDatabase, 'n-1');
-			expect(result).toEqual(mockLinks);
+			expect(result).toEqual([{
+				timeEntryId: 'te-1',
+				noteId: 'n-1',
+				headingAnchor: null,
+				date: '2026-01-01',
+				description: 'Test work',
+				durationMinutes: 60,
+				contractName: 'Project A',
+				clientName: 'Client X',
+				clientColorIndex: 2
+			}]);
+		});
+
+		it('linkNoteTimeEntry inserts a link record', async () => {
+			mockDatabase.execute.mockResolvedValueOnce(undefined);
+
+			await service.linkNoteTimeEntry('n-1', 'te-1', 'design-review');
+
+			expect(mockDatabase.execute).toHaveBeenCalledWith(
+				expect.stringContaining('INSERT OR IGNORE INTO note_time_entry_link'),
+				['n-1', 'te-1', 'design-review']
+			);
 		});
 
 		it('unlinkNoteTimeEntry delegates correctly', async () => {
@@ -649,6 +675,7 @@ describe('PowerSyncDataService', () => {
 			'uploadAttachment',
 			'deleteAttachment',
 			'getNoteTimeEntries',
+			'linkNoteTimeEntry',
 			'unlinkNoteTimeEntry',
 			'getWeeklyTimeEntries',
 			'getWeekSummaries',

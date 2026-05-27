@@ -23,6 +23,7 @@ import type {
 	Backlink,
 	AttachmentSummary,
 	NoteTimeEntryLink,
+	LinkedTimeEntryDisplay,
 	TimeEntryFields,
 	CreateTimeEntryInput,
 	WeekData,
@@ -157,8 +158,55 @@ export class PowerSyncDataService implements DataService {
 
 	// -- Note-Time Entry Links -------------------------------
 
-	async getNoteTimeEntries(noteId: string): Promise<NoteTimeEntryLink[]> {
-		return queryNoteTimeEntries(this.database, noteId);
+	async getNoteTimeEntries(noteId: string): Promise<LinkedTimeEntryDisplay[]> {
+		const links = await queryNoteTimeEntries(this.database, noteId);
+		// PowerSync implementation returns basic link data; enrich with time entry details
+		const enriched: LinkedTimeEntryDisplay[] = [];
+		for (const link of links) {
+			try {
+				const rows = await this.database.getAll<{
+					date: string;
+					description: string | null;
+					duration_minutes: number;
+					contract_name: string;
+					client_name: string;
+					client_color_index: number | null;
+				}>(
+					`SELECT te.date, te.description, te.duration_minutes,
+					        c.name AS contract_name, cl.name AS client_name,
+					        COALESCE(cl.color_index, 0) AS client_color_index
+					 FROM time_entries te
+					 JOIN contracts c ON c.id = te.contract_id
+					 JOIN clients cl ON cl.id = c.client_id
+					 WHERE te.id = ?`,
+					[link.timeEntryId]
+				);
+				if (rows.length > 0) {
+					enriched.push({
+						timeEntryId: link.timeEntryId,
+						noteId: link.noteId,
+						headingAnchor: link.headingAnchor,
+						date: rows[0].date,
+						description: rows[0].description,
+						durationMinutes: rows[0].duration_minutes,
+						contractName: rows[0].contract_name,
+						clientName: rows[0].client_name,
+						clientColorIndex: rows[0].client_color_index ?? 0
+					});
+				}
+			} catch {
+				// Skip entries that can't be enriched
+			}
+		}
+		return enriched;
+	}
+
+	async linkNoteTimeEntry(noteId: string, timeEntryId: string, headingAnchor?: string): Promise<void> {
+		await this.database.execute(
+			`INSERT OR IGNORE INTO note_time_entry_link (note_id, time_entry_id, heading_anchor)
+			 VALUES (?, ?, ?)`,
+			[noteId, timeEntryId, headingAnchor ?? null]
+		);
 	}
 
 	async unlinkNoteTimeEntry(noteId: string, timeEntryId: string): Promise<void> {
@@ -287,7 +335,10 @@ export class PowerSyncDataService implements DataService {
 			contract_name: string;
 			client_name: string;
 			client_short_code: string;
+			client_color_index: number | null;
+			deliverable_id: string | null;
 			deliverable_name: string | null;
+			work_type_id: string | null;
 			work_type_name: string | null;
 			description: string | null;
 			date: string;
@@ -301,7 +352,10 @@ export class PowerSyncDataService implements DataService {
 				c.name AS contract_name,
 				cl.name AS client_name,
 				cl.short_code AS client_short_code,
+				COALESCE(cl.color_index, 0) AS client_color_index,
+				te.deliverable_id,
 				d.name AS deliverable_name,
+				te.work_type_id,
 				wt.name AS work_type_name,
 				te.description,
 				te.date
@@ -325,7 +379,10 @@ export class PowerSyncDataService implements DataService {
 			contractName: row.contract_name,
 			clientName: row.client_name,
 			clientShortCode: row.client_short_code,
+			clientColorIndex: row.client_color_index ?? 0,
+			deliverableId: row.deliverable_id ?? null,
 			deliverableName: row.deliverable_name,
+			workTypeId: row.work_type_id ?? null,
 			workTypeName: row.work_type_name,
 			description: row.description,
 			date: row.date

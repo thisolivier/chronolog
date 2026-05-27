@@ -39,23 +39,23 @@
 	});
 </script>
 
-<div class="min-h-screen bg-gray-50">
-	<header class="border-b border-gray-200 bg-white shadow-sm">
+<div class="min-h-screen bg-stone-50">
+	<header class="border-b border-stone-200 bg-white shadow-sm">
 		<div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
 			<div class="flex items-center gap-4">
-				<a href="/" class="text-xl font-bold text-gray-900">Chronolog</a>
-				<span class="text-gray-400">/</span>
-				<a href="/" class="text-sm font-medium text-gray-600 hover:text-gray-900">
+				<a href="/" class="text-xl font-bold text-stone-900">Chronolog</a>
+				<span class="text-stone-400">/</span>
+				<a href="/" class="text-sm font-medium text-stone-600 hover:text-stone-900">
 					Time Entries
 				</a>
-				<span class="text-gray-400">/</span>
-				<span class="text-sm font-medium text-gray-600">
+				<span class="text-stone-400">/</span>
+				<span class="text-sm font-medium text-stone-600">
 					{isEditing ? 'Edit Entry' : 'New Entry'}
 				</span>
 			</div>
 			<a
 				href="/"
-				class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+				class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
 			>
 				Cancel
 			</a>
@@ -69,8 +69,8 @@
 			</div>
 		{/if}
 
-		<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-			<h1 class="mb-6 text-lg font-semibold text-gray-900">
+		<div class="rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
+			<h1 class="mb-6 text-lg font-semibold text-stone-900">
 				{isEditing ? 'Edit Time Entry' : 'New Time Entry'}
 			</h1>
 
@@ -86,7 +86,7 @@
 
 				<!-- Date -->
 				<div>
-					<label for="entry-date" class="block text-sm font-medium text-gray-700">
+					<label for="entry-date" class="block text-sm font-medium text-stone-700">
 						Date
 					</label>
 					<input
@@ -95,7 +95,7 @@
 						type="date"
 						bind:value={selectedDate}
 						required
-						class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 					/>
 				</div>
 
@@ -112,18 +112,18 @@
 						type="button"
 						onclick={() => (useDurationInput = false)}
 						class="text-sm {useDurationInput
-							? 'text-gray-500 hover:text-gray-700'
+							? 'text-stone-500 hover:text-stone-700'
 							: 'font-medium text-blue-600'}"
 					>
 						Start / End Time
 					</button>
-					<span class="text-gray-300">|</span>
+					<span class="text-stone-300">|</span>
 					<button
 						type="button"
 						onclick={() => (useDurationInput = true)}
 						class="text-sm {useDurationInput
 							? 'font-medium text-blue-600'
-							: 'text-gray-500 hover:text-gray-700'}"
+							: 'text-stone-500 hover:text-stone-700'}"
 					>
 						Manual Duration
 					</button>
@@ -131,7 +131,7 @@
 
 				{#if useDurationInput}
 					<div>
-						<label for="manual-duration" class="block text-sm font-medium text-gray-700">
+						<label for="manual-duration" class="block text-sm font-medium text-stone-700">
 							Duration (hh:mm)
 						</label>
 						<input
@@ -141,14 +141,14 @@
 							bind:value={manualDuration}
 							placeholder="01:30"
 							pattern={'[0-9]{1,2}:[0-9]{2}'}
-							class="mt-1 block w-48 rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+							class="mt-1 block w-48 rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 						/>
-						<p class="mt-1 text-xs text-gray-500">Format: hours:minutes (e.g. 1:30 for 1h 30m)</p>
+						<p class="mt-1 text-xs text-stone-500">Format: hours:minutes (e.g. 1:30 for 1h 30m)</p>
 					</div>
 				{:else}
 					<div class="grid gap-4 sm:grid-cols-2">
 						<div>
-							<label for="start-time" class="block text-sm font-medium text-gray-700">
+							<label for="start-time" class="block text-sm font-medium text-stone-700">
 								Start Time
 							</label>
 							<input
@@ -156,11 +156,11 @@
 								name="start_time"
 								type="time"
 								bind:value={startTime}
-								class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+								class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 							/>
 						</div>
 						<div>
-							<label for="end-time" class="block text-sm font-medium text-gray-700">
+							<label for="end-time" class="block text-sm font-medium text-stone-700">
 								End Time
 							</label>
 							<input
@@ -168,7 +168,7 @@
 								name="end_time"
 								type="time"
 								bind:value={endTime}
-								class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+								class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 							/>
 						</div>
 					</div>
@@ -176,7 +176,7 @@
 
 				<!-- Description -->
 				<div>
-					<label for="entry-description" class="block text-sm font-medium text-gray-700">
+					<label for="entry-description" class="block text-sm font-medium text-stone-700">
 						Description
 					</label>
 					<textarea
@@ -184,7 +184,7 @@
 						name="description"
 						bind:value={description}
 						rows="3"
-						class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 						placeholder="What did you work on?"
 					></textarea>
 				</div>
@@ -193,7 +193,7 @@
 				<div class="flex items-center justify-end gap-3">
 					<a
 						href="/"
-						class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+						class="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
 					>
 						Cancel
 					</a>

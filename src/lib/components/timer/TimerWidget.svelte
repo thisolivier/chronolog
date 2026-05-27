@@ -4,9 +4,12 @@
 	import ContractSelect from './ContractSelect.svelte';
 	import AddTimeEntryModal from './AddTimeEntryModal.svelte';
 	import { getDataService } from '$lib/services/context';
+	import { getTimerStateContext } from '$lib/stores/timer-state.svelte';
 	import { calculateElapsedFromStartTime } from './timer-api';
+	import type { ContractOption } from '$lib/services/types';
 
 	const dataService = getDataService();
+	const sharedTimerState = getTimerStateContext();
 
 	type TimerState = 'idle' | 'running' | 'paused' | 'stopped';
 
@@ -25,6 +28,25 @@
 
 	// Modal state
 	let showAddEntryModal = $state(false);
+
+	// Contract list for looking up name/color for the shared timer state
+	let contractList: ContractOption[] = $state([]);
+
+	async function loadContractList() {
+		try {
+			contractList = await dataService.getContracts();
+		} catch {
+			// Best effort -- list will remain empty
+		}
+	}
+
+	$effect(() => {
+		loadContractList();
+	});
+
+	function findSelectedContract(): ContractOption | undefined {
+		return contractList.find((contract) => contract.id === draftContractId);
+	}
 
 	async function checkExistingTimer() {
 		try {
@@ -67,6 +89,26 @@
 		dataService.updateTimeEntry(entryId, { contractId: draftContractId }).catch(() => {
 			// Best effort -- silently fail
 		});
+	});
+
+	// Sync local timer state to the shared context so TimerIndicator can read it
+	$effect(() => {
+		if (timerState === 'running' || timerState === 'paused') {
+			const selectedContract = findSelectedContract();
+			sharedTimerState.update({
+				status: timerState,
+				elapsedSeconds: elapsedSeconds,
+				description: draftDescription,
+				contractName: selectedContract?.clientName
+					? `${selectedContract.clientName} - ${selectedContract.name}`
+					: '',
+				clientColorIndex: selectedContract?.clientColorIndex ?? 0
+			});
+		} else if (timerState === 'idle') {
+			sharedTimerState.reset();
+		} else if (timerState === 'stopped') {
+			sharedTimerState.update({ status: 'stopped' });
+		}
 	});
 
 	// Debounced description update
@@ -162,6 +204,7 @@
 		errorMessage = '';
 		draftContractId = '';
 		draftDescription = '';
+		sharedTimerState.reset();
 		if (descriptionDebounceTimer) {
 			clearTimeout(descriptionDebounceTimer);
 		}
@@ -172,9 +215,9 @@
 	}
 </script>
 
-<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+<div class="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
 	{#if isLoading}
-		<div class="py-2 text-center text-sm text-gray-400">Loading timer...</div>
+		<div class="py-2 text-center text-sm text-stone-400">Loading timer...</div>
 	{:else if timerState === 'idle'}
 		<div class="flex gap-2">
 			<button
@@ -185,7 +228,7 @@
 			</button>
 			<button
 				onclick={() => (showAddEntryModal = true)}
-				class="flex-1 rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+				class="flex-1 rounded-md border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50"
 			>
 				Add Entry
 			</button>
@@ -198,14 +241,14 @@
 					{#if timerState === 'running'}
 						<button
 							onclick={handlePause}
-							class="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-sm text-gray-700 hover:bg-gray-50"
+							class="rounded-md border border-stone-300 bg-white px-2.5 py-1 text-sm text-stone-700 hover:bg-stone-50"
 						>
 							Pause
 						</button>
 					{:else}
 						<button
 							onclick={handleResume}
-							class="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-sm text-gray-700 hover:bg-gray-50"
+							class="rounded-md border border-stone-300 bg-white px-2.5 py-1 text-sm text-stone-700 hover:bg-stone-50"
 						>
 							Resume
 						</button>
@@ -218,14 +261,14 @@
 					</button>
 				</div>
 			</div>
-			<div class="text-xs text-gray-500">
+			<div class="text-xs text-stone-500">
 				Started: {startTime ? startTime.substring(0, 5) : '--:--'}
 			</div>
 
 			<!-- Draft contract and description while timer is running -->
 			<div class="space-y-2">
 				<div>
-					<label for="draft-contract" class="block text-xs font-medium text-gray-600">
+					<label for="draft-contract" class="block text-xs font-medium text-stone-600">
 						Contract
 					</label>
 					<div class="mt-0.5">
@@ -233,7 +276,7 @@
 					</div>
 				</div>
 				<div>
-					<label for="draft-description" class="block text-xs font-medium text-gray-600">
+					<label for="draft-description" class="block text-xs font-medium text-stone-600">
 						Description
 					</label>
 					<textarea
@@ -241,7 +284,7 @@
 						bind:value={draftDescription}
 						oninput={handleDescriptionInput}
 						rows="2"
-						class="mt-0.5 block w-full rounded border border-gray-300 px-1.5 py-1 text-xs shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-0.5 block w-full rounded border border-stone-300 px-1.5 py-1 text-xs shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 						placeholder="What are you working on?"
 					></textarea>
 				</div>

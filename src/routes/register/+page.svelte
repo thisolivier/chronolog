@@ -47,11 +47,11 @@
 	}
 </script>
 
-<div class="flex min-h-screen items-center justify-center bg-gray-50">
+<div class="flex min-h-screen items-center justify-center bg-stone-50">
 	<div class="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-md">
 		<div class="text-center">
-			<h1 class="text-3xl font-bold text-gray-900">Chronolog</h1>
-			<p class="mt-2 text-gray-600">Create your account</p>
+			<h1 class="text-3xl font-bold text-stone-900">Chronolog</h1>
+			<p class="mt-2 text-stone-600">Create your account</p>
 		</div>
 
 		{#if errorMessage}
@@ -62,44 +62,44 @@
 
 		<form onsubmit={handleRegister} class="space-y-6">
 			<div>
-				<label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+				<label for="name" class="block text-sm font-medium text-stone-700">Name</label>
 				<input
 					id="name"
 					type="text"
 					bind:value={name}
 					required
-					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 					placeholder="Your name"
 				/>
 			</div>
 
 			<div>
-				<label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+				<label for="email" class="block text-sm font-medium text-stone-700">Email</label>
 				<input
 					id="email"
 					type="email"
 					bind:value={email}
 					required
-					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 					placeholder="you@example.com"
 				/>
 			</div>
 
 			<div>
-				<label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+				<label for="password" class="block text-sm font-medium text-stone-700">Password</label>
 				<input
 					id="password"
 					type="password"
 					bind:value={password}
 					required
 					minlength="8"
-					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 					placeholder="At least 8 characters"
 				/>
 			</div>
 
 			<div>
-				<label for="confirm-password" class="block text-sm font-medium text-gray-700">
+				<label for="confirm-password" class="block text-sm font-medium text-stone-700">
 					Confirm Password
 				</label>
 				<input
@@ -108,7 +108,7 @@
 					bind:value={confirmPassword}
 					required
 					minlength="8"
-					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 					placeholder="Repeat your password"
 				/>
 				{#if confirmPassword && !passwordsMatch}
@@ -125,7 +125,7 @@
 			</button>
 		</form>
 
-		<p class="text-center text-sm text-gray-600">
+		<p class="text-center text-sm text-stone-600">
 			Already have an account?
 			<a href="/login" class="font-medium text-blue-600 hover:text-blue-500">Sign in</a>
 		</p>

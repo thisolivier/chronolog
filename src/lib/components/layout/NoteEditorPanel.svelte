@@ -8,7 +8,7 @@
 	import { exportAsMarkdown, exportAsPdf } from '$lib/components/notes/note-export';
 	import '$lib/components/notes/print-styles.css';
 	import { extractPreviewLines } from '$lib/utils/extract-preview-lines';
-	import type { NoteDetail, Backlink } from '$lib/services/types';
+	import type { NoteDetail, Backlink, ContractOption } from '$lib/services/types';
 
 	const navigation = getNavigationContext();
 	const dataService = getDataService();
@@ -18,18 +18,31 @@
 	let fetchError = $state<string | null>(null);
 	let backlinks = $state<Backlink[]>([]);
 	let showExportMenu = $state(false);
+	let showMoveMenu = $state(false);
+	let moveContracts = $state<ContractOption[]>([]);
+	let moveMessage = $state<string | null>(null);
+
+	/** Close dropdown on outside click — reused for both menus */
+	function closeOnOutsideClick(selector: string, closeFn: () => void) {
+		const handleClick = (event: MouseEvent) => {
+			const target = event.target as HTMLElement;
+			if (!target.closest(selector)) {
+				closeFn();
+			}
+		};
+		setTimeout(() => document.addEventListener('click', handleClick), 0);
+		return () => document.removeEventListener('click', handleClick);
+	}
 
 	$effect(() => {
 		if (showExportMenu) {
-			const handleClick = (event: MouseEvent) => {
-				const target = event.target as HTMLElement;
-				if (!target.closest('[data-export-menu]')) {
-					showExportMenu = false;
-				}
-			};
-			// Delay to avoid the opening click from immediately closing
-			setTimeout(() => document.addEventListener('click', handleClick), 0);
-			return () => document.removeEventListener('click', handleClick);
+			return closeOnOutsideClick('[data-export-menu]', () => { showExportMenu = false; });
+		}
+	});
+
+	$effect(() => {
+		if (showMoveMenu) {
+			return closeOnOutsideClick('[data-move-menu]', () => { showMoveMenu = false; });
 		}
 	});
 
@@ -104,6 +117,54 @@
 		}
 	}
 
+	/** Open the move menu, fetching available contracts */
+	async function toggleMoveMenu() {
+		if (showMoveMenu) {
+			showMoveMenu = false;
+			return;
+		}
+		try {
+			const allContracts = await dataService.getContracts();
+			// Exclude the note's current contract
+			moveContracts = allContracts.filter(
+				(contract) => contract.id !== currentNote?.contractId
+			);
+			showMoveMenu = true;
+		} catch (contractError) {
+			console.error('Error loading contracts:', contractError);
+		}
+	}
+
+	/** Move the current note to a different contract */
+	async function handleMoveToContract(targetContractId: string) {
+		const noteId = navigation.selectedNoteId;
+		if (!noteId) return;
+
+		const previousContractId = currentNote?.contractId;
+
+		try {
+			const updatedNote = await dataService.updateNote(noteId, { contractId: targetContractId });
+			currentNote = updatedNote;
+			showMoveMenu = false;
+
+			// Find the target contract name for the feedback message
+			const targetContract = moveContracts.find((contract) => contract.id === targetContractId);
+			moveMessage = `Moved to ${targetContract?.name ?? 'contract'}`;
+			setTimeout(() => { moveMessage = null; }, 3000);
+
+			// Notify the notes list to refresh (note moved out of current contract view)
+			window.dispatchEvent(
+				new CustomEvent('note-moved', {
+					detail: { noteId, fromContractId: previousContractId, toContractId: targetContractId }
+				})
+			);
+		} catch (moveError) {
+			console.error('Error moving note:', moveError);
+			moveMessage = 'Failed to move note';
+			setTimeout(() => { moveMessage = null; }, 3000);
+		}
+	}
+
 	// Re-fetch when selected note changes
 	$effect(() => {
 		const selectedNoteId = navigation.selectedNoteId;
@@ -118,16 +179,16 @@
 	});
 </script>
 
-<div class="flex h-full flex-col overflow-hidden bg-gray-50">
+<div class="flex h-full flex-col overflow-hidden bg-stone-50">
 	{#if !navigation.selectedNoteId}
 		<!-- Empty state -->
 		<div class="flex flex-1 items-center justify-center">
-			<p class="text-gray-400">Select a note to view</p>
+			<p class="text-stone-400">Select a note to view</p>
 		</div>
 	{:else if isLoading}
 		<!-- Loading state -->
 		<div class="flex flex-1 items-center justify-center">
-			<p class="text-gray-500">Loading note...</p>
+			<p class="text-stone-500">Loading note...</p>
 		</div>
 	{:else if fetchError}
 		<!-- Error state -->
@@ -144,34 +205,71 @@
 		</div>
 	{:else if currentNote}
 		<!-- Note header with export actions -->
-		<div class="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2">
-			<span class="text-xs font-mono text-gray-400">{currentNote.id}</span>
-			<div class="relative" data-export-menu>
+		<div class="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-2">
+			<div class="flex items-center gap-2">
+				<span class="text-xs font-mono text-stone-400">{currentNote.id}</span>
+				{#if moveMessage}
+					<span class="text-xs text-green-600">{moveMessage}</span>
+				{/if}
+			</div>
+			<div class="flex items-center gap-1">
+				<!-- Move to... dropdown -->
+				<div class="relative" data-move-menu>
+					<button
+						type="button"
+						onclick={toggleMoveMenu}
+						class="inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700 transition-colors"
+					>
+						Move ▾
+					</button>
+					{#if showMoveMenu}
+						<div class="absolute right-0 top-full z-10 mt-1 w-56 rounded-md border border-stone-200 bg-white py-1 shadow-lg">
+							{#if moveContracts.length === 0}
+								<span class="block px-3 py-1.5 text-sm text-stone-400">No other contracts</span>
+							{:else}
+								{#each moveContracts as contract (contract.id)}
+									<button
+										type="button"
+										onclick={() => handleMoveToContract(contract.id)}
+										class="block w-full px-3 py-1.5 text-left text-sm text-stone-700 hover:bg-stone-100"
+									>
+										<span class="font-medium">{contract.clientName}</span>
+										<span class="text-stone-400"> / </span>
+										{contract.name}
+									</button>
+								{/each}
+							{/if}
+						</div>
+					{/if}
+				</div>
+				<!-- Export dropdown -->
+				<div class="relative" data-export-menu>
 				<button
 					type="button"
 					onclick={() => { showExportMenu = !showExportMenu; }}
-					class="inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+					class="inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700 transition-colors"
 				>
 					Export ▾
 				</button>
 				{#if showExportMenu}
-					<div class="absolute right-0 top-full z-10 mt-1 w-44 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+					<div class="absolute right-0 top-full z-10 mt-1 w-44 rounded-md border border-stone-200 bg-white py-1 shadow-lg">
 						<button
 							type="button"
 							onclick={() => { exportAsMarkdown(currentNote?.title ?? null, currentNote?.content ?? null); showExportMenu = false; }}
-							class="block w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-100"
+							class="block w-full px-3 py-1.5 text-left text-sm text-stone-700 hover:bg-stone-100"
 						>
 							Export as Markdown
 						</button>
 						<button
 							type="button"
 							onclick={() => { exportAsPdf(); showExportMenu = false; }}
-							class="block w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-100"
+							class="block w-full px-3 py-1.5 text-left text-sm text-stone-700 hover:bg-stone-100"
 						>
 							Export as PDF
 						</button>
 					</div>
 				{/if}
+				</div>
 			</div>
 		</div>
 
@@ -190,8 +288,8 @@
 		</div>
 
 		{#if backlinks.length > 0}
-			<div class="border-t border-gray-200 bg-white px-6 py-3">
-				<h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Linked from</h4>
+			<div class="border-t border-stone-200 bg-white px-6 py-3">
+				<h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">Linked from</h4>
 				<div class="flex flex-wrap gap-2">
 					{#each backlinks as backlink (backlink.sourceNoteId)}
 						<button
@@ -200,7 +298,7 @@
 						>
 							{backlink.sourceNoteId}
 							{#if backlink.noteTitle}
-								<span class="font-sans text-gray-500">&middot; {backlink.noteTitle}</span>
+								<span class="font-sans text-stone-500">&middot; {backlink.noteTitle}</span>
 							{/if}
 						</button>
 					{/each}

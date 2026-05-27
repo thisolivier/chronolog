@@ -57,7 +57,7 @@
 </script>
 
 <div class="space-y-3">
-	<div class="flex items-center justify-between text-sm text-gray-600">
+	<div class="flex items-center justify-between text-sm text-stone-600">
 		<span>
 			{formatTimeForDisplay(startTime)} - {formatTimeForDisplay(endTime)}
 		</span>
@@ -71,14 +71,14 @@
 	/>
 
 	<div>
-		<label for="timer-description" class="block text-xs font-medium text-gray-600">
+		<label for="timer-description" class="block text-xs font-medium text-stone-600">
 			Description
 		</label>
 		<textarea
 			id="timer-description"
 			bind:value={description}
 			rows="2"
-			class="mt-0.5 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+			class="mt-0.5 block w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 			placeholder="What did you work on?"
 		></textarea>
 	</div>
@@ -93,7 +93,7 @@
 		</button>
 		<button
 			onclick={onDiscard}
-			class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+			class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
 		>
 			Discard
 		</button>

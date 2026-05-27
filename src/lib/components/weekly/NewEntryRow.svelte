@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { parseTimeInput } from '$lib/utils/time-parse';
 	import { getDataService } from '$lib/services/context';
+	import { getClientBorderClass } from '$lib/utils/client-colors';
 	import ContractSelect from '$lib/components/timer/ContractSelect.svelte';
-	import DeliverableSelect from '$lib/components/timer/DeliverableSelect.svelte';
-	import type { CreateTimeEntryInput } from '$lib/services/types';
+	import WikiLinkInput from './WikiLinkInput.svelte';
+	import type { ContractOption, CreateTimeEntryInput } from '$lib/services/types';
 
 	const dataService = getDataService();
 
@@ -18,24 +19,40 @@
 	} = $props();
 
 	let selectedContractId = $state('');
-	let selectedDeliverableId = $state('');
 	let descriptionInput = $state('');
 	let timeInputValue = $state('');
 	let timeInputError = $state(false);
 	let isSubmitting = $state(false);
 
-	// Track previous contract to detect changes and reset deliverable
-	let previousContractId = $state('');
+	// Load contracts so we can look up clientColorIndex for the selected contract
+	let contractList: ContractOption[] = $state([]);
+
+	async function loadContracts() {
+		try {
+			contractList = await dataService.getContracts();
+		} catch {
+			// Silently fail — contract list will remain empty
+		}
+	}
 
 	$effect(() => {
-		if (selectedContractId !== previousContractId) {
-			if (previousContractId !== '') {
-				// Contract changed — reset deliverable selection
-				selectedDeliverableId = '';
-			}
-			previousContractId = selectedContractId;
-		}
+		loadContracts();
 	});
+
+	// Derive the selected contract's color index for the dynamic left border
+	let selectedClientColorIndex = $derived.by(() => {
+		if (!selectedContractId) return null;
+		const matchingContract = contractList.find(
+			(contract) => contract.id === selectedContractId
+		);
+		return matchingContract?.clientColorIndex ?? null;
+	});
+
+	let leftBorderClass = $derived(
+		selectedClientColorIndex !== null
+			? `border-l-[3px] ${getClientBorderClass(selectedClientColorIndex)}`
+			: 'border-l-[3px] border-l-stone-200'
+	);
 
 	const canSubmit = $derived(
 		selectedContractId !== '' && timeInputValue.trim() !== '' && !timeInputError
@@ -60,7 +77,6 @@
 				date,
 				durationMinutes: parsed.durationMinutes,
 				contractId: selectedContractId,
-				deliverableId: selectedDeliverableId || undefined,
 				description: descriptionInput.trim() || undefined
 			};
 
@@ -94,52 +110,64 @@
 			timeInputError = false;
 		}
 	}
+
+	function handleDescriptionInput(newValue: string) {
+		descriptionInput = newValue;
+	}
 </script>
 
-<div class="flex items-center gap-3 border-b border-gray-100 px-1 py-2">
-	<!-- LEFT: Contract + deliverable + description -->
-	<div class="min-w-0 flex-1">
-		<div class="max-w-xs">
+<div
+	class="mb-2 rounded-lg border border-stone-200 bg-white p-4 {leftBorderClass}"
+>
+	<!-- Row 1: Description input (full width) -->
+	<WikiLinkInput
+		bind:value={descriptionInput}
+		placeholder="What did you work on?"
+		onInput={handleDescriptionInput}
+		onKeydown={handleKeydown}
+		autofocus
+	/>
+
+	<!-- Row 2: Contract select, Deliverable (future), Time input -->
+	<div class="mt-3 flex items-end gap-3">
+		<!-- Contract select -->
+		<div class="min-w-0 flex-1">
+			<label class="mb-1 block text-xs font-medium text-stone-500">Contract</label>
 			<ContractSelect bind:selectedContractId compact={true} />
 		</div>
-		{#if selectedContractId}
-			<div class="mt-0.5 max-w-xs">
-				<DeliverableSelect
-					contractId={selectedContractId}
-					bind:selectedDeliverableId
-					compact={true}
-				/>
-			</div>
-		{/if}
-		<input
-			type="text"
-			bind:value={descriptionInput}
-			onkeydown={handleKeydown}
-			placeholder="Description..."
-			class="mt-0.5 block w-full border-0 border-b border-gray-200 bg-transparent px-0 py-0.5 text-sm text-gray-600 placeholder-gray-400 focus:border-blue-400 focus:ring-0 focus:outline-none"
-		/>
+
+		<!-- Time input -->
+		<div class="w-28">
+			<label class="mb-1 block text-xs font-medium text-stone-500">Time</label>
+			<input
+				type="text"
+				value={timeInputValue}
+				oninput={handleTimeInput}
+				onkeydown={handleKeydown}
+				class="block w-full rounded border px-1.5 py-1 text-sm font-medium tabular-nums focus:ring-1 focus:outline-none {timeInputError
+					? 'border-red-400 focus:border-red-500 focus:ring-red-500'
+					: 'border-stone-300 focus:border-blue-500 focus:ring-blue-500'}"
+				placeholder="2h30m"
+			/>
+		</div>
 	</div>
 
-	<!-- RIGHT: Time input + cancel -->
-	<div class="shrink-0">
-		<input
-			type="text"
-			value={timeInputValue}
-			oninput={handleTimeInput}
-			onkeydown={handleKeydown}
-			class="w-28 rounded border px-1.5 py-0.5 text-right text-sm font-medium focus:ring-1 focus:outline-none {timeInputError ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'}"
-			placeholder="2h30m"
-			autofocus
-		/>
-	</div>
-
-	<div class="shrink-0">
+	<!-- Row 3: Action buttons (bottom right) -->
+	<div class="mt-3 flex items-center justify-end gap-2">
 		<button
 			onclick={onCancel}
-			class="rounded px-1.5 py-0.5 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-			title="Cancel"
+			class="text-sm text-stone-500 hover:text-stone-700"
+			type="button"
 		>
-			&times;
+			Cancel
+		</button>
+		<button
+			onclick={handleSubmit}
+			disabled={!canSubmit || isSubmitting}
+			class="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+			type="button"
+		>
+			{isSubmitting ? 'Saving...' : 'Save'}
 		</button>
 	</div>
 </div>

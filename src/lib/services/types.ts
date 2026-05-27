@@ -12,6 +12,7 @@ export type ContractsByClientResult = {
 	clientName: string;
 	clientShortCode: string;
 	clientEmoji: string | null;
+	clientColorIndex: number;
 	noteCount: number;
 };
 
@@ -22,6 +23,7 @@ export type ContractOption = {
 	clientId: string;
 	clientName: string;
 	clientShortCode: string;
+	clientColorIndex: number;
 };
 
 export type CreateContractInput = {
@@ -68,6 +70,7 @@ export type UpdateNoteInput = {
 	content?: string;
 	contentJson?: string;
 	isPinned?: boolean;
+	contractId?: string;
 };
 
 export type Backlink = {
@@ -94,6 +97,18 @@ export type NoteTimeEntryLink = {
 	headingAnchor: string | null;
 };
 
+export type LinkedTimeEntryDisplay = {
+	timeEntryId: string;
+	noteId: string;
+	headingAnchor: string | null;
+	date: string;
+	description: string | null;
+	durationMinutes: number;
+	contractName: string;
+	clientName: string;
+	clientColorIndex: number;
+};
+
 // -- Time Entries --
 
 export type TimeEntryFields = {
@@ -111,8 +126,6 @@ export type CreateTimeEntryInput = {
 	date: string;
 	durationMinutes: number;
 	contractId: string;
-	deliverableId?: string | null;
-	workTypeId?: string | null;
 	description?: string;
 	startTime?: string;
 	endTime?: string;
@@ -140,9 +153,8 @@ export type TimeEntryDisplay = {
 	contractName: string;
 	clientName: string;
 	clientShortCode: string;
-	deliverableId: string | null;
+	clientColorIndex: number;
 	deliverableName: string | null;
-	workTypeId: string | null;
 	workTypeName: string | null;
 	description: string | null;
 	date: string;

@@ -32,14 +32,15 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 	if (!currentUser) throw error(401, 'Unauthorized');
 
 	const body = await request.json();
-	const { title, content, contentJson } = body;
+	const { title, content, contentJson, contractId } = body;
 
 	const note = await updateNoteForUser(
 		currentUser.id,
 		params.noteId,
 		title,
 		content,
-		contentJson
+		contentJson,
+		contractId
 	);
 
 	if (!note) {

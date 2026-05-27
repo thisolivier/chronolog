@@ -30,7 +30,7 @@ export class SuggestionDropdown {
 
 		this.containerElement = document.createElement('div');
 		this.containerElement.className =
-			'absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto';
+			'absolute z-50 bg-white border border-stone-200 rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto';
 
 		document.body.appendChild(this.containerElement);
 		this.renderItems();
@@ -98,7 +98,7 @@ export class SuggestionDropdown {
 
 		if (this.items.length === 0) {
 			const emptyMessage = document.createElement('div');
-			emptyMessage.className = 'px-3 py-2 text-sm text-gray-400 italic';
+			emptyMessage.className = 'px-3 py-2 text-sm text-stone-400 italic';
 			emptyMessage.textContent = 'No matching notes';
 			this.containerElement.appendChild(emptyMessage);
 			return;
@@ -111,12 +111,12 @@ export class SuggestionDropdown {
 
 			// Note ID line
 			const noteIdSpan = document.createElement('span');
-			noteIdSpan.className = 'block text-xs font-mono text-gray-400';
+			noteIdSpan.className = 'block text-xs font-mono text-stone-400';
 			noteIdSpan.textContent = item.noteId;
 
 			// Title line
 			const titleSpan = document.createElement('span');
-			titleSpan.className = 'block text-sm text-gray-800';
+			titleSpan.className = 'block text-sm text-stone-800';
 			titleSpan.textContent = item.title || item.noteId;
 
 			itemElement.appendChild(noteIdSpan);

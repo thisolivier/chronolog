@@ -1,10 +1,11 @@
 # Sprint 013 — UX: Note-Time Entry Linking UX (UX-3)
 
-**Status:** pending
+**Status:** signed-off
 **Type:** research / design
 **Backlog items:** UX-3
 **Depends on:** Sprint 011-UX (app documentation — merged)
 **Branch:** `sprint-013-UX/note-time-linking-ux`
+**Working tree:** `/Users/olivier/sites/chronolog/.claude/worktrees/sprint-012-UX`
 
 ## Objectives
 
@@ -95,13 +96,13 @@ Include:
 
 ## Acceptance Criteria
 
-- [ ] Time entry → note linking interaction designed
-- [ ] Note → time entry view designed
-- [ ] Heading anchor recommendation (include or defer)
-- [ ] Wireframes for modified components
-- [ ] Syntax specification for inline links
-- [ ] UX spec document at `docs/ux/note-time-linking-spec.md`
-- [ ] Phasing recommendation (v1 vs stretch)
+- [x] Time entry → note linking interaction designed
+- [x] Note → time entry view designed
+- [x] Heading anchor recommendation (include or defer)
+- [x] Wireframes for modified components
+- [x] Syntax specification for inline links
+- [x] UX spec document at `docs/ux/note-time-linking-spec.md`
+- [x] Phasing recommendation (v1 vs stretch)
 
 ## Notes
 
@@ -111,3 +112,23 @@ is a valid and preferred approach.
 
 **Wiki-link syntax is already established.** The notes editor uses `[[NOTE_ID]]`. Reusing
 this syntax in time entry descriptions creates consistency.
+
+## Progress Notes
+
+- **Task 1 (Read existing code):** Complete. Read wiki-link.ts (parseWikiLinkText, Suggestion, all syntax forms), TimeEntryCard.svelte (plain text input, click-to-edit), LinkedTimeEntries.svelte (truncated IDs, unlink only), NoteEditorPanel.svelte, DataService interface (getNoteTimeEntries, unlinkNoteTimeEntry — linkNoteTimeEntry missing), notes-integration-design.md (prior complex approach).
+- **Task 2 (Time entry → note design):** Complete. Inline `[[NOTE_ID]]` in plain text descriptions with autocomplete dropdown, parse-on-save reconciliation, clickable rendered links in read mode.
+- **Task 3 (Note → time entry design):** Complete. Redesigned LinkedTimeEntries to show date/description/duration/contract. Added [+] time entry picker. Click-to-navigate to timesheet.
+- **Task 4 (Heading anchors):** Complete. Deferred to v2 — stored in data model but navigation is note-level only in v1. Parser already handles the syntax.
+- **Task 5 (UX specification):** Complete. 255-line spec at `docs/ux/note-time-linking-spec.md`.
+
+## Sign-off
+
+All 7 acceptance criteria met. Spec committed to branch `sprint-013-UX/note-time-linking-ux`. This is a simpler, more pragmatic approach than the sprint 012-UX `notes-integration-design.md` (which explored picker modals, preview popovers, card-level indicators). The user's direction ("doesn't need to be anything visual, inline links") guided the design toward plain-text `[[NOTE_ID]]` syntax reusing the existing wiki-link parser.
+
+**Key decisions:**
+1. Plain text `<input>` with autocomplete, not TipTap for descriptions
+2. `[[NOTE_ID]]` syntax reusing `parseWikiLinkText()` — no new parser
+3. Parse-on-save reconciliation — links stay in sync with description text
+4. Heading anchors deferred to v2 (stored but not navigated)
+5. [+] picker only for note→entry direction (entry IDs are UUIDs, not typeable)
+6. Redesigned LinkedTimeEntries with useful context (date, description, duration)

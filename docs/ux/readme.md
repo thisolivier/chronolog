@@ -26,6 +26,8 @@ Comprehensive documentation of the Chronolog application's user interface, cover
 | -- | [Notes Integration Design](notes-integration-design.md) | Sprint 012: Note-time entry linking, preview popovers, navigation flows |
 | -- | **[Timesheet Redesign Spec](timesheet-redesign-spec.md)** | **Sprint 012: Final design specification — the primary deliverable** |
 | -- | **[Note-Time Linking Spec](note-time-linking-spec.md)** | **Sprint 013: Inline wiki-links in descriptions, parse-on-save, autocomplete** |
+| -- | [Comprehensive Audit](comprehensive-audit.md) | Sprint 015: Deep gap analysis of workflows, data surfaces, API, and UX friction |
+| -- | **[Future Feature Recommendations](future-feature-recommendations.md)** | **Sprint 015: 12 prioritized feature recommendations + 8 explicitly rejected** |
 
 ## Architecture Summary
 

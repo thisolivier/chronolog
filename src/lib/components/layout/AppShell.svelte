@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
+	import { getTimerStateContext } from '$lib/stores/timer-state.svelte';
+	import TimerIndicator from '$lib/components/weekly/TimerIndicator.svelte';
 
 	interface Props {
 		panel1: Snippet;
@@ -11,6 +13,7 @@
 	let { panel1, panel2, panel3 }: Props = $props();
 
 	const navigationContext = getNavigationContext();
+	const timerState = getTimerStateContext();
 
 	// Panel 2 width state (resizable)
 	let panel2Width = $state(280);
@@ -81,7 +84,7 @@
 	<div class="flex h-screen flex-col overflow-hidden bg-white">
 		<!-- Back button header when not at level 0 -->
 		{#if navigationContext.mobileNavigationLevel > 0}
-			<div class="flex items-center gap-2 border-b border-gray-200 bg-white px-4 py-3">
+			<div class="flex items-center gap-2 border-b border-stone-200 bg-white px-4 py-3">
 				<button
 					onclick={() => navigationContext.goBackMobile()}
 					class="text-sm font-medium text-blue-600 hover:text-blue-800"
@@ -103,38 +106,67 @@
 		</div>
 	</div>
 {:else}
-	<!-- Desktop: Three-panel layout -->
-	<div class="flex h-screen overflow-hidden bg-white">
-		<!-- Panel 1: Sidebar (collapsible) -->
-		<div
-			class="flex-shrink-0 border-r border-gray-200 bg-gray-50 transition-all duration-300"
-			style="width: {navigationContext.panel1Collapsed ? 0 : 240}px; overflow: hidden;"
-		>
-			<div class="flex h-full w-60 flex-col overflow-y-auto">
-				{@render panel1()}
+	<!-- Desktop: Multi-panel layout -->
+	<div class="flex h-screen flex-col overflow-hidden bg-white">
+		<!-- Top bar -->
+		<div class="flex h-12 items-center justify-between border-b border-stone-200 bg-white px-4">
+			<div class="flex items-center gap-3">
+				<button
+					onclick={() => navigationContext.toggleSidebar()}
+					class="text-lg text-stone-500 hover:text-stone-700"
+					aria-label="Toggle sidebar"
+				>≡</button>
+				<span class="text-sm font-semibold text-stone-700">Chronolog</span>
 			</div>
+			<TimerIndicator
+				timerState={timerState.status}
+				elapsedSeconds={timerState.elapsedSeconds}
+				description={timerState.description}
+				contractName={timerState.contractName}
+				clientColorIndex={timerState.clientColorIndex}
+				onIndicatorClick={() => {
+					if (navigationContext.panel1Collapsed) {
+						navigationContext.toggleSidebar();
+					}
+				}}
+			/>
 		</div>
 
-		<!-- Panel 2: List view (resizable) -->
-		<div
-			class="relative flex-shrink-0 border-r border-gray-200 bg-white"
-			style="width: {panel2Width}px;"
-		>
-			<div class="flex h-full flex-col overflow-y-auto">
-				{@render panel2()}
+		<!-- Panels -->
+		<div class="flex flex-1 overflow-hidden">
+			<!-- Panel 1: Sidebar (collapsible) -->
+			<div
+				class="flex-shrink-0 border-r border-stone-200 bg-stone-50 transition-all duration-300"
+				style="width: {navigationContext.panel1Collapsed ? 0 : 240}px; overflow: hidden;"
+			>
+				<div class="flex h-full w-60 flex-col overflow-y-auto">
+					{@render panel1()}
+				</div>
 			</div>
 
-			<!-- Resize handle on right edge -->
-			<button
-				class="absolute right-0 top-0 h-full w-1 cursor-col-resize bg-transparent hover:bg-blue-200 active:bg-blue-300"
-				onmousedown={handleResizeStart}
-				aria-label="Resize panel"
-			></button>
-		</div>
+			<!-- Panel 2: List view (resizable, only in notes mode) -->
+			{#if navigationContext.isNotesMode}
+				<div
+					class="relative flex-shrink-0 border-r border-stone-200 bg-white"
+					style="width: {panel2Width}px;"
+				>
+					<div class="flex h-full flex-col overflow-y-auto">
+						{@render panel2()}
+					</div>
 
-		<!-- Panel 3: Content (flexible width) -->
-		<div class="flex flex-1 flex-col overflow-y-auto bg-white">
-			{@render panel3()}
+					<!-- Resize handle on right edge -->
+					<button
+						class="absolute right-0 top-0 h-full w-1 cursor-col-resize bg-transparent hover:bg-blue-200 active:bg-blue-300"
+						onmousedown={handleResizeStart}
+						aria-label="Resize panel"
+					></button>
+				</div>
+			{/if}
+
+			<!-- Panel 3: Content (flexible width) -->
+			<div class="flex flex-1 flex-col overflow-y-auto bg-stone-50">
+				{@render panel3()}
+			</div>
 		</div>
 	</div>
 {/if}

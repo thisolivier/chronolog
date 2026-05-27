@@ -1,0 +1,1 @@
+ALTER TABLE "clients" ADD COLUMN "color_index" integer DEFAULT 0 NOT NULL;

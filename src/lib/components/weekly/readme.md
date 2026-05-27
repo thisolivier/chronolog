@@ -1,26 +1,27 @@
 # Weekly Time Entry Components
 
-Components for displaying time entries organized by week and day.
+Components for displaying and editing time entries, used by the layout panels.
 
 ## Components
 
-- **WeekHeader.svelte** — Navigation header with previous/next/current week buttons, week title, total hours, and status dropdown with form-based updates. Used by the legacy `/time` page.
-- **WeekSectionHeader.svelte** — Compact week header for the continuous-scroll layout. Shows "Week Starting..." label, total hours, and an inline status text input with debounced save.
-- **DaySection.svelte** — Day header (day name, date, daily total) with a list of time entry cards and an inline add-entry form.
-- **TimeEntryCard.svelte** — Individual time entry card. Layout: contract/description on the left, time display + delete on the right. Unified time editing supports duration ("2h30m") and time range ("09:00-11:30") formats via `parseTimeInput`. Inline editing for contract, deliverable, and description with debounced auto-save. Context label shows "Client / Contract / Deliverable / Work Type" when set. Changing contract resets deliverable and work type.
-- **NewEntryRow.svelte** — Expandable inline form for adding a time entry. Matches TimeEntryCard layout with contract select, optional deliverable select, description input, and time input supporting both duration and range formats. Deliverable resets when contract changes. Shown via "add entry" buttons on each day.
-- **WeeklyEntryRow.svelte** — Simpler entry row used in the week list panel view, with form-based deletion.
+- **WeekStrip.svelte** — Sticky horizontal week strip showing Mon-Sun with day numbers, total hours per day, and today highlight. Replaces WeekListPanel as the week navigator in time mode. Tapping a day scrolls TimeEntriesPanel to that day.
+- **TimerIndicator.svelte** — Compact timer display for the AppShell top bar. Shows elapsed time and active contract; pulses when running. Reads from shared `timer-state` store.
+- **StatusBadge.svelte** — Clickable status chip (draft/submitted/approved) with color coding. Used in week section headers to display and cycle weekly status.
+- **TimeEntryCard.svelte** — Individual time entry card with description-first layout and a left border colored by client. Inline editing for description, contract, and time with debounced auto-save. Supports `[[NOTE_ID]]` wiki-link syntax.
+- **NewEntryRow.svelte** — Card-style inline form for adding a time entry. Description-first layout matching TimeEntryCard, with contract select and time input supporting duration and range formats.
+- **WikiLinkRenderer.svelte** — Renders `[[NOTE_ID]]` patterns as clickable inline link spans. Used in TimeEntryCard read mode.
+- **WikiLinkInput.svelte** — Plain text input with `[[` autocomplete dropdown for note search. Used in TimeEntryCard edit mode.
 
 ## Data Flow
 
 Components receive data as props from the parent layout panels (`TimeEntriesPanel`, `WeekListPanel`). Mutations (create, update, delete) are handled via API calls within each component, with `onUpdated`/`onEntryCreated` callbacks to trigger parent re-fetches.
 
-The `TimeEntriesPanel` manages expandable state for "add entry" forms (per day) and collapsible empty weeks. Empty weeks show a clickable heading that expands to reveal each day with "add entry" buttons.
-
 ## Related Files
 
 - `src/lib/utils/iso-week.ts` — ISO week calculation and formatting utilities
 - `src/lib/utils/time-parse.ts` — Time input parsing (durations and ranges)
+- `src/lib/utils/client-colors.ts` — Client color palette for card borders
+- `src/lib/stores/timer-state.svelte.ts` — Shared timer display state
 - `src/lib/server/db/queries/time-entries-weekly.ts` — Weekly grouped query functions
 - `src/lib/server/db/queries/weekly-statuses.ts` — Weekly status CRUD operations
-- `src/lib/components/layout/TimeEntriesPanel.svelte` — Panel 3 continuous scroll component
+- `src/lib/components/layout/TimeEntriesPanel.svelte` — Panel hosting these components

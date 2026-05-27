@@ -18,6 +18,7 @@ import type {
 	Backlink,
 	AttachmentSummary,
 	NoteTimeEntryLink,
+	LinkedTimeEntryDisplay,
 	WeekData,
 	WeekSummary,
 	TimerStatus,
@@ -111,6 +112,7 @@ describe('FetchDataService', () => {
 					clientName: 'Client A',
 					clientShortCode: 'CA',
 					clientEmoji: null,
+					clientColorIndex: 0,
 					noteCount: 3
 				}
 			];
@@ -134,7 +136,8 @@ describe('FetchDataService', () => {
 					isActive: true,
 					clientId: 'cl1',
 					clientName: 'Client A',
-					clientShortCode: 'CA'
+					clientShortCode: 'CA',
+					clientColorIndex: 0
 				}
 			];
 			mockFetch.mockResolvedValueOnce(mockJsonResponse(contracts));
@@ -374,8 +377,18 @@ describe('FetchDataService', () => {
 
 	describe('getNoteTimeEntries', () => {
 		it('calls GET /api/notes/:id/time-entries and unwraps .timeEntries', async () => {
-			const timeEntries: NoteTimeEntryLink[] = [
-				{ noteId: 'n1', timeEntryId: 'te1', headingAnchor: null }
+			const timeEntries: LinkedTimeEntryDisplay[] = [
+				{
+					noteId: 'n1',
+					timeEntryId: 'te1',
+					headingAnchor: null,
+					date: '2026-02-03',
+					description: 'Some work',
+					durationMinutes: 60,
+					contractName: 'Contract A',
+					clientName: 'Client A',
+					clientColorIndex: 0
+				}
 			];
 			mockFetch.mockResolvedValueOnce(mockJsonResponse({ timeEntries }));
 
@@ -481,45 +494,6 @@ describe('FetchDataService', () => {
 			expect(getLastFetchBody(mockFetch)).toEqual(input);
 			expect(result).toEqual({ id: 'te-new' });
 		});
-
-		it('includes deliverableId and workTypeId when provided', async () => {
-			mockFetch.mockResolvedValueOnce(
-				mockJsonResponse({ entry: { id: 'te-with-deliverable' } })
-			);
-
-			const input = {
-				date: '2026-02-03',
-				durationMinutes: 120,
-				contractId: 'c1',
-				deliverableId: 'd1',
-				workTypeId: 'wt1',
-				description: 'Deliverable work'
-			};
-			const result = await service.createTimeEntry(input);
-
-			const [url, options] = getLastFetchCall(mockFetch);
-			expect(url).toBe('/api/time-entries');
-			expect(options?.method).toBe('POST');
-			expect(getLastFetchBody(mockFetch)).toEqual(input);
-			expect(result).toEqual({ id: 'te-with-deliverable' });
-		});
-
-		it('sends deliverableId as null when not provided', async () => {
-			mockFetch.mockResolvedValueOnce(
-				mockJsonResponse({ entry: { id: 'te-no-deliverable' } })
-			);
-
-			const input = {
-				date: '2026-02-03',
-				durationMinutes: 30,
-				contractId: 'c1'
-			};
-			await service.createTimeEntry(input);
-
-			const body = getLastFetchBody(mockFetch) as Record<string, unknown>;
-			expect(body.deliverableId).toBeUndefined();
-			expect(body.workTypeId).toBeUndefined();
-		});
 	});
 
 	describe('updateTimeEntry', () => {
@@ -532,39 +506,6 @@ describe('FetchDataService', () => {
 			expect(url).toBe('/api/time-entries/te1');
 			expect(options?.method).toBe('PUT');
 			expect(getLastFetchBody(mockFetch)).toEqual({ durationMinutes: 90 });
-		});
-
-		it('can update deliverableId', async () => {
-			mockFetch.mockResolvedValueOnce(mockJsonResponse({}));
-
-			await service.updateTimeEntry('te1', { deliverableId: 'd1' });
-
-			const body = getLastFetchBody(mockFetch) as Record<string, unknown>;
-			expect(body.deliverableId).toBe('d1');
-		});
-
-		it('can clear deliverableId by setting to null', async () => {
-			mockFetch.mockResolvedValueOnce(mockJsonResponse({}));
-
-			await service.updateTimeEntry('te1', { deliverableId: null });
-
-			const body = getLastFetchBody(mockFetch) as Record<string, unknown>;
-			expect(body.deliverableId).toBeNull();
-		});
-
-		it('can update contract and clear deliverable together', async () => {
-			mockFetch.mockResolvedValueOnce(mockJsonResponse({}));
-
-			await service.updateTimeEntry('te1', {
-				contractId: 'c2',
-				deliverableId: null,
-				workTypeId: null
-			});
-
-			const body = getLastFetchBody(mockFetch) as Record<string, unknown>;
-			expect(body.contractId).toBe('c2');
-			expect(body.deliverableId).toBeNull();
-			expect(body.workTypeId).toBeNull();
 		});
 	});
 
@@ -639,7 +580,8 @@ describe('FetchDataService', () => {
 					isActive: false,
 					clientId: 'cl1',
 					clientName: 'Client',
-					clientShortCode: 'CL'
+					clientShortCode: 'CL',
+					clientColorIndex: 0
 				},
 				{
 					id: 'c-active',
@@ -647,7 +589,8 @@ describe('FetchDataService', () => {
 					isActive: true,
 					clientId: 'cl1',
 					clientName: 'Client',
-					clientShortCode: 'CL'
+					clientShortCode: 'CL',
+					clientColorIndex: 0
 				}
 			];
 			const timerEntry: TimerEntry = {
@@ -685,7 +628,8 @@ describe('FetchDataService', () => {
 					isActive: false,
 					clientId: 'cl1',
 					clientName: 'Client',
-					clientShortCode: 'CL'
+					clientShortCode: 'CL',
+					clientColorIndex: 0
 				}
 			];
 			mockFetch.mockResolvedValueOnce(mockJsonResponse(contracts));
@@ -839,6 +783,7 @@ describe('DelegatingDataService', () => {
 			uploadAttachment: vi.fn().mockResolvedValue({ id: `${label}-att` }),
 			deleteAttachment: vi.fn().mockResolvedValue(undefined),
 			getNoteTimeEntries: vi.fn().mockResolvedValue([]),
+			linkNoteTimeEntry: vi.fn().mockResolvedValue(undefined),
 			unlinkNoteTimeEntry: vi.fn().mockResolvedValue(undefined),
 			getWeeklyTimeEntries: vi.fn().mockResolvedValue([]),
 			getWeekSummaries: vi.fn().mockResolvedValue([]),
@@ -902,6 +847,9 @@ describe('DelegatingDataService', () => {
 
 		await delegator.getNoteTimeEntries('n1');
 		expect(inner.getNoteTimeEntries).toHaveBeenCalledWith('n1');
+
+		await delegator.linkNoteTimeEntry('n1', 'te1', 'heading-1');
+		expect(inner.linkNoteTimeEntry).toHaveBeenCalledWith('n1', 'te1', 'heading-1');
 
 		await delegator.unlinkNoteTimeEntry('n1', 'te1');
 		expect(inner.unlinkNoteTimeEntry).toHaveBeenCalledWith('n1', 'te1');
@@ -1022,6 +970,7 @@ describe('DataService interface completeness', () => {
 		'uploadAttachment',
 		'deleteAttachment',
 		'getNoteTimeEntries',
+		'linkNoteTimeEntry',
 		'unlinkNoteTimeEntry',
 		'getWeeklyTimeEntries',
 		'getWeekSummaries',

@@ -30,20 +30,20 @@
 					type="text"
 					required
 					bind:value={editName}
-					class="rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="rounded-md border border-stone-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				/>
 				<input
 					name="short_code"
 					type="text"
 					required
 					bind:value={editShortCode}
-					class="w-24 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="w-24 rounded-md border border-stone-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				/>
 				<input
 					name="emoji"
 					type="text"
 					bind:value={editEmoji}
-					class="w-16 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="w-16 rounded-md border border-stone-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 					placeholder=""
 				/>
 				<div class="ml-auto flex gap-2">
@@ -61,7 +61,7 @@
 							editShortCode = client.shortCode;
 							editEmoji = client.emoji ?? '';
 						}}
-						class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+						class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
 					>
 						Cancel
 					</button>
@@ -70,8 +70,8 @@
 		</td>
 	</tr>
 {:else}
-	<tr class="hover:bg-gray-50">
-		<td class="px-6 py-4 text-sm font-medium text-gray-900">
+	<tr class="hover:bg-stone-50">
+		<td class="px-6 py-4 text-sm font-medium text-stone-900">
 			<a
 				href="/admin/clients/{client.id}"
 				class="text-blue-600 hover:text-blue-800 hover:underline"
@@ -79,8 +79,8 @@
 				{client.name}
 			</a>
 		</td>
-		<td class="px-6 py-4 text-sm text-gray-500">
-			<span class="rounded bg-gray-100 px-2 py-0.5 font-mono text-xs">{client.shortCode}</span>
+		<td class="px-6 py-4 text-sm text-stone-500">
+			<span class="rounded bg-stone-100 px-2 py-0.5 font-mono text-xs">{client.shortCode}</span>
 		</td>
 		<td class="px-6 py-4 text-sm">
 			{client.emoji ?? ''}
@@ -89,7 +89,7 @@
 			<div class="flex items-center justify-end gap-2">
 				<button
 					onclick={() => (isEditing = true)}
-					class="text-gray-500 hover:text-blue-600"
+					class="text-stone-500 hover:text-blue-600"
 				>
 					Edit
 				</button>
@@ -102,7 +102,7 @@
 					</form>
 					<button
 						onclick={() => (isDeleting = false)}
-						class="text-gray-500 hover:text-gray-700"
+						class="text-stone-500 hover:text-stone-700"
 					>
 						Cancel
 					</button>
