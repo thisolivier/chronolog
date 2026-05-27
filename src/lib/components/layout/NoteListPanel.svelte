@@ -121,12 +121,23 @@
 		}
 	}
 
+	/** Handle note-moved events — remove the note from this list since it changed contracts */
+	function handleNoteMoved(event: Event) {
+		const { noteId } = (event as CustomEvent).detail;
+		notesList = notesList.filter((note) => note.id !== noteId);
+		if (navigationContext.selectedNoteId === noteId) {
+			navigationContext.clearSelectedNote();
+		}
+	}
+
 	onMount(() => {
 		window.addEventListener('note-saved', handleNoteSaved);
+		window.addEventListener('note-moved', handleNoteMoved);
 	});
 
 	onDestroy(() => {
 		window.removeEventListener('note-saved', handleNoteSaved);
+		window.removeEventListener('note-moved', handleNoteMoved);
 	});
 </script>
 
