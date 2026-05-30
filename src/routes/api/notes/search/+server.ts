@@ -10,6 +10,9 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	if (!query || query.length < 1) {
 		return json({ notes: [] });
 	}
+	if (query.length > 200) {
+		throw error(400, 'Search query must not exceed 200 characters');
+	}
 
 	const results = await searchNotesForUser(currentUser.id, query);
 	return json({ notes: results });
