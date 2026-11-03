@@ -5,7 +5,6 @@
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
 | 024-CL | Client | Notes and editor rough edges | active |
-| 026-CL | Client | Admin, shell and safety | active |
 | 027-CL | Client | Navigation state, URLs and context | pending (after 024–026) |
 | 018-QA | QA | Manual testing backlog | superseded by docs/review/2026-11-03-qa-state.md |
 
@@ -13,6 +12,7 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 026-CL | Client | Admin, shell and safety | merged |
 | 025-CL | Client | Timesheet and entry-form rough edges | merged |
 | 023-CL | Client/Server | Device access key gate + encryption at rest | merged |
 | 019-CL | Client | Stabilise: timesheet bugs | merged |
