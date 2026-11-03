@@ -29,6 +29,7 @@
 		"@eslint/js": "^9.39.2",
 		"@playwright/test": "^1.60.0",
 		"@sveltejs/adapter-auto": "^7.0.0",
+		"@sveltejs/adapter-node": "^5.5.2",
 		"@sveltejs/adapter-static": "^3.0.0",
 		"@sveltejs/kit": "^2.50.2",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
@@ -51,7 +52,6 @@
 		"vitest": "^4.0.18"
 	},
 	"dependencies": {
-		"@sveltejs/adapter-node": "^5.5.2",
 		"@tauri-apps/api": "^2.0.0",
 		"@tiptap/core": "^3.19.0",
 		"@tiptap/extension-code-block-lowlight": "^3.23.6",
