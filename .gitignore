@@ -33,6 +33,7 @@ vite.config.ts.timestamp-*
 
 # Working trees
 /working-trees/
+/.claude/worktrees/
 
 # Claude session locks
 .claude-session.lock
@@ -48,3 +49,8 @@ config/dev-private.pem
 /playwright-report/
 /blob-report/
 /e2e-playwright/.auth/user.json
+
+# Claude Code machine-local state
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/worktrees/

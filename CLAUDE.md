@@ -2,12 +2,12 @@
 
 ## Project Overview
 
-Chronolog is a time-tracking and note-taking app for consulting work, delivered as a Tauri 2.0 desktop app (macOS primary) with a PWA fallback for mobile. See `docs/SPEC.md` for the full specification and `BACKLOG.md` for the task backlog.
+Chronolog is a time-tracking and note-taking app for consulting work, delivered as a Tauri 2.0 desktop app (macOS primary) with a PWA fallback for mobile. Backend services (Postgres, PowerSync, app server) are intended to run containerised on the Mac mini. See `docs/SPEC.md` for the full specification, `docs/backlog.md` for the live backlog, and `docs/sprints/readme.md` for sprint history.
 
 ## General Directives
 - Start each response with ☀️
 - Read `docs/SPEC.md` before making architectural decisions
-- Read `BACKLOG.md` to understand current task context
+- Read `docs/backlog.md` (live backlog) and `docs/review/` (latest state reviews) to understand current task context; root `BACKLOG.md` is the original long-form task list
 - Keep code readable with verbose variable names — never abbreviate to a single letter
 - Keep dependencies minimal (balance with low code directive)
 - Prefer simple low-code solutions to complex ones where possible (balance with minimal dependency directive)
@@ -22,6 +22,10 @@ Chronolog is a time-tracking and note-taking app for consulting work, delivered 
   - Review the todo list and parallel/sequential strategy after each few tasks complete
 - Use the `context7` skill proactively for library/API documentation — don't wait to be asked
 - Use the `release-version` skill when preparing releases — follow semantic versioning conventions
+- Back up databases before working against prod or any only-environment
+  - Take the backup BEFORE the session's first mutation; never delete the pre-session backup
+  - Take periodic backups during long sessions
+  - If no backup storage pattern exists for the project, ask the user to agree a pattern before proceeding
 - ALWAYS ask for permission before editing this file
 
 Your work is deeply appreciated.
@@ -31,8 +35,11 @@ Your work is deeply appreciated.
 - `src/` — SvelteKit application source (routes, components, lib)
 - `src-tauri/` — Tauri 2.0 Rust backend
 - `drizzle/` — database migrations
-- `docs/` — specification and documentation
+- `docs/` — specification, backlog, sprint specs, UX research, and state reviews
+- `config/` — PowerSync service config and sync rules
+- `e2e-playwright/`, `src/e2e/` — browser and API end-to-end tests
 - `static/` — static assets
+- `.claude/` — skills (synced from `~/sites/nakedClaude/.claude/`), context7 registry, session reviews
 
 ## Codebase Health
 - Pro-actively modularize the code
@@ -51,11 +58,12 @@ Your work is deeply appreciated.
 ## Working Trees
 
 When asked to work in a new git working tree:
-1. Create the working tree inside the `working-trees/` directory at the repository root
+1. Create the working tree inside `.claude/worktrees/` (gitignored); name it after the sprint or task
 2. Each working tree directory should be locked to a single Claude session at a time
 3. Before using a working tree, check if it's already in use by another session
 4. Use a lock file (e.g., `.claude-session.lock`) in the working tree to indicate active use
 5. Release the lock when the session ends or when switching away from that working tree
+6. Remove the working tree and delete its branch once the work is merged — do not let them accumulate
 
 ## Paths Not to Modify
 - Do not modify files managed by package managers.

@@ -4,7 +4,6 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
-| 004-CL | Client | Phase D — Wire PowerSyncDataService | active |
 | 018-QA | QA | Manual testing backlog | pending (manual testing) |
 
 ## Completed Sprints
@@ -12,6 +11,7 @@
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
 | 017-CL | Client | Timesheet redesign (UX-2 impl) | merged |
+| 004-CL | Client | Phase D — Wire PowerSyncDataService | merged |
 | 016-CL | Client | Note move between contracts | merged |
 | 015-UX | UX | Future feature recommendations (UX-4) | signed-off |
 | 014-CL | Client | Note-time entry linking (CL-8) | merged |
