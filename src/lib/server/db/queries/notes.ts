@@ -1,6 +1,5 @@
 import { eq, and, desc, like } from "drizzle-orm";
 import { database, notes, noteTimeEntries, contracts, clients, timeEntries } from "$lib/server/db";
-import { extractPreviewLines } from '$lib/utils/extract-preview-lines';
 import { decryptNullable, decryptText, encryptNullable } from '$lib/server/crypto/server-cipher';
 
 type NoteRow = typeof notes.$inferSelect;
@@ -85,6 +84,14 @@ export async function getNextNoteId(contractId: string): Promise<string> {
 	return `${shortCode}.${dateStr}.${seqStr}`;
 }
 
+/** Postgres unique_violation, raised when two creates race for the same next note ID */
+function isUniqueViolation(error: unknown): boolean {
+	const candidate = error as { code?: string; cause?: { code?: string } } | null;
+	return candidate?.code === '23505' || candidate?.cause?.code === '23505';
+}
+
+const CREATE_NOTE_ATTEMPTS = 5;
+
 export async function createNoteForUser(
 	userId: string,
 	contractId: string,
@@ -92,23 +99,46 @@ export async function createNoteForUser(
 	content?: string,
 	contentJson?: string
 ) {
-	const noteId = await getNextNoteId(contractId);
-
 	const wordCount = contentJson ? calculateWordCountFromJson(contentJson) : 0;
 
-	const results = await database
-		.insert(notes)
-		.values({
-			id: noteId,
-			userId,
-			contractId,
-			title: encryptNullable(title ?? null),
-			content: encryptNullable(content ?? null),
-			contentJson: encryptNullable(contentJson ?? null),
-			wordCount
-		})
-		.returning();
-	return decryptNote(results[0]);
+	// IDs are "next sequence number for client+day": concurrent creates can pick the same
+	// one, so retry with a fresh ID on a unique-key conflict.
+	for (let attempt = 1; ; attempt += 1) {
+		const noteId = await getNextNoteId(contractId);
+		try {
+			const results = await database
+				.insert(notes)
+				.values({
+					id: noteId,
+					userId,
+					contractId,
+					title: encryptNullable(title ?? null),
+					content: encryptNullable(content ?? null),
+					contentJson: encryptNullable(contentJson ?? null),
+					wordCount
+				})
+				.returning();
+			return decryptNote(results[0]);
+		} catch (error) {
+			if (!isUniqueViolation(error) || attempt >= CREATE_NOTE_ATTEMPTS) throw error;
+		}
+	}
+}
+
+/** Thrown by `updateNoteForUser` when `expectedUpdatedAt` no longer matches the row */
+export class NoteConflictError extends Error {
+	constructor(
+		readonly noteId: string,
+		readonly currentUpdatedAt: Date
+	) {
+		super(`Note ${noteId} changed since it was loaded`);
+		this.name = 'NoteConflictError';
+	}
+}
+
+/** Timestamps compare at millisecond precision (Postgres keeps microseconds, JS Dates do not). */
+function sameMillisecond(left: Date, right: Date): boolean {
+	return Math.floor(left.getTime()) === Math.floor(right.getTime());
 }
 
 export async function updateNoteForUser(
@@ -117,7 +147,8 @@ export async function updateNoteForUser(
 	title?: string,
 	content?: string,
 	contentJson?: string,
-	contractId?: string
+	contractId?: string,
+	expectedUpdatedAt?: Date
 ) {
 	const updateData: {
 		title?: string | null;
@@ -144,11 +175,24 @@ export async function updateNoteForUser(
 		updateData.contractId = contractId;
 	}
 
-	const results = await database
-		.update(notes)
-		.set(updateData)
-		.where(and(eq(notes.id, noteId), eq(notes.userId, userId)))
-		.returning();
+	const ownedNote = and(eq(notes.id, noteId), eq(notes.userId, userId));
+
+	// Optimistic concurrency: with `expectedUpdatedAt`, the row is locked, compared and
+	// only then updated, so a save based on an outdated copy (another tab) is refused.
+	const results = await database.transaction(async (transaction) => {
+		if (expectedUpdatedAt) {
+			const current = await transaction
+				.select({ updatedAt: notes.updatedAt })
+				.from(notes)
+				.where(ownedNote)
+				.for('update');
+			if (current.length === 0) return [];
+			if (!sameMillisecond(current[0].updatedAt, expectedUpdatedAt)) {
+				throw new NoteConflictError(noteId, current[0].updatedAt);
+			}
+		}
+		return transaction.update(notes).set(updateData).where(ownedNote).returning();
+	});
 	return decryptOptionalNote(results[0]);
 }
 
@@ -211,56 +255,8 @@ export async function getLinkedTimeEntriesForNote(noteId: string, userId: string
 	}));
 }
 
-/**
- * Search a user's notes by ID, title or markdown body content (case-insensitive substring).
- * Titles and content are encrypted at rest, so this loads the user's notes newest-first,
- * decrypts them and filters in memory (single user, small data), stopping at `limit`.
- * Returns the first two content lines for each match so the `[[` autocomplete
- * can show a preview of the note.
- */
-export async function searchNotesForUser(userId: string, query: string, limit: number = 10) {
-	const needle = query.toLowerCase();
-	const contains = (value: string | null) => value !== null && value.toLowerCase().includes(needle);
-
-	const rows = await database
-		.select({
-			id: notes.id,
-			title: notes.title,
-			contractId: notes.contractId,
-			content: notes.content,
-			contentJson: notes.contentJson
-		})
-		.from(notes)
-		.where(eq(notes.userId, userId))
-		.orderBy(desc(notes.updatedAt));
-
-	const matches: Array<{
-		id: string;
-		title: string | null;
-		contractId: string;
-		firstLine: string;
-		secondLine: string;
-	}> = [];
-
-	for (const row of rows) {
-		if (matches.length >= limit) break;
-		const title = decryptNullable(row.title, 'notes.title');
-		const isMatch =
-			contains(row.id) || contains(title) || contains(decryptNullable(row.content, 'notes.content'));
-		if (!isMatch) continue;
-
-		const preview = extractPreviewLines(decryptNullable(row.contentJson, 'notes.content_json'));
-		matches.push({
-			id: row.id,
-			title,
-			contractId: row.contractId,
-			firstLine: preview.firstLine,
-			secondLine: preview.secondLine
-		});
-	}
-
-	return matches;
-}
+// Search, autocomplete ranking and title lookup live in note-search.ts
+export { searchNotesForUser, getNoteTitlesForUser } from './note-search';
 
 // Re-export from shared utility so existing server imports keep working
 export { extractPreviewLines } from '$lib/utils/extract-preview-lines';

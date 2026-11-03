@@ -285,6 +285,41 @@ describe('FetchDataService', () => {
 		});
 	});
 
+	describe('updateNote keepalive', () => {
+		it('passes keepalive through to fetch for saves during page unload', async () => {
+			mockFetch.mockResolvedValueOnce(mockJsonResponse({ note: { id: 'n1' } }));
+			await service.updateNote('n1', { content: 'x' }, { keepalive: true });
+			const [, options] = getLastFetchCall(mockFetch);
+			expect(options?.keepalive).toBe(true);
+		});
+	});
+
+	describe('searchNotes', () => {
+		it('calls GET /api/notes/search with query, exclude and limit', async () => {
+			mockFetch.mockResolvedValueOnce(mockJsonResponse({ notes: [{ id: 'n2' }] }));
+			const results = await service.searchNotes('kick off', { excludeNoteId: 'n1', limit: 5 });
+			const [url] = getLastFetchCall(mockFetch);
+			expect(url).toBe('/api/notes/search?q=kick+off&exclude=n1&limit=5');
+			expect(results).toEqual([{ id: 'n2' }]);
+		});
+	});
+
+	describe('getNoteTitles', () => {
+		it('calls GET /api/notes/titles with comma-separated ids', async () => {
+			mockFetch.mockResolvedValueOnce(mockJsonResponse({ titles: [{ id: 'A' }] }));
+			const titles = await service.getNoteTitles(['A', 'B']);
+			const [url] = getLastFetchCall(mockFetch);
+			expect(url).toBe('/api/notes/titles?ids=A%2CB');
+			expect(titles).toEqual([{ id: 'A' }]);
+		});
+
+		it('skips the request for an empty list', async () => {
+			mockFetch.mockClear();
+			expect(await service.getNoteTitles([])).toEqual([]);
+			expect(mockFetch).not.toHaveBeenCalled();
+		});
+	});
+
 	describe('deleteNote', () => {
 		it('calls DELETE /api/notes/:id', async () => {
 			mockFetch.mockResolvedValueOnce(mockJsonResponse(undefined));
@@ -337,7 +372,9 @@ describe('FetchDataService', () => {
 
 	describe('uploadAttachment', () => {
 		it('calls POST /api/notes/:id/attachments with FormData', async () => {
-			mockFetch.mockResolvedValueOnce(mockJsonResponse({ id: 'a-new' }));
+			mockFetch.mockResolvedValueOnce(
+				mockJsonResponse({ attachment: { id: 'a-new', filename: 'test.txt' } })
+			);
 
 			const file = new File(['hello'], 'test.txt', { type: 'text/plain' });
 			const result = await service.uploadAttachment('n1', file);
@@ -741,10 +778,10 @@ describe('DelegatingDataService', () => {
 		expect(inner.getNoteById).toHaveBeenCalledWith('n1');
 
 		await delegator.createNote('c1');
-		expect(inner.createNote).toHaveBeenCalledWith('c1');
+		expect(inner.createNote).toHaveBeenCalledWith('c1', undefined);
 
 		await delegator.updateNote('n1', { title: 'Updated' });
-		expect(inner.updateNote).toHaveBeenCalledWith('n1', { title: 'Updated' });
+		expect(inner.updateNote).toHaveBeenCalledWith('n1', { title: 'Updated' }, undefined);
 
 		await delegator.deleteNote('n1');
 		expect(inner.deleteNote).toHaveBeenCalledWith('n1');
@@ -880,6 +917,8 @@ describe('DataService interface completeness', () => {
 		'updateNote',
 		'deleteNote',
 		'getNoteBacklinks',
+		'searchNotes',
+		'getNoteTitles',
 		'getNoteAttachments',
 		'uploadAttachment',
 		'deleteAttachment',

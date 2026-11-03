@@ -8,6 +8,11 @@ import type { TimerLocalStart,
 	NoteSummary,
 	NoteDetail,
 	UpdateNoteInput,
+	UpdateNoteOptions,
+	CreateNoteInput,
+	NoteSearchOptions,
+	NoteSearchResult,
+	NoteTitleInfo,
 	Backlink,
 	AttachmentSummary,
 	LinkedTimeEntryDisplay,
@@ -21,6 +26,9 @@ import type { TimerLocalStart,
 	WorkTypeOption
 } from './types';
 import { fetchJson, postJson, putJson, deleteRequest } from './fetch-helpers';
+
+/** Stay safely under the browser's 64 KB limit for keepalive request bodies */
+const KEEPALIVE_BODY_LIMIT_BYTES = 60_000;
 
 /**
  * DataService implementation backed by fetch() calls to SvelteKit API routes.
@@ -65,14 +73,38 @@ export class FetchDataService implements DataService {
 		return data.note;
 	}
 
-	async createNote(contractId: string): Promise<NoteSummary> {
-		const data = await postJson<{ note: NoteSummary }>('/api/notes', { contractId });
+	async createNote(contractId: string, initial?: CreateNoteInput): Promise<NoteSummary> {
+		const data = await postJson<{ note: NoteSummary }>('/api/notes', { contractId, ...initial });
 		return data.note;
 	}
 
-	async updateNote(noteId: string, updateData: UpdateNoteInput): Promise<NoteDetail> {
-		const data = await putJson<{ note: NoteDetail }>(`/api/notes/${noteId}`, updateData);
+	async updateNote(
+		noteId: string,
+		updateData: UpdateNoteInput,
+		options?: UpdateNoteOptions
+	): Promise<NoteDetail> {
+		// Browsers cap keepalive bodies at 64 KB; a larger note is sent normally instead
+		const fitsKeepalive = JSON.stringify(updateData).length < KEEPALIVE_BODY_LIMIT_BYTES;
+		const data = await putJson<{ note: NoteDetail }>(`/api/notes/${noteId}`, updateData, {
+			keepalive: Boolean(options?.keepalive) && fitsKeepalive
+		});
 		return data.note;
+	}
+
+	async searchNotes(query: string, options?: NoteSearchOptions): Promise<NoteSearchResult[]> {
+		const parameters = new URLSearchParams({ q: query });
+		if (options?.excludeNoteId) parameters.set('exclude', options.excludeNoteId);
+		if (options?.limit) parameters.set('limit', String(options.limit));
+		if (options?.recent) parameters.set('recent', '1');
+		const data = await fetchJson<{ notes: NoteSearchResult[] }>(`/api/notes/search?${parameters}`);
+		return data.notes;
+	}
+
+	async getNoteTitles(noteIds: string[]): Promise<NoteTitleInfo[]> {
+		if (noteIds.length === 0) return [];
+		const parameters = new URLSearchParams({ ids: noteIds.join(',') });
+		const data = await fetchJson<{ titles: NoteTitleInfo[] }>(`/api/notes/titles?${parameters}`);
+		return data.titles;
 	}
 
 	async deleteNote(noteId: string): Promise<void> {
@@ -104,7 +136,9 @@ export class FetchDataService implements DataService {
 			const errorText = await response.text().catch(() => 'Unknown error');
 			throw new Error(`Upload attachment failed (${response.status}): ${errorText}`);
 		}
-		return response.json() as Promise<{ id: string }>;
+		// The route answers `{ attachment: { id, filename, ... } }`
+		const data = (await response.json()) as { attachment: { id: string } };
+		return { id: data.attachment.id };
 	}
 
 	async deleteAttachment(attachmentId: string): Promise<void> {

@@ -92,3 +92,16 @@ describe('buildMarkdownExportContent', () => {
 		expect(result).toBe('# Title\n\n');
 	});
 });
+
+describe('buildMarkdownExportContent with first-line titles', () => {
+	it('does not prepend a heading when the content starts with the title line', () => {
+		expect(buildMarkdownExportContent('Kickoff notes', 'Kickoff notes\n\n- item')).toBe(
+			'Kickoff notes\n\n- item'
+		);
+	});
+
+	it('treats a truncated title (ending in an ellipsis) as matching the first line', () => {
+		const content = 'A very long first line that goes on\n\nbody';
+		expect(buildMarkdownExportContent('A very long first…', content)).toBe(content);
+	});
+});

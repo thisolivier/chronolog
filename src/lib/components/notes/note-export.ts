@@ -15,10 +15,15 @@ export function sanitizeFilename(name: string): string {
  * Build the markdown content for export, prepending title if needed.
  */
 export function buildMarkdownExportContent(title: string | null, content: string): string {
-	if (title && title.trim() && !content.startsWith(`# ${title}\n`)) {
-		return `# ${title}\n\n${content}`;
+	if (!title || !title.trim() || content.startsWith(`# ${title}\n`)) return content;
+	// Titles are derived from the note's first line (possibly truncated with an ellipsis);
+	// when the content already opens with that line, a heading would only duplicate it.
+	const firstContentLine = (content.split('\n').find((line) => line.trim()) ?? '').trim();
+	const titleWithoutEllipsis = title.trim().replace(/…$/, '');
+	if (firstContentLine && !firstContentLine.startsWith('#') && firstContentLine.startsWith(titleWithoutEllipsis)) {
+		return content;
 	}
-	return content;
+	return `# ${title}\n\n${content}`;
 }
 
 /**
@@ -34,13 +39,7 @@ export function exportAsMarkdown(title: string | null, content: string | null): 
 	triggerDownload(blob, filename);
 }
 
-/**
- * Export a note as PDF using the browser's print dialog.
- * The @media print stylesheet handles hiding app chrome.
- */
-export function exportAsPdf(): void {
-	window.print();
-}
+// PDF export lives in note-print.ts (prints the note alone from a hidden iframe)
 
 /**
  * Trigger a file download via a temporary anchor element.

@@ -64,11 +64,16 @@ Main content panel for time entries mode. Integrates WeekStrip as a sticky heade
 
 ### NoteListPanel.svelte
 
-Panel 2 content in notes mode. Lists notes for the selected contract with title, pin indicator, date, and word count. Listens for the window events `note-saved` (updates a note's preview in place) and `note-moved` (removes the note, clears the selection and shows a transient "Moved to Client / Contract" status line, `data-testid="move-feedback"`).
+Panel 2 content in notes mode. Lists notes for the selected contract with first-line title, pin indicator, date, and word count. Also provides:
+- A search field that searches all contracts (`dataService.searchNotes`); each result shows its contract prefix
+- A sort toggle (modified / created, persisted)
+- New Note, which opens a draft in the editor; the list only gains the note once the first save creates it
+
+It listens for the window events `note-created` and `note-saved` (updates a note's preview in place), `note-moved` (removes the note from this contract's list and shows a transient "Moved to Client / Contract" status line, `data-testid="move-feedback"`, tied to the destination contract) and `note-deleted` (removes the note). The moved note itself stays open in the editor, which then follows the note to its new contract.
 
 ### NoteEditorPanel.svelte
 
-Panel 3 content in notes mode. TipTap rich-text editor with auto-save, backlinks section, linked time entries, export and "Move to..." actions. Dispatches the window events `note-saved` and `note-moved` (detail: `noteId`, `fromContractId`, `toContractId`, `toContractName`, `toClientName`); move success is confirmed by NoteListPanel because clearing the selection unmounts this panel's header, so only the failure message is shown here.
+Panel 3 content in notes mode. Binds an editor session to one note: the TipTap editor, save status (via `NoteEditorHeader` and `SaveStatusIndicator`), a Reload action on conflict, backlinks, linked time entries, export and "Move to..." actions. Delete lives in the editor header and asks for an inline confirmation. A draft becomes a note on its first save without remounting the editor. Before a move or delete it flushes pending saves and waits for in-flight saves of the note. It dispatches the window events `note-created`, `note-saved`, `note-moved` (detail: `noteId`, `fromContractId`, `toContractId`, `toContractName`, `toClientName`) and `note-deleted`. Move failures are shown in the editor header.
 
 ## Navigation State
 

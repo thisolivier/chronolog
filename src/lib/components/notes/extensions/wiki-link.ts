@@ -4,6 +4,7 @@ import { PluginKey } from '@tiptap/pm/state';
 import { Suggestion, type SuggestionOptions } from '@tiptap/suggestion';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { SuggestionDropdown } from './SuggestionDropdown.js';
+import { subscribeToNoteTitles, wikiLinkDisplayText } from '../note-titles.svelte.js';
 
 /**
  * Result item returned from the note search API endpoint.
@@ -124,6 +125,11 @@ interface MarkdownSerializerStateLike {
 
 const WIKI_LINK_TOKEN_TYPE = 'wiki_link';
 
+/** `editor.storage.wikiLink` (besides the tiptap-markdown spec) */
+export interface WikiLinkStorage {
+	getCurrentNoteId: () => string | null;
+}
+
 /**
  * markdown-it inline rule: recognises `[[...]]` and emits a `wiki_link` token.
  * The interior may not contain brackets or newlines. Runs before the built-in
@@ -211,27 +217,28 @@ export const WikiLink = Node.create<{
 				allowSpaces: true,
 				pluginKey: WikiLinkPluginKey,
 
-				items: async ({ query }: { query: string }) => {
-					if (!query || query.length < 1) {
-						return [];
-					}
+				items: async ({ query, editor }: { query: string; editor: Editor }) => {
+					// Never offer the note being edited; an empty `[[` lists recent notes.
+					const storage = (editor.storage as unknown as Record<string, WikiLinkStorage | undefined>)
+						.wikiLink;
+					const currentNoteId = storage?.getCurrentNoteId() ?? null;
+					const parameters = new URLSearchParams({ q: query ?? '', recent: '1', limit: '8' });
+					if (currentNoteId) parameters.set('exclude', currentNoteId);
 
 					try {
-						const response = await fetch(
-							`/api/notes/search?q=${encodeURIComponent(query)}`
-						);
+						const response = await fetch(`/api/notes/search?${parameters}`);
 						if (!response.ok) return [];
 						const data = await response.json();
 						// Map API shape { id, title, firstLine, secondLine } to WikiLinkSuggestionItem
 						return (data.notes ?? []).map(
 							(note: {
 								id: string;
-								title: string | null;
+								displayTitle?: string | null;
 								firstLine?: string;
 								secondLine?: string;
 							}) => ({
 								noteId: note.id,
-								title: note.title ?? note.id,
+								title: note.displayTitle || note.id,
 								firstLine: note.firstLine ?? '',
 								secondLine: note.secondLine ?? '',
 							})
@@ -278,10 +285,8 @@ export const WikiLink = Node.create<{
 							dropdown = new SuggestionDropdown({
 								items: props.items,
 								command: (item: WikiLinkSuggestionItem) => {
-									props.command({
-										noteId: item.noteId,
-										label: item.title || item.noteId,
-									});
+									// No explicit label: the chip shows the note's live title
+									props.command({ noteId: item.noteId, label: item.noteId });
 								},
 								clientRect: props.clientRect ?? null,
 							});
@@ -291,10 +296,8 @@ export const WikiLink = Node.create<{
 							dropdown?.update({
 								items: props.items,
 								command: (item: WikiLinkSuggestionItem) => {
-									props.command({
-										noteId: item.noteId,
-										label: item.title || item.noteId,
-									});
+									// No explicit label: the chip shows the note's live title
+									props.command({ noteId: item.noteId, label: item.noteId });
 								},
 								clientRect: props.clientRect ?? null,
 							});
@@ -315,8 +318,10 @@ export const WikiLink = Node.create<{
 		};
 	},
 
-	addStorage() {
+	addStorage(): WikiLinkStorage & Record<string, unknown> {
 		return {
+			// NoteEditor replaces this so `[[` suggestions exclude the note being edited
+			getCurrentNoteId: () => null,
 			// tiptap-markdown node spec: see MarkdownNodeSpec in tiptap-markdown.
 			markdown: {
 				serialize(state: MarkdownSerializerStateLike, node: ProseMirrorNode) {
@@ -387,6 +392,46 @@ export const WikiLink = Node.create<{
 			),
 			label,
 		];
+	},
+
+	addNodeView() {
+		// Shows the linked note's title (from the shared title cache), with the ID as a
+		// tooltip. The document keeps only the ID, so markdown stays `[[id]]`.
+		return ({ node }) => {
+			const element = document.createElement('span');
+			element.className = 'wiki-link';
+			element.setAttribute('data-wiki-link', '');
+			element.contentEditable = 'false';
+			let currentNode: ProseMirrorNode = node;
+
+			const render = () => {
+				const noteId = currentNode.attrs.noteId as string;
+				const label = currentNode.attrs.label as string | null;
+				const headingAnchor = currentNode.attrs.headingAnchor as string | null;
+				element.setAttribute('data-note-id', noteId ?? '');
+				if (label) element.setAttribute('data-label', label);
+				if (headingAnchor) element.setAttribute('data-heading-anchor', headingAnchor);
+				else element.removeAttribute('data-heading-anchor');
+				const text = wikiLinkDisplayText(noteId, label) + (headingAnchor ? ` › ${headingAnchor}` : '');
+				if (element.textContent !== text) element.textContent = text;
+				element.title = headingAnchor ? `${noteId}#${headingAnchor}` : noteId;
+			};
+
+			render();
+			const unsubscribe = subscribeToNoteTitles(render);
+
+			return {
+				dom: element,
+				update(updatedNode) {
+					if (updatedNode.type !== currentNode.type) return false;
+					currentNode = updatedNode;
+					render();
+					return true;
+				},
+				ignoreMutation: () => true,
+				destroy: unsubscribe,
+			};
+		};
 	},
 
 	renderText({ node }) {

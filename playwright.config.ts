@@ -3,6 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
+/** Point at another dev server (e.g. a worktree on its own port) with PLAYWRIGHT_BASE_URL */
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
 const AUTH_STATE_PATH = path.join(currentDirectory, 'e2e-playwright', '.auth', 'user.json');
 
 export default defineConfig({
@@ -15,7 +17,7 @@ export default defineConfig({
 	retries: 1,
 	reporter: [['html', { open: 'never' }], ['list']],
 	use: {
-		baseURL: 'http://localhost:5173',
+		baseURL: BASE_URL,
 		trace: 'on-first-retry',
 		screenshot: 'only-on-failure'
 	},
@@ -51,7 +53,7 @@ export default defineConfig({
 	],
 	webServer: {
 		command: 'npm run dev',
-		url: 'http://localhost:5173',
+		url: BASE_URL,
 		reuseExistingServer: true,
 		// auth.setup.ts registers a fresh user per run, so sign-up must be open.
 		// Note: with reuseExistingServer, an already-running server keeps its own

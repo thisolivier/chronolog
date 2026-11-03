@@ -26,7 +26,9 @@ WikiLink inline node extension that renders `[[note-links]]` in the editor. Supp
 - `[[NOTE_ID#heading]]` -- link to heading
 - `[[NOTE_ID#heading|label]]` -- heading link with display text
 
-Integrates TipTap's Suggestion utility (triggered by `[[`) to provide autocomplete when typing wiki-links. The suggestion popup fetches matching notes from `/api/notes/search` (matched on note ID, title and body content); each `WikiLinkSuggestionItem` carries `firstLine`/`secondLine` content previews alongside `noteId`/`title`.
+Integrates TipTap's Suggestion utility (triggered by `[[`) to provide autocomplete when typing wiki-links. The suggestion popup calls `/api/notes/search` (ranked: exact ID, ID prefix, title, ID substring, body). The note being edited is excluded through `editor.storage.wikiLink.getCurrentNoteId`, and an empty query lists recent notes (`recent=1`). Each `WikiLinkSuggestionItem` carries `firstLine`/`secondLine` content previews alongside `noteId`/`title`. Inserted links carry no label, so the chip keeps showing the target's live title.
+
+**Node view.** The node renders the linked note's title from the shared title cache (`../note-titles.svelte.ts`), with the note ID as a tooltip. The document still stores only the ID, so markdown stays `[[id]]`.
 
 **Markdown round-trip.** The node contributes a tiptap-markdown spec via `addStorage().markdown`:
 
@@ -39,9 +41,17 @@ Also exports `parseWikiLinkText(raw)` for parsing the interior of `[[...]]` toke
 
 Vanilla JS dropdown component for the WikiLink suggestion popup. Each item shows the note ID, the first content line (falling back to title, then ID) and an optional truncated second line. Supports keyboard navigation (arrow keys, Enter, Escape) and mouse selection. Positions itself relative to the cursor, showing above or below depending on viewport space.
 
+### markdown-text.ts
+
+Replaces StarterKit's `text` node. Its markdown serializer escapes `<` only where it could open a tag, comment or autolink, so `->` stays `->` in saved markdown, raw mode and the Markdown export (the default serializer wrote `-&gt;`). `escapeTagOpeners` is exported for tests.
+
+### attachment-image.ts
+
+`AttachmentImage` extends the Image node. The document keeps the `chronolog://attachment/{id}` src (so saved markdown and JSON never contain blob URLs), while a node view shows a blob URL resolved by `attachment-resolver.ts`.
+
 ### attachment-resolver.ts
 
-Resolves `chronolog://attachment/{uuid}` URLs to displayable blob URLs. Images and PDFs embedded in notes use this custom URL scheme. The resolver fetches binary data from `/api/attachments/{id}`, creates blob URLs via `URL.createObjectURL()`, and caches results to avoid re-fetching.
+Resolves `chronolog://attachment/{uuid}` URLs to displayable blob URLs. Images and PDFs embedded in notes use this custom URL scheme. The resolver fetches binary data from `/api/attachments/{id}`, creates blob URLs via `URL.createObjectURL()`, and caches results to avoid re-fetching. `AttachmentImage` uses it, and the blob URLs are revoked on teardown.
 
 Exports:
 - `parseChronologUrl(url)` -- extract attachment ID from a chronolog:// URL

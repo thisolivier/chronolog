@@ -1,32 +1,60 @@
 <!-- NoteListPanel - Panel 2 content for notes mode -->
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import { getDataService } from '$lib/services/context';
 	import { formatSmartDate } from '$lib/utils/format-date';
-	import type { NoteSummary } from '$lib/services/types';
+	import { noteDraft, startNoteDraft, endNoteDraft } from '$lib/components/notes/note-draft.svelte';
+	import { onNoteEvent } from '$lib/components/notes/note-events';
+	import { sortNotes, loadSortPreference, saveSortPreference, type NoteSortOrder } from '$lib/components/notes/note-sort';
+	import NoteSearchResults from '$lib/components/notes/NoteSearchResults.svelte';
+	import type { NoteSummary, NoteSearchResult } from '$lib/services/types';
 
 	const navigationContext = getNavigationContext();
 	const dataService = getDataService();
 
+	const MOVE_FEEDBACK_DURATION_MS = 4000;
+	const SEARCH_DEBOUNCE_MS = 200;
+	const NEW_NOTE_DEBOUNCE_MS = 400;
+
 	let notesList = $state<NoteSummary[]>([]);
 	let isLoading = $state(false);
-	let isCreating = $state(false);
 	let fetchError = $state<string | null>(null);
 	let moveFeedback = $state<string | null>(null);
+	/** The contract the move message belongs to (the moved note's new contract) */
+	let moveFeedbackContractId: string | null = null;
 	let moveFeedbackTimeout: ReturnType<typeof setTimeout> | undefined;
+	let sortOrder = $state<NoteSortOrder>(loadSortPreference());
+	let lastNewNoteClick = 0;
+	/** Notes announced by `note-created`; kept if a list fetch started before they existed */
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity -- bookkeeping only, never rendered
+	const createdWhileLoading = new Map<string, NoteSummary>();
 
-	const MOVE_FEEDBACK_DURATION_MS = 4000;
+	let searchQuery = $state('');
+	let searchResults = $state<NoteSearchResult[]>([]);
+	let isSearching = $state(false);
+	let searchTimer: ReturnType<typeof setTimeout> | undefined;
+	let searchRequestCounter = 0;
 
-	/**
-	 * Fetch notes for the currently selected contract.
-	 */
+	let sortedNotes = $derived(sortNotes(notesList, sortOrder));
+	let isDraftOpen = $derived(
+		!navigationContext.selectedNoteId &&
+			noteDraft.contractId !== null &&
+			noteDraft.contractId === navigationContext.selectedContractId
+	);
+
 	async function fetchNotesForContract(contractId: string) {
 		isLoading = true;
 		fetchError = null;
-
 		try {
-			notesList = await dataService.getNotesForContract(contractId);
+			createdWhileLoading.clear();
+			const loadedNotes = await dataService.getNotesForContract(contractId);
+			if (navigationContext.selectedContractId === contractId) {
+				const missing = [...createdWhileLoading.values()].filter(
+					(created) => created.contractId === contractId && !loadedNotes.some((note) => note.id === created.id)
+				);
+				notesList = [...missing, ...loadedNotes];
+			}
 		} catch (error) {
 			fetchError = error instanceof Error ? error.message : 'An error occurred';
 			console.error('Error loading notes:', error);
@@ -36,161 +64,190 @@
 	}
 
 	/**
-	 * Create a new note for the selected contract, then select it.
+	 * New Note opens an empty draft editor with focus; the note is only created once
+	 * something is typed. Repeated clicks reuse the open draft.
 	 */
-	async function handleCreateNote() {
+	function handleCreateNote() {
 		const contractId = navigationContext.selectedContractId;
-		if (!contractId || isCreating) return;
+		if (!contractId) return;
+		const now = Date.now();
+		if (now - lastNewNoteClick < NEW_NOTE_DEBOUNCE_MS) return;
+		lastNewNoteClick = now;
 
-		isCreating = true;
-		fetchError = null;
-
-		try {
-			const createdNote = await dataService.createNote(contractId);
-
-			// Prepend the new note to the list (it will appear at the top)
-			notesList = [
-				{
-					...createdNote,
-					firstLine: '',
-					secondLine: ''
-				},
-				...notesList
-			];
-
-			// Select the newly created note
-			navigationContext.selectNote(createdNote.id);
-		} catch (error) {
-			fetchError = error instanceof Error ? error.message : 'Failed to create note';
-			console.error('Error creating note:', error);
-		} finally {
-			isCreating = false;
-		}
+		navigationContext.clearSelectedNote();
+		startNoteDraft(contractId);
+		navigationContext.navigateMobile(2);
 	}
 
-	/**
-	 * Delete the currently selected note.
-	 */
-	async function handleDeleteSelectedNote() {
-		const noteId = navigationContext.selectedNoteId;
-		if (!noteId) return;
-
-		const confirmed = window.confirm(
-			'Are you sure you want to delete this note? This cannot be undone.'
-		);
-		if (!confirmed) return;
-
-		try {
-			await dataService.deleteNote(noteId);
-
-			// Remove from local list
-			notesList = notesList.filter((note) => note.id !== noteId);
-
-			// Clear selection
-			navigationContext.clearSelectedNote();
-		} catch (error) {
-			console.error('Error deleting note:', error);
-			alert('Failed to delete note. Please try again.');
-		}
-	}
-
-	/**
-	 * Handle clicking a note in the list.
-	 */
 	function handleNoteClick(noteId: string) {
+		endNoteDraft();
 		navigationContext.selectNote(noteId);
 	}
 
-	// Re-fetch notes whenever the selected contract changes
-	$effect(() => {
-		const contractId = navigationContext.selectedContractId;
-		if (contractId) {
-			fetchNotesForContract(contractId);
-		} else {
-			notesList = [];
-		}
-	});
-
-	/** Handle note-saved events from NoteEditorPanel — update preview in-place */
-	function handleNoteSaved(event: Event) {
-		const { noteId, firstLine, secondLine, updatedAt } = (event as CustomEvent).detail;
-		const noteIndex = notesList.findIndex((note) => note.id === noteId);
-		if (noteIndex !== -1) {
-			notesList[noteIndex] = {
-				...notesList[noteIndex],
-				firstLine,
-				secondLine,
-				updatedAt
-			};
-		}
+	function toggleSortOrder() {
+		sortOrder = sortOrder === 'modified' ? 'created' : 'modified';
+		saveSortPreference(sortOrder);
 	}
 
-	/** Fields of the `note-moved` event detail (dispatched by NoteEditorPanel) that this panel uses */
-	interface NoteMovedEventDetail {
-		noteId: string;
-		toContractName: string | null;
-		toClientName: string | null;
-	}
-
-	/**
-	 * Handle note-moved events — remove the note from this list since it changed
-	 * contracts, and confirm the move here because clearing the selection unmounts
-	 * the editor header where the message would otherwise have lived.
-	 */
-	function handleNoteMoved(event: Event) {
-		const { noteId, toContractName, toClientName } = (event as CustomEvent<NoteMovedEventDetail>).detail;
-		notesList = notesList.filter((note) => note.id !== noteId);
-		if (navigationContext.selectedNoteId === noteId) {
-			navigationContext.clearSelectedNote();
-		}
-
-		const destinationLabel = [toClientName, toContractName].filter(Boolean).join(' / ');
-		showMoveFeedback(destinationLabel ? `Moved to ${destinationLabel}` : 'Note moved');
-	}
-
-	/** Show a transient confirmation under the header; any previous one is replaced */
-	function showMoveFeedback(message: string) {
+	function showMoveFeedback(message: string, contractId: string) {
 		moveFeedback = message;
+		moveFeedbackContractId = contractId;
 		clearTimeout(moveFeedbackTimeout);
 		moveFeedbackTimeout = setTimeout(() => {
 			moveFeedback = null;
 		}, MOVE_FEEDBACK_DURATION_MS);
 	}
 
-	onMount(() => {
-		window.addEventListener('note-saved', handleNoteSaved);
-		window.addEventListener('note-moved', handleNoteMoved);
+	function clearMoveFeedback() {
+		moveFeedback = null;
+		clearTimeout(moveFeedbackTimeout);
+	}
+
+	// -- Search across all contracts --
+
+	function handleSearchInput() {
+		clearTimeout(searchTimer);
+		const query = searchQuery.trim();
+		if (!query) {
+			searchResults = [];
+			isSearching = false;
+			return;
+		}
+		isSearching = true;
+		searchTimer = setTimeout(() => void runSearch(query), SEARCH_DEBOUNCE_MS);
+	}
+
+	async function runSearch(query: string) {
+		const requestNumber = ++searchRequestCounter;
+		try {
+			const results = await dataService.searchNotes(query, { limit: 25 });
+			if (requestNumber === searchRequestCounter) searchResults = results;
+		} catch (error) {
+			console.error('Error searching notes:', error);
+			if (requestNumber === searchRequestCounter) searchResults = [];
+		} finally {
+			if (requestNumber === searchRequestCounter) isSearching = false;
+		}
+	}
+
+	function clearSearch() {
+		searchQuery = '';
+		searchResults = [];
+		isSearching = false;
+		clearTimeout(searchTimer);
+	}
+
+	function openSearchResult(result: NoteSearchResult) {
+		endNoteDraft();
+		navigationContext.openNote(result.id, result.contractId, result.clientId);
+	}
+
+	// Re-fetch notes, and drop transient state, whenever the selected contract changes
+	$effect(() => {
+		const contractId = navigationContext.selectedContractId;
+		untrack(() => {
+			// A move switches to the destination contract; its message stays there only
+			if (contractId !== moveFeedbackContractId) clearMoveFeedback();
+			if (contractId) {
+				void fetchNotesForContract(contractId);
+			} else {
+				notesList = [];
+			}
+		});
 	});
 
-	onDestroy(() => {
-		window.removeEventListener('note-saved', handleNoteSaved);
-		window.removeEventListener('note-moved', handleNoteMoved);
-		clearTimeout(moveFeedbackTimeout);
+	onMount(() => {
+		const unsubscribers = [
+			onNoteEvent('note-created', (detail) => {
+				if (detail.contractId !== navigationContext.selectedContractId) return;
+				const createdNote: NoteSummary = {
+					id: detail.noteId,
+					contractId: detail.contractId,
+					isPinned: false,
+					createdAt: detail.createdAt,
+					updatedAt: detail.updatedAt,
+					firstLine: detail.firstLine,
+					secondLine: detail.secondLine
+				};
+				createdWhileLoading.set(detail.noteId, createdNote);
+				if (notesList.some((note) => note.id === detail.noteId)) return;
+				notesList = [createdNote, ...notesList];
+			}),
+			onNoteEvent('note-saved', ({ noteId, firstLine, secondLine, updatedAt }) => {
+				const noteIndex = notesList.findIndex((note) => note.id === noteId);
+				if (noteIndex !== -1) {
+					notesList[noteIndex] = { ...notesList[noteIndex], firstLine, secondLine, updatedAt };
+				}
+			}),
+			onNoteEvent('note-moved', ({ noteId, toContractId, toContractName, toClientName }) => {
+				// The editor panel then opens the note under its new contract, so this list
+				// reloads for that contract and the message is shown there.
+				notesList = notesList.filter((note) => note.id !== noteId);
+				const destinationLabel = [toClientName, toContractName].filter(Boolean).join(' / ');
+				showMoveFeedback(destinationLabel ? `Moved to ${destinationLabel}` : 'Note moved', toContractId);
+			}),
+			onNoteEvent('note-deleted', ({ noteId }) => {
+				notesList = notesList.filter((note) => note.id !== noteId);
+			})
+		];
+		return () => {
+			unsubscribers.forEach((unsubscribe) => unsubscribe());
+			clearTimeout(moveFeedbackTimeout);
+			clearTimeout(searchTimer);
+		};
 	});
 </script>
 
 <div class="flex h-full flex-col bg-stone-50">
 	<!-- Header -->
-	<div class="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-3">
+	<div class="flex items-center justify-between gap-2 border-b border-stone-200 bg-white px-4 py-3">
 		<h2 class="text-sm font-semibold text-stone-900">Notes</h2>
 		<div class="flex items-center gap-2">
-			{#if navigationContext.selectedNoteId}
-				<button
-					onclick={handleDeleteSelectedNote}
-					class="rounded-md px-2.5 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700"
-					title="Delete selected note"
-				>
-					Delete
-				</button>
-			{/if}
 			<button
+				type="button"
+				onclick={toggleSortOrder}
+				class="rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+				title="Change sort order"
+				data-testid="note-sort-toggle"
+			>
+				{sortOrder === 'modified' ? 'Modified ↓' : 'Created ↓'}
+			</button>
+			<button
+				type="button"
 				onclick={handleCreateNote}
-				disabled={isCreating || !navigationContext.selectedContractId}
+				disabled={!navigationContext.selectedContractId}
 				class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700
 					disabled:cursor-not-allowed disabled:opacity-50"
 			>
-				{isCreating ? 'Creating...' : 'New Note'}
+				New Note
 			</button>
+		</div>
+	</div>
+
+	<!-- Search across all contracts -->
+	<div class="border-b border-stone-200 bg-white px-3 py-2">
+		<div class="relative">
+			<input
+				type="text"
+				role="searchbox"
+				bind:value={searchQuery}
+				oninput={handleSearchInput}
+				onkeydown={(event) => event.key === 'Escape' && clearSearch()}
+				placeholder="Search all notes"
+				aria-label="Search all notes"
+				data-testid="note-search-input"
+				class="w-full rounded-md border border-stone-200 bg-stone-50 py-1.5 pl-2.5 pr-7 text-sm text-stone-800 placeholder:text-stone-400 focus:border-blue-400 focus:bg-white focus:outline-none"
+			/>
+			{#if searchQuery}
+				<button
+					type="button"
+					onclick={clearSearch}
+					class="absolute right-1.5 top-1/2 -translate-y-1/2 px-1 text-stone-400 hover:text-stone-600"
+					aria-label="Clear search"
+				>
+					&times;
+				</button>
+			{/if}
 		</div>
 	</div>
 
@@ -205,9 +262,15 @@
 		</div>
 	{/if}
 
-	<!-- Note list -->
 	<div class="flex-1 overflow-y-auto">
-		{#if isLoading}
+		{#if searchQuery.trim()}
+			<NoteSearchResults
+				results={searchResults}
+				{isSearching}
+				selectedNoteId={navigationContext.selectedNoteId}
+				onOpen={openSearchResult}
+			/>
+		{:else if isLoading}
 			<div class="flex items-center justify-center py-8">
 				<div class="text-sm text-stone-500">Loading notes...</div>
 			</div>
@@ -215,24 +278,22 @@
 			<div class="mx-4 mt-4 rounded-md bg-red-50 p-4">
 				<p class="text-sm text-red-800">{fetchError}</p>
 			</div>
-		{:else if notesList.length === 0}
-			<div class="flex flex-col items-center justify-center px-4 py-8 text-center">
-				<div class="text-sm text-stone-500">No notes yet</div>
-				<p class="mt-1 text-xs text-stone-400">Create a note to start writing.</p>
-			</div>
 		{:else}
 			<div class="divide-y divide-stone-200">
-				{#each notesList as note (note.id)}
+				{#if isDraftOpen}
+					<div class="border-l-2 border-blue-600 bg-blue-50 px-4 py-3" data-testid="draft-note-row">
+						<div class="text-sm font-semibold text-stone-500 italic">New note</div>
+						<div class="text-xs text-stone-400">Not saved until you type</div>
+					</div>
+				{/if}
+				{#each sortedNotes as note (note.id)}
 					{@const isSelected = navigationContext.selectedNoteId === note.id}
 					<button
 						onclick={() => handleNoteClick(note.id)}
 						class="block w-full text-left transition-colors hover:bg-stone-100
-							{isSelected
-							? 'border-l-2 border-blue-600 bg-blue-50'
-							: 'border-l-2 border-transparent'}"
+							{isSelected ? 'border-l-2 border-blue-600 bg-blue-50' : 'border-l-2 border-transparent'}"
 					>
 						<div class="px-4 py-3">
-							<!-- First line: bold truncated title -->
 							<div class="mb-0.5 flex items-center gap-1.5">
 								{#if note.isPinned}
 									<span class="text-xs text-amber-500" title="Pinned">&#128204;</span>
@@ -241,10 +302,10 @@
 									{note.firstLine || 'Untitled'}
 								</span>
 							</div>
-
-							<!-- Second line: date prefix + second content line -->
 							<div class="truncate text-xs text-stone-500">
-								<span class="font-medium">{formatSmartDate(note.updatedAt)}</span>
+								<span class="font-medium">
+									{formatSmartDate(sortOrder === 'created' ? note.createdAt : note.updatedAt)}
+								</span>
 								{#if note.secondLine}
 									<span class="ml-1.5 text-stone-400">{note.secondLine}</span>
 								{/if}
@@ -253,6 +314,12 @@
 					</button>
 				{/each}
 			</div>
+			{#if notesList.length === 0 && !isDraftOpen}
+				<div class="flex flex-col items-center justify-center px-4 py-8 text-center">
+					<div class="text-sm text-stone-500">No notes yet</div>
+					<p class="mt-1 text-xs text-stone-400">Create a note to start writing.</p>
+				</div>
+			{/if}
 		{/if}
 	</div>
 </div>

@@ -1,13 +1,16 @@
 import { eq, inArray } from 'drizzle-orm';
-import { database, notes } from '$lib/server/db';
+import { database, notes, contracts } from '$lib/server/db';
 import { noteLinks } from '$lib/server/db/schema/note-links';
 import { parseWikiLinks } from './wiki-link-parser';
 import { decryptNullable } from '$lib/server/crypto/server-cipher';
+import { noteDisplayTitle } from '$lib/utils/note-display-title';
 
 export { parseWikiLinks } from './wiki-link-parser';
 
 /**
  * Get all notes that link TO a given note (backlinks).
+ * `noteTitle` is the source note's display title (stored title, else first line);
+ * contract and client IDs let the UI open a source note in another contract.
  */
 export async function getBacklinksForNote(targetNoteId: string) {
 	const rows = await database
@@ -15,14 +18,23 @@ export async function getBacklinksForNote(targetNoteId: string) {
 			sourceNoteId: noteLinks.sourceNoteId,
 			headingAnchor: noteLinks.headingAnchor,
 			noteTitle: notes.title,
-			noteContractId: notes.contractId
+			noteContentJson: notes.contentJson,
+			noteContractId: notes.contractId,
+			noteClientId: contracts.clientId
 		})
 		.from(noteLinks)
 		.innerJoin(notes, eq(noteLinks.sourceNoteId, notes.id))
+		.innerJoin(contracts, eq(notes.contractId, contracts.id))
 		.where(eq(noteLinks.targetNoteId, targetNoteId));
 
-	// notes.title is encrypted at rest
-	return rows.map((row) => ({ ...row, noteTitle: decryptNullable(row.noteTitle, 'notes.title') }));
+	// notes.title and notes.content_json are encrypted at rest
+	return rows.map(({ noteContentJson, ...row }) => ({
+		...row,
+		noteTitle: noteDisplayTitle(
+			decryptNullable(row.noteTitle, 'notes.title'),
+			decryptNullable(noteContentJson, 'notes.content_json')
+		)
+	}));
 }
 
 /**

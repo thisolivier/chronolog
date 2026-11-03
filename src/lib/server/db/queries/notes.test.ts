@@ -1,7 +1,14 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { database, clients, contracts, notes, users } from '$lib/server/db';
 import { eq } from 'drizzle-orm';
-import { getNextNoteId, createNoteForUser, searchNotesForUser } from './notes';
+import {
+	getNextNoteId,
+	createNoteForUser,
+	searchNotesForUser,
+	updateNoteForUser,
+	NoteConflictError
+} from './notes';
+import { rankNoteMatch } from './note-search';
 
 describe('Note ID Generation', () => {
 	let testUserId: string;
@@ -175,5 +182,87 @@ describe('searchNotesForUser', () => {
 
 		const missingResults = await searchNotesForUser(testUserId, `no-such-term-${uniqueSuffix}`);
 		expect(missingResults).toHaveLength(0);
+	});
+
+	it('ranks an exact ID match first even when a newer note mentions that ID (R2)', async () => {
+		const mentioningNote = await createNoteForUser(
+			testUserId,
+			testContractId,
+			'',
+			`See [[${createdNoteId}]] for context`,
+			JSON.stringify({ type: 'doc', content: [] })
+		);
+		const results = await searchNotesForUser(testUserId, createdNoteId);
+		expect(results[0].id).toBe(createdNoteId);
+		expect(results.map((note) => note.id)).toContain(mentioningNote.id);
+	});
+
+	it('excludes the note being edited and returns contract details', async () => {
+		const results = await searchNotesForUser(testUserId, `zebra pricing ${uniqueSuffix}`, {
+			excludeNoteId: createdNoteId
+		});
+		expect(results.map((note) => note.id)).not.toContain(createdNoteId);
+
+		const withContract = await searchNotesForUser(testUserId, createdNoteId);
+		expect(withContract[0]).toMatchObject({
+			contractName: 'Search Contract',
+			clientName: 'Search Client',
+			clientShortCode: 'SRCH',
+			displayTitle: `Alpha title ${uniqueSuffix}`
+		});
+	});
+
+	it('returns recent notes for an empty query', async () => {
+		const results = await searchNotesForUser(testUserId, '');
+		expect(results.length).toBeGreaterThan(0);
+	});
+});
+
+describe('rankNoteMatch', () => {
+	it('orders exact id, id prefix, title, id substring, body', () => {
+		const rank = (needle: string) => rankNoteMatch(needle, 'ACME.20261103.002', 'Kickoff plan', 'body text');
+		expect(rank('acme.20261103.002')).toBe(0);
+		expect(rank('acme.2026')).toBe(1);
+		expect(rank('kickoff')).toBe(2);
+		expect(rank('1103.002')).toBe(3);
+		expect(rank('body')).toBe(4);
+		expect(rank('nothing')).toBeNull();
+	});
+});
+
+describe('updateNoteForUser conflict detection', () => {
+	const suffix = `${Date.now()}-conflict`;
+	const userId = `test-notes-conflict-${suffix}`;
+	let clientId: string;
+	let contractId: string;
+
+	beforeAll(async () => {
+		await database.insert(users).values({ id: userId, name: 'Conflict', email: `${userId}@example.com` });
+		clientId = (await database.insert(clients).values({ userId, name: 'Conflict Client', shortCode: 'CNFL' }).returning())[0].id;
+		contractId = (await database.insert(contracts).values({ clientId, name: 'Conflict Contract', isActive: true }).returning())[0].id;
+	});
+
+	afterAll(async () => {
+		await database.delete(notes).where(eq(notes.userId, userId));
+		await database.delete(contracts).where(eq(contracts.id, contractId));
+		await database.delete(clients).where(eq(clients.id, clientId));
+		await database.delete(users).where(eq(users.id, userId));
+	});
+
+	it('saves when expectedUpdatedAt matches, even for a freshly created note', async () => {
+		const created = await createNoteForUser(userId, contractId, 'one', 'one', undefined);
+		const updated = await updateNoteForUser(userId, created.id, 'two', 'two', undefined, undefined, new Date(created.updatedAt));
+		expect(updated?.content).toBe('two');
+		const again = await updateNoteForUser(userId, created.id, 'three', 'three', undefined, undefined, new Date(updated!.updatedAt));
+		expect(again?.content).toBe('three');
+	});
+
+	it('refuses a save based on an outdated copy', async () => {
+		const created = await createNoteForUser(userId, contractId, 'base', 'base', undefined);
+		const staleTimestamp = new Date(created.updatedAt);
+		await updateNoteForUser(userId, created.id, 'tab one', 'tab one', undefined, undefined, staleTimestamp);
+		await expect(
+			updateNoteForUser(userId, created.id, 'tab two', 'tab two', undefined, undefined, staleTimestamp)
+		).rejects.toBeInstanceOf(NoteConflictError);
 	});
 });
