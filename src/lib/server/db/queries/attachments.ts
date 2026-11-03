@@ -1,5 +1,11 @@
 import { eq } from 'drizzle-orm';
 import { database, attachments } from '$lib/server/db';
+import {
+	decryptAttachmentBytes,
+	decryptText,
+	encryptAttachmentBytes,
+	encryptText
+} from '$lib/server/crypto/server-cipher';
 
 export type AttachmentMetadata = {
 	id: string;
@@ -13,6 +19,17 @@ export type AttachmentMetadata = {
 export type Attachment = AttachmentMetadata & {
 	data: Buffer;
 };
+
+type AttachmentRow = typeof attachments.$inferSelect;
+
+/** `attachments.filename` and `attachments.data` are encrypted at rest. */
+function decryptAttachment(row: AttachmentRow): Attachment {
+	return {
+		...row,
+		filename: decryptText(row.filename, 'attachments.filename'),
+		data: decryptAttachmentBytes(row.data, 'attachments.data')
+	};
+}
 
 /**
  * Create a new attachment stored as bytea in the database.
@@ -28,14 +45,14 @@ export async function createAttachment(
 		.insert(attachments)
 		.values({
 			noteId,
-			filename,
+			filename: encryptText(filename),
 			mimeType,
 			sizeBytes,
-			data
+			data: encryptAttachmentBytes(data)
 		})
 		.returning();
 
-	return results[0] as Attachment;
+	return decryptAttachment(results[0]);
 }
 
 /**
@@ -54,7 +71,10 @@ export async function listAttachmentsForNote(noteId: string): Promise<Attachment
 		.from(attachments)
 		.where(eq(attachments.noteId, noteId));
 
-	return results;
+	return results.map((row) => ({
+		...row,
+		filename: decryptText(row.filename, 'attachments.filename')
+	}));
 }
 
 /**
@@ -69,7 +89,7 @@ export async function getAttachment(attachmentId: string): Promise<Attachment | 
 
 	if (results.length === 0) return null;
 
-	return results[0] as Attachment;
+	return decryptAttachment(results[0]);
 }
 
 /**

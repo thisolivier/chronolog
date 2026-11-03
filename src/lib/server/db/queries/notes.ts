@@ -1,6 +1,26 @@
-import { eq, and, desc, like, or, ilike } from "drizzle-orm";
+import { eq, and, desc, like } from "drizzle-orm";
 import { database, notes, noteTimeEntries, contracts, clients, timeEntries } from "$lib/server/db";
 import { extractPreviewLines } from '$lib/utils/extract-preview-lines';
+import { decryptNullable, decryptText, encryptNullable } from '$lib/server/crypto/server-cipher';
+
+type NoteRow = typeof notes.$inferSelect;
+
+/**
+ * `notes.title`, `notes.content` and `notes.content_json` are encrypted at rest;
+ * every row leaving this module is decrypted. Note IDs stay plaintext (structure, not content).
+ */
+function decryptNote(row: NoteRow): NoteRow {
+	return {
+		...row,
+		title: decryptNullable(row.title, 'notes.title'),
+		content: decryptNullable(row.content, 'notes.content'),
+		contentJson: decryptNullable(row.contentJson, 'notes.content_json')
+	};
+}
+
+function decryptOptionalNote(row: NoteRow | undefined): NoteRow | null {
+	return row ? decryptNote(row) : null;
+}
 
 export async function listNotesForContract(userId: string, contractId: string) {
 	const results = await database
@@ -8,7 +28,7 @@ export async function listNotesForContract(userId: string, contractId: string) {
 		.from(notes)
 		.where(and(eq(notes.userId, userId), eq(notes.contractId, contractId)))
 		.orderBy(desc(notes.isPinned), desc(notes.updatedAt));
-	return results;
+	return results.map(decryptNote);
 }
 
 export async function getNoteForUser(noteId: string, userId: string) {
@@ -17,7 +37,7 @@ export async function getNoteForUser(noteId: string, userId: string) {
 		.from(notes)
 		.where(and(eq(notes.id, noteId), eq(notes.userId, userId)))
 		.limit(1);
-	return results[0] ?? null;
+	return decryptOptionalNote(results[0]);
 }
 
 /**
@@ -82,13 +102,13 @@ export async function createNoteForUser(
 			id: noteId,
 			userId,
 			contractId,
-			title: title ?? null,
-			content: content ?? null,
-			contentJson: contentJson ?? null,
+			title: encryptNullable(title ?? null),
+			content: encryptNullable(content ?? null),
+			contentJson: encryptNullable(contentJson ?? null),
 			wordCount
 		})
 		.returning();
-	return results[0];
+	return decryptNote(results[0]);
 }
 
 export async function updateNoteForUser(
@@ -111,13 +131,13 @@ export async function updateNoteForUser(
 	};
 
 	if (title !== undefined) {
-		updateData.title = title;
+		updateData.title = encryptNullable(title);
 	}
 	if (content !== undefined) {
-		updateData.content = content;
+		updateData.content = encryptNullable(content);
 	}
 	if (contentJson !== undefined) {
-		updateData.contentJson = contentJson;
+		updateData.contentJson = encryptNullable(contentJson);
 		updateData.wordCount = calculateWordCountFromJson(contentJson);
 	}
 	if (contractId !== undefined) {
@@ -129,7 +149,7 @@ export async function updateNoteForUser(
 		.set(updateData)
 		.where(and(eq(notes.id, noteId), eq(notes.userId, userId)))
 		.returning();
-	return results[0] ?? null;
+	return decryptOptionalNote(results[0]);
 }
 
 export async function deleteNoteForUser(userId: string, noteId: string) {
@@ -139,7 +159,7 @@ export async function deleteNoteForUser(userId: string, noteId: string) {
 		.delete(notes)
 		.where(and(eq(notes.id, noteId), eq(notes.userId, userId)))
 		.returning();
-	return results[0] ?? null;
+	return decryptOptionalNote(results[0]);
 }
 
 export async function linkTimeEntryToNote(noteId: string, timeEntryId: string, headingAnchor?: string) {
@@ -159,7 +179,7 @@ export async function unlinkTimeEntryFromNote(noteId: string, timeEntryId: strin
 }
 
 export async function getLinkedTimeEntriesForNote(noteId: string, userId: string) {
-	return database
+	const rows = await database
 		.select({
 			timeEntryId: noteTimeEntries.timeEntryId,
 			noteId: noteTimeEntries.noteId,
@@ -182,47 +202,64 @@ export async function getLinkedTimeEntriesForNote(noteId: string, userId: string
 			)
 		)
 		.orderBy(desc(timeEntries.date));
+
+	return rows.map((row) => ({
+		...row,
+		description: decryptNullable(row.description, 'time_entries.description'),
+		contractName: decryptText(row.contractName, 'contracts.name'),
+		clientName: decryptText(row.clientName, 'clients.name')
+	}));
 }
 
 /**
- * Search a user's notes by ID, title or markdown body content.
+ * Search a user's notes by ID, title or markdown body content (case-insensitive substring).
+ * Titles and content are encrypted at rest, so this loads the user's notes newest-first,
+ * decrypts them and filters in memory (single user, small data), stopping at `limit`.
  * Returns the first two content lines for each match so the `[[` autocomplete
  * can show a preview of the note.
  */
 export async function searchNotesForUser(userId: string, query: string, limit: number = 10) {
-	const searchPattern = `%${query}%`;
+	const needle = query.toLowerCase();
+	const contains = (value: string | null) => value !== null && value.toLowerCase().includes(needle);
 
 	const rows = await database
 		.select({
 			id: notes.id,
 			title: notes.title,
 			contractId: notes.contractId,
+			content: notes.content,
 			contentJson: notes.contentJson
 		})
 		.from(notes)
-		.where(
-			and(
-				eq(notes.userId, userId),
-				or(
-					ilike(notes.id, searchPattern),
-					ilike(notes.title, searchPattern),
-					ilike(notes.content, searchPattern)
-				)
-			)
-		)
-		.orderBy(desc(notes.updatedAt))
-		.limit(limit);
+		.where(eq(notes.userId, userId))
+		.orderBy(desc(notes.updatedAt));
 
-	return rows.map((row) => {
-		const preview = extractPreviewLines(row.contentJson);
-		return {
+	const matches: Array<{
+		id: string;
+		title: string | null;
+		contractId: string;
+		firstLine: string;
+		secondLine: string;
+	}> = [];
+
+	for (const row of rows) {
+		if (matches.length >= limit) break;
+		const title = decryptNullable(row.title, 'notes.title');
+		const isMatch =
+			contains(row.id) || contains(title) || contains(decryptNullable(row.content, 'notes.content'));
+		if (!isMatch) continue;
+
+		const preview = extractPreviewLines(decryptNullable(row.contentJson, 'notes.content_json'));
+		matches.push({
 			id: row.id,
-			title: row.title,
+			title,
 			contractId: row.contractId,
 			firstLine: preview.firstLine,
 			secondLine: preview.secondLine
-		};
-	});
+		});
+	}
+
+	return matches;
 }
 
 // Re-export from shared utility so existing server imports keep working

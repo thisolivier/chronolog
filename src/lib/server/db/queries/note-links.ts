@@ -2,6 +2,7 @@ import { eq, inArray } from 'drizzle-orm';
 import { database, notes } from '$lib/server/db';
 import { noteLinks } from '$lib/server/db/schema/note-links';
 import { parseWikiLinks } from './wiki-link-parser';
+import { decryptNullable } from '$lib/server/crypto/server-cipher';
 
 export { parseWikiLinks } from './wiki-link-parser';
 
@@ -9,7 +10,7 @@ export { parseWikiLinks } from './wiki-link-parser';
  * Get all notes that link TO a given note (backlinks).
  */
 export async function getBacklinksForNote(targetNoteId: string) {
-	return database
+	const rows = await database
 		.select({
 			sourceNoteId: noteLinks.sourceNoteId,
 			headingAnchor: noteLinks.headingAnchor,
@@ -19,6 +20,9 @@ export async function getBacklinksForNote(targetNoteId: string) {
 		.from(noteLinks)
 		.innerJoin(notes, eq(noteLinks.sourceNoteId, notes.id))
 		.where(eq(noteLinks.targetNoteId, targetNoteId));
+
+	// notes.title is encrypted at rest
+	return rows.map((row) => ({ ...row, noteTitle: decryptNullable(row.noteTitle, 'notes.title') }));
 }
 
 /**
