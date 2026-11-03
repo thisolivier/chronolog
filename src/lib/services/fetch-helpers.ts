@@ -5,6 +5,20 @@
  * the user is redirected to the login page with a session-expired message.
  */
 
+import { connectivity } from '$lib/stores/connectivity.svelte';
+
+/**
+ * Last successful JSON body per GET URL. When the network is down, a GET that was loaded before
+ * returns this copy instead of failing, so the timesheet keeps showing the last loaded week
+ * (with the offline banner saying so) instead of "No entries". Writes are never cached or queued.
+ */
+const lastLoadedResponses = new Map<string, unknown>();
+
+/** Clear the offline read cache — used in tests only. */
+export function _resetLastLoadedResponses(): void {
+	lastLoadedResponses.clear();
+}
+
 /** Event dispatched when a session expiry is detected on reconnect */
 export class SessionExpiredError extends Error {
 	constructor(statusCode: number, url: string) {
@@ -38,7 +52,20 @@ export async function fetchJson<ResponseType>(
 	url: string,
 	options?: RequestInit
 ): Promise<ResponseType> {
-	const response = await fetch(url, options);
+	const isRead = (options?.method ?? 'GET').toUpperCase() === 'GET';
+	let response: Response;
+	try {
+		response = await fetch(url, options);
+	} catch (networkError) {
+		// fetch() only rejects when the request never got a response: offline or server down
+		if (networkError instanceof Error && networkError.name === 'AbortError') throw networkError;
+		connectivity.reportNetworkFailure();
+		if (isRead && lastLoadedResponses.has(url)) {
+			return lastLoadedResponses.get(url) as ResponseType;
+		}
+		throw networkError;
+	}
+	connectivity.reportNetworkSuccess();
 
 	// Detect session expiry: 401 Unauthorized or 303 redirect to login
 	if (response.status === 401 || (response.status === 303 && response.headers.get('location')?.includes('/login'))) {
@@ -52,7 +79,9 @@ export async function fetchJson<ResponseType>(
 			`${options?.method ?? 'GET'} ${url} failed (${response.status}): ${errorText}`
 		);
 	}
-	return response.json() as Promise<ResponseType>;
+	const body = (await response.json()) as ResponseType;
+	if (isRead) lastLoadedResponses.set(url, body);
+	return body;
 }
 
 export async function postJson<ResponseType>(url: string, body: unknown): Promise<ResponseType> {
