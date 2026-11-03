@@ -119,12 +119,12 @@ Tracked via a backlinks index, extracted from `[[wiki-link]]` syntax in markdown
 - **Node.js crypto** (AES-256-GCM) for application-level encryption
 
 ### Deployment
-- **Desktop (Tauri)**: Built with `cargo tauri build`, distributed as macOS `.app` bundle / `.dmg` installer. Auto-updates via `tauri-plugin-updater`.
-- **Server / PWA**: **Coolify** on a **Hetzner** CX22 VPS (~EUR 4-6/mo)
-  - Automatic HTTPS via Let's Encrypt
-  - Built-in scheduled PostgreSQL backups to S3-compatible storage
-  - Git-push deploys
-- **Alternative server**: Docker Compose + Caddy on any VPS
+- **Production**: the app and PostgreSQL run as a two-container Docker Compose stack (`docker-compose.prod.yml`) on the Mac mini under OrbStack.
+  - The app listens on `127.0.0.1:3123`; PostgreSQL publishes no host port.
+  - Reached at `chronolog.throb.online` through the existing Cloudflare Tunnel.
+  - A self-managed device access key gates access before login.
+  - Nightly `pg_dump` backups run from launchd at 03:30.
+  - Details: `docs/DEPLOYMENT.md`.
 
 ### Offline Strategy
 
@@ -162,7 +162,7 @@ The app is **online-first**. The server (SvelteKit API routes over PostgreSQL) i
 | Editor | TipTap | Best Svelte 5 support; Suggestion system maps directly to wiki-links; markdown serialisation built-in |
 | Sync approach | Custom last-write-wins | Simple, sufficient for 2-3 users, avoids CRDT complexity |
 | Auth | Better Auth | First-class SvelteKit + TOTP support; avoids building auth from scratch |
-| Deployment | Coolify on Hetzner | Web UI, built-in backups, git-push deploys, ~EUR 5/mo |
+| Deployment | Mac mini (OrbStack) behind the existing Cloudflare Tunnel | App and Postgres containerised on the owner's Mac mini; no VPS. Access gated by a self-managed device key (`docs/decisions.md`, 2026-11-03) |
 
 ## Note ID System
 
