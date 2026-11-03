@@ -6,6 +6,13 @@
 	let { data, form } = $props();
 
 	let showCreateForm = $state(false);
+
+	// Default a new client to the first palette colour no existing client uses, so clients differ by default
+	const suggestedColorIndex = $derived.by(() => {
+		const usedColorIndexes = new Set(data.clients.map((client) => client.colorIndex % CLIENT_COLORS.length));
+		const firstUnused = CLIENT_COLORS.findIndex((_, colorIndex) => !usedColorIndexes.has(colorIndex));
+		return firstUnused === -1 ? data.clients.length % CLIENT_COLORS.length : firstUnused;
+	});
 </script>
 
 <div class="space-y-6">
@@ -84,6 +91,7 @@
 						<select
 							id="new-client-color"
 							name="color_index"
+							value={suggestedColorIndex}
 							class="mt-1 block w-full rounded-md border border-stone-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 						>
 							{#each CLIENT_COLORS as color, colorIndex (colorIndex)}
