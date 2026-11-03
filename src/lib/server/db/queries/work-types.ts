@@ -34,14 +34,6 @@ export async function updateWorkType(
 	return results[0] ?? null;
 }
 
-export async function deleteWorkType(workTypeId: string, deliverableId: string) {
-	const results = await database
-		.delete(workTypes)
-		.where(and(eq(workTypes.id, workTypeId), eq(workTypes.deliverableId, deliverableId)))
-		.returning();
-	return results[0] ?? null;
-}
-
 export async function reorderWorkTypes(
 	deliverableId: string,
 	orderedWorkTypeIds: string[]
