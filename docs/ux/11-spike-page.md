@@ -1,3 +1,5 @@
+> **Deleted in sprint 021-CL** (PowerSync removed); the `/spike` route no longer exists — see git history.
+
 # Spike Page (`/spike`)
 
 ## Overview

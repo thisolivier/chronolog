@@ -81,12 +81,6 @@ export default defineConfig({
 	server: {
 		allowedHosts: ['app']
 	},
-	optimizeDeps: {
-		exclude: ['@powersync/web']
-	},
-	worker: {
-		format: 'es'
-	},
 	test: {
 		include: ['src/**/*.test.ts'],
 		exclude: ['src/e2e/**', 'node_modules/**']

@@ -48,6 +48,6 @@ export default ts.config(
 		},
 	},
 	{
-		ignores: ['build/', '.svelte-kit/', 'dist/', 'src-tauri/'],
+		ignores: ['build/', '.svelte-kit/', 'dist/', 'src-tauri/', 'playwright-report/', 'test-results/', '.claude/'],
 	},
 );
