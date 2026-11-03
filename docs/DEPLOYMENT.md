@@ -1,134 +1,248 @@
-# Building & Deploying Chronolog
+# Deploying Chronolog
 
-Chronolog has two deployment targets: a Tauri desktop app (macOS) and a server-hosted PWA.
+Production runs on the **Mac mini** (OrbStack) as a two-container Docker Compose stack, reached from
+the internet through the **existing Cloudflare Tunnel**. Decisions behind this are in
+[decisions.md](decisions.md) (2026-11-03); the review that led to it is
+[review/2026-11-03-infra-state.md](review/2026-11-03-infra-state.md).
 
-The production server stack is deliberately small: **the SvelteKit app + PostgreSQL**. There is no
-sync service, no second database and no extra configuration directory. Offline support is deferred
-to a future cache + outbox sprint and will not add server components.
-
-## Desktop App (Tauri)
-
-### Building
-
-```bash
-npm run tauri:build
+```
+browser / Tauri / CLI
+        │ https://chronolog.throb.online
+        ▼
+Cloudflare edge (TLS, rate-limit rules)
+        │ tunnel
+        ▼
+cloudflared (root LaunchDaemon on the Mac mini)
+        │ http://localhost:3123
+        ▼
+chronolog-prod-app  (127.0.0.1:3123 → :3000, node user, adapter-node)
+        │ compose network chronolog-prod-internal
+        ▼
+chronolog-prod-postgres  (no published port, volume chronolog-prod-postgres-data)
 ```
 
-This runs both the SvelteKit build (with `adapter-static` for local file serving) and the Rust/Tauri build. The output is a macOS `.app` bundle and `.dmg` installer in `src-tauri/target/release/bundle/`.
+Fetch mode only: there is no sync service. Offline support is a later cache + outbox sprint.
 
-### Requirements
+## Files
 
-- Rust toolchain (`rustup`)
-- Xcode Command Line Tools (macOS)
-- Node.js 20+
+| File | Purpose |
+|---|---|
+| `docker-compose.prod.yml` | App + Postgres. Project `chronolog-prod`; containers `chronolog-prod-app` / `chronolog-prod-postgres`; volume `chronolog-prod-postgres-data`. None of these can collide with the dev stack (project `chronolog`). |
+| `Dockerfile` | Multi-stage build on `node:22.23.4-alpine3.24`: `npm ci` + `vite build`, then a runtime stage with `build/`, `drizzle/`, `scripts/migrate.mjs` and production dependencies only, running as `node`. |
+| `scripts/migrate.mjs` | Applies pending Drizzle migrations on every container start (idempotent), before `node build`. |
+| `.env.prod.example` | Template for `.env.prod` (gitignored, excluded from the build context). |
+| `scripts/deploy-prod.sh` | Validate, build, start, wait for health, print the URL and first-account steps. |
+| `scripts/backup-postgres.sh`, `scripts/restore-postgres.sh` | Nightly `pg_dump -Fc` and restore into a named database. |
+| `scripts/launchd/` | LaunchAgent for the 03:30 backup, with install/uninstall steps. |
 
-### Distribution
+## Where to deploy from
 
-- **macOS**: The `.dmg` in `src-tauri/target/release/bundle/dmg/` can be distributed directly.
-- **Code signing & notarisation**: Required for distribution outside the Mac App Store. Configure signing identity in `src-tauri/tauri.conf.json` under `bundle > macOS`.
-- **Auto-updates**: Planned via `tauri-plugin-updater`. Requires hosting an update manifest (JSON file) at a public URL.
-
-## Server / PWA
-
-### Building
-
-```bash
-npm run build
-```
-
-This produces a Node.js server build (via `adapter-auto` / `adapter-node`) in the `build/` directory.
-
-### Running in production
+Deploy from a **dedicated clone** that only ever tracks `main`, so sprint worktrees and dev edits
+never rebuild production (the lisbonTiles / lisbonTiles-staging precedent):
 
 ```bash
-node build
+git clone <origin-url> ~/sites/chronolog-prod
+cd ~/sites/chronolog-prod
+cp .env.prod.example .env.prod && chmod 600 .env.prod   # then fill it in, see below
 ```
 
-The server listens on port 3000 by default. Set the `PORT` environment variable to change it.
+Any checkout works technically: the compose project name is fixed, so running the deploy from
+another checkout updates the same stack. Keep it to one.
 
-### Environment variables
+## Environment (`.env.prod`)
 
-Copy `.env.prod.example` to `.env.prod` and fill in real values. The app **refuses to boot** without
-`BETTER_AUTH_SECRET` and `ENCRYPTION_KEY` — there is no hard-coded fallback.
+Compose reads `.env.prod` through `--env-file` and passes each container only what it needs.
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | yes | PostgreSQL connection string (the compose file builds it from `POSTGRES_*`) |
-| `ENCRYPTION_KEY` | yes | 256-bit key for AES-256-GCM encryption at rest (`openssl rand -base64 32`) |
-| `BETTER_AUTH_SECRET` | yes | Session signing secret (`openssl rand -base64 32`) |
-| `BETTER_AUTH_URL` | yes | Public URL of the app (e.g. `https://chronolog.example.com`); also used as `ORIGIN` |
-| `ALLOW_REGISTRATION` | no | Default `false`: the `/register` page shows "Registration is closed on this instance" and the sign-up API refuses. See below |
-| `TRUSTED_ORIGINS` | no | Comma-separated extra origins Better Auth accepts in addition to `BETTER_AUTH_URL` (e.g. a Tailscale IP or LAN address you also open the app from) |
-| `POSTGRES_PASSWORD` | yes (compose) | Password for the bundled Postgres; `POSTGRES_USER` / `POSTGRES_DB` default to `chronolog` |
-| `APP_PORT` | no | Host port mapped to the app container (default `3000`) |
+| Variable | Required | Notes |
+|---|---|---|
+| `ENCRYPTION_KEY` | yes | `openssl rand -base64 32`. Encrypts data at rest. Keep a copy off the box (password manager); a backup is only restorable with the key that was live when it was taken. |
+| `BETTER_AUTH_SECRET` | yes | `openssl rand -base64 32`. Rotating it signs everyone out. |
+| `POSTGRES_PASSWORD` | yes | `openssl rand -hex 24` (hex: URL-safe in `DATABASE_URL`). Applied only when the volume is first created. |
+| `BETTER_AUTH_URL` | yes | `https://chronolog.throb.online`. Better Auth base URL and trusted origin. |
+| `ORIGIN` | no | adapter-node CSRF origin for form actions. Defaults to `BETTER_AUTH_URL`. |
+| `TRUSTED_ORIGINS` | no | Comma-separated extra origins Better Auth accepts (e.g. the Tauri app origin). |
+| `ALLOW_REGISTRATION` | no | Default `false`. `true` only while creating the first account. |
+| `APP_PORT` | no | Host port, default `3123` (bound to `127.0.0.1`). See [ports.md](ports.md). |
+| `POSTGRES_USER`, `POSTGRES_DB` | no | Default `chronolog`. |
 
-#### Creating the first account
+`DATABASE_URL` is assembled by the compose file from the `POSTGRES_*` values. A missing required
+variable stops `docker compose` with an explicit message before anything starts.
 
-Chronolog is a single-account-per-instance app and registration is closed by default. To create
-your account:
+Because `ORIGIN` is the public https origin, admin form actions only work through
+`https://chronolog.throb.online`; `http://127.0.0.1:3123` is for health checks and curl.
 
-1. Set `ALLOW_REGISTRATION=true` in `.env.prod` and start (or restart) the app.
-2. Open `/register`, create the account and enrol 2FA.
-3. Set `ALLOW_REGISTRATION=false` (or remove the line) and restart the app. The register page and
-   API are closed again; the existing account keeps working.
-
-### Docker deployment
-
-The repo ships a production `Dockerfile` (multi-stage Node 20 build; the container runs
-`drizzle-kit migrate` and then `node build`) and `docker-compose.prod.yml` with two services:
-
-| Service | Image | Purpose |
-|---------|-------|---------|
-| `app` | built from `Dockerfile` | SvelteKit server on port 3000 (host port `APP_PORT`) |
-| `postgres` | `postgres:17` | Application database, volume `postgres_data`, healthcheck gates app start |
+## First deploy
 
 ```bash
-cp .env.prod.example .env.prod   # fill in the secrets
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+cd ~/sites/chronolog-prod
+scripts/deploy-prod.sh
 ```
 
-Migrations run automatically on every app container start, so there is no separate migration step.
-Put a reverse proxy with HTTPS (Caddy, Traefik, or Coolify's built-in proxy) in front of port 3000
-and make sure `BETTER_AUTH_URL` matches the public URL it serves.
+The script refuses to run without `.env.prod` or when port 3123 belongs to something else. It then
+builds the image, starts Postgres, waits for it to be healthy, starts the app (which migrates the
+database), waits for the app healthcheck (`GET /login` → 200) and prints the URLs.
 
-### Recommended hosting: Coolify on Hetzner
+### First account
 
-The planned production setup (see [SPEC.md](SPEC.md) for details):
+Registration is closed by default and the instance holds a single account.
 
-- **Hetzner CX22 VPS** (~EUR 4-6/month)
-- **Coolify** for deployment management (web UI, git-push deploys)
-- **Automatic HTTPS** via Let's Encrypt
-- **PostgreSQL backups** to S3-compatible storage (built into Coolify)
+1. Set `ALLOW_REGISTRATION=true` in `.env.prod` and run `scripts/deploy-prod.sh`. Only the app
+   container is recreated; the database is untouched.
+2. Open `https://chronolog.throb.online/register`, create the account, then enrol 2FA under Settings.
+3. Set `ALLOW_REGISTRATION=false` and run `scripts/deploy-prod.sh` again.
+4. Check that `/register` says "Registration is closed on this instance."
 
-### Alternative: Docker Compose + Caddy
+Do steps 1 to 3 back to back: while the flag is on, anyone who finds the URL can register.
+Forgotten password: there is no tested production path yet. `npm run db:reset-password` needs a
+`DATABASE_URL` that reaches the database, production Postgres has no host port, and the runtime image
+does not ship `tsx` or that script. This is a follow-up from sprint 022.
 
-For a simpler self-hosted setup (for example on the Mac mini), run `docker-compose.prod.yml` as
-above and add a Caddy container in front of it for automatic HTTPS:
+## Updating
+
+```bash
+cd ~/sites/chronolog-prod
+scripts/backup-postgres.sh          # take a dump first (see Backups)
+git pull --ff-only
+scripts/deploy-prod.sh
+```
+
+Migrations run automatically on start. Run a single app replica only, because migrations are not
+coordinated between replicas.
+
+**Rollback:** `git checkout <previous commit> && scripts/deploy-prod.sh`. If the update included a
+migration, restore the pre-update dump as well (see Restore). Drizzle migrations only go forward.
+
+## Cloudflare Tunnel (owner, in the Cloudflare dashboard)
+
+The tunnel is the existing `cloudflared` root LaunchDaemon
+(`/Library/LaunchDaemons/com.cloudflare.cloudflared.plist`, `cloudflared tunnel run --token …`). It
+is **dashboard-managed**: there is no local `config.yml`, and nothing on the box needs editing.
+cloudflared runs on the host, so `localhost:3123` reaches the loopback-bound app.
+
+### Public hostname (ingress)
+
+Zero Trust → Networks → Tunnels → *the Mac mini tunnel* → Public Hostname → **Add a public hostname**:
+
+| Field | Value |
+|---|---|
+| Subdomain | `chronolog` |
+| Domain | `throb.online` |
+| Path | *(empty)* |
+| Service | `HTTP` → `localhost:3123` |
+
+The equivalent ingress rule for a locally managed tunnel (`config.yml`), for reference only:
 
 ```yaml
-  caddy:
-    image: caddy:2
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-    networks:
-      - chronolog
+ingress:
+  - hostname: chronolog.throb.online
+    service: http://localhost:3123
+  # ... existing book/beat/soul/blip rules ...
+  - service: http_status:404
 ```
 
-with a `Caddyfile` of `chronolog.example.com { reverse_proxy app:3000 }`.
+### DNS
 
-### Database migrations in production
+Saving the public hostname in the dashboard creates the DNS record automatically: a **proxied CNAME**
+`chronolog` → `<tunnel-id>.cfargotunnel.com` in the `throb.online` zone. Check that it appears under
+DNS → Records and is orange-clouded. If it does not (for example the hostname was added via the API),
+add that record by hand. For a locally managed tunnel the CLI equivalent is
+`cloudflared tunnel route dns <tunnel-name-or-id> chronolog.throb.online`.
 
-The app container runs `drizzle-kit migrate` before starting. If you run the Node build outside
-Docker, run migrations yourself before starting the app:
+Do not enable Cloudflare Access on this hostname: the Tauri app cannot carry Access credentials. The
+gate is the device access key (sprint 023) plus the login.
+
+### Rate-limit rules
+
+Security → WAF → Rate limiting rules → **Create rule**. Count only `POST`, so page loads and session
+reads are never throttled:
+
+| Setting | Value |
+|---|---|
+| Name | `chronolog auth endpoints` |
+| Expression | `(http.host eq "chronolog.throb.online" and http.request.method eq "POST" and (http.request.uri.path in {"/login" "/unlock"} or starts_with(http.request.uri.path, "/api/auth/")))` |
+| Characteristics | IP |
+| Rate | 10 requests per 1 minute (or per 10 seconds if the plan only offers that period) |
+| Action | Block, for 10 minutes (or the longest duration the plan allows) |
+
+Lower-tier plans limit how many rate-limiting rules you can have, and which periods and durations are
+available. That is why everything above sits in one rule. Better Auth also applies its own
+in-memory rate limit to `/api/auth/*` in production; the Cloudflare rule stops floods before they
+reach the box. `/unlock` belongs to the device-key gate (sprint 023); including it now is harmless.
+
+After the hostname is live:
 
 ```bash
-npm run db:migrate
+curl -sI https://chronolog.throb.online/login | head -1          # HTTP/2 200
+curl -s  https://chronolog.throb.online/api/clients              # {"error":"Unauthorized"}
 ```
 
-### Backups
+## Backups
 
-Back up the `postgres_data` volume (or `pg_dump` the `chronolog` database) before upgrades. It is
-the only state the stack holds.
+`scripts/backup-postgres.sh` runs nightly at 03:30 from a user LaunchAgent. Install it once; the
+steps are in [scripts/launchd/readme.md](../scripts/launchd/readme.md).
+
+- `docker exec chronolog-prod-postgres pg_dump -Fc` → `~/Backups/chronolog/daily/chronolog-<UTC>.dump`
+  (mode 600), verified with `pg_restore --list` before it is kept.
+- Sundays (UTC) are copied to `weekly/`. Retention is 14 daily and 8 weekly.
+- Mirrored to `/Volumes/Rabbit4TB/Backups/chronolog/` when that volume is mounted; skipped with a
+  warning otherwise.
+- Log: `~/Backups/chronolog/logs/backup-YYYY-MM.log`. Exit code 0 means ok, 1 a dump, verify or
+  mirror failure, 2 a database container that is not running.
+
+Dumps contain the auth tables (password hashes, sessions) as well as application data. Data
+encrypted at rest stays encrypted in the dump. Store `ENCRYPTION_KEY` separately from the dumps.
+
+### Restore
+
+```bash
+# Drill: restore into a scratch database while the app keeps running, then drop it
+scripts/restore-postgres.sh ~/Backups/chronolog/daily/<file>.dump chronolog_restore_check
+docker exec chronolog-prod-postgres psql -U chronolog -d postgres -c 'drop database chronolog_restore_check'
+
+# Real restore over the live database
+docker stop chronolog-prod-app
+scripts/restore-postgres.sh --replace ~/Backups/chronolog/daily/<file>.dump chronolog
+docker start chronolog-prod-app
+```
+
+The script prints exact row counts per table. It refuses to overwrite an existing database without
+`--replace`, and it refuses to replace the live database while the app container runs. On a new
+machine, bring the stack up first with the **same** `ENCRYPTION_KEY`, then restore with `--replace`.
+
+## Operations
+
+```bash
+P="docker compose -p chronolog-prod -f docker-compose.prod.yml --env-file .env.prod"
+$P ps                         # status and health
+$P logs -f app                # app logs (migrations print at the top)
+$P restart app
+$P down                       # stop; the data volume is kept
+# $P down -v                  # DESTROYS the database volume. Back up first.
+```
+
+The containers use `restart: unless-stopped`, so they come back after an OrbStack restart or a
+power cut once OrbStack starts at login.
+
+## Security posture
+
+- The app is published on `127.0.0.1:3123` only. Postgres has no host port. The dev Postgres is
+  bound to `127.0.0.1:5432`.
+- `.env.prod` should be mode 600, is never committed, and is excluded from the Docker build context.
+- The image runs as the unprivileged `node` user and carries no dev tooling.
+- Registration is closed unless `ALLOW_REGISTRATION=true`.
+- Coming next: the device access key gate (sprint 023) and API tokens for the laptop CLI (sprint 024).
+
+## Running without Docker
+
+```bash
+npm ci && npm run build
+DATABASE_URL=... node scripts/migrate.mjs
+DATABASE_URL=... ENCRYPTION_KEY=... BETTER_AUTH_SECRET=... BETTER_AUTH_URL=... ORIGIN=... PORT=3123 HOST=127.0.0.1 node build
+```
+
+## Desktop app (Tauri)
+
+`npm run tauri:build` produces a macOS `.app` / `.dmg` under `src-tauri/target/release/bundle/`
+(Rust toolchain, Xcode Command Line Tools and Node 22 are required). Pointing the shell at the
+production origin, and signing it for other Macs, are covered by later sprints; see
+[ONBOARDING.md](ONBOARDING.md).
