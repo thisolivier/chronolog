@@ -1,6 +1,6 @@
 # Sprint 023 — CL: Device access key gate and encryption at rest
 
-**Status:** active
+**Status:** signed-off
 **Type:** Client/Server — security
 **Depends on:** 019, 020, 021, 022 (all merged)
 **Branch:** `sprint-023-CL/device-key-and-encryption`
@@ -78,4 +78,86 @@ components; if a component must change for search (unlikely), note it as a follo
 
 ## Sign-off
 
-_Fill in._
+**Status:** signed-off 2026-11-03 on branch `sprint-023-CL/device-key-and-encryption` (not merged).
+
+### What changed
+
+- **Device gate** (`src/lib/server/device-gate/`): `device-key.ts` (pure: key generation, scrypt hash
+  `scrypt:N:r:p:salt:hash` with colons so dotenv/compose never expand it, constant-time verify, cookie
+  HMAC), `lockout.ts` (per-IP, 5 failures → 15 min, in memory), `gate.ts` (`enforceDeviceGate` runs
+  first in `hooks.server.ts`; exempt `/unlock`, `/_app/*`, `/manifest.webmanifest`, `/sw.js`; exempt
+  paths also skip the session lookup, so a locked-out device never causes a DB query). Header checks
+  memoise a SHA-256 fingerprint of a verified key so scrypt runs once per key per process.
+- **Unlock page** `src/routes/unlock/` (plain form POST, login-page styling); cookie
+  `chronolog_device`, HttpOnly, SameSite=Lax, Secure on https, 365 days. Logs: every failure, every
+  lockout, each successful unlock, with IP + path only.
+- **Env** (`env.ts`): `ENCRYPTION_KEY` must be base64 of 32 bytes; `DEVICE_ACCESS_KEY_HASH` required
+  when `NODE_ENV=production`, malformed hash rejected; dev without it boots with a loud warning.
+- **Encryption** (`src/lib/server/crypto/`): `field-encryption.ts` pure AES-256-GCM envelope
+  (`encrypt`/`decrypt`/`isEncrypted`/`encryptBytes`/`decryptBytes`), errors name `table.column`;
+  `server-cipher.ts` binds it to the env key. Applied only in query modules: clients, contracts,
+  time-entries, notes, note-links, attachments, and the new `queries/app-user.ts` (ensureAppUser
+  moved out of hooks; its default Internal/General names are encrypted). Contract list queries moved
+  from `api/contracts` and `api/contracts-by-client` routes into `queries/contracts.ts` (API shapes
+  unchanged). Name ordering is now in memory (`localeCompare`); notes search / `[[` autocomplete /
+  backlinks decrypt in memory, search still newest-first by `updated_at` and capped at `limit`.
+- **Scripts:** `scripts/generate-device-key.mjs`, `scripts/encrypt-existing.mjs` (one transaction,
+  idempotent, `--dry-run`, refuses to run when existing ciphertext does not open with the given key).
+  Both import the pure `.ts` modules via Node's type stripping (Node 22.18+).
+- **Config/docs:** `.env.example`, `.env.prod.example`, `docker-compose.prod.yml` (`:?` guard),
+  `scripts/deploy-prod.sh` pre-flight, `docker-compose.yml` dev key replaced with a valid 32-byte dev
+  value, `docs/DEPLOYMENT.md`, `docs/ONBOARDING.md`, `docs/backlog.md` (IF-4 key rotation, IF-5 device
+  key tooling), `src/lib/server/README.md`, `scripts/readme.md`.
+
+### Deviations from the spec (deliberate)
+
+- **Cookie value:** the spec says "HMAC of the key with the hash as HMAC key". The server never holds
+  the raw key after unlock, so it could not re-verify such a cookie. The cookie is
+  HMAC-SHA256(key = configured hash, message = fixed label): verifiable from the hash alone, holds
+  neither key nor hash, and every cookie dies when the key is rotated.
+- **Attachment bytes envelope** is the binary form of the same envelope (`enc1:` bytes + IV + tag +
+  ciphertext) rather than base64 text, to avoid a 33% size increase on `bytea`.
+- **`/_app/*`** is exempt (the unlock page's JS/CSS). In production adapter-node serves static files
+  before hooks anyway; they contain no data.
+
+### Verification
+
+- `npm run check`: 0 errors (23 pre-existing warnings, none in changed files). `npm test`: 29 files,
+  **335 passed** against Postgres (new: `field-encryption.test.ts` 11, `device-key.test.ts` 6,
+  `encryption-at-rest.test.ts` 4, hooks gate 6, env 4). `npm run build`: green.
+- Transcripts and screenshots in `docs/review/screenshots/sprint-023/`:
+  - `01-prod-boot-requires-hash.txt`: production build refuses to boot without the hash.
+  - `02-curl-gate.txt`: no key → 401 `Device not authorised` on `/api/clients` (and `/api/auth/*`);
+    with `X-Device-Key` → 401 `Unauthorized` from the auth guard; pages 303 → `/unlock` / `/login`.
+  - `03-unlock-page.png`, `04a-wrong-key.png`, `04b-locked-out.png`, `05-login-after-unlock.png`,
+    `06-app-after-login.png`, `07-after-reload.png`, `03-unlock-lockout-login-transcript.txt`: fresh
+    browser → `/unlock`; five wrong keys → locked (6th also locked), logged with IP + path; right key
+    → cookie (HttpOnly, Lax, 365 d, no key in value) → `/login`; register + full email/password login
+    in a browser holding only the device cookie → app; reload keeps the unlock. The wrong-key browser
+    used a simulated `CF-Connecting-IP` so the local IP was not locked for the rest of the run.
+  - `08`–`11` PNGs: client, contract, note and time entry created through the UI render plaintext;
+    `[[wombat licensing` (note body text, not title) offers the note in autocomplete.
+  - `12-psql-ciphertext.txt`: `enc1:` in `clients.name`, `contracts.name/description`,
+    `time_entries.description`, `notes.title/content/content_json`; note IDs plaintext; SQL `ILIKE
+    '%wombat%'` finds 0 rows while `/api/notes/search` finds the note by content.
+  - `13-encrypt-existing-idempotent.txt`: dry run, run (274 values), second run (0), wrong key refused
+    with nothing changed, 0 plaintext rows left, 299 values decrypt with the app module. Run on a
+    `pg_dump` clone of the shared dev DB (dropped afterwards), not on `chronolog` itself, because other
+    sessions' dev servers on pre-023 code share that database and would have read ciphertext.
+
+### Follow-ups
+
+1. **Before merging/running on main:** the main checkout's `.env` `ENCRYPTION_KEY` is not base64 of 32
+   bytes (39 chars) and will now fail boot. Replace it with `openssl rand -base64 32` output, then run
+   `node --env-file=.env scripts/encrypt-existing.mjs` on the dev DB once all sessions are on 023 code.
+   QA rows created in this sprint (`qa-023-*@chronolog.test`) are encrypted with this worktree's key
+   and will not decrypt under a different key; delete that user's data or reuse the worktree key.
+2. `npm run db:seed` still writes plaintext (reads fine; run `encrypt-existing.mjs` after seeding).
+3. Running `encrypt-existing.mjs` against production Postgres (no host port) has no tested route yet;
+   not needed for the fresh production DB.
+4. Notes created in the editor store an empty `title` (existing behaviour); autocomplete shows the note
+   ID only. UX sprint territory.
+5. `GET /api/attachments/:id` sends `Cache-Control: public, max-age=31536000`; with a gate in front,
+   `private` would be more appropriate (Cloudflare must not cache decrypted attachments).
+6. Key rotation (IF-4) and per-device keys (IF-5) are on the backlog. Cloudflare rate-limit rules on
+   `/unlock` and `/api/auth/*` still need to be configured in the dashboard.

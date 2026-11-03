@@ -1,0 +1,27 @@
+# Dev server: BETTER_AUTH_URL=http://localhost:5197 ALLOW_REGISTRATION=true, DEVICE_ACCESS_KEY_HASH set
+# The key is read from the password-manager export into $CHRONOLOG_DEVICE_KEY; its value is never printed.
+
+$ curl -si http://localhost:5197/api/clients
+HTTP/1.1 401 Unauthorized
+content-type: application/json
+{"error":"Device not authorised"}
+
+$ curl -si -H "X-Device-Key: $CHRONOLOG_DEVICE_KEY" http://localhost:5197/api/clients
+HTTP/1.1 401 Unauthorized
+content-type: application/json
+{"error":"Unauthorized"}
+
+$ curl -si http://localhost:5197/time   # page request without key
+HTTP/1.1 303 See Other
+location: /unlock
+
+$ curl -si -H "X-Device-Key: $CHRONOLOG_DEVICE_KEY" http://localhost:5197/time   # header passes the gate, auth guard sends to /login
+HTTP/1.1 303 See Other
+location: /login
+
+$ curl -si http://localhost:5197/api/auth/get-session   # Better Auth routes are behind the gate too
+HTTP/1.1 401 Unauthorized
+{"error":"Device not authorised"}
+
+$ curl -s -o /dev/null -w "%{http_code}\n" http://localhost:5197/unlock   # exempt
+200

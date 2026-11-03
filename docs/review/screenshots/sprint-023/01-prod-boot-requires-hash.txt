@@ -1,0 +1,3 @@
+$ NODE_ENV=production PORT=5197 HOST=127.0.0.1 node --env-file=.env build   # .env has no DEVICE_ACCESS_KEY_HASH
+exit code: 1
+Error: Missing required environment variable(s): DEVICE_ACCESS_KEY_HASH (required when NODE_ENV=production). Generate it with: node scripts/generate-device-key.mjs
