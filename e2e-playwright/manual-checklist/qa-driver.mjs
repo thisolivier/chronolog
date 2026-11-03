@@ -13,25 +13,29 @@ mkdirSync(SHOTS, { recursive: true });
 mkdirSync(dirname(OUT), { recursive: true });
 
 const runId = Date.now().toString(36);
-const USER = { name: 'QA Nov', email: `qa-20261103-${runId}@chronolog.test`, password: 'TestPassword123!' };
+const USER_PREFIX = process.env.QA_USER_PREFIX ?? 'qa-20261103';
+const USER = { name: 'QA Nov', email: `${USER_PREFIX}-${runId}@chronolog.test`, password: 'TestPassword123!' };
 
 const results = [];
 const consoleErrors = [];
 const pageErrors = [];
 const failedRequests = [];
 const navigations = [];
+let currentStep = 'setup'; // prefixes console errors and failed requests so each can be traced to a step
 
 function record(id, status, reason = '') {
 	results.push({ id, status, reason });
 	console.log(`[${status}] ${id} ${reason ? '— ' + reason : ''}`);
 }
 async function step(id, fn) {
+	currentStep = id;
 	try {
 		const reason = await fn();
 		record(id, 'PASS', reason || '');
 	} catch (error) {
-		record(id, 'FAIL', (error && error.message ? error.message : String(error)).split('\n')[0].slice(0, 300));
+		record(id, 'FAIL', (error && error.message ? error.message : String(error)).split('\n')[0].slice(0, 700));
 	}
+	currentStep = `after ${id}`;
 }
 function assert(condition, message) {
 	if (!condition) throw new Error(message);
@@ -65,17 +69,61 @@ const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
 const page = await context.newPage();
 page.on('console', (message) => {
-	if (message.type() === 'error' || message.type() === 'warning') consoleErrors.push(`[${message.type()}] ${page.url()} :: ${message.text().slice(0, 400)}`);
+	if (message.type() === 'error' || message.type() === 'warning') consoleErrors.push(`[${currentStep}] [${message.type()}] ${page.url()} :: ${message.text().slice(0, 400)}`);
 });
-page.on('pageerror', (error) => pageErrors.push(`${page.url()} :: ${error.message.slice(0, 400)}`));
-page.on('requestfailed', (request) => failedRequests.push(`${request.method()} ${request.url()} :: ${request.failure()?.errorText}`));
-page.on('response', (response) => { if (response.status() >= 400) failedRequests.push(`${response.request().method()} ${response.url()} -> ${response.status()}`); });
+page.on('pageerror', (error) => pageErrors.push(`[${currentStep}] ${page.url()} :: ${error.message.slice(0, 400)}`));
+page.on('requestfailed', (request) => failedRequests.push(`[${currentStep}] ${request.method()} ${request.url()} :: ${request.failure()?.errorText}`));
+page.on('response', (response) => { if (response.status() >= 400) failedRequests.push(`[${currentStep}] ${response.request().method()} ${response.url()} -> ${response.status()}`); });
 page.on('framenavigated', (frame) => { if (frame === page.mainFrame()) navigations.push(frame.url()); });
 
-// Sidebar (panel 1) contract buttons; time cards also carry "<client> / <contract>" buttons
-const sidebarPanel = page.locator('.flex.flex-1.overflow-hidden > div').first();
+// Sidebar (panel 1) contract buttons; time cards also carry "<client> / <contract>" buttons.
+// Since 026-CL contracts sit under client headings ([data-testid="sidebar-client-group"], aria-label =
+// client name); the colour dot is on the heading and the note count is a badge on the contract button.
+const sidebarPanel = page.getByTestId('app-sidebar');
 const sidebarContract = (pattern) => sidebarPanel.getByRole('button', { name: pattern });
+const sidebarGroups = sidebarPanel.locator('[data-testid="sidebar-client-group"]');
 const shot = (name) => page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: false });
+async function sidebarNoteCount(pattern) {
+	const badge = sidebarContract(pattern).first().locator('[data-testid="sidebar-note-count"]');
+	return (await badge.count()) ? Number((await badge.innerText()).trim()) : 0;
+}
+async function expectNoteCount(pattern, expected, timeoutMs = 5000) {
+	// The sidebar refreshes counts 150 ms after notes-changed / note-moved: poll
+	const deadline = Date.now() + timeoutMs;
+	let count = await sidebarNoteCount(pattern);
+	while (count !== expected && Date.now() < deadline) {
+		await sleep(200);
+		count = await sidebarNoteCount(pattern);
+	}
+	if (count !== expected) throw new Error(`sidebar note count for ${pattern} is ${count}, expected ${expected}`);
+	return count;
+}
+// Note editor header: the ID, or "New note" while the note is an unsaved draft (024-CL)
+const noteHeader = page.getByTestId('note-editor-header');
+const currentNoteId = async () => (await noteHeader.locator('span.font-mono').first().innerText()).trim();
+async function waitForSavedNoteId(timeoutMs = 10000) {
+	const deadline = Date.now() + timeoutMs;
+	let label = await currentNoteId();
+	while (!/^[A-Z]+\.\d{8}\.\d{3}$/.test(label) && Date.now() < deadline) {
+		await sleep(150);
+		label = await currentNoteId();
+	}
+	if (!/^[A-Z]+\.\d{8}\.\d{3}$/.test(label)) throw new Error('note header still reads ' + label);
+	return label;
+}
+const isNoteCreate = (request) => request.method() === 'POST' && new URL(request.url()).pathname === '/api/notes';
+// Card / linked-entry wiki-links render the target title with the ID as the tooltip (024-CL)
+const renderedWikiLink = (scope, noteId) => scope.locator(`.wiki-link-rendered button[title="${noteId}"]`);
+async function waitForText(locator, expected, timeoutMs = 5000) {
+	// Titles arrive from GET /api/notes/titles after the ID has rendered: poll
+	const deadline = Date.now() + timeoutMs;
+	let text = (await locator.innerText()).trim();
+	while (text !== expected && Date.now() < deadline) {
+		await sleep(150);
+		text = (await locator.innerText()).trim();
+	}
+	return text;
+}
 
 // ---------------------------------------------------------------- AUTH
 await step('AUTH-redirect-unauthenticated', async () => {
@@ -280,35 +328,60 @@ await step('E1-admin-create-deliverable', async () => {
 await page.goto(BASE + '/');
 await page.getByRole('button', { name: 'Time Entries' }).waitFor();
 await page.waitForLoadState('networkidle');
-let sidebarDots = {};
+let sidebarDots = {}; // contract name -> its client's dot class (colour is per client since 026-CL)
+let clientDots = {};
 await step('A10-sidebar-color-dots', async () => {
 	await sidebarContract(/Rocket Build/).waitFor({ timeout: 10000 });
-	const contractButtons = page.locator('button:has(span.rounded-full.h-2)');
-	const count = await contractButtons.count();
-	for (let index = 0; index < count; index++) {
-		const button = contractButtons.nth(index);
-		const name = (await button.innerText()).trim();
-		const dotClass = await button.locator('span.rounded-full').first().getAttribute('class');
-		sidebarDots[name] = (dotClass.match(/bg-[a-z]+-\d+/) || [])[0];
+	const groups = await sidebarGroups.evaluateAll((elements) =>
+		elements.map((group) => ({
+			client: group.getAttribute('aria-label'),
+			dotClass: group.querySelector('span.rounded-full')?.className ?? '',
+			contracts: Array.from(group.querySelectorAll('button[data-contract-id] > span.truncate')).map((span) => span.firstChild?.textContent.trim() ?? '')
+		}))
+	);
+	for (const group of groups) {
+		const colour = (group.dotClass.match(/bg-[a-z]+-\d+/) || [])[0];
+		clientDots[group.client] = colour;
+		for (const contract of group.contracts) sidebarDots[contract] = colour;
 	}
-	const colors = Object.values(sidebarDots);
-	assert(colors.length >= 2, 'fewer than 2 contracts: ' + JSON.stringify(sidebarDots));
-	assert(new Set(colors).size === colors.length, 'colours not distinct: ' + JSON.stringify(sidebarDots));
-	return JSON.stringify(sidebarDots);
+	const colours = Object.values(clientDots);
+	assert(colours.length >= 2, 'fewer than 2 client groups: ' + JSON.stringify(groups));
+	assert(new Set(colours).size === colours.length, 'client colours not distinct: ' + JSON.stringify(clientDots));
+	const acme = groups.find((group) => group.client === 'Acme Corp');
+	assert(acme && acme.contracts.includes('Rocket Build'), 'Rocket Build not under the Acme Corp heading: ' + JSON.stringify(groups));
+	assert(sidebarDots['General'] && sidebarDots['General'] !== sidebarDots['Rocket Build'], 'General missing or same colour as Rocket Build: ' + JSON.stringify(sidebarDots));
+	await shot('03b-sidebar-grouped');
+	return `groups ${JSON.stringify(groups.map((group) => `${group.client}: ${group.contracts.join(', ')} (${clientDots[group.client]})`))}`;
 });
 
 // ---------------------------------------------------------------- Notes first (so wiki-link autocomplete has targets)
 let noteAId = '', noteBId = '';
+let generalCountBefore = 0;
 await step('E1-create-note', async () => {
 	await sidebarContract(/General/).click();
 	await page.getByRole('button', { name: 'New Note' }).waitFor({ timeout: 10000 });
+	generalCountBefore = await sidebarNoteCount(/General/);
+	// 024-CL: New Note opens a draft; nothing is persisted until the first keystroke
+	const earlyCreates = [];
+	const watchCreates = (request) => { if (isNoteCreate(request)) earlyCreates.push(request.url()); };
+	page.on('request', watchCreates);
 	await page.getByRole('button', { name: 'New Note' }).click();
-	const idSpan = page.locator('span.font-mono.text-stone-400');
-	await idSpan.first().waitFor({ timeout: 10000 });
-	noteAId = (await idSpan.first().innerText()).trim();
-	assert(/^[A-Z]+\.\d{8}\.\d{3}$/.test(noteAId), 'unexpected note id ' + noteAId);
 	await page.locator('.tiptap').waitFor({ timeout: 10000 });
-	return `created ${noteAId}`;
+	const draftLabel = await currentNoteId();
+	const discardVisible = await noteHeader.getByRole('button', { name: 'Discard' }).isVisible();
+	await sleep(1500);
+	page.off('request', watchCreates);
+	assert(draftLabel === 'New note', 'draft header reads ' + draftLabel);
+	assert(discardVisible, 'draft header has no Discard button');
+	assert(earlyCreates.length === 0, 'New Note persisted before any keystroke: ' + earlyCreates.join(', '));
+	const createResponse = page.waitForResponse((response) => isNoteCreate(response.request()), { timeout: 10000 });
+	await page.locator('.tiptap').click();
+	await page.keyboard.type('Alpha note heading');
+	const created = await createResponse;
+	assert(created.ok(), 'POST /api/notes -> ' + created.status());
+	noteAId = await waitForSavedNoteId();
+	await expectNoteCount(/General/, generalCountBefore + 1);
+	return `draft "New note" with Discard, no POST for 1.5 s; first keystroke created ${noteAId}; sidebar General count ${generalCountBefore} -> ${generalCountBefore + 1}`;
 });
 await step('A2-notes-mode-three-panels', async () => {
 	const panels = await page.evaluate(() => Array.from(document.querySelector('.flex.flex-1.overflow-hidden').children).map((child) => Math.round(child.getBoundingClientRect().width)));
@@ -317,14 +390,13 @@ await step('A2-notes-mode-three-panels', async () => {
 	return `panel widths ${JSON.stringify(panels)}`;
 });
 await step('E1-edit-note-tiptap-autosave', async () => {
-	const editor = page.locator('.tiptap');
-	await editor.click();
-	await page.keyboard.type('Alpha note heading');
+	// The heading was typed in E1-create-note; focus is still in the editor
+	const saveResponse = page.waitForResponse((response) => response.url().includes(`/api/notes/${noteAId}`) && response.request().method() === 'PUT' && response.ok(), { timeout: 10000 });
+	await page.keyboard.press('End');
 	await page.keyboard.press('Enter');
 	await page.keyboard.type('Body text for **alpha** note with a list:');
 	await page.keyboard.press('Enter');
 	await page.keyboard.type('- item one');
-	const saveResponse = page.waitForResponse((response) => response.url().includes(`/api/notes/${noteAId}`) && response.request().method() === 'PUT', { timeout: 10000 });
 	await saveResponse;
 	await sleep(800);
 	await page.reload();
@@ -368,64 +440,95 @@ await step('E1-export-markdown', async () => {
 	return `downloaded "${download.suggestedFilename()}" (${content.length} bytes)`;
 });
 await step('E1-export-pdf-print', async () => {
-	await page.evaluate(() => { window.__printCalled = 0; window.print = () => { window.__printCalled++; }; });
+	// 024-CL prints the note alone from a hidden iframe[data-note-print-frame]: stub that frame's print()
+	// (and the app window's, which must NOT be printed)
+	await page.evaluate(() => {
+		window.__appPrints = 0;
+		window.__framePrints = 0;
+		window.__frameText = '';
+		window.print = () => { window.__appPrints++; };
+		new MutationObserver((mutations) => {
+			for (const mutation of mutations) for (const node of mutation.addedNodes) {
+				if (node.tagName === 'IFRAME' && node.hasAttribute('data-note-print-frame')) {
+					node.contentWindow.print = () => { window.__framePrints++; window.__frameText = node.contentDocument.body.innerText; };
+				}
+			}
+		}).observe(document.body, { childList: true });
+	});
 	await page.getByRole('button', { name: /Export/ }).click();
 	await page.getByRole('button', { name: 'Export as PDF' }).click();
-	const called = await page.evaluate(() => window.__printCalled);
-	assert(called === 1, 'window.print not called');
+	let prints = { app: 0, frame: 0, text: '' };
+	for (let attempt = 0; attempt < 20 && prints.frame === 0; attempt++) {
+		await sleep(150);
+		prints = await page.evaluate(() => ({ app: window.__appPrints, frame: window.__framePrints, text: window.__frameText }));
+	}
+	assert(prints.frame === 1, `print frame print() called ${prints.frame} times`);
+	assert(prints.app === 0, 'the app window itself was printed');
+	assert(prints.text.includes('Alpha note heading') && prints.text.includes(noteAId), 'print document: ' + prints.text.slice(0, 120));
+	const called = prints.frame;
 	const printRules = await page.evaluate(() => Array.from(document.styleSheets).some((sheet) => { try { return Array.from(sheet.cssRules).some((rule) => rule.media && rule.media.mediaText.includes('print')); } catch { return false; } }));
 	await page.emulateMedia({ media: 'print' });
 	await shot('08-print-media-emulated');
 	await page.emulateMedia({ media: null });
-	return `window.print() invoked; @media print rules loaded=${printRules} (dialog itself not verifiable headless)`;
+	return `print frame print() invoked ${called}x with the note body and ID, app window not printed; @media print rules loaded=${printRules} (dialog itself not verifiable headless)`;
 });
 
 // second note + wiki link in editor
 await step('E1-wiki-link-editor-autocomplete', async () => {
 	await page.getByRole('button', { name: 'New Note' }).click();
-	await sleep(500);
-	const idSpan = page.locator('span.font-mono.text-stone-400').first();
-	noteBId = (await idSpan.innerText()).trim();
-	assert(noteBId !== noteAId, 'note B id same as A');
-	const editor = page.locator('.tiptap');
-	await editor.click();
+	await page.locator('.tiptap').waitFor({ timeout: 10000 });
+	assert((await currentNoteId()) === 'New note', 'second New Note did not open a draft');
+	const createResponse = page.waitForResponse((response) => isNoteCreate(response.request()), { timeout: 10000 });
+	await page.locator('.tiptap').click();
 	await page.keyboard.type('Beta note links to ');
+	await createResponse;
+	noteBId = await waitForSavedNoteId();
+	assert(noteBId !== noteAId, 'note B id same as A');
+	await expectNoteCount(/General/, generalCountBefore + 2);
+	// An empty [[ lists recent notes, never the current one (024-CL)
 	await page.keyboard.type('[[');
-	// Full id: a shared prefix + Enter picks the first (most recent) suggestion, which is this note itself
-	await page.keyboard.type(noteAId, { delay: 30 });
 	const dropdown = page.locator('body > div.absolute.z-50');
 	await dropdown.waitFor({ timeout: 8000 });
+	await sleep(600);
+	const recent = await dropdown.innerText();
+	assert(recent.includes(noteAId) && !recent.includes(noteBId), 'empty [[ suggestions (A expected, B excluded): ' + recent.replace(/\s+/g, ' '));
+	await page.keyboard.type(noteAId, { delay: 30 });
 	await sleep(500);
 	const items = await dropdown.innerText();
 	assert(items.includes(noteAId), 'dropdown items: ' + items);
 	await shot('09-wiki-link-autocomplete');
+	const saveResponse = page.waitForResponse((response) => response.url().includes(`/api/notes/${noteBId}`) && response.request().method() === 'PUT' && response.ok(), { timeout: 10000 });
 	await page.keyboard.press('Enter');
 	await sleep(300);
 	const link = page.locator('.tiptap .wiki-link');
 	assert((await link.count()) === 1, 'no wiki-link node inserted');
 	const linkTarget = await link.first().getAttribute('data-note-id');
 	assert(linkTarget === noteAId, `wiki-link points at ${linkTarget}, expected ${noteAId}`);
-	await page.waitForResponse((response) => response.url().includes(`/api/notes/${noteBId}`) && response.request().method() === 'PUT', { timeout: 10000 });
-	return `B=${noteBId} got wiki-link to ${noteAId}; dropdown showed: ${items.replace(/\s+/g, ' ').slice(0, 80)}`;
+	const chipText = await waitForText(link.first(), 'Alpha note heading');
+	assert(chipText === 'Alpha note heading', `wiki-link chip shows "${chipText}", expected A's title`);
+	await saveResponse;
+	return `B=${noteBId} got wiki-link to ${noteAId} (chip shows "${chipText}"); empty [[ listed A, not B; dropdown: ${items.replace(/\s+/g, ' ').slice(0, 80)}`;
 });
 await step('E1-backlinks-displayed', async () => {
 	await page.getByRole('button', { name: /Alpha note heading/ }).first().click();
 	await page.locator('.tiptap').waitFor();
-	const linkedFrom = page.getByText('Linked from');
-	await linkedFrom.waitFor({ timeout: 8000 });
-	const backlinkButton = page.locator('button.font-mono', { hasText: noteBId });
+	const backlinks = page.getByTestId('note-backlinks');
+	await backlinks.waitFor({ timeout: 8000 });
+	const backlinkButton = backlinks.locator(`button[title="${noteBId}"]`);
 	assert((await backlinkButton.count()) === 1, 'no backlink chip for ' + noteBId);
+	const chipText = (await backlinkButton.innerText()).trim();
+	assert(chipText.startsWith('Beta note links to'), `backlink chip shows "${chipText}", expected B's title`);
 	await shot('10-backlinks');
 	await backlinkButton.click();
 	await sleep(500);
-	const currentId = (await page.locator('span.font-mono.text-stone-400').first().innerText()).trim();
+	const currentId = await currentNoteId();
 	assert(currentId === noteBId, 'clicking backlink opened ' + currentId);
-	return `A shows "Linked from ${noteBId}"; clicking chip opens B`;
+	return `A shows "Linked from" chip "${chipText}" (ID ${noteBId} as tooltip); clicking it opens B`;
 });
 await step('E1-wiki-link-click-navigates', async () => {
 	await page.locator('.tiptap .wiki-link').first().click();
 	await sleep(600);
-	const currentId = (await page.locator('span.font-mono.text-stone-400').first().innerText()).trim();
+	const currentId = await currentNoteId();
 	assert(currentId === noteAId, 'wiki-link click opened ' + currentId);
 	return `clicking [[${noteAId}]] in B opens A`;
 });
@@ -586,20 +689,21 @@ await step('A4-wiki-link-autocomplete-in-description', async () => {
 await step('A4-wiki-link-rendering-in-card', async () => {
 	const card = todaySection.locator('div.group').first();
 	await card.getByTitle('Click to edit description').waitFor({ timeout: 5000 });
-	const html = await card.getByTitle('Click to edit description').innerHTML();
+	const linkButton = renderedWikiLink(card, noteAId);
+	await linkButton.waitFor({ timeout: 5000 });
+	const linkText = await waitForText(linkButton, 'Alpha note heading');
+	assert(linkText === 'Alpha note heading', `card link shows "${linkText}", expected A's title (ID only as tooltip)`);
 	const text = await card.getByTitle('Click to edit description').innerText();
-	assert(text.includes(noteAId), 'description text: ' + text);
-	const rendered = /<(a|button|span)[^>]*>[^<]*\[\[?[A-Z]+\.\d{8}\.\d{3}\]?\]?/.test(html) || html.includes('wiki');
-	assert(rendered, 'wiki-link not rendered specially: ' + html.slice(0, 200));
+	assert(!text.includes('[['), 'raw [[...]] left in the card: ' + text);
 	await shot('14-wiki-link-rendered');
-	return `description renders ${noteAId} as link element`;
+	return `description renders [[${noteAId}]] as a link reading "${linkText}" (ID as tooltip)`;
 });
 await step('A4-card-wiki-link-click-opens-note', async () => {
 	const card = todaySection.locator('div.group').first();
-	await card.getByTitle(`Go to note ${noteAId}`).click();
+	await renderedWikiLink(card, noteAId).click();
 	await page.locator('.tiptap').waitFor({ timeout: 8000 });
 	await sleep(600);
-	const currentId = (await page.locator('span.font-mono.text-stone-400').first().innerText()).trim();
+	const currentId = await currentNoteId();
 	assert(currentId === noteAId, 'card wiki-link opened ' + currentId);
 	const text = await page.locator('.tiptap').innerText();
 	assert(text.includes('Alpha note heading'), 'editor content: ' + text.slice(0, 60));
@@ -637,27 +741,36 @@ await step('C1-move-note', async () => {
 	const feedbackText = (await feedback.innerText()).trim();
 	assert(feedbackText === 'Moved to Acme Corp / Rocket Build', 'move feedback: ' + feedbackText);
 	await sleep(300);
-	const stillListed = await page.getByRole('button', { name: /Alpha note heading/ }).count();
 	await shot('17-after-move');
-	assert(stillListed === 0, 'note still listed under General');
-	const editorVisible = await page.locator('.tiptap').count();
-	return `feedback "${feedbackText}"; note removed from General list; editor still open=${editorVisible > 0}`;
+	// 024-CL (journey B-02): the moved note stays open and the sidebar and list follow it
+	assert((await currentNoteId()) === noteAId, 'editor no longer shows the moved note');
+	const rocketClass = await sidebarContract(/Rocket Build/).first().getAttribute('class');
+	assert(rocketClass.includes('bg-blue-50'), 'sidebar did not follow the note to Rocket Build');
+	const listText = await page.locator('.flex.flex-1.overflow-hidden > div').nth(1).innerText();
+	assert(listText.includes('Alpha note heading') && !listText.includes('Beta note'), 'list did not follow to Rocket Build: ' + listText.replace(/\s+/g, ' ').slice(0, 120));
+	const generalCount = await expectNoteCount(/General/, generalCountBefore + 1);
+	const rocketCount = await expectNoteCount(/Rocket Build/, 1);
+	return `feedback "${feedbackText}"; note stays open, sidebar + list followed to Rocket Build; counts General ${generalCount}, Rocket Build ${rocketCount}`;
 });
 await step('C1-note-appears-in-target', async () => {
+	await sidebarContract(/General/).click();
+	await page.getByRole('button', { name: /Beta note/ }).first().waitFor({ timeout: 8000 });
+	assert((await page.getByRole('button', { name: /Alpha note heading/ }).count()) === 0, 'moved note still listed under General');
 	await sidebarContract(/Rocket Build/).first().click();
 	const noteButton = page.getByRole('button', { name: /Alpha note heading/ });
 	await noteButton.first().waitFor({ timeout: 8000 });
 	await noteButton.first().click();
 	await page.locator('.tiptap').waitFor();
-	const currentId = (await page.locator('span.font-mono.text-stone-400').first().innerText()).trim();
+	await sleep(400);
+	const currentId = await currentNoteId();
 	assert(currentId === noteAId, `id changed: ${currentId} != ${noteAId}`);
 	const text = await page.locator('.tiptap').innerText();
 	assert(text.includes('Alpha note heading') && text.includes('Added in raw mode'), 'content: ' + text.slice(0, 80));
-	return `note ${noteAId} listed under Rocket Build, id unchanged (prefix preserved), content intact`;
+	return `note ${noteAId} gone from General, listed under Rocket Build, id unchanged (prefix preserved), content intact`;
 });
 await step('C2-backlinks-after-move', async () => {
-	await page.getByText('Linked from').waitFor({ timeout: 8000 });
-	const chip = page.locator('button.font-mono', { hasText: noteBId });
+	await page.getByTestId('note-backlinks').waitFor({ timeout: 8000 });
+	const chip = page.getByTestId('note-backlinks').locator(`button[title="${noteBId}"]`);
 	assert((await chip.count()) === 1, 'no backlink chip after move');
 	return `backlink from ${noteBId} still shown after move`;
 });
@@ -675,7 +788,7 @@ await step('C2-wiki-link-from-B-after-move', async () => {
 	await page.locator('.tiptap .wiki-link').first().waitFor({ timeout: 8000 });
 	await page.locator('.tiptap .wiki-link').first().click();
 	await sleep(800);
-	const currentId = (await page.locator('span.font-mono.text-stone-400').first().innerText()).trim();
+	const currentId = await currentNoteId();
 	assert(currentId === noteAId, 'opened ' + currentId);
 	const text = await page.locator('.tiptap').innerText();
 	assert(text.includes('Alpha note heading'), 'content ' + text.slice(0, 60));
@@ -689,10 +802,10 @@ await step('C2-card-wiki-link-after-move', async () => {
 	await page.getByText('Today', { exact: true }).first().waitFor({ timeout: 10000 });
 	await sleep(500);
 	const card = todaySection.locator('div.group').filter({ hasText: 'rocket' }).first();
-	await card.getByTitle(`Go to note ${noteAId}`).click();
+	await renderedWikiLink(card, noteAId).click();
 	await page.locator('.tiptap').waitFor({ timeout: 8000 });
 	await sleep(600);
-	const currentId = (await page.locator('span.font-mono.text-stone-400').first().innerText()).trim();
+	const currentId = await currentNoteId();
 	assert(currentId === noteAId, 'card wiki-link opened ' + currentId);
 	const listPanelText = await page.locator('.flex.flex-1.overflow-hidden > div').nth(1).innerText();
 	assert(listPanelText.includes('Alpha note heading') && !listPanelText.includes('Beta note'), 'list panel not on the moved-to contract: ' + listPanelText.replace(/\s+/g, ' ').slice(0, 120));
@@ -810,7 +923,14 @@ await step('E1-timer-stop-save', async () => {
 	await deliverableSelect.waitFor({ timeout: 5000 }).catch(() => {});
 	assert((await deliverableSelect.count()) === 1, 'timer completion form has no deliverable select');
 	await selectByText(deliverableSelect, 'Phase 1');
-	const deliverableNote = 'deliverable "Phase 1" selected';
+	// 025-CL: the completion form uses the shared DurationField; the measured time can be adjusted
+	const timeField = page.locator('#timer-time');
+	const measured = await timeField.inputValue();
+	await timeField.fill('0.75');
+	await sleep(200);
+	const preview = (await page.locator('#timer-time-message').innerText().catch(() => '')).trim();
+	assert(preview === '= 45m', `duration preview for "0.75" reads "${preview}"`);
+	const deliverableNote = `deliverable "Phase 1" selected; measured "${measured}" adjusted to 0.75 (${preview})`;
 	await sleep(400);
 	await shot('23-timer-completion');
 	await page.getByRole('button', { name: 'Save' }).click();
@@ -823,6 +943,7 @@ await step('E1-timer-stop-save', async () => {
 	const match = texts.find((text) => text.includes('Timer-driven work'));
 	assert(match, 'timer entry not in today section without reload: ' + JSON.stringify(texts));
 	assert((await page.locator('.timer-dot-running').count()) === 0, 'indicator still visible after save');
+	assert(/\b45m\b/.test(match), 'adjusted duration not on the card: ' + match.replace(/\s+/g, ' '));
 	return `timer entry saved (${deliverableNote}); card: "${match.replace(/\s+/g, ' ').slice(0, 90)}"`;
 });
 await step('A4-deliverable-shown-on-card', async () => {
@@ -858,19 +979,118 @@ await step('E1-delete-time-entry', async () => {
 	return `entries ${before} -> ${after}`;
 });
 
-// ---------------------------------------------------------------- E1 delete note
+// ---------------------------------------------------------------- 026 offline banner when the server is unreachable
+await step('SEAM-offline-banner-on-request-failure', async () => {
+	// 026-CL: offline = navigator.onLine false OR the last API request failed at the network level.
+	// Simulate "server unreachable, browser online" by aborting /api/**, then open a contract
+	// (GET /api/notes?contractId=…, already loaded once, so the read cache can answer it).
+	await sidebarContract(/General/).click();
+	await page.getByRole('button', { name: /Beta note/ }).first().waitFor({ timeout: 8000 });
+	await sidebarContract(/Rocket Build/).first().click();
+	await page.getByRole('button', { name: /Alpha note heading/ }).first().waitFor({ timeout: 8000 });
+	await sleep(400);
+	const aborted = [];
+	await page.route('**/api/**', (route) => { aborted.push(route.request().url()); return route.abort('internetdisconnected'); });
+	const samples = [];
+	let listShown = false;
+	try {
+		await sidebarContract(/General/).click();
+		for (let sample = 0; sample < 6; sample++) {
+			await sleep(250);
+			const offline = await page.getByTestId('connection-status-offline').count();
+			const online = await page.getByTestId('connection-status-online').count();
+			samples.push(offline ? 'offline' : online ? 'back-online' : 'none');
+		}
+		listShown = (await page.getByRole('button', { name: /Beta note/ }).count()) > 0;
+		await shot('27b-offline-banner');
+	} finally {
+		await page.unroute('**/api/**');
+	}
+	assert(aborted.length > 0, 'no API request was made while the server was unreachable');
+	assert(samples.every((sample) => sample === 'offline'), `banner after ${aborted.length} failed request(s): ${samples.join(', ')} (expected "offline" throughout); note list from last loaded copy: ${listShown}`);
+	return `offline banner shown for ${aborted.length} failed request(s); note list from last loaded copy: ${listShown}`;
+});
+
+// ---------------------------------------------------------------- Seam: 026 offline read cache vs 024 note saves
+await step('SEAM-offline-read-cache-after-note-save', async () => {
+	// fetch-helpers keeps the last GET body per URL and returns it when the network fails; note saves are PUTs.
+	// Network failure is simulated by aborting /api/** (setOffline would also cut Vite's HMR socket).
+	const openNote = async (contractPattern, notePattern) => {
+		await sidebarContract(contractPattern).first().click();
+		await page.getByRole('button', { name: notePattern }).first().waitFor({ timeout: 8000 });
+		await page.getByRole('button', { name: notePattern }).first().click();
+		await page.locator('.tiptap').waitFor({ timeout: 8000 });
+		await sleep(600);
+	};
+	await openNote(/General/, /Beta note/);
+	const marker = `saved-online-${runId}`;
+	const saved = page.waitForResponse((response) => response.url().includes(`/api/notes/${noteBId}`) && response.request().method() === 'PUT' && response.ok(), { timeout: 10000 });
+	await page.locator('.tiptap p').last().click();
+	await page.keyboard.press('End');
+	await page.keyboard.type(' ' + marker);
+	await saved;
+	await openNote(/Rocket Build/, /Alpha note heading/);
+	await page.route('**/api/**', (route) => route.abort('internetdisconnected'));
+	let offlineText = '', banner = '', saveStatus = '';
+	try {
+		await openNote(/General/, /Beta note/);
+		offlineText = await page.locator('.tiptap').innerText();
+		banner = (await page.getByTestId('connection-status-offline').innerText().catch(() => '(no offline banner)')).trim();
+		await shot('28-offline-note-open');
+		// Type while offline: the save fails and retries every 5 s
+		await page.locator('.tiptap p').last().click();
+		await page.keyboard.press('End');
+		await page.keyboard.type(' typed-offline');
+		await sleep(2500);
+		saveStatus = (await noteHeader.innerText()).replace(/\s+/g, ' ');
+	} finally {
+		await page.unroute('**/api/**');
+	}
+	// Back online: wait for the retry, then read the server copy
+	let afterRetry = '';
+	for (let attempt = 0; attempt < 20; attempt++) {
+		await sleep(500);
+		afterRetry = (await noteHeader.innerText()).replace(/\s+/g, ' ');
+		if (/Saved|changed elsewhere|Reload/.test(afterRetry) && !/retrying|Saving/.test(afterRetry)) break;
+	}
+	await shot('29-after-reconnect');
+	const server = await page.evaluate(async (noteId) => (await (await fetch(`/api/notes/${noteId}`)).json()).note, noteBId);
+	const serverText = JSON.stringify(server ?? {});
+	const conflict = (await page.getByTestId('reload-note').count()) > 0;
+	if (conflict) await page.getByTestId('reload-note').click();
+	const stale = !offlineText.includes(marker);
+	const lost = !serverText.includes(marker);
+	const summary = `offline banner "${banner}"; offline copy has the text saved before the outage: ${!stale}; header while offline "${saveStatus}"; after reconnect "${afterRetry}"${conflict ? ' (409 conflict, Reload clicked)' : ''}; server copy keeps saved text: ${!lost}, has offline typing: ${serverText.includes('typed-offline')}`;
+	assert(!lost, 'DATA LOSS: ' + summary);
+	assert(!stale, 'stale read cache: ' + summary);
+	return summary;
+});
+
+// ---------------------------------------------------------------- E1 delete note (024 inline confirm)
 await step('E1-delete-note', async () => {
 	await sidebarContract(/General/).click();
 	await page.getByRole('button', { name: /Beta note/ }).first().waitFor({ timeout: 8000 });
 	await page.getByRole('button', { name: /Beta note/ }).first().click();
 	await page.locator('.tiptap').waitFor();
-	page.once('dialog', (dialog) => dialog.accept());
-	await page.getByRole('button', { name: 'Delete' }).click();
-	await sleep(800);
+	await sleep(400);
+	const countBefore = await sidebarNoteCount(/General/);
+	let nativeDialog = '';
+	const onDialog = (dialog) => { nativeDialog = dialog.message(); dialog.dismiss().catch(() => {}); };
+	page.on('dialog', onDialog);
+	await noteHeader.getByRole('button', { name: 'Delete', exact: true }).click();
+	const confirm = page.getByTestId('delete-confirm');
+	await confirm.waitFor({ timeout: 3000 });
+	const confirmText = (await confirm.innerText()).replace(/\s+/g, ' ').trim();
+	await shot('17b-note-delete-confirm');
+	await confirm.getByRole('button', { name: 'Delete', exact: true }).click();
+	await sleep(1000);
+	page.off('dialog', onDialog);
+	assert(!nativeDialog, 'native confirm() shown: ' + nativeDialog);
 	const remaining = await page.getByRole('button', { name: /Beta note/ }).count();
 	assert(remaining === 0, 'note still listed');
+	const countAfter = await expectNoteCount(/General/, countBefore - 1);
 	const emptyEditor = await page.getByText('Select a note to view').count();
-	return `note deleted; editor shows empty state=${emptyEditor > 0}`;
+	return `inline confirm "${confirmText}" (no native dialog); note deleted; General count ${countBefore} -> ${countAfter}; editor empty state=${emptyEditor > 0}`;
 });
 
 // ---------------------------------------------------------------- Layout shift check (A2)
@@ -885,6 +1105,38 @@ await step('A2-no-layout-shift-switching-modes', async () => {
 	const sidebarB = await page.locator('.flex.flex-1.overflow-hidden > div').first().boundingBox();
 	assert(topbarA.height === topbarB.height && sidebarA.width === sidebarB.width, 'shift detected');
 	return `top bar and sidebar geometry identical across modes (sidebar ${sidebarA.width}px)`;
+});
+
+// ---------------------------------------------------------------- Seam: 026 delete dialog counts vs 024 moved note
+await step('SEAM-admin-delete-dialog-counts', async () => {
+	const rocketNotes = await sidebarNoteCount(/Rocket Build/);
+	// DOM navigation (027-CL will change URLs): sidebar Settings -> "Clients and contracts"
+	await sidebarPanel.getByRole('link', { name: 'Settings' }).click();
+	await page.getByRole('link', { name: /Clients and contracts/ }).click();
+	const row = page.locator('tr').filter({ hasText: 'Acme Corp' }).first();
+	await row.waitFor({ timeout: 10000 });
+	let nativeDialog = '';
+	const onDialog = (dialog) => { nativeDialog = dialog.message(); dialog.dismiss().catch(() => {}); };
+	page.on('dialog', onDialog);
+	await row.getByRole('button', { name: 'Delete' }).click();
+	const dialog = page.getByTestId('delete-impact-dialog');
+	await dialog.waitFor({ timeout: 5000 });
+	const counts = (await dialog.getByTestId('delete-impact-counts').innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
+	const focused = await page.evaluate(() => document.activeElement?.textContent?.trim());
+	await shot('30-admin-delete-dialog');
+	await dialog.getByRole('button', { name: 'Cancel' }).click();
+	await dialog.waitFor({ state: 'detached', timeout: 3000 });
+	page.off('dialog', onDialog);
+	const stillListed = await page.locator('tr').filter({ hasText: 'Acme Corp' }).count();
+	await page.getByRole('link', { name: 'Back to app' }).click();
+	await page.getByRole('button', { name: 'Time Entries' }).waitFor({ timeout: 10000 });
+	await page.waitForLoadState('networkidle');
+	assert(!nativeDialog, 'native confirm() shown: ' + nativeDialog);
+	const expected = `It has 1 contract and ${rocketNotes} ${rocketNotes === 1 ? 'note' : 'notes'}.`;
+	assert(counts === expected, `dialog counts "${counts}", expected "${expected}" (sidebar Rocket Build count ${rocketNotes})`);
+	assert(focused === 'Archive', 'default focus on ' + focused);
+	assert(stillListed === 1, 'Cancel deleted the client');
+	return `dialog "${counts}" matches the sidebar note count after the move; Archive focused; Cancel kept the client`;
 });
 
 await page.goto(BASE + '/');
@@ -933,6 +1185,63 @@ await step('M1-mobile-topbar-and-timesheet', async () => {
 		return `top bar "Chronolog" -> "← Back" at y=0 h=48; WeekStrip y=${Math.round(stripBox.y)} (after scroll ${Math.round(stripAfterScroll.y)}), 7 columns fit; no horizontal overflow; ${cardTexts.length} card(s); Back returns to level 0`;
 	} finally {
 		await mobileContext.close();
+	}
+});
+
+// ---------------------------------------------------------------- Mobile (375px): footer actions (025-CL task 7)
+await step('M2-mobile-footer-actions', async () => {
+	const mobileContext = await browser.newContext({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true, storageState: await context.storageState() });
+	const mobilePage = await mobileContext.newPage();
+	try {
+		await mobilePage.goto(BASE + '/');
+		await mobilePage.getByRole('button', { name: 'Time Entries' }).click();
+		const startTimer = mobilePage.getByRole('button', { name: 'Start Timer' });
+		const addEntry = mobilePage.getByRole('button', { name: 'Add Entry', exact: true });
+		await startTimer.waitFor({ timeout: 10000 });
+		const startBox = await startTimer.boundingBox();
+		const addBox = await addEntry.boundingBox();
+		assert(startBox && addBox, 'footer actions missing');
+		assert(startBox.y + startBox.height <= 812 && startBox.y > 600 && addBox.y > 600, `footer actions not at the bottom: start y=${startBox.y}, add y=${addBox?.y}`);
+		await addEntry.click();
+		await mobilePage.locator('#entry-date').waitFor({ timeout: 5000 });
+		const modalBox = await mobilePage.locator('#entry-date').boundingBox();
+		assert(modalBox.x >= 0 && modalBox.x + modalBox.width <= 376, 'modal field clipped: ' + JSON.stringify(modalBox));
+		await mobilePage.screenshot({ path: `${SHOTS}/31-mobile-footer-add-entry.png` });
+		return `Start Timer y=${Math.round(startBox.y)}, Add Entry y=${Math.round(addBox.y)} in the 812px viewport; Add Entry opens the modal within 375px`;
+	} finally {
+		await mobileContext.close();
+	}
+});
+
+// ---------------------------------------------------------------- Tablet (900px): notes-mode sidebar overlay (026-CL task 3)
+await step('T1-tablet-notes-sidebar-overlay', async () => {
+	const tabletContext = await browser.newContext({ viewport: { width: 900, height: 800 }, storageState: await context.storageState() });
+	const tabletPage = await tabletContext.newPage();
+	try {
+		await tabletPage.goto(BASE + '/');
+		const tabletSidebar = tabletPage.getByTestId('app-sidebar');
+		await tabletSidebar.getByRole('button', { name: /General/ }).waitFor({ timeout: 10000 });
+		const timeWidth = (await tabletSidebar.boundingBox()).width;
+		await tabletSidebar.getByRole('button', { name: /General/ }).click();
+		await tabletPage.getByRole('button', { name: 'New Note' }).waitFor({ timeout: 10000 });
+		await sleep(500);
+		const closedWidth = (await tabletSidebar.boundingBox())?.width ?? 0;
+		await tabletPage.getByRole('button', { name: 'Toggle sidebar' }).click();
+		await sleep(500);
+		const overlayWidth = (await tabletSidebar.boundingBox()).width;
+		const overlayClass = await tabletSidebar.getAttribute('class');
+		await tabletPage.screenshot({ path: `${SHOTS}/32-tablet-overlay.png` });
+		await tabletSidebar.getByRole('button', { name: /Rocket Build/ }).click();
+		await sleep(500);
+		const afterPick = (await tabletSidebar.boundingBox())?.width ?? 0;
+		const overflow = await tabletPage.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+		assert(timeWidth === 240, 'time-mode sidebar width ' + timeWidth);
+		assert(closedWidth <= 1 && afterPick <= 1, `notes-mode sidebar not closed: ${closedWidth} / after pick ${afterPick}`);
+		assert(overlayWidth === 240 && overlayClass.includes('absolute'), `≡ did not open an overlay: width ${overlayWidth}, class ${overlayClass}`);
+		assert(overflow <= 0, `horizontal overflow ${overflow}px`);
+		return `900px: time-mode sidebar 240px; notes mode hides it, ≡ opens a 240px overlay, picking a contract closes it; no overflow`;
+	} finally {
+		await tabletContext.close();
 	}
 });
 
