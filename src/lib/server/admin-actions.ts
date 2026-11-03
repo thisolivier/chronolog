@@ -7,11 +7,18 @@ import { describeUsage } from '$lib/utils/usage-summary';
 import type { DeletionResult } from '$lib/server/db/queries/safe-deletion';
 import { isUuid } from '$lib/utils/uuid';
 
-/** Postgres unique-constraint violation (code 23505), whatever the driver's message says. */
+/**
+ * Postgres unique-constraint violation (code 23505). Drizzle wraps the driver error in a
+ * `DrizzleQueryError` whose message is just "Failed query: …", so walk the `cause` chain.
+ */
 export function isUniqueViolation(databaseError: unknown): boolean {
-	if (!(databaseError instanceof Error)) return false;
-	const code = (databaseError as Error & { code?: string }).code;
-	return code === '23505' || databaseError.message.includes('unique');
+	let current: unknown = databaseError;
+	for (let depth = 0; current instanceof Error && depth < 5; depth += 1) {
+		if ((current as Error & { code?: string }).code === '23505') return true;
+		if (current.message.includes('duplicate key value violates unique constraint')) return true;
+		current = current.cause;
+	}
+	return false;
 }
 
 export function requireUser(locals: App.Locals) {

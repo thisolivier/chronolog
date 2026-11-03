@@ -188,7 +188,9 @@
 			{/if}
 			<!-- Panel 1: Sidebar (collapsible; an overlay in tablet notes mode) -->
 			<div
-				class="flex-shrink-0 border-r border-stone-200 bg-stone-50 transition-all duration-300 {sidebarIsOverlay
+				class="flex-shrink-0 bg-stone-50 transition-all duration-300 {sidebarVisible
+					? 'border-r border-stone-200'
+					: ''} {sidebarIsOverlay
 					? 'absolute inset-y-0 left-0 z-30 shadow-xl'
 					: ''}"
 				style="width: {sidebarVisible ? 240 : 0}px; overflow: hidden;"
