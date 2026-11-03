@@ -200,16 +200,21 @@
 
 <div class="flex h-full flex-col bg-stone-50">
 	<!-- Header -->
-	<div class="flex items-center justify-between gap-2 border-b border-stone-200 bg-white px-4 py-3">
-		<div class="min-w-0" data-testid="note-list-context">
+	<!-- Rule 4: the client and contract on their own row, so long names are not squeezed by the actions -->
+	<div class="border-b border-stone-200 bg-white px-4 pt-3 pb-2">
+		<div
+			class="min-w-0"
+			data-testid="note-list-context"
+			title={contractLabel ? `${contractLabel.clientName} · ${contractLabel.name}` : undefined}
+		>
 			<p class="truncate text-xs text-stone-500">{contractLabel?.clientName ?? 'Notes'}</p>
 			<h2 class="truncate text-sm font-semibold text-stone-900">{contractLabel?.name ?? 'Notes'}</h2>
 		</div>
-		<div class="flex items-center gap-2">
+		<div class="mt-2 flex items-center justify-between gap-2">
 			<button
 				type="button"
 				onclick={toggleSortOrder}
-				class="rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+				class="-ml-2 rounded px-2 py-1 text-xs whitespace-nowrap text-stone-500 hover:bg-stone-100 hover:text-stone-700"
 				title="Change sort order"
 				data-testid="note-sort-toggle"
 			>
@@ -219,7 +224,7 @@
 				type="button"
 				onclick={handleCreateNote}
 				disabled={!navigationContext.selectedContractId}
-				class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700
+				class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-white hover:bg-blue-700
 					disabled:cursor-not-allowed disabled:opacity-50"
 			>
 				New Note
