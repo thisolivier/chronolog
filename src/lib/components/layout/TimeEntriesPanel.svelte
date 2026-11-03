@@ -7,6 +7,7 @@
 	import NewEntryRow from '$lib/components/weekly/NewEntryRow.svelte';
 	import { getMondayOfWeek, getIsoWeekNumber, getIsoYear, getWeekDates, formatDayHeader } from '$lib/utils/iso-week';
 	import { SvelteDate } from 'svelte/reactivity';
+	import { TIME_ENTRY_SAVED_EVENT, readTimeEntrySavedDetail } from '$lib/components/weekly/time-entry-events';
 	import type { WeekData, TimeEntryDisplay } from '$lib/services/types';
 
 	const navigation = getNavigationContext();
@@ -165,6 +166,31 @@
 		refreshWeeks();
 	}
 
+	/** An entry was saved by the timer widget or the Add Entry modal (sidebar) */
+	async function handleTimeEntrySaved(event: Event) {
+		const { date } = readTimeEntrySavedDetail(event);
+		await refreshWeeks();
+		if (date) {
+			await ensureWeekLoaded(getMondayOfWeek(date));
+		}
+	}
+
+	/** A [[noteId]] link in a card was clicked: switch to notes mode and open that note */
+	async function handleNoteLinkClick(noteId: string) {
+		try {
+			const note = await dataService.getNoteById(noteId);
+			const contracts = await dataService.getContracts();
+			const owningContract = contracts.find((contract) => contract.id === note.contractId);
+			if (!owningContract) {
+				console.error(`Contract ${note.contractId} for note ${noteId} not found`);
+				return;
+			}
+			navigation.openNote(noteId, owningContract.id, owningContract.clientId);
+		} catch (error) {
+			console.error(`Could not open note ${noteId}:`, error);
+		}
+	}
+
 	/** Get all dates in a week up to today */
 	function getWeekDaysUpToToday(weekStart: string): string[] {
 		return getWeekDates(weekStart).filter((dateString) => dateString <= todayString);
@@ -185,7 +211,7 @@
 	// --- Week navigation handlers ---
 
 	function navigateToPrevWeek() {
-		const currentSelectedDate = new Date(selectedWeekStart + 'T00:00:00');
+		const currentSelectedDate = new SvelteDate(selectedWeekStart + 'T00:00:00');
 		currentSelectedDate.setDate(currentSelectedDate.getDate() - 7);
 		const previousWeekStart = formatDate(currentSelectedDate);
 		navigation.selectWeek(previousWeekStart);
@@ -193,7 +219,7 @@
 	}
 
 	function navigateToNextWeek() {
-		const currentSelectedDate = new Date(selectedWeekStart + 'T00:00:00');
+		const currentSelectedDate = new SvelteDate(selectedWeekStart + 'T00:00:00');
 		currentSelectedDate.setDate(currentSelectedDate.getDate() + 7);
 		const nextWeekStart = formatDate(currentSelectedDate);
 		navigation.selectWeek(nextWeekStart);
@@ -214,6 +240,7 @@
 	});
 
 	onMount(() => {
+		window.addEventListener(TIME_ENTRY_SAVED_EVENT, handleTimeEntrySaved);
 		loadInitialWeeks().then(() => {
 			// Brief delay to let DOM render, then scroll to today's section
 			setTimeout(() => {
@@ -223,6 +250,9 @@
 				}
 			}, 100);
 		});
+		return () => {
+			window.removeEventListener(TIME_ENTRY_SAVED_EVENT, handleTimeEntrySaved);
+		};
 	});
 </script>
 
@@ -272,7 +302,7 @@
 		{#if entries.length > 0}
 			<div class="flex flex-col">
 				{#each entries as entry (entry.id)}
-					<TimeEntryCard {entry} onUpdated={refreshWeeks} />
+					<TimeEntryCard {entry} onUpdated={refreshWeeks} onNoteLinkClick={handleNoteLinkClick} />
 				{/each}
 			</div>
 		{:else if !expandedAddEntry[dayDate]}

@@ -223,6 +223,27 @@ if (import.meta.vitest) {
 			expect(nav.mobileNavigationLevel).toBe(1);
 		});
 
+		it('should open a note from time-entries mode via openNote', () => {
+			const nav = createNavigationState();
+			expect(nav.mode).toBe('time-entries');
+			nav.openNote('note-789', 'contract-123', 'client-456');
+			expect(nav.mode).toBe('notes');
+			expect(nav.selectedContractId).toBe('contract-123');
+			expect(nav.selectedClientId).toBe('client-456');
+			expect(nav.selectedNoteId).toBe('note-789');
+			expect(nav.mobileNavigationLevel).toBe(2);
+		});
+
+		it('should replace the current note when openNote targets another contract', () => {
+			const nav = createNavigationState();
+			nav.selectContract('contract-123', 'client-456');
+			nav.selectNote('note-1');
+			nav.openNote('note-2', 'contract-abc', 'client-xyz');
+			expect(nav.selectedContractId).toBe('contract-abc');
+			expect(nav.selectedClientId).toBe('client-xyz');
+			expect(nav.selectedNoteId).toBe('note-2');
+		});
+
 		it('should clear note selection when switching contracts', () => {
 			const nav = createNavigationState();
 			nav.selectContract('contract-123', 'client-456');

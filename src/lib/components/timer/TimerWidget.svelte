@@ -6,6 +6,7 @@
 	import { getDataService } from '$lib/services/context';
 	import { getTimerStateContext } from '$lib/stores/timer-state.svelte';
 	import { calculateElapsedFromStartTime } from './timer-api';
+	import { dispatchTimeEntrySaved } from '$lib/components/weekly/time-entry-events';
 	import type { ContractOption } from '$lib/services/types';
 
 	const dataService = getDataService();
@@ -54,6 +55,10 @@
 			if (data.timer) {
 				entryId = data.timer.id;
 				startTime = data.timer.startTime || '';
+				// Restore the draft the server already holds, before the state switch renders
+				// the running controls or the completion form (both read these as initial values)
+				draftContractId = data.timer.contractId ?? '';
+				draftDescription = data.timer.description ?? '';
 				if (data.timer.endTime) {
 					endTime = data.timer.endTime;
 					elapsedSeconds = data.timer.durationMinutes * 60;
@@ -164,8 +169,13 @@
 
 		try {
 			const stoppedEntry = await dataService.stopTimer();
+			// Display the server's view of the entry: its end time, its rounded-up duration
+			// (never 0m), and the draft contract/description it holds
+			startTime = stoppedEntry.startTime || startTime;
 			endTime = stoppedEntry.endTime || '';
 			elapsedSeconds = stoppedEntry.durationMinutes * 60;
+			draftContractId = draftContractId || stoppedEntry.contractId || '';
+			draftDescription = draftDescription || stoppedEntry.description || '';
 			timerState = 'stopped';
 		} catch {
 			errorMessage = 'Failed to stop timer';
@@ -179,8 +189,11 @@
 		description: string;
 	}) {
 		try {
+			const savedEntryId = entryId;
 			await dataService.saveTimer({ entryId, ...data });
 			resetTimer();
+			// A timer entry is dated the day it was started (today for any normal run)
+			dispatchTimeEntrySaved({ entryId: savedEntryId, date: todayDateString() });
 		} catch {
 			errorMessage = 'Failed to save time entry';
 		}
@@ -212,6 +225,15 @@
 
 	function handleAddEntryCreated() {
 		showAddEntryModal = false;
+		// The modal does not report the created entry, so the timesheet refreshes its loaded weeks
+		dispatchTimeEntrySaved();
+	}
+
+	function todayDateString(): string {
+		const now = new Date();
+		const month = String(now.getMonth() + 1).padStart(2, '0');
+		const day = String(now.getDate()).padStart(2, '0');
+		return `${now.getFullYear()}-${month}-${day}`;
 	}
 </script>
 

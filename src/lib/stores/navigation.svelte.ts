@@ -54,6 +54,8 @@ export interface NavigationContext {
 	selectContract: (contractId: string, clientId: string) => void;
 	selectWeek: (weekStart: string) => void;
 	selectNote: (noteId: string) => void;
+	/** Switch to notes mode for the note's contract and open the note in one step */
+	openNote: (noteId: string, contractId: string, clientId: string) => void;
 	clearSelectedNote: () => void;
 	toggleSidebar: () => void;
 	navigateMobile: (level: MobileNavigationLevel) => void;
@@ -117,6 +119,11 @@ export function createNavigationState(): NavigationContext {
 		state.mobileNavigationLevel = 2;
 	};
 
+	const openNote = (noteId: string, contractId: string, clientId: string) => {
+		selectContract(contractId, clientId);
+		selectNote(noteId);
+	};
+
 	const clearSelectedNote = () => {
 		state.selectedNoteId = null;
 	};
@@ -175,6 +182,7 @@ export function createNavigationState(): NavigationContext {
 		selectContract,
 		selectWeek,
 		selectNote,
+		openNote,
 		clearSelectedNote,
 		toggleSidebar,
 		navigateMobile,

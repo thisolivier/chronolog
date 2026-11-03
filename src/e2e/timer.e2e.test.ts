@@ -53,13 +53,28 @@ describe('Timer API', () => {
 		expect(data.timer.id).toBe(timerEntryId);
 	});
 
-	it('POST /api/timer/stop stops the timer', async () => {
+	it('POST /api/timer/stop stops the timer and never yields a 0-minute entry', async () => {
 		const response = await authPost('/api/timer/stop', {});
 		expect(response.ok).toBe(true);
 
 		const data = await response.json();
 		expect(data).toHaveProperty('id');
 		expect(data.id).toBe(timerEntryId);
+		// Started a few seconds ago at most: sub-minute runs round up to 1 minute
+		expect(data.durationMinutes).toBeGreaterThanOrEqual(1);
+		expect(data.endTime).toBeTruthy();
+	});
+
+	it('GET /api/timer/status for a stopped draft includes contractId and duration', async () => {
+		const response = await authGet('/api/timer/status');
+		expect(response.ok).toBe(true);
+
+		const data = await response.json();
+		expect(data.timer).not.toBeNull();
+		expect(data.timer.id).toBe(timerEntryId);
+		expect(data.timer.contractId).toBe(contractId);
+		expect(data.timer.endTime).toBeTruthy();
+		expect(data.timer.durationMinutes).toBeGreaterThanOrEqual(1);
 	});
 
 	it('POST /api/timer/discard discards the stopped entry', async () => {
