@@ -55,8 +55,9 @@ Compose reads `.env.prod` through `--env-file` and passes each container only wh
 
 | Variable | Required | Notes |
 |---|---|---|
-| `ENCRYPTION_KEY` | yes | `openssl rand -base64 32`. Encrypts data at rest. Keep a copy off the box (password manager); a backup is only restorable with the key that was live when it was taken. |
+| `ENCRYPTION_KEY` | yes | `openssl rand -base64 32`: base64 of exactly 32 random bytes, checked at boot. Encrypts data at rest. Keep a copy off the box (password manager); a backup is only restorable with the key that was live when it was taken. See the warning below. |
 | `BETTER_AUTH_SECRET` | yes | `openssl rand -base64 32`. Rotating it signs everyone out. |
+| `DEVICE_ACCESS_KEY_HASH` | yes | The `DEVICE_ACCESS_KEY_HASH=scrypt:…` line from `node scripts/generate-device-key.mjs` (Node 22.18+, run from a checkout). Gates every page and API route; browsers unlock at `/unlock`. The raw `DEVICE_ACCESS_KEY` is for the password manager only. Rotation: [ONBOARDING.md](ONBOARDING.md#rotating-the-device-key). |
 | `POSTGRES_PASSWORD` | yes | `openssl rand -hex 24` (hex: URL-safe in `DATABASE_URL`). Applied only when the volume is first created. |
 | `BETTER_AUTH_URL` | yes | `https://chronolog.throb.online`. Better Auth base URL and trusted origin. |
 | `ORIGIN` | no | adapter-node CSRF origin for form actions. Defaults to `BETTER_AUTH_URL`. |
@@ -66,7 +67,13 @@ Compose reads `.env.prod` through `--env-file` and passes each container only wh
 | `POSTGRES_USER`, `POSTGRES_DB` | no | Default `chronolog`. |
 
 `DATABASE_URL` is assembled by the compose file from the `POSTGRES_*` values. A missing required
-variable stops `docker compose` with an explicit message before anything starts.
+variable stops `docker compose` with an explicit message before anything starts. `scripts/deploy-prod.sh`
+also refuses to run when `DEVICE_ACCESS_KEY_HASH` is missing or empty.
+
+> **Losing `ENCRYPTION_KEY` loses the data.** Encrypted fields in the database and in every backup
+> cannot be read without the exact key that wrote them. Keep the key in the password manager, stored
+> separately from the dumps, and check that the copy there matches `.env.prod` before you rely on
+> it. There is no recovery path, and key rotation is not supported yet.
 
 Because `ORIGIN` is the public https origin, admin form actions only work through
 `https://chronolog.throb.online`; `http://127.0.0.1:3123` is for health checks and curl.
@@ -111,6 +118,29 @@ coordinated between replicas.
 
 **Rollback:** `git checkout <previous commit> && scripts/deploy-prod.sh`. If the update included a
 migration, restore the pre-update dump as well (see Restore). Drizzle migrations only go forward.
+
+## Encrypting a database that predates sprint 023
+
+A database created before sprint 023 holds plaintext in the encrypted columns. A fresh production
+database needs nothing; this one-time script is only for an older database. It encrypts every
+plaintext value in those columns with `ENCRYPTION_KEY`.
+
+1. Take a backup first: `scripts/backup-postgres.sh`.
+2. Rehearse on a restored copy: restore the dump into a scratch database (see Restore), then run the
+   script with `DATABASE_URL` pointing at that scratch database. Check the app reads the data.
+3. Run it against the live database, from a checkout that holds `.env.prod`. `.env.prod` has no
+   `DATABASE_URL`, and production Postgres has no host port, so export both values for the run:
+   ```bash
+   DATABASE_URL=postgresql://chronolog:…@<reachable host>:<port>/chronolog \
+   ENCRYPTION_KEY=… node scripts/encrypt-existing.mjs
+   ```
+   Replace the placeholders from `.env.prod` and the reachable host. Do not print them into logs.
+   This route to production Postgres is not yet tested; a tested path is a follow-up.
+4. Sign in and spot-check notes, time entries and contracts.
+
+The script is idempotent: values already carrying the `enc1:` prefix are skipped, so it is safe to
+re-run after an interruption. A database seeded with `npm run db:seed` on dev is plaintext until
+this script runs; the app still reads it.
 
 ## Cloudflare Tunnel (owner, in the Cloudflare dashboard)
 
@@ -230,14 +260,18 @@ power cut once OrbStack starts at login.
 - `.env.prod` should be mode 600, is never committed, and is excluded from the Docker build context.
 - The image runs as the unprivileged `node` user and carries no dev tooling.
 - Registration is closed unless `ALLOW_REGISTRATION=true`.
-- Coming next: the device access key gate (sprint 023) and API tokens for the laptop CLI (sprint 024).
+- Device access key gate: every page and `/api/*` route needs the key (cookie from `/unlock`, or the
+  `X-Device-Key` header) before the login check. Lockout and rotation: [ONBOARDING.md](ONBOARDING.md).
+- Notes, time entries, contracts, client names and attachments are encrypted at rest (AES-256-GCM,
+  `ENCRYPTION_KEY`).
+- Coming next: API tokens for the laptop CLI (sprint 024).
 
 ## Running without Docker
 
 ```bash
 npm ci && npm run build
 DATABASE_URL=... node scripts/migrate.mjs
-DATABASE_URL=... ENCRYPTION_KEY=... BETTER_AUTH_SECRET=... BETTER_AUTH_URL=... ORIGIN=... PORT=3123 HOST=127.0.0.1 node build
+DATABASE_URL=... ENCRYPTION_KEY=... DEVICE_ACCESS_KEY_HASH=... BETTER_AUTH_SECRET=... BETTER_AUTH_URL=... ORIGIN=... PORT=3123 HOST=127.0.0.1 node build
 ```
 
 ## Desktop app (Tauri)

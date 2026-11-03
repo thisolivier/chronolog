@@ -105,6 +105,23 @@ in the browser, test sync reconnection.
 
 **Depends on:** nothing (deferred from Phase 1)
 
+#### IF-4: Encryption key rotation (enc2 envelope + re-encrypt walker)
+Rotation is not supported today: `ENCRYPTION_KEY` is fixed for the life of the database and its
+backups. Add an `enc2:` envelope that carries a key id, a key registry that can hold the old and new
+keys, and a re-encrypt walker that rewrites every encrypted column (notes, time entries, contracts,
+clients, attachments) under the new key, idempotent and resumable. Needs a tested rollback path and
+a backup taken before the walk.
+
+**Depends on:** sprint 023 (encryption at rest, `crypto/`)
+
+#### IF-5: Device key rotation tooling / multiple device keys
+Rotation today is manual: run `scripts/generate-device-key.mjs`, replace `DEVICE_ACCESS_KEY_HASH`,
+redeploy, and every browser and CLI/Tauri client re-enters the key. Add tooling that rotates in one
+step, and support several device keys (one per laptop or phone) so a single lost device can be
+revoked without re-keying everything. Per-device revocation would also need a device list.
+
+**Depends on:** sprint 023 (device access key gate)
+
 #### QA-H: Full regression after Phase 2
 Comprehensive test pass after editor and feature changes land.
 

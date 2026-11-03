@@ -36,6 +36,10 @@ fi
 APP_PORT="$(read_env_value APP_PORT 3123)"
 PUBLIC_URL="$(read_env_value BETTER_AUTH_URL '')"
 ALLOW_REGISTRATION="$(read_env_value ALLOW_REGISTRATION false)"
+DEVICE_ACCESS_KEY_HASH_VALUE="$(read_env_value DEVICE_ACCESS_KEY_HASH '')"
+
+# Required secrets: presence only. The app validates their format at boot.
+[[ -n "$DEVICE_ACCESS_KEY_HASH_VALUE" ]] || fail "DEVICE_ACCESS_KEY_HASH is missing or empty in $ENV_FILE. Generate it with: node scripts/generate-device-key.mjs"
 
 # The port must be free, or already held by this stack.
 port_owner="$("$DOCKER" ps --filter "publish=${APP_PORT}" --format '{{.Names}}' | head -n 1)"

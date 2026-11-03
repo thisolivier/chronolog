@@ -24,6 +24,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-chronolog}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}@postgres:5432/${POSTGRES_DB:-chronolog}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set ENCRYPTION_KEY in .env.prod}
+      DEVICE_ACCESS_KEY_HASH: ${DEVICE_ACCESS_KEY_HASH:?set DEVICE_ACCESS_KEY_HASH in .env.prod}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env.prod}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:?set BETTER_AUTH_URL in .env.prod}
       # adapter-node CSRF origin for form actions; defaults to the public URL.
