@@ -224,6 +224,14 @@ CLIENT_CODE.YYYYMMDD.SEQ
 
 Generated automatically. Sequence counter stored per client+date in IndexedDB to ensure uniqueness even offline.
 
+**Sequence scope (decided in sprint 026-CL, UX finding 42):** the server derives `SEQ` from the
+highest existing `notes.id` with the same `CLIENT_CODE.YYYYMMDD.` prefix across the whole table, not
+per user. This is deliberate and stays: `notes.id` is the global primary key, so two users with the
+same short code on the same day would collide if each counted from 001. Chronolog runs one account
+per instance, so in production the sequence is effectively per user already; the gap seen in the
+review (`INTL.20261103.020` as a new user's first note) only happens on the shared multi-user dev
+database. If multi-account ever returns, the ID needs a per-user component, not a per-user counter.
+
 ## Wiki-Link Syntax
 
 | Pattern | Meaning |

@@ -10,6 +10,9 @@ Pure utility modules with no server or framework dependencies. Usable on both cl
 - **extract-preview-lines.ts** — Extracts first two non-empty text lines from TipTap JSON content for note list previews.
 - **reconcile-description-links.ts** — Reconciles wiki-link references in time entry descriptions with the backlinks index.
 - **client-colors.ts** — Client color palette and helper functions. Maps a `colorIndex` to a set of CSS color values (border, dot, background) used for client-specific visual accents throughout the UI.
+- **usage-summary.ts** — Wording for the admin delete confirm dialogs ("2 contracts, 3 time entries (4h 45m) and 1 note") and `hasRecordedWork()`, which decides whether Archive is offered first. No server imports.
+- **group-contracts-by-client.ts** — Groups contracts under their client for the sidebar, clients ordered by name and contracts keeping their server order.
+- **uuid.ts** — `isUuid()`, used by the `[clientId=uuid]` / `[contractId=uuid]` route matchers so malformed IDs return 404 rather than a database error.
 
 ## Testing
 
