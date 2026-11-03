@@ -7,7 +7,7 @@
  */
 
 import type { DataService } from './data-service';
-import type {
+import type { TimerLocalStart,
 	ContractsByClientResult,
 	ContractOption,
 	CreateContractInput,
@@ -142,8 +142,8 @@ export class DelegatingDataService implements DataService {
 		return this.delegate.getTimerStatus();
 	}
 
-	startTimer(contractId?: string): Promise<TimerEntry> {
-		return this.delegate.startTimer(contractId);
+	startTimer(contractId: string, localStart?: TimerLocalStart): Promise<TimerEntry> {
+		return this.delegate.startTimer(contractId, localStart);
 	}
 
 	stopTimer(): Promise<TimerEntry> {

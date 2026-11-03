@@ -540,73 +540,21 @@ describe('FetchDataService', () => {
 			expect(result).toEqual(timerEntry);
 		});
 
-		it('fetches contracts and uses first active one when no contractId given', async () => {
-			const contracts: ContractOption[] = [
-				{
-					id: 'c-inactive',
-					name: 'Old',
-					isActive: false,
-					clientId: 'cl1',
-					clientName: 'Client',
-					clientShortCode: 'CL',
-					clientColorIndex: 0
-				},
-				{
-					id: 'c-active',
-					name: 'Active',
-					isActive: true,
-					clientId: 'cl1',
-					clientName: 'Client',
-					clientShortCode: 'CL',
-					clientColorIndex: 0
-				}
-			];
-			const timerEntry: TimerEntry = {
-				id: 'timer-2',
-				startTime: '2026-02-03T10:00:00Z',
-				endTime: null,
-				durationMinutes: 0
-			};
-
-			// First call: getContracts -> GET /api/contracts
-			mockFetch.mockResolvedValueOnce(mockJsonResponse(contracts));
-			// Second call: POST /api/timer/start
-			mockFetch.mockResolvedValueOnce(mockJsonResponse(timerEntry));
-
-			const result = await service.startTimer();
-
-			expect(mockFetch).toHaveBeenCalledTimes(2);
-			// Second call should use the first active contract
-			const [url, options] = [
-				mockFetch.mock.calls[1][0] as string,
-				mockFetch.mock.calls[1][1] as RequestInit
-			];
-			expect(url).toBe('/api/timer/start');
-			expect(options.method).toBe('POST');
-			const body = JSON.parse(options.body as string);
-			expect(body).toMatchObject({ contractId: 'c-active' });
-			expect(body.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-			expect(body.startTime).toMatch(/^\d{2}:\d{2}:\d{2}$/);
-			expect(result).toEqual(timerEntry);
+		it('never picks a contract on its own', async () => {
+			await expect(service.startTimer('')).rejects.toThrow('Pick a contract');
+			expect(mockFetch).not.toHaveBeenCalled();
 		});
 
-		it('throws when no active contracts available and no contractId given', async () => {
-			const contracts: ContractOption[] = [
-				{
-					id: 'c1',
-					name: 'Inactive',
-					isActive: false,
-					clientId: 'cl1',
-					clientName: 'Client',
-					clientShortCode: 'CL',
-					clientColorIndex: 0
-				}
-			];
-			mockFetch.mockResolvedValueOnce(mockJsonResponse(contracts));
-
-			await expect(service.startTimer()).rejects.toThrow(
-				'No active contracts available to start timer'
+		it('sends the original local start when the draft is created later', async () => {
+			mockFetch.mockResolvedValueOnce(
+				mockJsonResponse({ id: 't3', startTime: '09:05:00', endTime: null, durationMinutes: 0 })
 			);
+			await service.startTimer('c1', { date: '2026-11-03', startTime: '09:05:00' });
+			expect(getLastFetchBody(mockFetch)).toEqual({
+				contractId: 'c1',
+				date: '2026-11-03',
+				startTime: '09:05:00'
+			});
 		});
 	});
 
@@ -846,7 +794,7 @@ describe('DelegatingDataService', () => {
 		expect(inner.getTimerStatus).toHaveBeenCalledOnce();
 
 		await delegator.startTimer('c1');
-		expect(inner.startTimer).toHaveBeenCalledWith('c1');
+		expect(inner.startTimer).toHaveBeenCalledWith('c1', undefined);
 
 		await delegator.stopTimer();
 		expect(inner.stopTimer).toHaveBeenCalledOnce();

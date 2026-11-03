@@ -21,3 +21,13 @@ export type TimerSaveData = {
 	startTime?: string | null;
 	endTime?: string | null;
 };
+
+/** Seconds from one `HH:MM[:SS]` time to another, treating an earlier end as the next day. */
+export function secondsBetweenTimes(startTimeString: string, endTimeString: string): number {
+	const toSeconds = (timeString: string) => {
+		const [hours = 0, minutes = 0, seconds = 0] = timeString.split(':').map(Number);
+		return hours * 3600 + minutes * 60 + seconds;
+	};
+	const difference = toSeconds(endTimeString) - toSeconds(startTimeString);
+	return difference >= 0 ? difference : difference + 24 * 3600;
+}

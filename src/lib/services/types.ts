@@ -187,6 +187,9 @@ export type TimerEntry = {
 	description?: string | null;
 };
 
+/** When a timer really started, by the browser's clock (it may predate the server draft) */
+export type TimerLocalStart = { date: string; startTime: string };
+
 export type SaveTimerInput = {
 	entryId: string;
 	contractId: string;
