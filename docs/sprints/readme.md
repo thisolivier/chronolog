@@ -4,13 +4,13 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
-| 027-CL | Client | Navigation state, URLs and context | active |
 | 018-QA | QA | Manual testing backlog | superseded by docs/review/2026-11-03-qa-state.md |
 
 ## Completed Sprints
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 027-CL | Client | Navigation state, URLs and context | merged |
 | 028-CL | Client/Server | API tokens, CLI and the laptop skill | merged |
 | 024-CL | Client | Notes and editor rough edges | merged |
 | 026-CL | Client | Admin, shell and safety | merged |
