@@ -4,6 +4,8 @@
 	import { getDataService } from '$lib/services/context';
 	import { getClientBorderClass, getClientDotClass } from '$lib/utils/client-colors';
 	import ContractSelect from '$lib/components/timer/ContractSelect.svelte';
+	import DeliverableSelect from '$lib/components/timer/DeliverableSelect.svelte';
+	import WorkTypeSelect from '$lib/components/timer/WorkTypeSelect.svelte';
 	import WikiLinkRenderer from './WikiLinkRenderer.svelte';
 	import WikiLinkInput from './WikiLinkInput.svelte';
 	import type { TimeEntryFields } from '$lib/services/types';
@@ -20,7 +22,9 @@
 		clientName: string;
 		clientShortCode: string;
 		clientColorIndex: number;
+		deliverableId?: string | null;
 		deliverableName: string | null;
+		workTypeId?: string | null;
 		workTypeName: string | null;
 		description: string | null;
 		date: string;
@@ -39,6 +43,7 @@
 	// Inline editing states
 	let isEditingTime = $state(false);
 	let isEditingContract = $state(false);
+	let isEditingDeliverable = $state(false);
 	let isEditingDescription = $state(false);
 	let isConfirmingDelete = $state(false);
 	let isDeleting = $state(false);
@@ -47,6 +52,8 @@
 	let timeInputValue = $state('');
 	let timeInputError = $state(false);
 	let selectedContractId = $state('');
+	let selectedDeliverableId = $state('');
+	let selectedWorkTypeId = $state('');
 	let descriptionInputValue = $state('');
 	let descriptionDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -136,10 +143,43 @@
 
 	$effect(() => {
 		if (isEditingContract && selectedContractId && selectedContractId !== entry.contractId) {
-			saveField('contractId', selectedContractId);
+			// A deliverable belongs to a contract, so a contract change also clears the deliverable chain
+			if (entry.deliverableId || entry.workTypeId) {
+				saveMultipleFields({
+					contractId: selectedContractId,
+					deliverableId: null,
+					workTypeId: null
+				});
+			} else {
+				saveField('contractId', selectedContractId);
+			}
 			isEditingContract = false;
 		}
 	});
+
+	// Deliverable / work type editing: each pick is saved immediately; Done or Escape closes the editor
+	function startEditingDeliverable() {
+		selectedDeliverableId = entry.deliverableId ?? '';
+		selectedWorkTypeId = entry.workTypeId ?? '';
+		isEditingDeliverable = true;
+	}
+
+	function handleDeliverableChange(nextDeliverableId: string) {
+		// Work types belong to a deliverable, so changing the deliverable clears the work type
+		selectedWorkTypeId = '';
+		saveMultipleFields({ deliverableId: nextDeliverableId || null, workTypeId: null });
+	}
+
+	function handleWorkTypeChange(nextWorkTypeId: string) {
+		saveMultipleFields({
+			deliverableId: selectedDeliverableId || null,
+			workTypeId: nextWorkTypeId || null
+		});
+	}
+
+	function handleDeliverableKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape' || event.key === 'Enter') isEditingDeliverable = false;
+	}
 
 	// Description editing
 	function startEditingDescription() {
@@ -254,12 +294,44 @@
 			{/if}
 		</div>
 
-		<!-- Row 3 (optional): Deliverable > Work Type -->
-		{#if hasDeliverableOrWorkType}
-			<div class="mt-0.5 pl-3.5 text-xs text-stone-400">
-				{deliverableWorkTypeLabel}
-			</div>
-		{/if}
+		<!-- Row 3: Deliverable > Work Type (always editable) -->
+		<div class="mt-0.5 pl-3.5">
+			{#if isEditingDeliverable}
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div class="flex max-w-md items-center gap-1.5" onkeydown={handleDeliverableKeydown}>
+					<DeliverableSelect
+						contractId={entry.contractId}
+						bind:selectedDeliverableId
+						compact={true}
+						alwaysRender={true}
+						onChange={handleDeliverableChange}
+					/>
+					<WorkTypeSelect
+						deliverableId={selectedDeliverableId}
+						bind:selectedWorkTypeId
+						compact={true}
+						onChange={handleWorkTypeChange}
+					/>
+					<button
+						onclick={() => (isEditingDeliverable = false)}
+						class="shrink-0 rounded px-1.5 py-0.5 text-xs text-stone-500 hover:bg-stone-100"
+						type="button"
+					>Done</button>
+				</div>
+			{:else}
+				<button
+					onclick={startEditingDeliverable}
+					class="block text-left text-xs text-stone-400 hover:text-blue-600"
+					title="Click to change deliverable / work type"
+				>
+					{#if hasDeliverableOrWorkType}
+						{deliverableWorkTypeLabel}
+					{:else}
+						<span class="italic">Add deliverable...</span>
+					{/if}
+				</button>
+			{/if}
+		</div>
 	</div>
 
 	<!-- Right column: Duration + time range -->

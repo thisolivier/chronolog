@@ -1,8 +1,11 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { parseTimeInput } from '$lib/utils/time-parse';
 	import { getDataService } from '$lib/services/context';
 	import { getClientBorderClass } from '$lib/utils/client-colors';
 	import ContractSelect from '$lib/components/timer/ContractSelect.svelte';
+	import DeliverableSelect from '$lib/components/timer/DeliverableSelect.svelte';
+	import WorkTypeSelect from '$lib/components/timer/WorkTypeSelect.svelte';
 	import WikiLinkInput from './WikiLinkInput.svelte';
 	import type { ContractOption, CreateTimeEntryInput } from '$lib/services/types';
 
@@ -19,6 +22,9 @@
 	} = $props();
 
 	let selectedContractId = $state('');
+	let selectedDeliverableId = $state('');
+	let selectedWorkTypeId = $state('');
+	let workTypesAvailable = $state(false);
 	let descriptionInput = $state('');
 	let timeInputValue = $state('');
 	let timeInputError = $state(false);
@@ -37,6 +43,15 @@
 
 	$effect(() => {
 		loadContracts();
+	});
+
+	// A deliverable belongs to a contract: changing the contract clears the deliverable chain
+	$effect(() => {
+		void selectedContractId;
+		untrack(() => {
+			selectedDeliverableId = '';
+			selectedWorkTypeId = '';
+		});
 	});
 
 	// Derive the selected contract's color index for the dynamic left border
@@ -77,6 +92,8 @@
 				date,
 				durationMinutes: parsed.durationMinutes,
 				contractId: selectedContractId,
+				deliverableId: selectedDeliverableId || null,
+				workTypeId: selectedWorkTypeId || null,
 				description: descriptionInput.trim() || undefined
 			};
 
@@ -128,12 +145,34 @@
 		autofocus
 	/>
 
-	<!-- Row 2: Contract select, Deliverable (future), Time input -->
+	<!-- Row 2: Contract select, Deliverable (+ Work type), Time input -->
 	<div class="mt-3 flex items-end gap-3">
 		<!-- Contract select -->
 		<div class="min-w-0 flex-1">
 			<label class="mb-1 block text-xs font-medium text-stone-500">Contract</label>
 			<ContractSelect bind:selectedContractId compact={true} />
+		</div>
+
+		<!-- Deliverable select (placeholder until the contract has deliverables) -->
+		<div class="min-w-0 flex-1">
+			<label class="mb-1 block text-xs font-medium text-stone-500">Deliverable</label>
+			<DeliverableSelect
+				contractId={selectedContractId}
+				bind:selectedDeliverableId
+				compact={true}
+				alwaysRender={true}
+			/>
+		</div>
+
+		<!-- Work type select: only when the chosen deliverable has work types -->
+		<div class="min-w-0 flex-1" class:hidden={!workTypesAvailable}>
+			<label class="mb-1 block text-xs font-medium text-stone-500">Work type</label>
+			<WorkTypeSelect
+				deliverableId={selectedDeliverableId}
+				bind:selectedWorkTypeId
+				bind:hasWorkTypes={workTypesAvailable}
+				compact={true}
+			/>
 		</div>
 
 		<!-- Time input -->

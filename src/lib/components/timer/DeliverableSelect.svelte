@@ -7,11 +7,19 @@
 	let {
 		contractId,
 		selectedDeliverableId = $bindable(''),
-		compact = false
+		compact = false,
+		alwaysRender = false,
+		id = undefined,
+		onChange = undefined
 	}: {
 		contractId: string;
 		selectedDeliverableId: string;
 		compact?: boolean;
+		/** Render a disabled placeholder select when the contract has no deliverables */
+		alwaysRender?: boolean;
+		id?: string;
+		/** Fired after the user picks a deliverable (empty string = none) */
+		onChange?: (deliverableId: string) => void;
 	} = $props();
 
 	let deliverableList: DeliverableOption[] = $state([]);
@@ -48,13 +56,25 @@
 			? 'block w-full rounded border border-gray-300 px-1.5 py-1 text-xs shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none'
 			: 'block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none'
 	);
+
+	function handleChange(event: Event) {
+		const nextDeliverableId = (event.currentTarget as HTMLSelectElement).value;
+		selectedDeliverableId = nextDeliverableId;
+		onChange?.(nextDeliverableId);
+	}
 </script>
 
 {#if isLoaded && hasDeliverables}
-	<select bind:value={selectedDeliverableId} class={selectClasses}>
+	<select {id} bind:value={selectedDeliverableId} onchange={handleChange} class={selectClasses}>
 		<option value="">No deliverable</option>
 		{#each deliverableList as deliverable (deliverable.id)}
 			<option value={deliverable.id}>{deliverable.name}</option>
 		{/each}
+	</select>
+{:else if alwaysRender}
+	<select {id} disabled class="{selectClasses} text-gray-400">
+		<option value="">
+			{!contractId ? 'Pick a contract first' : isLoaded ? 'No deliverables' : 'Loading...'}
+		</option>
 	</select>
 {/if}

@@ -1,5 +1,8 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import ContractSelect from './ContractSelect.svelte';
+	import DeliverableSelect from './DeliverableSelect.svelte';
+	import WorkTypeSelect from './WorkTypeSelect.svelte';
 	import { getDataService } from '$lib/services/context';
 
 	const dataService = getDataService();
@@ -15,6 +18,9 @@
 	let entryDate = $state(todayDateString());
 	let durationText = $state('');
 	let selectedContractId = $state('');
+	let selectedDeliverableId = $state('');
+	let selectedWorkTypeId = $state('');
+	let workTypesAvailable = $state(false);
 	let description = $state('');
 	let isSaving = $state(false);
 	let errorMessage = $state('');
@@ -38,6 +44,15 @@
 		return hours * 60 + minutes;
 	}
 
+	// A deliverable belongs to a contract: changing the contract clears the deliverable chain
+	$effect(() => {
+		void selectedContractId;
+		untrack(() => {
+			selectedDeliverableId = '';
+			selectedWorkTypeId = '';
+		});
+	});
+
 	const durationMinutes = $derived(parseDurationToMinutes(durationText));
 	const isFormValid = $derived(
 		!!selectedContractId && !!entryDate && durationMinutes !== null && durationMinutes > 0
@@ -52,6 +67,8 @@
 				date: entryDate,
 				durationMinutes,
 				contractId: selectedContractId,
+				deliverableId: selectedDeliverableId || null,
+				workTypeId: selectedWorkTypeId || null,
 				description: description.trim() || undefined
 			});
 			onCreated();
@@ -116,6 +133,34 @@
 				</label>
 				<div class="mt-0.5">
 					<ContractSelect bind:selectedContractId />
+				</div>
+			</div>
+
+			<div>
+				<label for="deliverable-select" class="block text-xs font-medium text-stone-600">
+					Deliverable
+				</label>
+				<div class="mt-0.5">
+					<DeliverableSelect
+						id="deliverable-select"
+						contractId={selectedContractId}
+						bind:selectedDeliverableId
+						alwaysRender={true}
+					/>
+				</div>
+			</div>
+
+			<div class:hidden={!workTypesAvailable}>
+				<label for="work-type-select" class="block text-xs font-medium text-stone-600">
+					Work type
+				</label>
+				<div class="mt-0.5">
+					<WorkTypeSelect
+						id="work-type-select"
+						deliverableId={selectedDeliverableId}
+						bind:selectedWorkTypeId
+						bind:hasWorkTypes={workTypesAvailable}
+					/>
 				</div>
 			</div>
 
