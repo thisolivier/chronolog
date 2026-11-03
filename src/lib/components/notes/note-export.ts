@@ -2,7 +2,7 @@
  * Sanitize a string for use as a filename.
  */
 export function sanitizeFilename(name: string): string {
-	let sanitized = name
+	const sanitized = name
 		.replace(/[/\\:*?"<>|]/g, '-')
 		.replace(/-{2,}/g, '-')
 		.replace(/^[-\s]+|[-\s]+$/g, '')

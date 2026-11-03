@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { database, clients, contracts, notes, users } from '$lib/server/db';
 import { eq } from 'drizzle-orm';
-import { getNextNoteId, createNoteForUser } from './notes';
+import { getNextNoteId, createNoteForUser, searchNotesForUser } from './notes';
 
 describe('Note ID Generation', () => {
 	let testUserId: string;
@@ -97,5 +97,83 @@ describe('Note ID Generation', () => {
 	it('should use client short code from contract', async () => {
 		const noteId = await getNextNoteId(testContractId);
 		expect(noteId).toMatch(/^TEST\./);
+	});
+});
+
+describe('searchNotesForUser', () => {
+	const uniqueSuffix = Date.now().toString();
+	let testUserId: string;
+	let testClientId: string;
+	let testContractId: string;
+	let createdNoteId: string;
+
+	const firstParagraph = `Kickoff with Acme ${uniqueSuffix}`;
+	const secondParagraph = `Discussed zebra pricing ${uniqueSuffix}`;
+
+	beforeAll(async () => {
+		testUserId = `test-notes-search-${uniqueSuffix}`;
+		await database.insert(users).values({
+			id: testUserId,
+			name: 'Search Test User',
+			email: `${testUserId}@example.com`
+		});
+
+		const clientResult = await database
+			.insert(clients)
+			.values({ userId: testUserId, name: 'Search Client', shortCode: 'SRCH' })
+			.returning();
+		testClientId = clientResult[0].id;
+
+		const contractResult = await database
+			.insert(contracts)
+			.values({ clientId: testClientId, name: 'Search Contract', isActive: true })
+			.returning();
+		testContractId = contractResult[0].id;
+
+		const contentJson = JSON.stringify({
+			type: 'doc',
+			content: [
+				{ type: 'paragraph', content: [{ type: 'text', text: firstParagraph }] },
+				{ type: 'paragraph', content: [{ type: 'text', text: secondParagraph }] }
+			]
+		});
+		const createdNote = await createNoteForUser(
+			testUserId,
+			testContractId,
+			`Alpha title ${uniqueSuffix}`,
+			`${firstParagraph}\n\n${secondParagraph}`,
+			contentJson
+		);
+		createdNoteId = createdNote.id;
+	});
+
+	afterAll(async () => {
+		await database.delete(notes).where(eq(notes.userId, testUserId));
+		await database.delete(contracts).where(eq(contracts.id, testContractId));
+		await database.delete(clients).where(eq(clients.id, testClientId));
+		await database.delete(users).where(eq(users.id, testUserId));
+	});
+
+	it('returns firstLine and secondLine previews for a title match', async () => {
+		const results = await searchNotesForUser(testUserId, `Alpha title ${uniqueSuffix}`);
+
+		expect(results).toHaveLength(1);
+		expect(results[0].id).toBe(createdNoteId);
+		expect(results[0].firstLine).toBe(firstParagraph);
+		expect(results[0].secondLine).toBe(secondParagraph);
+	});
+
+	it('finds a note whose body content matches but whose id and title do not', async () => {
+		const results = await searchNotesForUser(testUserId, `zebra pricing ${uniqueSuffix}`);
+
+		expect(results.map((note) => note.id)).toContain(createdNoteId);
+	});
+
+	it('matches case-insensitively and returns nothing for an unknown term', async () => {
+		const upperCaseResults = await searchNotesForUser(testUserId, `ZEBRA PRICING ${uniqueSuffix}`);
+		expect(upperCaseResults.map((note) => note.id)).toContain(createdNoteId);
+
+		const missingResults = await searchNotesForUser(testUserId, `no-such-term-${uniqueSuffix}`);
+		expect(missingResults).toHaveLength(0);
 	});
 });

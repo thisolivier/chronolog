@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import { getDataService } from '$lib/services/context';
 	import NoteEditor from '$lib/components/notes/NoteEditor.svelte';
@@ -21,6 +22,16 @@
 	let showMoveMenu = $state(false);
 	let moveContracts = $state<ContractOption[]>([]);
 	let moveMessage = $state<string | null>(null);
+	let moveMessageTimeout: ReturnType<typeof setTimeout> | undefined;
+
+	/** Detail payload of the window `note-moved` event consumed by NoteListPanel */
+	interface NoteMovedEventDetail {
+		noteId: string;
+		fromContractId: string | undefined;
+		toContractId: string;
+		toContractName: string | null;
+		toClientName: string | null;
+	}
 
 	/** Close dropdown on outside click — reused for both menus */
 	function closeOnOutsideClick(selector: string, closeFn: () => void) {
@@ -142,28 +153,39 @@
 
 		const previousContractId = currentNote?.contractId;
 
+		// Resolve the target contract so the list panel can name it in its confirmation
+		const targetContract = moveContracts.find((contract) => contract.id === targetContractId);
+
 		try {
 			const updatedNote = await dataService.updateNote(noteId, { contractId: targetContractId });
 			currentNote = updatedNote;
 			showMoveMenu = false;
 
-			// Find the target contract name for the feedback message
-			const targetContract = moveContracts.find((contract) => contract.id === targetContractId);
-			moveMessage = `Moved to ${targetContract?.name ?? 'contract'}`;
-			setTimeout(() => { moveMessage = null; }, 3000);
-
-			// Notify the notes list to refresh (note moved out of current contract view)
+			// Notify the notes list: it removes the note from the current contract view,
+			// clears the selection (which unmounts this header) and shows the success message.
 			window.dispatchEvent(
-				new CustomEvent('note-moved', {
-					detail: { noteId, fromContractId: previousContractId, toContractId: targetContractId }
+				new CustomEvent<NoteMovedEventDetail>('note-moved', {
+					detail: {
+						noteId,
+						fromContractId: previousContractId,
+						toContractId: targetContractId,
+						toContractName: targetContract?.name ?? null,
+						toClientName: targetContract?.clientName ?? null
+					}
 				})
 			);
 		} catch (moveError) {
+			// The editor stays mounted on failure, so the header is a visible place for the error
 			console.error('Error moving note:', moveError);
 			moveMessage = 'Failed to move note';
-			setTimeout(() => { moveMessage = null; }, 3000);
+			clearTimeout(moveMessageTimeout);
+			moveMessageTimeout = setTimeout(() => { moveMessage = null; }, 3000);
 		}
 	}
+
+	onDestroy(() => {
+		clearTimeout(moveMessageTimeout);
+	});
 
 	// Re-fetch when selected note changes
 	$effect(() => {
@@ -209,7 +231,7 @@
 			<div class="flex items-center gap-2">
 				<span class="text-xs font-mono text-stone-400">{currentNote.id}</span>
 				{#if moveMessage}
-					<span class="text-xs text-green-600">{moveMessage}</span>
+					<span role="status" class="text-xs text-red-600">{moveMessage}</span>
 				{/if}
 			</div>
 			<div class="flex items-center gap-1">

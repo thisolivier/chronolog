@@ -1,5 +1,6 @@
 import { eq, and, desc, like, or, ilike } from "drizzle-orm";
 import { database, notes, noteTimeEntries, contracts, clients, timeEntries } from "$lib/server/db";
+import { extractPreviewLines } from '$lib/utils/extract-preview-lines';
 
 export async function listNotesForContract(userId: string, contractId: string) {
 	const results = await database
@@ -183,25 +184,45 @@ export async function getLinkedTimeEntriesForNote(noteId: string, userId: string
 		.orderBy(desc(timeEntries.date));
 }
 
+/**
+ * Search a user's notes by ID, title or markdown body content.
+ * Returns the first two content lines for each match so the `[[` autocomplete
+ * can show a preview of the note.
+ */
 export async function searchNotesForUser(userId: string, query: string, limit: number = 10) {
-	return database
+	const searchPattern = `%${query}%`;
+
+	const rows = await database
 		.select({
 			id: notes.id,
 			title: notes.title,
-			contractId: notes.contractId
+			contractId: notes.contractId,
+			contentJson: notes.contentJson
 		})
 		.from(notes)
 		.where(
 			and(
 				eq(notes.userId, userId),
 				or(
-					ilike(notes.id, `%${query}%`),
-					ilike(notes.title, `%${query}%`)
+					ilike(notes.id, searchPattern),
+					ilike(notes.title, searchPattern),
+					ilike(notes.content, searchPattern)
 				)
 			)
 		)
 		.orderBy(desc(notes.updatedAt))
 		.limit(limit);
+
+	return rows.map((row) => {
+		const preview = extractPreviewLines(row.contentJson);
+		return {
+			id: row.id,
+			title: row.title,
+			contractId: row.contractId,
+			firstLine: preview.firstLine,
+			secondLine: preview.secondLine
+		};
+	});
 }
 
 // Re-export from shared utility so existing server imports keep working

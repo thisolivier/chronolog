@@ -51,7 +51,7 @@
 </script>
 
 <span class="wiki-link-rendered">
-    {#each segments as segment}
+    {#each segments as segment, segmentIndex (segmentIndex)}
         {#if segment.type === 'text'}
             {segment.content}
         {:else}

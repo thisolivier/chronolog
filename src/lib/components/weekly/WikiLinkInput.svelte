@@ -139,7 +139,7 @@
         onKeydown?.(event);
     }
 
-    function handleBlur(event: FocusEvent) {
+    function handleBlur() {
         // Delay to allow dropdown click to fire
         setTimeout(() => {
             showDropdown = false;
