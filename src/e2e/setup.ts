@@ -3,6 +3,9 @@
  *
  * Vitest globalSetup that registers a test user and writes the session
  * cookies to a temp file for test files to read. Runs once before all e2e tests.
+ *
+ * Registration is closed by default: the target stack must run with
+ * ALLOW_REGISTRATION=true or the sign-up below is refused by Better Auth.
  */
 
 import { writeFileSync, unlinkSync, existsSync } from 'node:fs';
