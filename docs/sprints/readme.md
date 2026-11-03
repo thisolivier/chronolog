@@ -4,6 +4,7 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 023-CL | Client/Server | Device access key gate + encryption at rest | active |
 | 018-QA | QA | Manual testing backlog | superseded by docs/review/2026-11-03-qa-state.md |
 
 ## Completed Sprints
