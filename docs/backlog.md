@@ -1,165 +1,100 @@
 # Chronolog — Backlog
 
-## Teams
+The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history is in `docs/sprints/readme.md`, owner decisions in `docs/decisions.md`, and the latest reviews in `docs/review/`. The root `BACKLOG.md` is the original long-form task list and is no longer maintained.
 
-| ID | Team | Focus |
-|----|------|-------|
-| `CL` | Client | UI components, data layer, features |
-| `IF` | Infrastructure | Backend, DB, containers, tooling |
-| `QA` | Quality Assurance | Testing, verification (dispatched by Director) |
-| `UX` | User Experience | Research, wireframes, design recommendations |
+## Done (2026-11-03 session)
 
-## Completed Work (Task 11: Offline Sync)
+- **019-CL** Timesheet stabilised: duplicate-key crash fixed, timer and modal saves appear without a reload.
+- **020-CL** Notes and editor stabilised: toolbar state, login redirect, wiki-link fixes.
+- **021-CL** PowerSync, storage and spike code removed; lost wiring restored; doors closed.
+- **022-IF** Production stack on the Mac mini: compose files, loopback binding, launchd scripts, backups.
+- **023-CL** Device access key gate and encryption at rest (AES-256-GCM).
+- **024-CL** Notes and editor rough edges: autosave flush, titles, search, export, draft New Note, 409 on stale saves.
+- **025-CL** Timesheet and entry forms: one duration parser, visible errors, Escape and Enter rules, week status menu.
+- **026-CL** Admin, shell and safety: safe deletion with archive, honest offline banner, 768 px breakpoint, page titles.
+- **027-CL** Navigation state: the URL is the state, one `openNote()`, context labels, scroll restore.
+- **028-CL** Personal API tokens, the `chronolog` CLI and the `chronolog-secretary` skill.
+- **Offline banner and read cache** (`fix/offline-banner-and-cache`): the banner shows when the server is unreachable, and the read cache is write-through.
 
-All phases delivered and merged. See `docs/sprints/readme.md` for full sprint history.
-- GATE A, B, C: all PASS
-- 355 tests (269 unit + 46 API e2e + 40 Playwright)
-- Production Docker stack verified
+## Next (owner-decided, in this order)
 
-## Current Backlog
+1. **Go-live on the Mac mini.** Owner steps in `docs/DEPLOYMENT.md`: `.env.prod`, first deploy, first account with registration opened then closed, Cloudflare Tunnel ingress and rate-limit rules, nightly backups.
+2. **Offline outbox sprint.** Long-lived read cache plus write outbox, last-write-wins per field, a visible "replayed" marker, and a held queue with a prompt when the server copy changed meanwhile (`docs/decisions.md`).
+3. **Airtable hours logging skill.**
+4. **End-client status and hours API skill.**
+5. **Invoice generation from existing templates.**
+6. **Key rotation (IF-4) and per-device keys (IF-5).** An `enc2:` envelope with a key id and a re-encrypt walker; several device keys so one lost device can be revoked alone.
 
-### Phase 2: Editor & Export
+## Carried-over follow-ups
 
-#### CL-4: Markdown-native note editor
-Switch from TipTap HTML storage to Markdown-native storage. Keep WYSIWYG rendering
-but add a raw/rendered mode toggle. Include code blocks with syntax highlighting.
-Existing notes can be wiped (clean DB migration).
+### Notes / editor
 
-Key deliverables:
-- TipTap fork/config that stores Markdown instead of HTML
-- Raw MD editing mode with monospace view
-- Rendered mode (current WYSIWYG feel)
-- Toggle switch between modes
-- Code blocks with syntax highlighting (common languages)
-- DB migration (drop existing note content, store as MD)
+- Toolbar `disabled` states evaluate once; only the active highlights are reactive (020 sign-off).
+- A keepalive save at unload can reach the server after the reloaded page has loaded the note; the next edit gets the conflict message, no text lost (024 sign-off).
+- PDF export has not been tried in the native macOS print dialog; check on the Mac (024 sign-off, friction #11).
+- No note-side picker to reference a time entry; only the time-entry side links today (friction #21, 024 task 8).
+- Note pinning from the UI spec is not built (friction #40).
+- Wiki-link text drops out of note titles and previews, leaving "Beta note links to" and "See ." (integration-qa-2 O1, journeys P-12).
+- Wiki-links to deleted notes render and do nothing on click (journeys A-10).
+- Note IDs keep the old client code after a client rename or a move (journeys P-07).
+- Phone landscape: the editor is about 80 px tall, with the linked panels taking the rest of the screen (journeys A-09).
+- Phone "Linked time entries": the date wraps into the duration (journeys P-06).
+- The offline backend must implement the DataService methods added in 024 (`searchNotes`, `getNoteTitles`, `createNote`, `updateNote`) (024 sign-off).
 
-**Depends on:** nothing
-**Unblocks:** CL-5, CL-8
+### Timesheet / timer
 
-#### CL-5: Note export (MD and PDF)
-Per-note export to Markdown file and PDF. Export from the note detail view.
+- Pause was removed in 025; bringing it back needs a `paused_seconds` column (025 sign-off).
+- A timer with no contract lives only in this browser's localStorage, so another device will not see it (025 sign-off).
+- `calculateElapsedFromStartTime` ignores the date, so a timer running past midnight under-reports its display (025 sign-off).
+- Bare integers are read as minutes (`8` is 8 minutes); revisit if users type hours (025 sign-off).
+- Time cards collapse the newline, so "Formerly: ..." reads inline; give it its own muted line (026 sign-off).
+- Changing an entry's contract silently drops its deliverable (journeys P-05).
+- The timer pill shows the pink Internal colour with no contract, and `0:00:01` against `00:00:01` in the widget (journeys P-02).
+- Today's section is inset 12 px, so its cards do not line up with other days (journeys P-01).
+- `TimeEntryDisplay.clientId`, `deliverableId` and `workTypeId` are still optional (019 sign-off).
 
-**Depends on:** CL-4 (MD storage)
+### Admin / shell
 
-#### CL-6: Deliverable selector on time entries
-Expose the existing `deliverable_id` field on time entries in the UI. Add a
-deliverable dropdown/selector to the time entry form. Update the settings/admin
-UI to manage deliverables per contract.
+- The deliverable sort-order number field and drag-to-reorder are not built; contracts have up and down arrows only (026 sign-off, friction #30).
+- `deleteWorkType` in `queries/work-types.ts` still cascades and nothing calls it; remove it (026 sign-off).
+- Admin reads as a separate app rather than the same shell (journeys P-03).
+- Two contracts with the same name under one client are allowed and look identical in the sidebar (journeys P-08).
+- First run gives an empty week and a hidden "General" contract, and nothing says clients are made under Settings (friction #31).
 
-**Depends on:** nothing
+### Navigation
 
-#### CL-7: Hours total in week status
-Move the hours total to the left column next to the week status label:
-"Unsubmitted (X.Y hours)" instead of showing hours separately.
+- The root layout creates the navigation context only on initial mount, so a client-side move from an unauthenticated page into `/` throws "Navigation context not found"; `/login` works around it (020 sign-off).
+- Keyboard focus is lost after saving an entry and after following a wiki-link, and lands on `<body>` (027 sign-off, journeys A-11).
+- The in-app history mirror resets when the browser jumps to an entry it did not record, for example after a crash restore (027 sign-off).
 
-**Depends on:** nothing
+### API / CLI
 
-#### CL-8: Note–time entry linking
-Implement the `note_time_entry_link` many-to-many table from the spec. Allow
-referencing notes from time entry descriptions (inline links). Allow viewing
-linked time entries from a note. UX design required first (see UX-3).
+- `POST /api/notes` retries an ID collision five times, then returns 500; eight parallel creates exhaust it. Fix before any bulk import (027 sign-off).
+- `getNextNoteId` uses the UTC date, so evening notes on the laptop get tomorrow's date (028 sign-off).
+- Opening a CLI note in the editor autosaves it as TipTap JSON, which counts as an edit (028 sign-off).
+- `POST /api/notes` and `POST /api/time-entries` do not check that the contract belongs to the user; harmless with one user per instance (028 sign-off).
+- The failure limiter is in memory and per process (028 sign-off).
+- The CLI cannot edit or delete entries; candidates are `chronolog edit` or `chronolog undo` (028 sign-off).
 
-**Depends on:** UX-3 (linking UX design)
+### Infrastructure / dev environment
 
-### Phase 3: UX Overhaul
+- `db:seed` writes plaintext; run `scripts/encrypt-existing.mjs` after seeding (023 sign-off).
+- `encrypt-existing.mjs` has no tested route to production Postgres; only a database created before 023 needs it (023 sign-off, `docs/DEPLOYMENT.md`).
+- Password reset has no tested production path: production Postgres has no host port and the image has no `tsx` (022 sign-off, `docs/DEPLOYMENT.md`).
+- Leftover `chronolog-bucket-storage-1` container and `chronolog_bucket_storage_data` volume from PowerSync; remove them (022 sign-off).
+- SSH key-only login and Screen Sharing restricted to the Tailscale interface are deferred; do them together with go-live, not unattended (`docs/decisions.md`).
+- `svelte-check` reports 12 pre-existing warnings (026 sign-off).
+- `.claude/context7-registry.md`: `/svelte/svelte` no longer resolves and `/ueberdosis/tiptap` redirects (020 sign-off).
 
-#### UX-1: Document existing app
-Full documentation of the current app: screenshots, wireframes of every view,
-component inventory, interaction flows. Integrate into `docs/`. This is the
-foundation for all UX work.
+### Docs
 
-**Depends on:** nothing
-**Unblocks:** UX-2, UX-3
+- `docs/SPEC.md` still describes Dexie and IndexedDB as the PWA storage layer (021 sign-off).
+- `docs/platform-abstraction.md` describes the deleted `src/lib/storage` design, and the README links to it (021 sign-off).
+- `docs/backlog-client.md` and `docs/backlog-infrastructure.md` carry obsolete PowerSync items; this file replaces them (021 sign-off).
+- `docs/ONBOARDING.md` restore section still mentions sprint 024 (028 sign-off).
 
-#### UX-2: Timesheet layout redesign
-Research sprint (high-effort Opus). Rethink the timesheet view:
-- Middle column feels redundant (infinite scroll in left panel suffices)
-- Layout should highlight contracts and notes, keep time/hours secondary
-- Clear day/week/month structure without clutter
-- Consider journal-app aesthetics: subtle colour, warmth, readability
-- Note that note–time entry linking is coming (inform layout decisions)
-- No gimmicks — functional elegance only
+## Housekeeping
 
-**Depends on:** UX-1
-
-#### UX-3: Note–time entry linking UX
-Design the interaction for linking time entries to notes and vice versa.
-Could be inline links, could be a sidebar panel, could be a picker.
-Must work for both directions (note → time entries, time entry → notes).
-Reference from time entry description field is a minimum.
-
-**Depends on:** UX-1
-**Unblocks:** CL-8
-
-#### UX-4: Future feature recommendations
-Proactive research sprint (high-effort Opus). Review the entire app and suggest
-future features with a heavy emphasis on no gimmicks. Practical improvements only.
-
-**Depends on:** UX-2, UX-3 (run after all other UX work)
-
-### Infrastructure & QA
-
-#### IF-3: PowerSync mode QA
-Enable `PUBLIC_SYNC_MODE=powersync` in dev stack, verify offline CRUD round-trip
-in the browser, test sync reconnection.
-
-**Depends on:** nothing (deferred from Phase 1)
-
-#### IF-4: Encryption key rotation (enc2 envelope + re-encrypt walker)
-Rotation is not supported today: `ENCRYPTION_KEY` is fixed for the life of the database and its
-backups. Add an `enc2:` envelope that carries a key id, a key registry that can hold the old and new
-keys, and a re-encrypt walker that rewrites every encrypted column (notes, time entries, contracts,
-clients, attachments) under the new key, idempotent and resumable. Needs a tested rollback path and
-a backup taken before the walk.
-
-**Depends on:** sprint 023 (encryption at rest, `crypto/`)
-
-#### IF-5: Device key rotation tooling / multiple device keys
-Rotation today is manual: run `scripts/generate-device-key.mjs`, replace `DEVICE_ACCESS_KEY_HASH`,
-redeploy, and every browser and CLI/Tauri client re-enters the key. Add tooling that rotates in one
-step, and support several device keys (one per laptop or phone) so a single lost device can be
-revoked without re-keying everything. Per-device revocation would also need a device list.
-
-**Depends on:** sprint 023 (device access key gate)
-
-#### QA-H: Full regression after Phase 2
-Comprehensive test pass after editor and feature changes land.
-
-**Depends on:** CL-4, CL-5, CL-6, CL-7
-
-## Build Order
-
-```
-Phase 2 (parallel where possible):
-  CL-7 (hours total) ─────────────────────┐
-  CL-6 (deliverable selector) ────────────┤
-  CL-4 (MD editor) ──▶ CL-5 (export) ────┤
-  IF-3 (PowerSync QA) ────────────────────┤
-                                           ├──▶ QA-H (regression)
-Phase 3 (UX, sequential):                 │
-  UX-1 (document app) ──┬──▶ UX-2 (timesheet redesign) ──┐
-                         └──▶ UX-3 (linking UX) ──▶ CL-8 ─┤
-                                                           └──▶ UX-4 (future recs)
-```
-
-## Dependency Graph
-
-- CL-4 unblocks CL-5, CL-8 (MD storage needed for inline note links)
-- UX-1 unblocks UX-2, UX-3
-- UX-3 unblocks CL-8
-- CL-4, CL-5, CL-6, CL-7 unblock QA-H
-- UX-2, UX-3 unblock UX-4
-
-## Carried-over Housekeeping (2026-11-03)
-
-- **Three unmerged API-hardening branches on origin** from March 2026, small and sensible but
-  behind main: `fix/json-parse-error-handling` (try/catch around `request.json()` in 9 routes),
-  `fix/time-entry-search-input-validation`, `fix/weekly-status-input-validation`. Re-apply onto
-  current main (merge or redo by hand), then delete the branches.
-- **`wip/2026-05-27-debug-session`** holds the last pre-pause working tree (login-hang logging,
-  WeekListPanel removal, notes-search preview with a missing import). Salvage per the code-state
-  review in `docs/review/`, then delete.
-- **Sprint 018-QA manual checklist** was never run; the live QA review in `docs/review/` covers
-  the automatable parts.
-- Pre-prune safety net: `~/sites/chronolog-prune-backup-2026-11-03.bundle` holds every ref that
-  existed before the worktree and branch prune.
+- Three unmerged API-hardening branches on origin, each with one commit not on `main` (checked 2026-11-03): `fix/json-parse-error-handling` (try/catch around `request.json()`), `fix/time-entry-search-input-validation`, `fix/weekly-status-input-validation`. Re-apply onto `main` by merge or by hand, then delete the branches.
+- The Sprint 018-QA manual checklist was never run; the live QA reviews in `docs/review/` cover the automatable parts.
+- Pre-prune safety net: `~/sites/chronolog-prune-backup-2026-11-03.bundle` holds every ref that existed before the worktree and branch prune.

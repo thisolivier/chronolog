@@ -1,7 +1,7 @@
 # Chronolog — Project Memories
 
 > Portable export of cross-session memory, committed to the repo so it travels between machines
-> (e.g. dev laptop ↔ remote machine). Last exported: 2026-05-26; direction updated 2026-11-03 (sprint 021-CL).
+> (e.g. dev laptop ↔ remote machine). Last exported: 2026-05-26; direction updated 2026-11-03 (sprints 021-CL to 028-CL).
 >
 > ⚠️ Some entries are **machine-specific** (Docker context, DB host) and are flagged inline —
 > verify them on each machine rather than assuming they carry over.
@@ -10,11 +10,11 @@
 
 ## Current Direction
 
-- **Single account per instance** — multi-user/multi-tenant is not a requirement; do not reintroduce per-user partitioning.
-- **PowerSync and the custom sync engine are both gone from `main`** (sprint 021-CL, 2026-11-03); git history keeps them (`powersync-spike`, `task-11-offline-sync`).
-- **Production is fetch-mode only**: SvelteKit app + Postgres (`docker-compose.prod.yml`); registration is closed unless `ALLOW_REGISTRATION=true`.
-- **Offline is deferred** to a future cache + outbox sprint; `docs/EPIC-OFFLINE-SYNC.md` is kept for history only.
-- **`DataService` stays as the seam** — `FetchDataService` behind `DelegatingDataService` (`src/lib/services/`); a future offline backend implements the same interface.
+- **PowerSync is gone** from `main` (sprint 021-CL); the old sync engine stays in git history only. Offline is a future cache and outbox sprint (`docs/decisions.md`).
+- **Device key and encryption at rest are in** (sprint 023-CL): a device access key gates the app and `/api/*`, and note, entry, contract, client and attachment data is AES-256-GCM encrypted.
+- **Production compose is ready** for the Mac mini (sprint 022-IF): app and Postgres in `docker-compose.prod.yml`, app bound to `127.0.0.1:3123`; go-live owner steps are in `docs/DEPLOYMENT.md`.
+- **Laptop CLI and skill are in** (sprint 028-CL): per-laptop REST API tokens, the `chronolog` CLI (`cli/chronolog.mjs`) and the `chronolog-secretary` skill; setup is in `docs/ONBOARDING.md`.
+- **Navigation state is URL-backed** (sprint 027-CL): mode, contract, note and week live in the route, and `openNote()` is the one way to open a note.
 
 ---
 
@@ -41,7 +41,7 @@
 - Schema files split into `src/lib/server/db/schema/` (one per table)
 - Relations in `src/lib/server/db/relations.ts`
 - Auth schema separate: `src/lib/server/db/auth-schema.ts`
-- Better Auth uses `adapter-auto` (not adapter-static) for server routes
+- Better Auth runs on `adapter-node` (`svelte.config.js`) for server routes
 - Better Auth `user` table has TEXT IDs; app `users` table also uses TEXT IDs (matched)
 - User sync hook in `hooks.server.ts`: `ensureAppUser()` auto-creates app user + Internal client + General contract on first login
 - Auth guard in `src/hooks.server.ts`; public routes: `/login`, `/register`, `/api/auth/*`
@@ -76,7 +76,7 @@
   machine, verify which Docker provider/context is active rather than assuming either.
 - Better Auth API routes need a catch-all `+server.ts`, not just hooks
 - Drizzle migrations in `/drizzle` were initially gitignored — Task 2 unignored them
-- Task 3 switched from adapter-static to adapter-auto (needed for server routes)
+- Task 3 switched from adapter-static to adapter-auto (needed for server routes); sprint 022-IF later moved to adapter-node
 - `drizzle.config.ts` `schema` field needs an array with both the `schema/` dir and `auth-schema.ts`
 - Drizzle barrel exports cause module eval-order issues with relations — import tables directly from
   their schema files in `relations.ts` and query files
@@ -91,8 +91,6 @@
 - Drizzle migration journal can get out of sync — may need manual registration with
   `INSERT INTO drizzle.__drizzle_migrations`
 
-## Notes Editor — deferred work (see BACKLOG.md)
-- Markdown export (editor already has `tiptap-markdown`; needs a download/save action)
-- PDF export of notes
-- Rich code-block syntax highlighting — NOT present today (StarterKit's plain code block, no
-  `lowlight`); plan is `@tiptap/extension-code-block-lowlight` + `lowlight`
+## Notes Editor — status (open items live in docs/backlog.md)
+- Markdown and PDF export: done (sprint 013-CL)
+- Code-block syntax highlighting: done (`@tiptap/extension-code-block-lowlight` with `lowlight`)

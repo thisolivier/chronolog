@@ -13,7 +13,11 @@ Project documentation lives in the [`docs/`](docs/) directory:
 - **[platform-abstraction.md](docs/platform-abstraction.md)** — Storage and window management abstraction for Tauri + PWA
 - **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** — Building and deploying for production
 
-The current task backlog is in [`BACKLOG.md`](BACKLOG.md) at the project root.
+The live backlog is in [`docs/backlog.md`](docs/backlog.md). The root [`BACKLOG.md`](BACKLOG.md) is the original long-form task list.
+
+## Working with Chronolog from a laptop
+
+To log time, write client notes and check a week from a laptop with Claude Code, use the `chronolog` CLI together with the project's `chronolog-secretary` skill (`.claude/skills/chronolog-secretary/SKILL.md`). The one-time setup for each laptop is in [docs/ONBOARDING.md](docs/ONBOARDING.md): the device access key, a personal API token created in Settings, and the CLI install. Each laptop has its own token, so a lost laptop can be revoked without touching the others.
 
 ## Dev Environment Setup
 
@@ -132,5 +136,5 @@ chronolog/
 ├── package.json          # Dependencies and npm scripts
 ├── .env.example          # Environment variable template
 ├── CLAUDE.md             # AI assistant configuration
-└── BACKLOG.md            # Current task backlog
+└── BACKLOG.md            # Original long-form task list (live backlog: docs/backlog.md)
 ```
