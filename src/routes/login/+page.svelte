@@ -1,5 +1,18 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { authClient } from '$lib/auth-client';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+
+	onMount(() => {
+		// Reached /login by client-side navigation while already signed in (see
+		// +page.server.ts). Full page reload so the root layout re-mounts with the
+		// authenticated user and initializes navigation context.
+		if (data.alreadyAuthenticated) {
+			window.location.replace('/');
+		}
+	});
 
 	let email = $state('');
 	let password = $state('');
