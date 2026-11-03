@@ -27,6 +27,22 @@
 	let isLoading = $state(false);
 	let isLoadingOlderWeek = $state(false);
 	let daySectionRefs: Record<string, HTMLElement> = {};
+	let scrollContainer: HTMLElement | undefined = $state();
+
+	/**
+	 * Scroll the day list so a day sits at the top. Sets scrollTop on the panel's own
+	 * scroller instead of calling scrollIntoView, which in Chromium also moves the
+	 * sequential focus starting point (the first Tab then landed on today's "+").
+	 */
+	function scrollDayToTop(dateString: string, behavior: 'auto' | 'smooth') {
+		const dayElement = daySectionRefs[dateString];
+		if (!dayElement || !scrollContainer) return;
+		const offsetWithinContainer =
+			dayElement.getBoundingClientRect().top -
+			scrollContainer.getBoundingClientRect().top +
+			scrollContainer.scrollTop;
+		scrollContainer.scrollTo({ top: Math.max(0, offsetWithinContainer - 8), behavior });
+	}
 
 	// "Load older weeks" appends earlier weeks below the selected one; reset on week change
 	let olderWeeksShown = $state(0);
@@ -240,10 +256,7 @@
 	}
 
 	function handleDayClick(dateString: string) {
-		const targetElement = daySectionRefs[dateString];
-		if (targetElement) {
-			targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-		}
+		scrollDayToTop(dateString, 'smooth');
 	}
 
 	// When selectedWeek changes externally, ensure that week is loaded
@@ -257,10 +270,7 @@
 		loadInitialWeeks().then(() => {
 			// Brief delay to let DOM render, then scroll to today's section
 			setTimeout(() => {
-				const todayRef = daySectionRefs[todayString];
-				if (todayRef) {
-					todayRef.scrollIntoView({ behavior: 'smooth', block: 'start' });
-				}
+				scrollDayToTop(todayString, 'auto');
 			}, 100);
 		});
 		return () => {
@@ -386,7 +396,7 @@
 	{/if}
 
 	<!-- Scrollable content: the selected week's seven days, then any older weeks loaded -->
-	<div class="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+	<div bind:this={scrollContainer} class="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
 		{#if isLoading && loadedWeeks.length === 0}
 			<div class="flex items-center justify-center py-12">
 				<p class="text-stone-500">Loading weeks...</p>

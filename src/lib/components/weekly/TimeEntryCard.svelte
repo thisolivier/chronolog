@@ -300,7 +300,7 @@
 	</div>
 
 	<!-- Left content column -->
-	<div class="min-w-0 flex-1 pr-6">
+	<div class="min-w-0 flex-1">
 		<!-- Row 1: Description (hero text) -->
 		{#if isEditingDescription}
 			<WikiLinkInput
@@ -416,7 +416,8 @@
 	</div>
 
 	<!-- Right column: Duration + time range -->
-	<div class="ml-2 flex shrink-0 flex-col items-end justify-center">
+	<!-- mr leaves room for the delete button in the top-right corner -->
+	<div class="mr-6 ml-2 flex shrink-0 flex-col items-end justify-center pointer-coarse:mr-8">
 		{#if isEditingTime}
 			<div class="w-36">
 				<DurationField
