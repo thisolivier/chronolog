@@ -27,7 +27,9 @@ export type ContractOption = {
 };
 
 export type CreateContractInput = {
-	clientId: string;
+	/** An existing client, or omit it and pass `newClient` to create one in the same request. */
+	clientId?: string;
+	newClient?: { name: string; shortCode: string };
 	name: string;
 	description?: string | null;
 	isActive?: boolean;

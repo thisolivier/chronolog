@@ -40,8 +40,8 @@ export class FetchDataService implements DataService {
 		return fetchJson<ContractOption[]>('/api/contracts');
 	}
 
-	async createContract(data: CreateContractInput): Promise<{ id: string }> {
-		return postJson<{ id: string }>('/api/contracts', data);
+	async createContract(data: CreateContractInput): Promise<{ id: string; clientId: string }> {
+		return postJson<{ id: string; clientId: string }>('/api/contracts', data);
 	}
 
 	// -- Clients --

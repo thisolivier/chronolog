@@ -158,10 +158,14 @@
 	}
 </script>
 
-<div class="mx-auto max-w-2xl p-8">
-	<div class="mb-8">
-		<a href="/" class="text-sm text-blue-600 hover:text-blue-500">&larr; Back to dashboard</a>
-	</div>
+<svelte:head><title>Chronolog · Settings · Two-factor</title></svelte:head>
+
+<div class="mx-auto max-w-2xl">
+	<nav class="mb-6 flex items-center gap-2 text-sm text-stone-500" aria-label="Breadcrumb">
+		<a href="/settings" class="hover:text-stone-700">Settings</a>
+		<span class="text-stone-400">/</span>
+		<span class="font-medium text-stone-900">Two-factor authentication</span>
+	</nav>
 
 	<h1 class="mb-2 text-2xl font-bold text-stone-900">Two-Factor Authentication</h1>
 	<p class="mb-8 text-stone-600">

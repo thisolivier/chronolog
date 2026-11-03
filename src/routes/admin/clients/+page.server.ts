@@ -1,11 +1,26 @@
-import { error, fail } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import {
 	listClientsForUser,
 	createClient,
 	updateClient,
-	deleteClient
+	getClientForUser,
+	setClientArchived
 } from '$lib/server/db/queries/clients';
+import { listContractRefsForUser } from '$lib/server/db/queries/contracts';
+import {
+	deleteClientWithReassignment,
+	getContractUsage,
+	sumUsage
+} from '$lib/server/db/queries/safe-deletion';
+import {
+	archiveMessage,
+	deletionMessage,
+	duplicateShortCodeMessage,
+	isUniqueViolation,
+	readUuidField,
+	requireUser
+} from '$lib/server/admin-actions';
 import { isValidClientColorIndex } from '$lib/utils/client-colors';
 
 /**
@@ -22,17 +37,28 @@ function parseColorIndexField(formData: FormData): number | null | undefined {
 const INVALID_COLOR_MESSAGE = 'Colour must be a palette index between 0 and 7.';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	const currentUser = locals.user;
-	if (!currentUser) throw error(401, 'Unauthorized');
+	const currentUser = requireUser(locals);
 
-	const clientList = await listClientsForUser(currentUser.id);
-	return { clients: clientList };
+	const clientList = await listClientsForUser(currentUser.id, { includeArchived: true });
+	const contractRefs = await listContractRefsForUser(currentUser.id);
+	const usageByContract = await getContractUsage(contractRefs.map((contract) => contract.id));
+
+	return {
+		clients: clientList.map((client) => {
+			const clientContractIds = contractRefs
+				.filter((contract) => contract.clientId === client.id)
+				.map((contract) => contract.id);
+			const usage = sumUsage(
+				clientContractIds.flatMap((contractId) => usageByContract.get(contractId) ?? [])
+			);
+			return { ...client, usage: { ...usage, contractCount: clientContractIds.length } };
+		})
+	};
 };
 
 export const actions: Actions = {
 	create: async ({ request, locals }) => {
-		const currentUser = locals.user;
-		if (!currentUser) throw error(401, 'Unauthorized');
+		const currentUser = requireUser(locals);
 
 		const formData = await request.formData();
 		const name = formData.get('name')?.toString().trim();
@@ -40,7 +66,7 @@ export const actions: Actions = {
 		const emoji = formData.get('emoji')?.toString().trim() || null;
 
 		if (!name || !shortCode) {
-			return fail(400, { error: 'Name and short code are required.', name, shortCode });
+			return fail(400, { error: 'Enter both a name and a short code for the client.', name, shortCode });
 		}
 
 		const colorIndex = parseColorIndexField(formData);
@@ -51,34 +77,28 @@ export const actions: Actions = {
 		try {
 			await createClient(currentUser.id, name, shortCode, emoji, colorIndex);
 		} catch (databaseError: unknown) {
-			const errorMessage =
-				databaseError instanceof Error ? databaseError.message : 'Unknown error';
-			if (errorMessage.includes('unique')) {
-				return fail(400, {
-					error: 'A client with this short code already exists.',
-					name,
-					shortCode
-				});
+			if (isUniqueViolation(databaseError)) {
+				return fail(400, { error: duplicateShortCodeMessage(shortCode), name, shortCode });
 			}
-			return fail(500, { error: 'Failed to create client.', name, shortCode });
+			console.error('Failed to create client:', databaseError);
+			return fail(500, { error: `Couldn’t create client “${name}”: the server hit an error.`, name, shortCode });
 		}
 
-		return { success: true };
+		return { success: true, message: `Client “${name}” created.` };
 	},
 
 	update: async ({ request, locals }) => {
-		const currentUser = locals.user;
-		if (!currentUser) throw error(401, 'Unauthorized');
+		const currentUser = requireUser(locals);
 
 		const formData = await request.formData();
-		const clientId = formData.get('client_id')?.toString();
+		const clientId = readUuidField(formData, 'client_id');
 		const name = formData.get('name')?.toString().trim();
 		const shortCode = formData.get('short_code')?.toString().trim();
 		const emojiRaw = formData.get('emoji')?.toString().trim();
 		const emoji = emojiRaw === '' || emojiRaw === undefined ? null : emojiRaw;
 
 		if (!clientId || !name || !shortCode) {
-			return fail(400, { error: 'Client ID, name, and short code are required.' });
+			return fail(400, { error: 'A client needs both a name and a short code.' });
 		}
 
 		const colorIndex = parseColorIndexField(formData);
@@ -94,36 +114,51 @@ export const actions: Actions = {
 				...(colorIndex !== undefined ? { colorIndex } : {})
 			});
 			if (!updatedClient) {
-				return fail(404, { error: 'Client not found.' });
+				return fail(404, { error: 'That client no longer exists. Reload the page.' });
 			}
 		} catch (databaseError: unknown) {
-			const errorMessage =
-				databaseError instanceof Error ? databaseError.message : 'Unknown error';
-			if (errorMessage.includes('unique')) {
-				return fail(400, { error: 'A client with this short code already exists.' });
+			if (isUniqueViolation(databaseError)) {
+				return fail(400, { error: duplicateShortCodeMessage(shortCode) });
 			}
-			return fail(500, { error: 'Failed to update client.' });
+			console.error('Failed to update client:', databaseError);
+			return fail(500, { error: `Couldn’t save client “${name}”: the server hit an error.` });
 		}
 
-		return { success: true };
+		return { success: true, message: `Client “${name}” saved.` };
 	},
 
+	archive: async ({ request, locals }) => setArchived(request, locals, true),
+	unarchive: async ({ request, locals }) => setArchived(request, locals, false),
+
 	delete: async ({ request, locals }) => {
-		const currentUser = locals.user;
-		if (!currentUser) throw error(401, 'Unauthorized');
+		const currentUser = requireUser(locals);
 
 		const formData = await request.formData();
-		const clientId = formData.get('client_id')?.toString();
+		const clientId = readUuidField(formData, 'client_id');
+		if (!clientId) return fail(400, { error: 'Missing client ID.' });
 
-		if (!clientId) {
-			return fail(400, { error: 'Client ID is required.' });
-		}
+		const client = await getClientForUser(clientId, currentUser.id);
+		if (!client) return fail(404, { error: 'That client no longer exists. Reload the page.' });
 
-		const deletedClient = await deleteClient(clientId, currentUser.id);
-		if (!deletedClient) {
-			return fail(404, { error: 'Client not found.' });
-		}
+		const contractRefs = (await listContractRefsForUser(currentUser.id)).filter(
+			(contract) => contract.clientId === clientId
+		);
+		const usage = sumUsage((await getContractUsage(contractRefs.map((row) => row.id))).values());
 
-		return { success: true };
+		const result = await deleteClientWithReassignment(clientId, currentUser.id);
+		if (!result) return fail(404, { error: 'That client no longer exists. Reload the page.' });
+
+		return { success: true, message: deletionMessage(client.name, result, usage.totalMinutes) };
 	}
 };
+
+async function setArchived(request: Request, locals: App.Locals, archived: boolean) {
+	const currentUser = requireUser(locals);
+	const formData = await request.formData();
+	const clientId = readUuidField(formData, 'client_id');
+	if (!clientId) return fail(400, { error: 'Missing client ID.' });
+
+	const client = await setClientArchived(clientId, currentUser.id, archived);
+	if (!client) return fail(404, { error: 'That client no longer exists. Reload the page.' });
+	return { success: true, message: archiveMessage('client', client.name, archived) };
+}

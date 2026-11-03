@@ -4,7 +4,7 @@
 	import ContractRow from '$lib/components/admin/ContractRow.svelte';
 	import AdminBreadcrumb from '$lib/components/admin/AdminBreadcrumb.svelte';
 	import FormFeedback from '$lib/components/admin/FormFeedback.svelte';
-	import { cancelOnEscape, closeOnSuccess } from '$lib/components/admin/form-enhancers';
+	import { escapeCancels, closeOnSuccess } from '$lib/components/admin/form-enhancers';
 
 	let { data, form } = $props();
 
@@ -63,7 +63,7 @@
 				method="POST"
 				action="?/updateClient"
 				use:enhance={closeOnSuccess(() => (isEditingClient = false))}
-				onkeydown={cancelOnEscape(() => (isEditingClient = false))}
+				use:escapeCancels={() => (isEditingClient = false)}
 				class="space-y-4"
 			>
 				<h2 class="text-lg font-medium text-stone-900">Edit Client</h2>
@@ -143,7 +143,7 @@
 					method="POST"
 					action="?/createContract"
 					use:enhance={closeOnSuccess(() => (showCreateContractForm = false))}
-					onkeydown={cancelOnEscape(() => (showCreateContractForm = false))}
+					use:escapeCancels={() => (showCreateContractForm = false)}
 					class="space-y-4"
 				>
 					<div>

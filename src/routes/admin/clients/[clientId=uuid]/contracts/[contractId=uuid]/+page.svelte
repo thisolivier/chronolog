@@ -3,7 +3,7 @@
 	import AdminBreadcrumb from '$lib/components/admin/AdminBreadcrumb.svelte';
 	import DeliverableCard from '$lib/components/admin/DeliverableCard.svelte';
 	import FormFeedback from '$lib/components/admin/FormFeedback.svelte';
-	import { cancelOnEscape, closeOnSuccess } from '$lib/components/admin/form-enhancers';
+	import { escapeCancels, closeOnSuccess } from '$lib/components/admin/form-enhancers';
 
 	let { data, form } = $props();
 
@@ -33,7 +33,7 @@
 				method="POST"
 				action="{actionBase}?/updateContract"
 				use:enhance={closeOnSuccess(() => (isEditingContract = false))}
-				onkeydown={cancelOnEscape(() => (isEditingContract = false))}
+				use:escapeCancels={() => (isEditingContract = false)}
 				class="space-y-4"
 			>
 				<h2 class="text-lg font-medium text-stone-900">Edit Contract</h2>
@@ -119,7 +119,7 @@
 					method="POST"
 					action="{actionBase}?/createDeliverable"
 					use:enhance={closeOnSuccess(() => (showCreateDeliverableForm = false))}
-					onkeydown={cancelOnEscape(() => (showCreateDeliverableForm = false))}
+					use:escapeCancels={() => (showCreateDeliverableForm = false)}
 					class="space-y-4"
 				>
 					<div class="grid gap-4 sm:grid-cols-2">
