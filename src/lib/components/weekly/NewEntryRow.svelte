@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { parseTimeInput } from '$lib/utils/time-parse';
+	import { parseDuration } from '$lib/utils/duration';
 	import { getDataService } from '$lib/services/context';
 	import { getClientBorderClass } from '$lib/utils/client-colors';
 	import ContractSelect from '$lib/components/timer/ContractSelect.svelte';
 	import DeliverableSelect from '$lib/components/timer/DeliverableSelect.svelte';
 	import WorkTypeSelect from '$lib/components/timer/WorkTypeSelect.svelte';
+	import DurationField from '$lib/components/timer/DurationField.svelte';
+	import { describeSaveError } from '$lib/components/timer/save-error';
 	import WikiLinkInput from './WikiLinkInput.svelte';
 	import type { ContractOption, CreateTimeEntryInput } from '$lib/services/types';
 
@@ -21,14 +23,20 @@
 		onCancel: () => void;
 	} = $props();
 
+	const fieldIdPrefix = $derived(`new-entry-${date}`);
+
 	let selectedContractId = $state('');
 	let selectedDeliverableId = $state('');
 	let selectedWorkTypeId = $state('');
 	let workTypesAvailable = $state(false);
 	let descriptionInput = $state('');
 	let timeInputValue = $state('');
-	let timeInputError = $state(false);
 	let isSubmitting = $state(false);
+
+	// Messages shown under the fields after a save attempt; cleared as the user fixes them
+	let contractError = $state('');
+	let timeError = $state('');
+	let saveError = $state('');
 
 	// Load contracts so we can look up clientColorIndex for the selected contract
 	let contractList: ContractOption[] = $state([]);
@@ -37,7 +45,7 @@
 		try {
 			contractList = await dataService.getContracts();
 		} catch {
-			// Silently fail — contract list will remain empty
+			// The colour border stays neutral; the select reports its own state
 		}
 	}
 
@@ -51,15 +59,18 @@
 		untrack(() => {
 			selectedDeliverableId = '';
 			selectedWorkTypeId = '';
+			if (selectedContractId) contractError = '';
 		});
 	});
 
-	// Derive the selected contract's color index for the dynamic left border
+	$effect(() => {
+		void timeInputValue;
+		untrack(() => (timeError = ''));
+	});
+
 	let selectedClientColorIndex = $derived.by(() => {
 		if (!selectedContractId) return null;
-		const matchingContract = contractList.find(
-			(contract) => contract.id === selectedContractId
-		);
+		const matchingContract = contractList.find((contract) => contract.id === selectedContractId);
 		return matchingContract?.clientColorIndex ?? null;
 	});
 
@@ -69,24 +80,16 @@
 			: 'border-l-[3px] border-l-stone-200'
 	);
 
-	const canSubmit = $derived(
-		selectedContractId !== '' && timeInputValue.trim() !== '' && !timeInputError
-	);
-
 	async function handleSubmit() {
 		if (isSubmitting) return;
+		saveError = '';
 
-		const parsed = parseTimeInput(timeInputValue);
-		if (parsed.type === 'invalid') {
-			timeInputError = true;
-			return;
-		}
-
-		if (!selectedContractId) return;
+		const parsed = parseDuration(timeInputValue);
+		contractError = selectedContractId ? '' : 'Pick a contract';
+		timeError = parsed.ok ? '' : parsed.error;
+		if (!parsed.ok || !selectedContractId) return;
 
 		isSubmitting = true;
-		timeInputError = false;
-
 		try {
 			const entryData: CreateTimeEntryInput = {
 				date,
@@ -97,7 +100,7 @@
 				description: descriptionInput.trim() || undefined
 			};
 
-			if (parsed.type === 'range') {
+			if (parsed.kind === 'range') {
 				entryData.startTime = parsed.startTime;
 				entryData.endTime = parsed.endTime;
 			}
@@ -105,26 +108,19 @@
 			await dataService.createTimeEntry(entryData);
 			onEntryCreated();
 		} catch (error) {
-			console.error('Error creating entry:', error);
+			saveError = describeSaveError(error);
 		} finally {
 			isSubmitting = false;
 		}
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Enter' && canSubmit) {
+		if (event.key === 'Enter') {
+			event.preventDefault();
 			handleSubmit();
 		} else if (event.key === 'Escape') {
+			event.preventDefault();
 			onCancel();
-		}
-	}
-
-	function handleTimeInput(event: Event) {
-		const input = event.target as HTMLInputElement;
-		timeInputValue = input.value;
-		// Clear error on typing
-		if (timeInputError) {
-			timeInputError = false;
 		}
 	}
 
@@ -133,10 +129,8 @@
 	}
 </script>
 
-<div
-	class="mb-2 rounded-lg border border-stone-200 bg-white p-4 {leftBorderClass}"
->
-	<!-- Row 1: Description input (full width) -->
+<div class="mb-2 rounded-lg border border-stone-200 bg-white p-4 {leftBorderClass}">
+	<!-- Row 1: Description (full width) -->
 	<WikiLinkInput
 		bind:value={descriptionInput}
 		placeholder="What did you work on?"
@@ -145,18 +139,31 @@
 		autofocus
 	/>
 
-	<!-- Row 2: Contract select, Deliverable (+ Work type), Time input -->
-	<div class="mt-3 flex items-end gap-3">
-		<!-- Contract select -->
-		<div class="min-w-0 flex-1">
-			<label class="mb-1 block text-xs font-medium text-stone-500">Contract</label>
-			<ContractSelect bind:selectedContractId compact={true} />
+	<!-- Row 2: Contract, Deliverable (+ Work type), Time.
+	     Phone: contract on its own line, the rest two per line; wider: one row. -->
+	<div class="mt-3 grid grid-cols-2 items-start gap-x-3 gap-y-2 sm:flex">
+		<div class="col-span-2 min-w-0 sm:flex-[2]">
+			<label for="{fieldIdPrefix}-contract" class="mb-1 block text-xs font-medium text-stone-500">
+				Contract
+			</label>
+			<ContractSelect
+				id="{fieldIdPrefix}-contract"
+				bind:selectedContractId
+				compact={true}
+				invalid={contractError !== ''}
+				onkeydown={handleKeydown}
+			/>
+			{#if contractError}
+				<p class="mt-1 text-xs text-red-600" role="alert">{contractError}</p>
+			{/if}
 		</div>
 
-		<!-- Deliverable select (placeholder until the contract has deliverables) -->
-		<div class="min-w-0 flex-1">
-			<label class="mb-1 block text-xs font-medium text-stone-500">Deliverable</label>
+		<div class="min-w-0 sm:flex-[1.5]">
+			<label for="{fieldIdPrefix}-deliverable" class="mb-1 block text-xs font-medium text-stone-500">
+				Deliverable
+			</label>
 			<DeliverableSelect
+				id="{fieldIdPrefix}-deliverable"
 				contractId={selectedContractId}
 				bind:selectedDeliverableId
 				compact={true}
@@ -165,9 +172,12 @@
 		</div>
 
 		<!-- Work type select: only when the chosen deliverable has work types -->
-		<div class="min-w-0 flex-1" class:hidden={!workTypesAvailable}>
-			<label class="mb-1 block text-xs font-medium text-stone-500">Work type</label>
+		<div class="min-w-0 sm:flex-1" class:hidden={!workTypesAvailable}>
+			<label for="{fieldIdPrefix}-work-type" class="mb-1 block text-xs font-medium text-stone-500">
+				Work type
+			</label>
 			<WorkTypeSelect
+				id="{fieldIdPrefix}-work-type"
 				deliverableId={selectedDeliverableId}
 				bind:selectedWorkTypeId
 				bind:hasWorkTypes={workTypesAvailable}
@@ -175,38 +185,39 @@
 			/>
 		</div>
 
-		<!-- Time input -->
-		<div class="w-28">
-			<label class="mb-1 block text-xs font-medium text-stone-500">Time</label>
-			<input
-				type="text"
-				value={timeInputValue}
-				oninput={handleTimeInput}
+		<div class="min-w-0 sm:w-40 sm:flex-none">
+			<label for="{fieldIdPrefix}-time" class="mb-1 block text-xs font-medium text-stone-500">
+				Time
+			</label>
+			<DurationField
+				id="{fieldIdPrefix}-time"
+				bind:value={timeInputValue}
+				errorMessage={timeError}
+				compact={true}
 				onkeydown={handleKeydown}
-				class="block w-full rounded border px-1.5 py-1 text-sm font-medium tabular-nums focus:ring-1 focus:outline-none {timeInputError
-					? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-					: 'border-stone-300 focus:border-blue-500 focus:ring-blue-500'}"
-				placeholder="2h30m"
 			/>
 		</div>
 	</div>
 
-	<!-- Row 3: Action buttons (bottom right) -->
+	<!-- Row 3: messages and actions -->
 	<div class="mt-3 flex items-center justify-end gap-2">
+		{#if saveError}
+			<p class="mr-auto text-xs text-red-600" role="alert">{saveError}</p>
+		{/if}
 		<button
 			onclick={onCancel}
-			class="text-sm text-stone-500 hover:text-stone-700"
+			class="rounded-md px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-100 hover:text-stone-800"
 			type="button"
 		>
 			Cancel
 		</button>
 		<button
 			onclick={handleSubmit}
-			disabled={!canSubmit || isSubmitting}
-			class="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+			disabled={isSubmitting}
+			class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-70"
 			type="button"
 		>
-			{isSubmitting ? 'Saving...' : 'Save'}
+			{isSubmitting ? 'Saving…' : saveError ? 'Retry' : 'Save'}
 		</button>
 	</div>
 </div>

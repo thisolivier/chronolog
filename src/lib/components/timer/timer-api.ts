@@ -9,3 +9,15 @@ export function calculateElapsedFromStartTime(startTimeString: string): number {
 		now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
 	return Math.max(0, nowTotalSeconds - startTotalSeconds);
 }
+
+/** What the timer completion form hands to TimerWidget when the user saves. */
+export type TimerSaveData = {
+	contractId: string;
+	deliverableId: string;
+	workTypeId: string;
+	description: string;
+	/** Present only when the user changed the measured time */
+	durationMinutes?: number;
+	startTime?: string | null;
+	endTime?: string | null;
+};
