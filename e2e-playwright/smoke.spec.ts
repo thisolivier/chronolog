@@ -71,7 +71,7 @@ test.describe('Authenticated', () => {
 		await generalContract.click();
 
 		// Should now show the Notes panel header
-		await expect(page.getByRole('heading', { name: 'Notes' })).toBeVisible({ timeout: 5000 });
+		await expect(page.getByTestId('note-list-context')).toBeVisible({ timeout: 5000 });
 	});
 
 	test('can navigate back to Time Entries mode', async ({ page }) => {
@@ -81,7 +81,7 @@ test.describe('Authenticated', () => {
 		// Click "General" contract to go to notes mode
 		const generalContract = page.getByText('General').first();
 		await generalContract.click();
-		await expect(page.getByRole('heading', { name: 'Notes' })).toBeVisible({ timeout: 5000 });
+		await expect(page.getByTestId('note-list-context')).toBeVisible({ timeout: 5000 });
 
 		// Click "Time Entries" to go back
 		await page.getByRole('button', { name: 'Time Entries' }).click();
@@ -95,7 +95,7 @@ test.describe('Authenticated', () => {
 		await page.goto('/');
 		await expect(page.getByRole('button', { name: 'Time Entries' })).toBeVisible({ timeout: 10000 });
 
-		const settingsLink = page.locator('a[href="/admin"]');
+		const settingsLink = page.locator('a[href="/settings"]');
 		await expect(settingsLink).toBeVisible();
 		await expect(settingsLink).toContainText('Settings');
 	});

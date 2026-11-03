@@ -7,6 +7,7 @@
 	import SaveStatusIndicator from './SaveStatusIndicator.svelte';
 	import type { SaveStatus } from './note-autosave';
 	import type { ContractOption } from '$lib/services/types';
+	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
 
 	interface Props {
 		/** null while the note is an unsaved draft */
@@ -26,6 +27,9 @@
 		$props();
 
 	const dataService = getDataService();
+
+	// Rule 4: the editor names the note's client and contract, not only its ID
+	const contractLabel = $derived(contractDirectory.labels[contractId]);
 
 	let openMenu = $state<'move' | 'export' | null>(null);
 	let moveContracts = $state<ContractOption[]>([]);
@@ -69,6 +73,12 @@
 	data-testid="note-editor-header"
 >
 	<div class="flex min-w-0 items-center gap-3">
+		{#if contractLabel}
+			<span class="truncate text-xs text-stone-600" data-testid="note-editor-context">
+				{contractLabel.clientName} <span class="text-stone-400">/</span>
+				<span class="font-medium text-stone-800">{contractLabel.name}</span>
+			</span>
+		{/if}
 		<span class="truncate font-mono text-xs text-stone-400">{noteId ?? 'New note'}</span>
 		<SaveStatusIndicator status={saveStatus} isDraft={!noteId} />
 		{#if saveStatus === 'conflict' && onReload}

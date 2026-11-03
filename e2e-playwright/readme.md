@@ -41,6 +41,7 @@ npm run test:playwright:ui
 | `pwa.spec.ts` | PWA manifest verification (JSON validity, fields, icon URLs) |
 | `crud.spec.ts` | Full note CRUD through the UI (create, read, edit, delete) |
 | `offline-behavior.spec.ts` | Service worker and offline navigation behaviour |
+| `navigation-journeys.spec.ts` | Sprint 027-CL journeys 1, 2, 7, 8 and 10 of `docs/review/2026-11-03-ux-journeys.md`: URL state, reload, Back and the sidebar/list/editor agreeing on client and contract. Its tests run in order in one worker (`test.describe.configure({ mode: 'default' })` opts the file out of `fullyParallel`), because parallel API note creates under one user can collide on note IDs. |
 
 ### Project Configuration
 

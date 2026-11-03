@@ -1,0 +1,114 @@
+Sprint 027 journey re-run 2026-11-03T21:50:03.210Z user qa-027-mw16cc7s@chronolog.test
+
+=== J1 note in A -> settings -> add deliverable to B -> back -> move note to B
+  J1.1: /notes/a12ca657-047c-4f37-85d1-127c87b519d3/ACME.20261103.025 | sidebar=Rocket Build 4 | note=ACME.20261103.025 | strip=false
+  PASS J1.1 list and editor name the contract :: Acme Corp Rocket Build / Acme Corp / Rocket Build
+  J1.3 Back to app: /notes/a12ca657-047c-4f37-85d1-127c87b519d3/ACME.20261103.025 | sidebar=Rocket Build 4 | note=ACME.20261103.025 | strip=false
+  PASS J1.3 Back to app returns to the note URL :: /notes/a12ca657-047c-4f37-85d1-127c87b519d3/ACME.20261103.025
+  PASS J1.3 typed text kept
+  PASS J1.3b after a full load of an admin page, Back to app still returns to the note :: /notes/a12ca657-047c-4f37-85d1-127c87b519d3/ACME.20261103.025
+  J1.5 after move: /notes/0a4220ce-7b84-4677-b17f-e1137db87cc1/ACME.20261103.025 | sidebar=Data Platform 4 | note=ACME.20261103.025 | strip=false
+  PASS J1.5 moved note stays open under B (URL, sidebar, list, editor) :: /notes/0a4220ce-7b84-4677-b17f-e1137db87cc1/ACME.20261103.025 Borealis Labs Data Platform
+  PASS J1.6 reload after move keeps it
+
+=== J2 timesheet wiki-link -> note -> cross-contract links -> Back path
+  J2.1: /time/2026-W44 | sidebar=Time Entries | note=null | strip=true
+  J2.2: /notes/a12ca657-047c-4f37-85d1-127c87b519d3/ACME.20261103.026 | sidebar=Rocket Build 4 | note=ACME.20261103.026 | strip=false
+  PASS J2.2 card link opens the note under Rocket Build :: /notes/a12ca657-047c-4f37-85d1-127c87b519d3/ACME.20261103.026
+  PASS J2.3a in-editor link to Engine design review :: /notes/a12ca657-047c-4f37-85d1-127c87b519d3/ACME.20261103.024
+  J2.3b: /notes/0a4220ce-7b84-4677-b17f-e1137db87cc1/BORL.20261103.003 | sidebar=Data Platform 3 | note=BORL.20261103.003 | strip=false
+  PASS J2.3b cross-client link moves sidebar, list and editor to Borealis :: /notes/0a4220ce-7b84-4677-b17f-e1137db87cc1/BORL.20261103.003 | Borealis Labs Data Platform
+  J2.4 Linked from: /notes/a12ca657-047c-4f37-85d1-127c87b519d3/ACME.20261103.024 | sidebar=Rocket Build 4 | note=ACME.20261103.024 | strip=false
+  PASS J2.4 "Linked from" chip keeps the hierarchy :: /notes/a12ca657-047c-4f37-85d1-127c87b519d3/ACME.20261103.024
+  J2.5 browser Back path: /notes/0a4220ce-7b84-4677-b17f-e1137db87cc1/BORL.20261103.003 -> /notes/a12ca657-047c-4f37-85d1-127c87b519d3/ACME.20261103.024 -> /notes/a12ca657-047c-4f37-85d1-127c87b519d3/ACME.20261103.026 -> /time/2026-W44
+  PASS J2.5 browser Back walks the notes, then returns to the same week :: /time/2026-W44
+  PASS J2.5 scroll restored on return :: saved 220, now 220
+  PASS J2.5b Forward reopens the note (was: reload to current week) :: /notes/a12ca657-047c-4f37-85d1-127c87b519d3/ACME.20261103.026
+  PASS J2.6 Time Entries keeps week and scroll (was: scroll reset to 0) :: /time/2026-W44 scroll 220
+
+=== J3 a note's linked entry date opens that day
+  J3.2: /time/2026-W44 | sidebar=Time Entries | note=null | strip=true
+  PASS J3.2 entry date opens its week with that day highlighted :: /time/2026-W44 day 2026-10-31
+  PASS J3.3 Back returns to the note :: /notes/0a4220ce-7b84-4677-b17f-e1137db87cc1/BORL.20261103.004
+
+=== J4 timer on A while editing notes under B; reload; stop and save
+  J4.3 after reload: /notes/0a4220ce-7b84-4677-b17f-e1137db87cc1/BORL.20261103.003 | sidebar=Data Platform 3 | note=BORL.20261103.003 | strip=false
+  PASS J4.3 reload keeps the Borealis note (was: back to time mode)
+  J4.5 after save: /time/2026-W45 | sidebar=Time Entries | note=null | strip=true
+  PASS J4.5 saving the timer shows that day in the timesheet (A-07) :: /time/2026-W45 day 2026-11-03
+  PASS J4.6 Back returns to the note you were writing :: /notes/0a4220ce-7b84-4677-b17f-e1137db87cc1/BORL.20261103.003
+
+=== J5 rename a client while its note is open: context labels follow
+  PASS J5.2 list and editor context show the new client name :: PATCH 200; Acme Rocketry Rocket Build / Acme Rocketry / Rocket Build
+
+=== J6 New Contract from context; Add Entry from context
+  PASS J6.1 New Contract preselects the viewed client (A-03) :: Borealis Labs
+  J6.2 created: /notes/a0a02ee3-40db-4bf0-b94f-f3a87e097c0e | sidebar=Analytics 027 mw181z9v | note=null | strip=false
+  PASS J6.2 the new contract opens (URL, list context) :: /notes/a0a02ee3-40db-4bf0-b94f-f3a87e097c0e Borealis Labs Analytics 027 mw181z9v
+  PASS J6.3 Add Entry preselects the viewed contract (A-03) :: Acme Corp / Rocket Build
+  PASS J6.4 Add Entry in Week 44 opens on that week :: 2026-10-26
+
+=== J7 the same note URL in two tabs
+  PASS J7.1 both tabs show the same place
+  PASS J7.2 stale tab shows "changed elsewhere" (024, still holds) :: conflict
+
+=== J8 phone: three levels, rotate, reload, Back (Chromium and WebKit)
+  PASS J8.1 (chromium) level 2 names context and Back target :: ← Rocket Build Acme Corp · Rocket Build
+  PASS J8.2 (chromium) rotate and resize keep the note
+  PASS J8.3 (chromium) reload stays at level 2 (was: level 0) :: /notes/a12ca657-047c-4f37-85d1-127c87b519d3/ACME.20261103.026
+  J8.4 (chromium) browser Back path: /notes/a12ca657-047c-4f37-85d1-127c87b519d3 -> /
+  PASS J8.4 (chromium) browser Back walks up inside the app to home :: /notes/a12ca657-047c-4f37-85d1-127c87b519d3 -> /
+  PASS J8.1 (webkit) level 2 names context and Back target :: ← Rocket Build Acme Corp · Rocket Build
+  PASS J8.2 (webkit) rotate and resize keep the note
+  PASS J8.3 (webkit) reload stays at level 2 (was: level 0) :: /notes/a12ca657-047c-4f37-85d1-127c87b519d3/ACME.20261103.026
+  J8.4 (webkit) browser Back path: /notes/a12ca657-047c-4f37-85d1-127c87b519d3 -> /
+  PASS J8.4 (webkit) browser Back walks up inside the app to home :: /notes/a12ca657-047c-4f37-85d1-127c87b519d3 -> /
+
+=== J9 keyboard: following a card link
+  PASS J9.1 Enter on a card link opens the note at its URL :: /notes/a12ca657-047c-4f37-85d1-127c87b519d3/ACME.20261103.026
+  J9.2 focus after following the link: BODY (A-11 focus management is outside this sprint)
+
+=== J10 reload at every distinct URL
+  PASS J10 reload / :: /
+  PASS J10 reload /time/2026-W44 :: /time/2026-W44
+  PASS J10 reload /time/2026-W45 :: /time/2026-W45
+  PASS J10 reload /notes/0a4220ce-7b84-4677-b17f-e1137db87cc1 :: /notes/0a4220ce-7b84-4677-b17f-e1137db87cc1
+  PASS J10 reload /notes/0a4220ce-7b84-4677-b17f-e1137db87cc1/BORL.20261103.004 :: /notes/0a4220ce-7b84-4677-b17f-e1137db87cc1/BORL.20261103.004
+  PASS J10 reload /notes/8b2b8536-661e-4d9b-9662-6c098846ad6e/new :: /notes/8b2b8536-661e-4d9b-9662-6c098846ad6e/new
+  PASS J10 reload /settings :: /settings
+  PASS J10 reload /settings/two-factor :: /settings/two-factor
+  PASS J10 reload /admin/clients/6b06eaa7-07b4-4cb7-a0c5-9f5774113098 :: /admin/clients/6b06eaa7-07b4-4cb7-a0c5-9f5774113098
+  PASS J10 collapsed sidebar survives reload
+  PASS J10 a note under the wrong contract is corrected in place :: /notes/0a4220ce-7b84-4677-b17f-e1137db87cc1/BORL.20261103.004
+  PASS J10 /time/2026-W60 is a 404 :: 404
+  PASS J10 /notes/not-a-uuid is a 404 :: 404
+  PASS J10 /notes is a 404 :: 404
+  J10 table:
+| `/` | ok | same place |
+| `/time/2026-W44` | ok | same place |
+| `/time/2026-W45` | ok | same place |
+| `/notes/0a4220ce-7b84-4677-b17f-e1137db87cc1` | ok | same place |
+| `/notes/0a4220ce-7b84-4677-b17f-e1137db87cc1/BORL.20261103.004` | ok | same place |
+| `/notes/8b2b8536-661e-4d9b-9662-6c098846ad6e/new` | ok | same place |
+| `/settings` | ok | same place |
+| `/settings/two-factor` | ok | same place |
+| `/admin/clients/6b06eaa7-07b4-4cb7-a0c5-9f5774113098` | ok | same place |
+| `/time/2026-W44`, sidebar collapsed | ok | same place, still collapsed |
+| `/notes/<Rocket Build>/<Borealis note>` | corrected | replaced with /notes/<Data Platform>/<note> |
+| `/time/2026-W60` | 404 page | 404 |
+| `/notes/not-a-uuid` | 404 page | 404 |
+| `/notes` | 404 page | 404 |
+
+=== BACK390 390 px: browser Back never leaves the app from inside it
+  (chromium) in-session Back path: /time/2026-W44 -> /
+  PASS Back390 (chromium) every Back inside the app lands inside the app :: /time/2026-W44 -> /
+  PASS Back390 (chromium) fresh /notes/0a4220ce-7b84-4677-b17f-e1137db87cc1/BORL.20261103.003: Back lands in the app :: http://localhost:5204/
+  PASS Back390 (chromium) fresh /notes/a12ca657-047c-4f37-85d1-127c87b519d3: Back lands in the app :: http://localhost:5204/
+  PASS Back390 (chromium) fresh /time/2026-W44: Back lands in the app :: http://localhost:5204/
+  (webkit) in-session Back path: /time/2026-W44 -> /
+  PASS Back390 (webkit) every Back inside the app lands inside the app :: /time/2026-W44 -> /
+  PASS Back390 (webkit) fresh /notes/0a4220ce-7b84-4677-b17f-e1137db87cc1/BORL.20261103.003: Back lands in the app :: http://localhost:5204/
+  PASS Back390 (webkit) fresh /notes/a12ca657-047c-4f37-85d1-127c87b519d3: Back lands in the app :: http://localhost:5204/
+  PASS Back390 (webkit) fresh /time/2026-W44: Back lands in the app :: http://localhost:5204/
+
+RESULT 57/57 checks passed; page errors: none

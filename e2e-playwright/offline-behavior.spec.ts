@@ -66,7 +66,7 @@ test.describe('Offline Simulation (Chromium only)', () => {
 		await generalContract.click();
 
 		// The Notes heading should appear (client-side navigation, no server request needed)
-		await expect(page.getByRole('heading', { name: 'Notes' })).toBeVisible({ timeout: 5000 });
+		await expect(page.getByTestId('note-list-context')).toBeVisible({ timeout: 5000 });
 
 		// Navigate back to time entries
 		await page.getByRole('button', { name: 'Time Entries' }).click();
@@ -86,7 +86,7 @@ test.describe('Offline Simulation (Chromium only)', () => {
 
 		// Navigate to notes
 		await page.getByText('General').first().click();
-		await expect(page.getByRole('heading', { name: 'Notes' })).toBeVisible({ timeout: 5000 });
+		await expect(page.getByTestId('note-list-context')).toBeVisible({ timeout: 5000 });
 
 		// Go offline
 		await context.setOffline(true);

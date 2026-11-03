@@ -14,18 +14,21 @@
 
 	let {
 		initialDate = undefined,
+		initialContractId = '',
 		onCreated,
 		onClose
 	}: {
 		/** Pre-selected date (YYYY-MM-DD); today when omitted */
 		initialDate?: string;
+		/** The contract being viewed: preselected, never a different one */
+		initialContractId?: string;
 		onCreated: (created: { entryId: string; date: string }) => void;
 		onClose: () => void;
 	} = $props();
 
 	let entryDate = $state(untrack(() => initialDate) ?? localDateString());
 	let durationText = $state('');
-	let selectedContractId = $state('');
+	let selectedContractId = $state(untrack(() => initialContractId));
 	let selectedDeliverableId = $state('');
 	let selectedWorkTypeId = $state('');
 	let workTypesAvailable = $state(false);

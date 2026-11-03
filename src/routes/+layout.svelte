@@ -1,5 +1,8 @@
 <script lang="ts">
 	import '../app.css';
+	import { browser } from '$app/environment';
+	import { afterNavigate, goto, preloadCode } from '$app/navigation';
+	import { page } from '$app/state';
 	import { createNavigationState, setNavigationContext } from '$lib/stores/navigation.svelte';
 	import { createTimerState, setTimerStateContext } from '$lib/stores/timer-state.svelte';
 	import { setDataServiceContext } from '$lib/services/context';
@@ -11,9 +14,48 @@
 	// Initialize navigation context for authenticated users
 	// This is called once during component init and won't change
 	// (user authentication state changes require page reload via auth redirects)
-	const navState = data.user ? createNavigationState() : null;
+	// The URL is the navigation state (sprint 027-CL): the store starts from this URL, writes
+	// user moves back with goto, and re-reads the URL after every navigation, Back included.
+	const navState = data.user
+		? createNavigationState({
+				initialUrl: page.url,
+				adapter: {
+					navigate: (path, { replace }) =>
+						goto(path, { replaceState: replace, noScroll: true, keepFocus: true }),
+					back: () => history.back()
+				},
+				sessionStorage: browser ? safeStorage(() => window.sessionStorage) : null,
+				localStorage: browser ? safeStorage(() => window.localStorage) : null
+			})
+		: null;
 	if (navState) {
 		setNavigationContext(navState);
+		afterNavigate((navigation) => {
+			if (!navigation.to) return;
+			const loadType =
+				navigation.type === 'enter'
+					? (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type
+					: undefined;
+			void navState.syncFromUrl(navigation.to.url, navigation.type, navigation.delta, loadType);
+		});
+	}
+
+	// Load every workspace route's code up front: moving between them is then a pure client-side
+	// change that also works offline (a missing chunk would fall back to a full page load).
+	$effect(() => {
+		if (!navState) return;
+		const sampleContract = '00000000-0000-4000-8000-000000000000';
+		for (const path of ['/', '/time/2026-W01', `/notes/${sampleContract}`, `/notes/${sampleContract}/new`]) {
+			void preloadCode(path).catch(() => {});
+		}
+	});
+
+	function safeStorage(getStorage: () => Storage): Storage | null {
+		try {
+			return getStorage();
+		} catch {
+			return null;
+		}
 	}
 
 	// Initialize shared timer state for cross-component communication

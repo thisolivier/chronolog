@@ -11,7 +11,7 @@
 	import { exportAsMarkdown } from '$lib/components/notes/note-export';
 	import { printNote } from '$lib/components/notes/note-print';
 	import { trackNoteSave, waitForNoteSaves, type SaveStatus, type PersistOptions } from '$lib/components/notes/note-autosave';
-	import { noteDraft, endNoteDraft } from '$lib/components/notes/note-draft.svelte';
+	import { noteDraft, startNoteDraft, endNoteDraft } from '$lib/components/notes/note-draft.svelte';
 	import { dispatchNoteEvent } from '$lib/components/notes/note-events';
 	import { getCachedNoteTitle, rememberNoteTitle, forgetNoteTitle, requestNoteTitles } from '$lib/components/notes/note-titles.svelte';
 	import { useNoteNavigation } from '$lib/components/notes/note-navigation';
@@ -165,7 +165,12 @@
 	}
 
 	/** Load an existing note (after any in-flight save of it) and open an editor for it. */
+	/** The note being fetched: a second request to open it while it loads is the same request */
+	let loadingNoteId: string | null = null;
+
 	async function openExistingNote(noteId: string) {
+		if (loadingNoteId === noteId) return;
+		loadingNoteId = noteId;
 		isLoading = true;
 		fetchError = null;
 		currentNote = null;
@@ -178,6 +183,11 @@
 			await waitForNoteSaves(noteId);
 			const note = await dataService.getNoteById(noteId);
 			if (navigation.selectedNoteId !== noteId) return; // user moved on meanwhile
+			// One invariant: an open note is shown under its own contract. A bookmark or link
+			// with the wrong contract in the URL is corrected in place.
+			if (note.contractId !== navigation.selectedContractId) {
+				navigation.openNote(note.id, note.contractId, getCachedNoteTitle(note.id)?.clientId ?? '', { replace: true });
+			}
 			currentNote = note;
 			saveStatus = 'saved';
 			setEditorSession(createSession({
@@ -194,6 +204,7 @@
 			fetchError = error instanceof Error ? error.message : 'Unknown error loading note';
 			console.error('Error fetching note:', error);
 		} finally {
+			if (loadingNoteId === noteId) loadingNoteId = null;
 			if (navigation.selectedNoteId === noteId) isLoading = false;
 		}
 	}
@@ -299,6 +310,7 @@
 			// Unsaved draft: nothing on the server to delete
 			endNoteDraft();
 			setEditorSession(null);
+			navigation.clearSelectedNote();
 			return;
 		}
 		const noteId = session.noteId;
@@ -345,10 +357,12 @@
 		if (editorSession && !editorSession.noteId) endNoteDraft();
 	});
 
-	// Open whatever the navigation selects: an existing note, a fresh draft, or nothing.
+	// Open whatever the URL selects: an existing note, a draft (`/notes/<contract>/new`), or nothing.
+	let openedDraftToken = -1;
 	$effect(() => {
 		const selectedNoteId = navigation.selectedNoteId;
 		const selectedContractId = navigation.selectedContractId;
+		const isDraftRoute = navigation.isDraftOpen;
 		const draftToken = noteDraft.token;
 		const draftContractId = noteDraft.contractId;
 
@@ -357,10 +371,17 @@
 				// A draft that was just created is already open under this ID
 				if (editorSession?.noteId === selectedNoteId) return;
 				void openExistingNote(selectedNoteId);
-			} else if (draftContractId && draftContractId === selectedContractId) {
-				void draftToken;
-				openDraft(draftContractId);
+			} else if (isDraftRoute && selectedContractId) {
+				// Reload or Forward onto a draft URL: start the draft it names (the effect re-runs)
+				if (draftContractId !== selectedContractId) {
+					startNoteDraft(selectedContractId);
+					return;
+				}
+				if (draftToken === openedDraftToken && editorSession && !editorSession.noteId) return;
+				openedDraftToken = draftToken;
+				openDraft(selectedContractId);
 			} else {
+				if (draftContractId) endNoteDraft();
 				setEditorSession(null);
 				currentNote = null;
 				fetchError = null;

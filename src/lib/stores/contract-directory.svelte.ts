@@ -5,15 +5,25 @@
 export interface ContractLabel {
 	name: string;
 	clientName: string;
+	clientId: string;
 }
 
 class ContractDirectory {
 	labels = $state<Record<string, ContractLabel>>({});
 
-	replaceAll(contracts: Array<{ id: string; name: string; clientName: string }>): void {
+	replaceAll(contracts: Array<{ id: string; name: string; clientName: string; clientId: string }>): void {
 		this.labels = Object.fromEntries(
-			contracts.map((contract) => [contract.id, { name: contract.name, clientName: contract.clientName }])
+			contracts.map((contract) => [
+				contract.id,
+				{ name: contract.name, clientName: contract.clientName, clientId: contract.clientId }
+			])
 		);
+	}
+
+	/** "Acme Corp · Rocket Build", or null while the sidebar has not loaded that contract */
+	contextLabel(contractId: string | null): string | null {
+		const label = contractId ? this.labels[contractId] : undefined;
+		return label ? `${label.clientName} · ${label.name}` : null;
 	}
 }
 

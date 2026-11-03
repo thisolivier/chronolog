@@ -4,10 +4,11 @@
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import { getDataService } from '$lib/services/context';
 	import { formatSmartDate } from '$lib/utils/format-date';
-	import { noteDraft, startNoteDraft, endNoteDraft } from '$lib/components/notes/note-draft.svelte';
+	import { startNoteDraft, endNoteDraft } from '$lib/components/notes/note-draft.svelte';
 	import { onNoteEvent } from '$lib/components/notes/note-events';
 	import { sortNotes, loadSortPreference, saveSortPreference, type NoteSortOrder } from '$lib/components/notes/note-sort';
 	import NoteSearchResults from '$lib/components/notes/NoteSearchResults.svelte';
+	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
 	import type { NoteSummary, NoteSearchResult } from '$lib/services/types';
 
 	const navigationContext = getNavigationContext();
@@ -37,10 +38,10 @@
 	let searchRequestCounter = 0;
 
 	let sortedNotes = $derived(sortNotes(notesList, sortOrder));
-	let isDraftOpen = $derived(
-		!navigationContext.selectedNoteId &&
-			noteDraft.contractId !== null &&
-			noteDraft.contractId === navigationContext.selectedContractId
+	let isDraftOpen = $derived(navigationContext.isDraftOpen);
+	// Rule 4: the list names its client and contract (the sidebar may be collapsed or off screen)
+	let contractLabel = $derived(
+		navigationContext.selectedContractId ? contractDirectory.labels[navigationContext.selectedContractId] : undefined
 	);
 
 	async function fetchNotesForContract(contractId: string) {
@@ -74,9 +75,8 @@
 		if (now - lastNewNoteClick < NEW_NOTE_DEBOUNCE_MS) return;
 		lastNewNoteClick = now;
 
-		navigationContext.clearSelectedNote();
 		startNoteDraft(contractId);
-		navigationContext.navigateMobile(2);
+		navigationContext.openDraft();
 	}
 
 	function handleNoteClick(noteId: string) {
@@ -200,13 +200,21 @@
 
 <div class="flex h-full flex-col bg-stone-50">
 	<!-- Header -->
-	<div class="flex items-center justify-between gap-2 border-b border-stone-200 bg-white px-4 py-3">
-		<h2 class="text-sm font-semibold text-stone-900">Notes</h2>
-		<div class="flex items-center gap-2">
+	<!-- Rule 4: the client and contract on their own row, so long names are not squeezed by the actions -->
+	<div class="border-b border-stone-200 bg-white px-4 pt-3 pb-2">
+		<div
+			class="min-w-0"
+			data-testid="note-list-context"
+			title={contractLabel ? `${contractLabel.clientName} · ${contractLabel.name}` : undefined}
+		>
+			<p class="truncate text-xs text-stone-500">{contractLabel?.clientName ?? 'Notes'}</p>
+			<h2 class="truncate text-sm font-semibold text-stone-900">{contractLabel?.name ?? 'Notes'}</h2>
+		</div>
+		<div class="mt-2 flex items-center justify-between gap-2">
 			<button
 				type="button"
 				onclick={toggleSortOrder}
-				class="rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+				class="-ml-2 rounded px-2 py-1 text-xs whitespace-nowrap text-stone-500 hover:bg-stone-100 hover:text-stone-700"
 				title="Change sort order"
 				data-testid="note-sort-toggle"
 			>
@@ -216,7 +224,7 @@
 				type="button"
 				onclick={handleCreateNote}
 				disabled={!navigationContext.selectedContractId}
-				class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700
+				class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-white hover:bg-blue-700
 					disabled:cursor-not-allowed disabled:opacity-50"
 			>
 				New Note

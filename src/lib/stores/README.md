@@ -9,9 +9,25 @@ State modules use Svelte 5's runes (`$state`, `$derived`) with a context-based p
 ## Working Pattern
 
 ```typescript
-// In root layout (+layout.svelte):
-import { setNavigationContext, createNavigationState } from '$lib/stores/navigation.svelte';
-setNavigationContext(createNavigationState());
+// In root layout (+layout.svelte), for signed-in users. Simplified: the real layout guards on
+// data.user and passes the document load type on first load (see src/routes/+layout.svelte).
+import { afterNavigate, goto } from '$app/navigation';
+import { page } from '$app/state';
+import { createNavigationState, setNavigationContext } from '$lib/stores/navigation.svelte';
+
+const navigationState = createNavigationState({
+	initialUrl: page.url,
+	adapter: {
+		navigate: (path, { replace }) => goto(path, { replaceState: replace, noScroll: true, keepFocus: true }),
+		back: () => history.back()
+	},
+	sessionStorage: window.sessionStorage,
+	localStorage: window.localStorage
+});
+setNavigationContext(navigationState);
+afterNavigate((navigation) => {
+	if (navigation.to) void navigationState.syncFromUrl(navigation.to.url, navigation.type, navigation.delta);
+});
 
 // In any component:
 import { getNavigationContext } from '$lib/stores/navigation.svelte';
@@ -23,7 +39,39 @@ navigation.selectTimeEntries();
 
 ### navigation.svelte.ts
 
-App-wide navigation state for the panel layout. Manages mode switching (time-entries vs notes), selected contract/week/note, sidebar collapsed state, and the mobile push level (`mobileNavigationLevel`: 0 = sidebar, 1 = note list in notes mode or time entries in time mode, 2 = note editor). Actions: `selectTimeEntries()` (time mode, mobile level 1), `selectContract()` (notes mode, mobile level 1), `selectWeek()` (does not change the mobile level), `selectNote()` (mobile level 2), `clearSelectedNote()`, `toggleSidebar()`, `navigateMobile()`, `goBackMobile()`.
+The URL is the state. `createNavigationState` parses the URL it is given, and `syncFromUrl` re-reads it after every navigation, so Back, Forward and plain links all land in the same place. Actions change the state at once, so a component that reads the store right after an action sees the new value; the action then writes the new URL through the adapter (`goto`). Several actions in one tick become one navigation.
+
+Each action is a URL write. Mode, contract and note changes push a history entry. Week changes inside the timesheet, closing a note, and a draft turning into a saved note replace the current entry. `showTimeEntryDay` replaces when the timesheet is already open and pushes otherwise. The rules are listed in `docs/ux/09-navigation-state.md`.
+
+`mobileNavigationLevel` is not stored. It is derived from the route (`mobileLevelFor` in `navigation-routes.ts`): home is 0, the timesheet or a contract's note list is 1, and a note or a draft is 2.
+
+Phone Back (`goBackMobile`) uses the in-app history mirror (`navigation-history.ts`). If the previous entry is inside the app it calls `history.back()`; otherwise it moves one level up with a replace. `backTarget` gives that path and whether it is a history entry, which the phone's Back label is built from.
+
+A fresh deep link (a URL opened directly, not by reload or Back) gets `/` put under it, so Back goes up into the app instead of out of it.
+
+`workspaceHref` is the URL of the workspace place. On settings and admin pages the route keeps the last workspace place shown in this tab (sessionStorage), which is where "Back to app" goes.
+
+Persistence: the sidebar-collapsed preference is in localStorage (`chronolog:sidebar-collapsed`). Timesheet scroll positions per week are in sessionStorage (`chronolog:timesheet-scroll`), as is the in-app history (`chronolog:in-app-history`). `showTimeEntryDay(date)` sets the week to show and the day to scroll to; `takeFocusDay()` hands that day out once and then forgets it.
+
+Actions: `selectTimeEntries`, `selectContract`, `selectWeek`, `selectNote`, `openNote`, `openDraft`, `clearSelectedNote`, `showTimeEntryDay`, `toggleSidebar`, `navigateMobile`, `goBackMobile`, and the timesheet scroll helpers.
+
+### navigation-routes.ts
+
+Pure functions that map workspace URLs to routes and back. No Svelte.
+
+| URL | Route | Meaning |
+|---|---|---|
+| `/` | `home` | Phone: the sidebar. Wider screens: this week's timesheet. |
+| `/time/YYYY-Www` | `time` | The timesheet for that ISO week |
+| `/notes/<contractId>` | `notes` | A contract's note list |
+| `/notes/<contractId>/<noteId>` | `notes` | A note open under its contract |
+| `/notes/<contractId>/new` | `notes`, `draft` | An unsaved new-note draft for that contract |
+
+`parseWorkspacePath` returns null for any other page (settings, admin, login), which is how the store knows to keep the last workspace place.
+
+### navigation-history.ts
+
+`InAppHistory` mirrors the browser history entries this tab visited inside Chronolog, because a page cannot read its own history. Every navigation (push, replace, or Back/Forward by a delta) is recorded. If the recorded stack no longer matches what the browser did, it starts over from the current URL. The stack is kept in sessionStorage and capped at 200 entries; a reload restores it when it still points at the current URL. The phone's Back button reads it for its target and label.
 
 ### connectivity.svelte.ts
 
@@ -31,7 +79,7 @@ App-wide connectivity. Offline means the browser reports it (`navigator.onLine`)
 
 ### contract-directory.svelte.ts
 
-Names of the visible contracts (contract and client name), filled by the sidebar when it loads them. Lets the page `<title>` name the selected contract without another request.
+Names of the visible contracts (contract name, client name and client ID), filled by the sidebar when it loads them. Other parts of the shell read them without another request: the page `<title>`, the phone title bar and the note editor header. `contextLabel(contractId)` returns "Client · Contract", or null while the sidebar has not loaded that contract. The navigation store takes `selectedClientId` from the client ID here.
 
 ### timer-state.svelte.ts
 
