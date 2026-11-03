@@ -52,7 +52,7 @@ Mode-aware layout container. It picks the branch from the breakpoints above. On 
 
 ### ConnectionStatus.svelte
 
-Offline banner, rendered by AppShell and by `SettingsShell`. It reads `src/lib/stores/connectivity.svelte.ts` and takes the current mode, so the message says what does and does not work offline (time entries, notes, or neither).
+Offline banner, rendered by AppShell and by `SettingsShell`. It reads `src/lib/stores/connectivity.svelte.ts` and takes the current mode, so the message says what does and does not work offline (time entries, notes, or neither). It subscribes to the browser's `online`/`offline` events in `onMount`, not `$effect`: the subscription reads connectivity state, so an effect would re-run on each request failure and reset the banner to "Back online".
 
 ### ContractsSidebar.svelte
 
