@@ -92,8 +92,13 @@ export async function postJson<ResponseType>(url: string, body: unknown): Promis
 	});
 }
 
-export async function putJson<ResponseType>(url: string, body: unknown): Promise<ResponseType> {
+export async function putJson<ResponseType>(
+	url: string,
+	body: unknown,
+	extraOptions?: Pick<RequestInit, 'keepalive'>
+): Promise<ResponseType> {
 	return fetchJson<ResponseType>(url, {
+		...extraOptions,
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(body)

@@ -7,6 +7,11 @@ import type {
 	NoteSummary,
 	NoteDetail,
 	UpdateNoteInput,
+	UpdateNoteOptions,
+	CreateNoteInput,
+	NoteSearchOptions,
+	NoteSearchResult,
+	NoteTitleInfo,
 	Backlink,
 	AttachmentSummary,
 	LinkedTimeEntryDisplay,
@@ -32,8 +37,10 @@ export interface DataService {
 	// Notes
 	getNotesForContract(contractId: string): Promise<NoteSummary[]>;
 	getNoteById(noteId: string): Promise<NoteDetail>;
-	createNote(contractId: string): Promise<NoteSummary>;
-	updateNote(noteId: string, data: UpdateNoteInput): Promise<NoteDetail>;
+	createNote(contractId: string, initial?: CreateNoteInput): Promise<NoteSummary>;
+	updateNote(noteId: string, data: UpdateNoteInput, options?: UpdateNoteOptions): Promise<NoteDetail>;
+	searchNotes(query: string, options?: NoteSearchOptions): Promise<NoteSearchResult[]>;
+	getNoteTitles(noteIds: string[]): Promise<NoteTitleInfo[]>;
 	deleteNote(noteId: string): Promise<void>;
 	getNoteBacklinks(noteId: string): Promise<Backlink[]>;
 

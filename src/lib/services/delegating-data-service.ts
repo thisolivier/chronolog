@@ -16,6 +16,11 @@ import type { TimerLocalStart,
 	NoteSummary,
 	NoteDetail,
 	UpdateNoteInput,
+	UpdateNoteOptions,
+	CreateNoteInput,
+	NoteSearchOptions,
+	NoteSearchResult,
+	NoteTitleInfo,
 	Backlink,
 	AttachmentSummary,
 	LinkedTimeEntryDisplay,
@@ -71,17 +76,25 @@ export class DelegatingDataService implements DataService {
 		return this.delegate.getNoteById(noteId);
 	}
 
-	async createNote(contractId: string): Promise<NoteSummary> {
-		const note = await this.delegate.createNote(contractId);
+	async createNote(contractId: string, initial?: CreateNoteInput): Promise<NoteSummary> {
+		const note = await this.delegate.createNote(contractId, initial);
 		announceNotesChanged();
 		return note;
 	}
 
-	async updateNote(noteId: string, data: UpdateNoteInput): Promise<NoteDetail> {
-		const note = await this.delegate.updateNote(noteId, data);
+	async updateNote(noteId: string, data: UpdateNoteInput, options?: UpdateNoteOptions): Promise<NoteDetail> {
+		const note = await this.delegate.updateNote(noteId, data, options);
 		// Only a move changes per-contract counts; ordinary autosaves do not
 		if ('contractId' in data && data.contractId) announceNotesChanged();
 		return note;
+	}
+
+	searchNotes(query: string, options?: NoteSearchOptions): Promise<NoteSearchResult[]> {
+		return this.delegate.searchNotes(query, options);
+	}
+
+	getNoteTitles(noteIds: string[]): Promise<NoteTitleInfo[]> {
+		return this.delegate.getNoteTitles(noteIds);
 	}
 
 	async deleteNote(noteId: string): Promise<void> {

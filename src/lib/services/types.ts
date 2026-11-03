@@ -78,8 +78,50 @@ export type UpdateNoteInput = {
 
 export type Backlink = {
 	sourceNoteId: string;
+	/** Display title: stored title, else first content line */
 	noteTitle: string | null;
 	headingAnchor: string | null;
+	noteContractId?: string;
+	noteClientId?: string;
+};
+
+export type CreateNoteInput = {
+	title?: string;
+	content?: string;
+	contentJson?: string;
+};
+
+export type UpdateNoteOptions = {
+	/** Send with `fetch(..., { keepalive: true })` so the save survives page unload */
+	keepalive?: boolean;
+};
+
+export type NoteSearchOptions = {
+	excludeNoteId?: string;
+	limit?: number;
+	/** With an empty query, return the most recently edited notes */
+	recent?: boolean;
+};
+
+export type NoteSearchResult = {
+	id: string;
+	title: string | null;
+	displayTitle: string | null;
+	contractId: string;
+	contractName: string;
+	clientId: string;
+	clientName: string;
+	clientShortCode: string;
+	firstLine: string;
+	secondLine: string;
+	updatedAt: string;
+};
+
+export type NoteTitleInfo = {
+	id: string;
+	displayTitle: string | null;
+	contractId: string;
+	clientId: string;
 };
 
 // -- Attachments --
