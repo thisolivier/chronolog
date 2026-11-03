@@ -4,8 +4,7 @@ How to connect a new browser, laptop CLI or desktop install to the production in
 `https://chronolog.throb.online`, and how to bring the instance back from a backup. Server setup
 itself is in [DEPLOYMENT.md](DEPLOYMENT.md).
 
-> The device-key sections are filled in (sprint 023). The API-token and CLI sections are still to be
-> completed by sprint 024.
+> The device-key sections are filled in (sprint 023). The API-token and CLI sections are filled in by sprint 028.
 
 ## Before you start
 
@@ -29,7 +28,7 @@ the page's error message and counts towards the lockout below.
 ## Laptop CLI (Claude secretary)
 
 The device key gets a request past the gate by sending it as a header. It does not sign you in:
-until sprint 024 adds API tokens, data routes still need a signed-in session.
+the API token (sent as `Authorization: Bearer`) is what signs data requests in.
 
 ```bash
 export CHRONOLOG_DEVICE_KEY='<paste the device access key from the password manager>'
@@ -41,14 +40,27 @@ curl -s -o /dev/null -w '%{http_code}\n' \
 Without a valid key, `/api/*` answers `401 {"error":"Device not authorised"}` before any login check,
 so that response means the key, not the login. Keep the key out of shell history and dotfiles.
 
-_To be completed by sprint 024:_
-
-- Create a long-lived API token (where, scopes, expiry).
-- Install the CLI and store the token and device key (header) on the laptop.
-- Check with a read-only command.
-- Revoke a lost laptop's token.
 
 ## New laptop CLI (Claude secretary)
+
+Do this once per laptop. Each laptop has its own token, so a lost laptop can be revoked alone.
+
+1. **Create a token.** Sign in in the browser and open Settings -> API tokens (`/settings/api-tokens`). Name it after the laptop, for example `MacBook <name>`, and copy it straight away: it is shown once. Store it in the password manager.
+2. **Install the CLI.** Clone the repo, then from the checkout run `npm install -g .` (Node 20+). Without installing, run `node cli/chronolog.mjs` instead.
+3. **Initialise.** Run `chronolog init`. It asks for the server URL (Enter keeps `https://chronolog.throb.online`), the API token and the device key. Input is hidden. It writes `~/.config/chronolog/config.json` with mode 600 and checks the connection.
+4. **First calls.** Run `chronolog me` (who the token belongs to, today and the ISO week), then `chronolog clients` (short codes and ids).
+5. **Claude Code.** The project skill `.claude/skills/chronolog-secretary/SKILL.md` teaches the workflow.
+6. **Lost laptop.** In Settings -> API tokens, revoke that laptop's token. The next call from it gets 403 `token_revoked`. Other laptops are unaffected.
+
+Troubleshooting (the CLI exits 4 for 401 and 403, and 6 for 429):
+
+| Status | Code | Meaning | Fix |
+|--------|------|---------|-----|
+| 401 | `device_not_authorised` | Device key missing or wrong | Check `CHRONOLOG_DEVICE_KEY`, or run `chronolog init` again |
+| 401 | `invalid_token` | Token wrong, mistyped or from another server | Create a new token and run `chronolog init` |
+| 403 | `token_revoked` | Token revoked, for example for a lost laptop | Create a new token and run `chronolog init` |
+| 429 | `rate_limited` | Too many failed attempts from this IP | Wait a minute |
+| 429 | `device_locked` | Too many wrong device keys | Wait 15 minutes (see Lockout below) |
 
 ## New Tauri desktop install
 
