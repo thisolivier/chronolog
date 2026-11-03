@@ -1,117 +1,127 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import type { UsageSummaryInput } from '$lib/utils/usage-summary';
+	import DeleteImpactDialog from './DeleteImpactDialog.svelte';
+	import { escapeCancels, closeOnSuccess } from './form-enhancers';
 
 	interface ContractData {
 		id: string;
 		name: string;
 		description: string | null;
 		isActive: boolean;
+		archivedAt: Date | string | null;
+		usage: UsageSummaryInput;
 	}
 
-	let { contract, clientId }: { contract: ContractData; clientId: string } = $props();
+	interface Props {
+		contract: ContractData;
+		clientId: string;
+		clientName: string;
+		/** Move one step up (-1) or down (+1) in the manual order; absent when it cannot move. */
+		onMove?: (direction: -1 | 1) => void;
+		canMoveUp: boolean;
+		canMoveDown: boolean;
+	}
+
+	let { contract, clientId, clientName, onMove, canMoveUp, canMoveDown }: Props = $props();
 
 	let isEditing = $state(false);
-	let isDeleting = $state(false);
-	let editName = $state(contract.name);
-	let editDescription = $state(contract.description || '');
-	let editIsActive = $state(contract.isActive);
+	let isConfirmingDelete = $state(false);
+	let editName = $state('');
+	let editDescription = $state('');
+	let editIsActive = $state(true);
+
+	const isArchived = $derived(contract.archivedAt !== null);
+	const actionBase = $derived(`/admin/clients/${clientId}`);
+
+	function startEditing() {
+		editName = contract.name;
+		editDescription = contract.description || '';
+		editIsActive = contract.isActive;
+		isEditing = true;
+	}
+	const cancelEditing = () => (isEditing = false);
+	const inputClass =
+		'mt-1 block w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none';
+	const arrowClass =
+		'flex h-6 w-6 items-center justify-center rounded text-stone-400 hover:bg-stone-100 hover:text-stone-700 disabled:invisible';
 </script>
 
-<div class="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+<div class="rounded-lg border border-stone-200 bg-white p-4 shadow-sm {isArchived ? 'bg-stone-50' : ''}" data-contract-id={contract.id}>
 	{#if isEditing}
 		<form
 			method="POST"
-			action="/admin/clients/{clientId}?/updateContract"
-			use:enhance={() => {
-				return async ({ update }) => {
-					isEditing = false;
-					await update();
-				};
-			}}
+			action="{actionBase}?/updateContract"
+			use:enhance={closeOnSuccess(cancelEditing)}
+			use:escapeCancels={cancelEditing}
 			class="space-y-3"
 		>
 			<input type="hidden" name="contract_id" value={contract.id} />
 			<div class="grid gap-3 sm:grid-cols-2">
 				<div>
 					<label for="edit-contract-name-{contract.id}" class="block text-sm font-medium text-stone-700">Name</label>
-					<input
-						id="edit-contract-name-{contract.id}"
-						name="name"
-						type="text"
-						required
-						bind:value={editName}
-						class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-					/>
+					<!-- svelte-ignore a11y_autofocus -->
+					<input id="edit-contract-name-{contract.id}" name="name" type="text" required autofocus bind:value={editName} class={inputClass} />
 				</div>
 				<div>
 					<label for="edit-contract-desc-{contract.id}" class="block text-sm font-medium text-stone-700">Description</label>
-					<input
-						id="edit-contract-desc-{contract.id}"
-						name="description"
-						type="text"
-						bind:value={editDescription}
-						class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-					/>
+					<input id="edit-contract-desc-{contract.id}" name="description" type="text" bind:value={editDescription} class={inputClass} />
 				</div>
 			</div>
 			<div class="flex items-center gap-2">
-				<input
-					id="edit-contract-active-{contract.id}"
-					name="is_active"
-					type="checkbox"
-					bind:checked={editIsActive}
-					class="h-4 w-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500"
-				/>
+				<input id="edit-contract-active-{contract.id}" name="is_active" type="checkbox" bind:checked={editIsActive} class="h-4 w-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500" />
 				<label for="edit-contract-active-{contract.id}" class="text-sm text-stone-700">Active</label>
 			</div>
-			<div class="flex gap-2">
-				<button type="submit" class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
-					Save
-				</button>
-				<button
-					type="button"
-					onclick={() => {
-						isEditing = false;
-						editName = contract.name;
-						editDescription = contract.description || '';
-						editIsActive = contract.isActive;
-					}}
-					class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
-				>
-					Cancel
-				</button>
+			<div class="flex justify-end gap-2">
+				<button type="button" onclick={cancelEditing} class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50">Cancel</button>
+				<button type="submit" class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">Save</button>
 			</div>
 		</form>
 	{:else}
-		<div class="flex items-center justify-between">
-			<div>
-				<a
-					href="/admin/clients/{clientId}/contracts/{contract.id}"
-					class="font-medium text-blue-600 hover:text-blue-800 hover:underline"
-				>
-					{contract.name}
-				</a>
-				{#if contract.description}
-					<p class="mt-0.5 text-sm text-stone-500">{contract.description}</p>
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<div class="flex min-w-0 items-center gap-2">
+				{#if onMove && !isArchived}
+					<div class="flex flex-col" role="group" aria-label="Reorder {contract.name}">
+						<button type="button" class={arrowClass} disabled={!canMoveUp} onclick={() => onMove(-1)} aria-label="Move {contract.name} up">▲</button>
+						<button type="button" class={arrowClass} disabled={!canMoveDown} onclick={() => onMove(1)} aria-label="Move {contract.name} down">▼</button>
+					</div>
 				{/if}
+				<div class="min-w-0">
+					<a href="{actionBase}/contracts/{contract.id}" class="font-medium text-blue-600 hover:text-blue-800 hover:underline">{contract.name}</a>
+					{#if contract.description}
+						<p class="mt-0.5 text-sm text-stone-500">{contract.description}</p>
+					{/if}
+				</div>
 			</div>
 			<div class="flex items-center gap-3">
-				<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {contract.isActive ? 'bg-green-100 text-green-800' : 'bg-stone-100 text-stone-800'}">
-					{contract.isActive ? 'Active' : 'Inactive'}
-				</span>
-				<button onclick={() => (isEditing = true)} class="text-sm text-stone-500 hover:text-blue-600">
-					Edit
-				</button>
-				{#if isDeleting}
-					<form method="POST" action="/admin/clients/{clientId}?/deleteContract" use:enhance class="inline">
-						<input type="hidden" name="contract_id" value={contract.id} />
-						<button type="submit" class="text-sm font-medium text-red-600 hover:text-red-800">Confirm</button>
-					</form>
-					<button onclick={() => (isDeleting = false)} class="text-sm text-stone-500 hover:text-stone-700">Cancel</button>
+				{#if isArchived}
+					<span class="inline-flex items-center rounded-full bg-stone-200 px-2.5 py-0.5 text-xs font-medium text-stone-700">Archived</span>
 				{:else}
-					<button onclick={() => (isDeleting = true)} class="text-sm text-red-500 hover:text-red-700">Delete</button>
+					<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {contract.isActive ? 'bg-green-100 text-green-800' : 'bg-stone-100 text-stone-800'}">
+						{contract.isActive ? 'Active' : 'Inactive'}
+					</span>
 				{/if}
+				<button onclick={startEditing} class="text-sm text-stone-500 hover:text-blue-600">Edit</button>
+				{#if isArchived}
+					<form method="POST" action="{actionBase}?/unarchiveContract" use:enhance class="inline">
+						<input type="hidden" name="contract_id" value={contract.id} />
+						<button type="submit" class="text-sm text-stone-500 hover:text-blue-600">Restore</button>
+					</form>
+				{/if}
+				<button onclick={() => (isConfirmingDelete = true)} class="text-sm text-red-500 hover:text-red-700">Delete</button>
 			</div>
 		</div>
 	{/if}
 </div>
+
+{#if isConfirmingDelete}
+	<DeleteImpactDialog
+		title="Delete contract “{contract.name}”?"
+		usage={contract.usage}
+		archiveAction={isArchived ? undefined : `${actionBase}?/archiveContract`}
+		deleteAction="{actionBase}?/deleteContract"
+		deleteConsequence="Delete and reassign removes the contract and its deliverables. Time entries move to “Deleted Client / Deleted Contract” with “Formerly: {clientName} / {contract.name}” added to their description, and notes move there too."
+		hiddenFields={{ contract_id: contract.id }}
+		onClose={() => (isConfirmingDelete = false)}
+	/>
+{/if}

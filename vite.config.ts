@@ -2,6 +2,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { SvelteKitPWA } from '@vite-pwa/sveltekit';
 import { defineConfig } from 'vitest/config';
+import { resolve } from 'node:path';
 
 export default defineConfig({
 	plugins: [
@@ -79,7 +80,14 @@ export default defineConfig({
 		})
 	],
 	server: {
-		allowedHosts: ['app']
+		allowedHosts: ['app'],
+		watch: {
+			// Other sessions' worktrees live under <root>/.claude/worktrees; their `svelte-kit sync`
+			// rewrites tsconfig files there, which would force full reloads of this dev server.
+			// Anchored to this project's root: a bare '**/.claude/**' would also match a worktree's
+			// own files (they sit under .claude/worktrees/) and stop it from seeing its own edits.
+			ignored: [`${resolve(import.meta.dirname, '.claude')}/**`]
+		}
 	},
 	test: {
 		include: ['src/**/*.test.ts'],

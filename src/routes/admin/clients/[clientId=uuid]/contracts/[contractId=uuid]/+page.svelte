@@ -2,6 +2,8 @@
 	import { enhance } from '$app/forms';
 	import AdminBreadcrumb from '$lib/components/admin/AdminBreadcrumb.svelte';
 	import DeliverableCard from '$lib/components/admin/DeliverableCard.svelte';
+	import FormFeedback from '$lib/components/admin/FormFeedback.svelte';
+	import { escapeCancels, closeOnSuccess } from '$lib/components/admin/form-enhancers';
 
 	let { data, form } = $props();
 
@@ -10,6 +12,8 @@
 
 	let actionBase = $derived(`/admin/clients/${data.client.id}/contracts/${data.contract.id}`);
 </script>
+
+<svelte:head><title>Chronolog · Settings · {data.contract.name}</title></svelte:head>
 
 <div class="space-y-6">
 	<AdminBreadcrumb
@@ -20,24 +24,18 @@
 		]}
 	/>
 
-	{#if form?.error}
-		<div class="rounded-md bg-red-50 p-4 text-sm text-red-700">{form.error}</div>
-	{/if}
-	{#if form?.success}
-		<div class="rounded-md bg-green-50 p-4 text-sm text-green-700">
-			Operation completed successfully.
-		</div>
-	{/if}
+	<FormFeedback {form} />
 
 	<!-- Contract Header -->
 	<div class="rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
 		{#if isEditingContract}
-			<form method="POST" action="{actionBase}?/updateContract" use:enhance={() => {
-				return async ({ update }) => {
-					isEditingContract = false;
-					await update();
-				};
-			}} class="space-y-4">
+			<form
+				method="POST"
+				action="{actionBase}?/updateContract"
+				use:enhance={closeOnSuccess(() => (isEditingContract = false))}
+				use:escapeCancels={() => (isEditingContract = false)}
+				class="space-y-4"
+			>
 				<h2 class="text-lg font-medium text-stone-900">Edit Contract</h2>
 				<div class="grid gap-4 sm:grid-cols-2">
 					<div>
@@ -72,9 +70,9 @@
 					/>
 					<label for="edit-contract-active" class="text-sm text-stone-700">Active</label>
 				</div>
-				<div class="flex gap-2">
-					<button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Save</button>
+				<div class="flex justify-end gap-2">
 					<button type="button" onclick={() => (isEditingContract = false)} class="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm text-stone-700 hover:bg-stone-50">Cancel</button>
+					<button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Save</button>
 				</div>
 			</form>
 		{:else}
@@ -104,18 +102,26 @@
 	<div class="space-y-4">
 		<div class="flex items-center justify-between">
 			<h3 class="text-lg font-medium text-stone-900">Deliverables</h3>
-			<button
-				onclick={() => (showCreateDeliverableForm = !showCreateDeliverableForm)}
-				class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-			>
-				{showCreateDeliverableForm ? 'Cancel' : 'Add Deliverable'}
-			</button>
+			{#if !showCreateDeliverableForm}
+				<button
+					onclick={() => (showCreateDeliverableForm = true)}
+					class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+				>
+					Add Deliverable
+				</button>
+			{/if}
 		</div>
 
 		{#if showCreateDeliverableForm}
 			<div class="rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
 				<h4 class="mb-4 text-base font-medium text-stone-900">New Deliverable</h4>
-				<form method="POST" action="{actionBase}?/createDeliverable" use:enhance class="space-y-4">
+				<form
+					method="POST"
+					action="{actionBase}?/createDeliverable"
+					use:enhance={closeOnSuccess(() => (showCreateDeliverableForm = false))}
+					use:escapeCancels={() => (showCreateDeliverableForm = false)}
+					class="space-y-4"
+				>
 					<div class="grid gap-4 sm:grid-cols-2">
 						<div>
 							<label for="new-deliverable-name" class="block text-sm font-medium text-stone-700">Name</label>
@@ -139,7 +145,8 @@
 							/>
 						</div>
 					</div>
-					<div class="flex justify-end">
+					<div class="flex justify-end gap-2">
+						<button type="button" onclick={() => (showCreateDeliverableForm = false)} class="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm text-stone-700 hover:bg-stone-50">Cancel</button>
 						<button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Create Deliverable</button>
 					</div>
 				</form>

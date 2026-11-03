@@ -20,8 +20,8 @@ db/
   seed.ts             # Development seed script
   schema/
     users.ts          # Users table
-    clients.ts        # Clients table (belongs to user)
-    contracts.ts      # Contracts table (belongs to client)
+    clients.ts        # Clients table (belongs to user; archived_at, is_system)
+    contracts.ts      # Contracts table (belongs to client; archived_at, is_system)
     deliverables.ts   # Deliverables table (belongs to contract)
     work-types.ts     # Work types table (belongs to deliverable)
     time-entries.ts   # Time entries table (links user, contract, deliverable, work type)
@@ -48,6 +48,20 @@ User
 
 Notes and time entries are linked via the `note_time_entries` join table.
 
+## Archiving and Safe Deletion
+
+`clients` and `contracts` carry `archived_at` (hidden from the sidebar, work kept) and `is_system` (the per-user "Deleted Client" and "Deleted Contract", migration `0007`).
+
+`time_entries.contract_id` and `notes.contract_id` no longer cascade on delete, so no path can silently drop billable work.
+
+`queries/safe-deletion.ts` performs every admin delete in a single transaction:
+
+- **Contract or client**: entries move to the system "Deleted Contract" (or "Deleted Client" / "Deleted Contract" for a client) with a `Formerly: Client / Contract` line appended to each description; notes move to the Deleted Contract. Then the contract or client is deleted. Names and descriptions are encrypted, so the line is appended in memory row by row.
+- **Deliverable or work type**: entries keep a `Formerly: ...` line, then their reference is cleared and the row deleted.
+- **Usage counts**: `getContractUsage` and `getEntryCountsBy` feed the confirm dialogs.
+
+`queries/formerly-line.ts` builds the appended `Formerly: ...` line on its own line so the original description is untouched.
+
 ## Usage
 
 ```typescript
@@ -63,6 +77,10 @@ const userWithClients = await database.query.users.findFirst({
   with: { clients: true }
 });
 ```
+
+## Dev Connection
+
+`index.ts` caches the postgres client on `globalThis` outside production, so Vite's SSR reloads reuse one pool instead of opening a new one each time.
 
 ## Scripts
 

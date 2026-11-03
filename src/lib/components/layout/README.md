@@ -16,7 +16,7 @@ Components that make up the panel layout for Chronolog. The layout is mode-aware
   Top bar: hamburger toggle | TimerIndicator
 ```
 
-### Mobile (<1024px, single panel push/pop)
+### Mobile (<768px, single panel push/pop)
 
 ```
 Level 0: sidebar (contracts + timer widget)   top bar: "Chronolog"
@@ -36,15 +36,27 @@ Level 2: note editor (notes mode only)        top bar: Back | TimerIndicator
 └─────────────┴──────────────────┴──────────────────────────────┘
 ```
 
+## Breakpoints
+
+- **<768px**: single-panel mobile drill-down.
+- **768–1023px** (tablet, half-screen laptop): two panels. In notes mode the sidebar becomes an overlay over the note list.
+- **>=1024px**: sidebar, list and editor side by side.
+
+Tablet and desktop share one DOM branch, so crossing 1024px never remounts the editor.
+
 ## Components
 
 ### AppShell.svelte
 
-Mode-aware layout container. On desktop the top bar always shows the hamburger sidebar toggle and the TimerIndicator; in time mode Panel 2 is hidden (sidebar + content), in notes mode the three-panel layout with a resizable Panel 2 is shown. On mobile a permanent top bar shows "Chronolog" at level 0 and a Back button plus the TimerIndicator at deeper levels; level 1 renders Panel 2 only in notes mode and goes straight to Panel 3 (time entries) in time mode. Tapping the mobile TimerIndicator returns to level 0 where the timer widget lives.
+Mode-aware layout container. It picks the branch from the breakpoints above. On desktop the top bar always shows the hamburger sidebar toggle and the TimerIndicator; in time mode Panel 2 is hidden (sidebar + content), in notes mode the three-panel layout with a resizable Panel 2 is shown. On mobile a permanent top bar shows "Chronolog" at level 0 and a Back button plus the TimerIndicator at deeper levels; level 1 renders Panel 2 only in notes mode and goes straight to Panel 3 (time entries) in time mode. Tapping the mobile TimerIndicator returns to level 0 where the timer widget lives. `ConnectionStatus` is rendered here, showing the offline banner.
+
+### ConnectionStatus.svelte
+
+Offline banner, rendered by AppShell and by `SettingsShell`. It reads `src/lib/stores/connectivity.svelte.ts` and takes the current mode, so the message says what does and does not work offline (time entries, notes, or neither).
 
 ### ContractsSidebar.svelte
 
-Panel 1 sidebar content. Shows app header, navigation items, and contracts grouped by client. Each contract displays a colored dot matching its client color. Timer widget pinned to bottom.
+Panel 1 sidebar content. Shows app header, navigation items, and contracts grouped under their client headings (`src/lib/utils/group-contracts-by-client.ts`). Each contract displays a colored dot matching its client color. Note counts refresh on `notes-changed` and `note-moved` window events. Timer widget pinned to bottom.
 
 ### TimeEntriesPanel.svelte
 

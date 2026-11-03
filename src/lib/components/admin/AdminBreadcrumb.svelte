@@ -7,8 +7,8 @@
 	let { items }: { items: BreadcrumbItem[] } = $props();
 </script>
 
-<nav class="flex items-center gap-2 text-sm text-stone-500">
-	<a href="/admin" class="hover:text-stone-700">Admin</a>
+<nav class="flex flex-wrap items-center gap-2 text-sm text-stone-500" aria-label="Breadcrumb">
+	<a href="/settings" class="hover:text-stone-700">Settings</a>
 	{#each items as item (item.label)}
 		<span class="text-stone-400">/</span>
 		{#if item.href}

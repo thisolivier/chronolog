@@ -1,11 +1,20 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import ClientRow from '$lib/components/admin/ClientRow.svelte';
+	import AdminBreadcrumb from '$lib/components/admin/AdminBreadcrumb.svelte';
+	import FormFeedback from '$lib/components/admin/FormFeedback.svelte';
+	import { closeOnSuccess, escapeCancels } from '$lib/components/admin/form-enhancers';
 	import { CLIENT_COLORS } from '$lib/utils/client-colors';
 
 	let { data, form } = $props();
 
 	let showCreateForm = $state(false);
+
+	// Active clients first, archived ones after (each group keeps name order from the server)
+	const orderedClients = $derived([
+		...data.clients.filter((client) => client.archivedAt === null),
+		...data.clients.filter((client) => client.archivedAt !== null)
+	]);
 
 	// Default a new client to the first palette colour no existing client uses, so clients differ by default
 	const suggestedColorIndex = $derived.by(() => {
@@ -15,36 +24,38 @@
 	});
 </script>
 
+<svelte:head><title>Chronolog · Settings · Clients</title></svelte:head>
+
 <div class="space-y-6">
-	<div class="flex items-center justify-between">
+	<AdminBreadcrumb items={[{ label: 'Clients' }]} />
+
+	<div class="flex items-center justify-between gap-4">
 		<div>
 			<h1 class="text-2xl font-semibold text-stone-900">Clients</h1>
 			<p class="mt-1 text-sm text-stone-600">Manage your consulting clients.</p>
 		</div>
-		<button
-			onclick={() => (showCreateForm = !showCreateForm)}
-			class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-		>
-			{showCreateForm ? 'Cancel' : 'Add Client'}
-		</button>
+		{#if !showCreateForm}
+			<button
+				onclick={() => (showCreateForm = true)}
+				class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+			>
+				Add Client
+			</button>
+		{/if}
 	</div>
 
-	{#if form?.error}
-		<div class="rounded-md bg-red-50 p-4 text-sm text-red-700">
-			{form.error}
-		</div>
-	{/if}
-
-	{#if form?.success}
-		<div class="rounded-md bg-green-50 p-4 text-sm text-green-700">
-			Operation completed successfully.
-		</div>
-	{/if}
+	<FormFeedback {form} />
 
 	{#if showCreateForm}
 		<div class="rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
 			<h2 class="mb-4 text-lg font-medium text-stone-900">New Client</h2>
-			<form method="POST" action="?/create" use:enhance class="space-y-4">
+			<form
+				method="POST"
+				action="?/create"
+				use:enhance={closeOnSuccess(() => (showCreateForm = false))}
+				use:escapeCancels={() => (showCreateForm = false)}
+				class="space-y-4"
+			>
 				<div class="grid gap-4 sm:grid-cols-4">
 					<div>
 						<label for="new-client-name" class="block text-sm font-medium text-stone-700">
@@ -55,6 +66,7 @@
 							name="name"
 							type="text"
 							required
+							value={form?.name ?? ''}
 							class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 							placeholder="Acme Corporation"
 						/>
@@ -68,6 +80,7 @@
 							name="short_code"
 							type="text"
 							required
+							value={form?.shortCode ?? ''}
 							class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 							placeholder="ACME"
 						/>
@@ -100,7 +113,14 @@
 						</select>
 					</div>
 				</div>
-				<div class="flex justify-end">
+				<div class="flex justify-end gap-2">
+					<button
+						type="button"
+						onclick={() => (showCreateForm = false)}
+						class="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+					>
+						Cancel
+					</button>
 					<button
 						type="submit"
 						class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
@@ -117,7 +137,7 @@
 			<p class="text-stone-500">No clients yet. Add your first client to get started.</p>
 		</div>
 	{:else}
-		<div class="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm">
+		<div class="overflow-x-auto rounded-lg border border-stone-200 bg-white shadow-sm">
 			<table class="min-w-full divide-y divide-stone-200">
 				<thead class="bg-stone-50">
 					<tr>
@@ -139,7 +159,7 @@
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-stone-200">
-					{#each data.clients as client (client.id)}
+					{#each orderedClients as client (client.id)}
 						<ClientRow {client} />
 					{/each}
 				</tbody>

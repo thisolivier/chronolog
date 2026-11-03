@@ -1,58 +1,43 @@
 <script lang="ts">
 	/**
-	 * ConnectionStatus — shows online/offline and sync state.
-	 * Renders a small banner when offline or syncing, and nothing (or a subtle dot) when online.
+	 * Offline banner (sprint 026-CL, finding 3). Says plainly what does and does not work offline;
+	 * nothing is queued yet (that is the future outbox sprint), so it never claims changes are kept.
 	 */
+	import { connectivity, trackBrowserConnectivity } from '$lib/stores/connectivity.svelte';
+	import type { NavigationMode } from '$lib/stores/navigation.svelte';
 
-	let isOnline = $state(true);
-	let isSyncing = $state(false);
+	/** The main screen passes its mode so the message matches what is on screen. */
+	let { mode = null }: { mode?: NavigationMode | null } = $props();
 
-	// Track browser online/offline events
-	$effect(() => {
-		isOnline = navigator.onLine;
+	$effect(() => trackBrowserConnectivity());
 
-		const handleOnline = () => {
-			isOnline = true;
-			// Brief syncing indication after reconnect
-			isSyncing = true;
-			setTimeout(() => {
-				isSyncing = false;
-			}, 3000);
-		};
-
-		const handleOffline = () => {
-			isOnline = false;
-			isSyncing = false;
-		};
-
-		window.addEventListener('online', handleOnline);
-		window.addEventListener('offline', handleOffline);
-
-		return () => {
-			window.removeEventListener('online', handleOnline);
-			window.removeEventListener('offline', handleOffline);
-		};
-	});
+	const offlineMessage = $derived(
+		mode === 'time-entries'
+			? 'Offline, showing last loaded data. New and edited entries can’t be saved until you reconnect.'
+			: mode === 'notes'
+				? 'Offline, changes not saved. Note edits made now will not reach the server.'
+				: 'Offline. Changes can’t be saved until you reconnect.'
+	);
 </script>
 
-{#if !isOnline}
+{#if connectivity.isOffline}
 	<div
-		class="flex items-center gap-2 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 border-b border-amber-200"
+		class="flex flex-shrink-0 items-center gap-2 border-b border-amber-300 bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-900"
 		role="status"
 		aria-live="polite"
 		data-testid="connection-status-offline"
 	>
-		<span class="inline-block h-2 w-2 rounded-full bg-amber-500"></span>
-		Offline — changes are saved locally
+		<span class="inline-block h-2 w-2 flex-shrink-0 rounded-full bg-amber-600" aria-hidden="true"></span>
+		{offlineMessage}
 	</div>
-{:else if isSyncing}
+{:else if connectivity.recentlyReconnected}
 	<div
-		class="flex items-center gap-2 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 border-b border-blue-200"
+		class="flex flex-shrink-0 items-center gap-2 border-b border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-800"
 		role="status"
 		aria-live="polite"
-		data-testid="connection-status-syncing"
+		data-testid="connection-status-online"
 	>
-		<span class="inline-block h-2 w-2 animate-pulse rounded-full bg-blue-500"></span>
-		Syncing...
+		<span class="inline-block h-2 w-2 flex-shrink-0 rounded-full bg-green-600" aria-hidden="true"></span>
+		Back online. Reload anything that failed to save.
 	</div>
 {/if}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { authClient } from '$lib/auth-client';
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 
 	let { data } = $props();
 
@@ -13,7 +14,14 @@
 
 	let passwordsMatch = $derived(password === confirmPassword);
 
-	async function handleRegister() {
+	// Disabled until hydrated so an early click can't do a native GET submit (QA R1)
+	let isHydrated = $state(false);
+	onMount(() => {
+		isHydrated = true;
+	});
+
+	async function handleRegister(event: SubmitEvent) {
+		event.preventDefault();
 		errorMessage = '';
 
 		if (!passwordsMatch) {
@@ -48,6 +56,8 @@
 		}
 	}
 </script>
+
+<svelte:head><title>Chronolog · Create account</title></svelte:head>
 
 <div class="flex min-h-screen items-center justify-center bg-stone-50">
 	<div class="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-md">
@@ -123,7 +133,7 @@
 
 				<button
 					type="submit"
-					disabled={isLoading || !passwordsMatch}
+					disabled={isLoading || !passwordsMatch || !isHydrated}
 					class="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
 				>
 					{isLoading ? 'Creating account...' : 'Create account'}

@@ -12,8 +12,9 @@ wrapper provided via Svelte context.
 |---|---|
 | `data-service.ts` | `DataService` interface definition. Declares all data operations grouped by domain: contracts, clients, notes, attachments, note-time-entry links, time entries, weekly statuses, timer, deliverables, and work types. |
 | `fetch-data-service.ts` | `FetchDataService` class — the only `DataService` implementation. Delegates every operation to SvelteKit API routes via HTTP fetch calls. |
-| `delegating-data-service.ts` | `DelegatingDataService` class — a thin wrapper that forwards all calls to an inner `DataService` and exposes `setDelegate()`. Components hold a reference to the wrapper, so the inner service can be replaced without re-setting context. |
-| `fetch-helpers.ts` | Shared HTTP utilities (`fetchJson`, `postJson`, `putJson`, `deleteRequest`) used by `FetchDataService`. Each helper checks `response.ok` and throws a descriptive error on failure; a `401` (or a `303` to `/login`) raises `SessionExpiredError` and redirects to `/login` once (tested in `session-expiry.test.ts`). |
+| `delegating-data-service.ts` | `DelegatingDataService` class — a thin wrapper that forwards all calls to an inner `DataService` and exposes `setDelegate()`. Components hold a reference to the wrapper, so the inner service can be replaced without re-setting context. It fires `notes-changed` after note create, delete and move. |
+| `notes-changed-event.ts` | `announceNotesChanged()` and the `notes-changed` window event name. The sidebar listens to it to refresh per-contract note counts. |
+| `fetch-helpers.ts` | Shared HTTP utilities (`fetchJson`, `postJson`, `putJson`, `deleteRequest`) used by `FetchDataService`. Each helper checks `response.ok` and throws a descriptive error on failure; a `401` (or a `303` to `/login`) raises `SessionExpiredError` and redirects to `/login` once (tested in `session-expiry.test.ts`). The last successful GET body per URL is kept and returned when the network fails (writes are never cached); each request reports its outcome to `connectivity`. |
 | `types.ts` | All shared TypeScript types consumed by the interface and its implementation (e.g. `NoteSummary`, `WeekData`, `TimerStatus`). |
 | `context.ts` | Svelte context helpers for dependency injection (`setDataServiceContext` / `getDataService`). |
 | `index.ts` | Barrel file re-exporting the public API: interface, implementation, context helpers, and all types. |
@@ -30,6 +31,8 @@ The module uses Svelte's `setContext` / `getContext` for dependency injection:
    service and invoke data operations against it.
 
 ## Adding an operation
+
+`createContract` accepts `newClient` (`{ name, shortCode }`) in place of an existing `clientId`, so a contract and its new client are created in one request.
 
 Add the method to the `DataService` interface, implement it in `FetchDataService`
 (and forward it in `DelegatingDataService`), add any new types to `types.ts`, and

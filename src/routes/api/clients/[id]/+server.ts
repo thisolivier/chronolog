@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { updateClient, type ClientUpdateData } from '$lib/server/db/queries/clients';
 import { isValidClientColorIndex, CLIENT_COLORS } from '$lib/utils/client-colors';
+import { isUniqueViolation } from '$lib/server/admin-actions';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -73,8 +74,7 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 	try {
 		updatedClient = await updateClient(id, currentUser.id, updateData);
 	} catch (databaseError: unknown) {
-		const errorMessage = databaseError instanceof Error ? databaseError.message : '';
-		if (errorMessage.includes('unique')) {
+		if (isUniqueViolation(databaseError)) {
 			return json({ error: 'A client with this short code already exists' }, { status: 400 });
 		}
 		throw databaseError;

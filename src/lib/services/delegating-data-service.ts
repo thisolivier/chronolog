@@ -7,6 +7,7 @@
  */
 
 import type { DataService } from './data-service';
+import { announceNotesChanged } from './notes-changed-event';
 import type { TimerLocalStart,
 	ContractsByClientResult,
 	ContractOption,
@@ -50,7 +51,7 @@ export class DelegatingDataService implements DataService {
 		return this.delegate.getContracts();
 	}
 
-	createContract(data: CreateContractInput): Promise<{ id: string }> {
+	createContract(data: CreateContractInput): Promise<{ id: string; clientId: string }> {
 		return this.delegate.createContract(data);
 	}
 
@@ -70,16 +71,22 @@ export class DelegatingDataService implements DataService {
 		return this.delegate.getNoteById(noteId);
 	}
 
-	createNote(contractId: string): Promise<NoteSummary> {
-		return this.delegate.createNote(contractId);
+	async createNote(contractId: string): Promise<NoteSummary> {
+		const note = await this.delegate.createNote(contractId);
+		announceNotesChanged();
+		return note;
 	}
 
-	updateNote(noteId: string, data: UpdateNoteInput): Promise<NoteDetail> {
-		return this.delegate.updateNote(noteId, data);
+	async updateNote(noteId: string, data: UpdateNoteInput): Promise<NoteDetail> {
+		const note = await this.delegate.updateNote(noteId, data);
+		// Only a move changes per-contract counts; ordinary autosaves do not
+		if ('contractId' in data && data.contractId) announceNotesChanged();
+		return note;
 	}
 
-	deleteNote(noteId: string): Promise<void> {
-		return this.delegate.deleteNote(noteId);
+	async deleteNote(noteId: string): Promise<void> {
+		await this.delegate.deleteNote(noteId);
+		announceNotesChanged();
 	}
 
 	getNoteBacklinks(noteId: string): Promise<Backlink[]> {

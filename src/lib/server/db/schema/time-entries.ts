@@ -9,9 +9,10 @@ export const timeEntries = pgTable('time_entries', {
 	userId: text('user_id')
 		.notNull()
 		.references(() => users.id, { onDelete: 'cascade' }),
+	// No cascade: deleting a contract must first reassign its entries and notes (sprint 026-CL).
 	contractId: uuid('contract_id')
 		.notNull()
-		.references(() => contracts.id, { onDelete: 'cascade' }),
+		.references(() => contracts.id, { onDelete: 'no action' }),
 	deliverableId: uuid('deliverable_id').references(() => deliverables.id, {
 		onDelete: 'set null'
 	}),

@@ -1,0 +1,26 @@
+[PASS] R1-register-disabled-before-hydration — submit disabled until hydrated
+[PASS] AUTH-register — qa-026-7lzva4@chronolog.test
+[PASS] R1-login-enter-before-hydration-does-not-native-submit — URL after early Enter: http://localhost:5203/login; signed in after hydration
+[PASS] T5-settings-link-and-page — Settings → Clients, one breadcrumb
+[PASS] T5-add-client-specific-message-and-form-closes — Client “Acme Corp” created.
+[PASS] T5-duplicate-short-code-error — Short code “ACME” is already used by another client. Pick a different one.
+[PASS] T5-inline-edit-aligned-and-escape-cancels — inputs at 257/515, Escape cancelled
+[PASS] T5-new-contract-modal-creates-client-inline — client + contract created, contract selected, title updated
+[PASS] SEED-contracts-entries-notes — Rocket Build 037c0f42-b508-44e1-8963-7f4f61901286: 3 entries (4h 45m), 3 notes
+[PASS] T4-sidebar-grouped-with-counts-1440 — groups Acme Corp, Globex, Initech, Internal; Acme: Rocket Build 3 | Support Retainer | Apollo
+[PASS] T4-note-count-stays-correct-after-create — Support Retainer count 0 → 1 without reload
+[PASS] T5-reorder-contract-arrows-persist-and-sidebar-order — Rocket Build,Support Retainer,Apollo → Support Retainer,Rocket Build,Apollo; sidebar matches
+[PASS] T1-delete-dialog-states-counts-archive-default — It has 3 time entries (4h 45m) and 3 notes.; default focus: Archive
+[PASS] T1-archive-hides-from-sidebar-and-selects-keeps-data — Archived contract “Rocket Build”. It is hidden from the sidebar and selects; its entries and notes are kept.
+[PASS] T1-restore-then-delete-and-reassign — Deleted “Rocket Build”. 3 time entries (4h 45m) and 3 notes moved to Deleted Client / Deleted Contract, each entry noting where it came from.
+[PASS] T1-entries-and-notes-survive-under-deleted-contract — 3 cards show the Formerly line; note search status 200 hits true
+[PASS] T1-deleted-client-not-listed — Acme Corp, Globex, Initech, Internal
+[PASS] T1-deliverable-delete-confirm-with-count — It has 2 time entries (1h 45m). → Deleted deliverable “Phase 1 - Discovery”. 2 time entries keep “Formerly: Phase 1 - Discovery” in the description.
+[PASS] T6-titles-404-and-malformed-admin-id — 404/404/404; {"/":"Chronolog · Time entries","/admin/clients":"Chronolog · Settings · Clients","/admin/clients/afa328c5-09b5-44a4-8939-769de879581c":"Chronolog · Settings · Acme Corp","/settings/two-factor":"Chronolog · Settings · Two-factor","/settings":"Chronolog · Settings"}
+[PASS] T3-layouts-1440-900-390 — 1440: sidebar 240px, no Back bar; 900: sidebar 0px, no Back bar; 390: drill-down
+[PASS] T2-offline-banner-timesheet-keeps-data — banner shown via setOffline at 1440/900/390; entries still shown
+[PASS] T2-offline-banner-notes-mode — Offline, changes not saved. Note edits made now will not reach the server.
+[PASS] T3-settings-and-admin-390 — horizontal overflow at 390: 0px
+page errors: none
+5xx responses: none
+23/23 passed

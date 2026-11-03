@@ -1,117 +1,41 @@
 /**
- * Tests for the ConnectionStatus component logic.
- *
- * Tests the online/offline detection and syncing state management logic
- * used by the ConnectionStatus component, without requiring a browser environment.
+ * Tests for the connectivity store behind ConnectionStatus (the real module, not a copy).
  */
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { connectivity } from '$lib/stores/connectivity.svelte';
 
-import { describe, it, expect, vi } from 'vitest';
-
-/**
- * Extracts and tests the core state logic of ConnectionStatus.
- * The actual Svelte component uses these same patterns with $state/$effect.
- */
-function createConnectionStateManager() {
-	let isOnline = true;
-	let isSyncing = false;
-	const timers: ReturnType<typeof setTimeout>[] = [];
-
-	function handleOnline() {
-		isOnline = true;
-		isSyncing = true;
-		const timer = setTimeout(() => {
-			isSyncing = false;
-		}, 3000);
-		timers.push(timer);
-	}
-
-	function handleOffline() {
-		isOnline = false;
-		isSyncing = false;
-	}
-
-	function getState() {
-		return { isOnline, isSyncing };
-	}
-
-	function cleanup() {
-		timers.forEach(clearTimeout);
-	}
-
-	return { handleOnline, handleOffline, getState, cleanup };
-}
-
-describe('ConnectionStatus state logic', () => {
-	it('starts in online state', () => {
-		const manager = createConnectionStateManager();
-		expect(manager.getState()).toEqual({ isOnline: true, isSyncing: false });
-		manager.cleanup();
-	});
-
-	it('transitions to offline when handleOffline is called', () => {
-		const manager = createConnectionStateManager();
-		manager.handleOffline();
-		expect(manager.getState()).toEqual({ isOnline: false, isSyncing: false });
-		manager.cleanup();
-	});
-
-	it('transitions to online + syncing when handleOnline is called', () => {
-		const manager = createConnectionStateManager();
-		manager.handleOffline();
-		manager.handleOnline();
-		expect(manager.getState()).toEqual({ isOnline: true, isSyncing: true });
-		manager.cleanup();
-	});
-
-	it('clears syncing state after 3 seconds', () => {
-		vi.useFakeTimers();
-		const manager = createConnectionStateManager();
-
-		manager.handleOffline();
-		manager.handleOnline();
-		expect(manager.getState().isSyncing).toBe(true);
-
-		vi.advanceTimersByTime(2999);
-		expect(manager.getState().isSyncing).toBe(true);
-
-		vi.advanceTimersByTime(1);
-		expect(manager.getState().isSyncing).toBe(false);
-
-		manager.cleanup();
+describe('connectivity store', () => {
+	afterEach(() => {
+		connectivity.setBrowserOnline(true);
 		vi.useRealTimers();
 	});
 
-	it('resets syncing state when going offline again during sync', () => {
-		vi.useFakeTimers();
-		const manager = createConnectionStateManager();
-
-		manager.handleOffline();
-		manager.handleOnline();
-		expect(manager.getState().isSyncing).toBe(true);
-
-		// Go offline again before sync completes
-		manager.handleOffline();
-		expect(manager.getState()).toEqual({ isOnline: false, isSyncing: false });
-
-		manager.cleanup();
-		vi.useRealTimers();
+	it('is offline when the browser reports offline', () => {
+		connectivity.setBrowserOnline(false);
+		expect(connectivity.isOffline).toBe(true);
 	});
 
-	it('handles rapid online/offline toggling', () => {
+	it('is offline when a request fails at the network level, even if the browser says online', () => {
+		connectivity.reportNetworkFailure();
+		expect(connectivity.isOffline).toBe(true);
+		connectivity.reportNetworkSuccess();
+		expect(connectivity.isOffline).toBe(false);
+	});
+
+	it('shows "back online" for three seconds after reconnecting', () => {
 		vi.useFakeTimers();
-		const manager = createConnectionStateManager();
-
-		manager.handleOffline();
-		manager.handleOnline();
-		manager.handleOffline();
-		manager.handleOnline();
-
-		expect(manager.getState()).toEqual({ isOnline: true, isSyncing: true });
-
+		connectivity.setBrowserOnline(false);
+		connectivity.setBrowserOnline(true);
+		expect(connectivity.recentlyReconnected).toBe(true);
 		vi.advanceTimersByTime(3000);
-		expect(manager.getState().isSyncing).toBe(false);
+		expect(connectivity.recentlyReconnected).toBe(false);
+	});
 
-		manager.cleanup();
-		vi.useRealTimers();
+	it('going offline again cancels the reconnect notice', () => {
+		connectivity.setBrowserOnline(false);
+		connectivity.setBrowserOnline(true);
+		connectivity.setBrowserOnline(false);
+		expect(connectivity.recentlyReconnected).toBe(false);
+		expect(connectivity.isOffline).toBe(true);
 	});
 });

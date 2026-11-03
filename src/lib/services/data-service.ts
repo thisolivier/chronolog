@@ -24,7 +24,7 @@ export interface DataService {
 	// Contracts
 	getContractsByClient(): Promise<ContractsByClientResult[]>;
 	getContracts(): Promise<ContractOption[]>;
-	createContract(data: CreateContractInput): Promise<{ id: string }>;
+	createContract(data: CreateContractInput): Promise<{ id: string; clientId: string }>;
 
 	// Clients
 	getClients(): Promise<ClientSummary[]>;

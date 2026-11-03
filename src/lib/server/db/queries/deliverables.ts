@@ -43,10 +43,4 @@ export async function updateDeliverable(
 	return results[0] ?? null;
 }
 
-export async function deleteDeliverable(deliverableId: string, contractId: string) {
-	const results = await database
-		.delete(deliverables)
-		.where(and(eq(deliverables.id, deliverableId), eq(deliverables.contractId, contractId)))
-		.returning();
-	return results[0] ?? null;
-}
+// Deliverable deletion lives in `./safe-deletion.ts`: entries keep a "Formerly" line first.
