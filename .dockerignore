@@ -1,8 +1,15 @@
+# Keep the build context small and free of secrets.
 node_modules
-.git
-.env
-.env.local
-src-tauri
 build
 .svelte-kit
+.git
+.claude
+.env
+.env.*
+src-tauri
+docs
+e2e-playwright
+playwright-report
+test-results
+coverage
 *.log

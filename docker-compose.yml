@@ -31,7 +31,8 @@ services:
       POSTGRES_PASSWORD: chronolog
       POSTGRES_DB: chronolog
     ports:
-      - "5432:5432"
+      # Loopback only (docs/ports.md); takes effect the next time the container is recreated.
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

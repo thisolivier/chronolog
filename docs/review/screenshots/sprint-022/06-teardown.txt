@@ -1,0 +1,38 @@
+$ docker compose -p chronolog-prod -f docker-compose.prod.yml --env-file .env.prod down -v --rmi local
+ Container chronolog-prod-app Stopping 
+ Container chronolog-prod-app Stopped 
+ Container chronolog-prod-app Removing 
+ Container chronolog-prod-app Removed 
+ Container chronolog-prod-postgres Stopping 
+ Container chronolog-prod-postgres Stopped 
+ Container chronolog-prod-postgres Removing 
+ Container chronolog-prod-postgres Removed 
+ Image chronolog-prod-app:latest Removing 
+ Volume chronolog-prod-postgres-data Removing 
+ Network chronolog-prod-internal Removing 
+ Image chronolog-prod-app:latest Removed 
+ Volume chronolog-prod-postgres-data Removed 
+ Network chronolog-prod-internal Removed 
+exit=0
+
+$ docker image rm chronolog-prod-app:latest (built image)
+Error response from daemon: No such image: chronolog-prod-app:latest
+
+$ docker ps -a --filter name=chronolog-prod
+(end)
+$ docker volume ls | grep chronolog
+chronolog_bucket_storage_data
+chronolog_postgres_data
+$ docker network ls | grep chronolog-prod
+(end)
+$ lsof -iTCP:3123 -sTCP:LISTEN
+(port 3123 free)
+
+$ docker inspect dev stack (after; compare with 02-build-and-deploy.txt)
+/chronolog-postgres-1 id=cf92b3f35c18 started=2026-11-03T12:59:48.409736629Z ports={"5432/tcp":[{"HostIp":"","HostPort":"5432"}]}
+/chronolog-bucket-storage-1 id=2fec3f4a0561 started=2026-11-03T12:59:48.407509742Z ports={}
+$ docker ps --filter name=chronolog
+chronolog-postgres-1	Up 3 hours (healthy)
+chronolog-bucket-storage-1	Up 3 hours (healthy)
+$ rm .env.prod (throwaway)
+removed

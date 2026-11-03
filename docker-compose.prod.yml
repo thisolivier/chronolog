@@ -1,45 +1,75 @@
+# Chronolog production stack (Mac mini, OrbStack): app + Postgres, fetch mode only.
+#
+#   scripts/deploy-prod.sh                       # preferred: build, up, wait for health
+#   docker compose -p chronolog-prod -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# Values come from .env.prod via --env-file (interpolation), so each container receives only the
+# variables listed under its `environment:`. The project name, container names and volume name all
+# carry "prod" so this file can never adopt the dev stack (project `chronolog`, volume
+# `chronolog_postgres_data`). See docs/DEPLOYMENT.md.
+name: chronolog-prod
+
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
+    image: chronolog-prod-app:latest
+    container_name: chronolog-prod-app
+    init: true
     restart: unless-stopped
     ports:
-      - "${APP_PORT:-3000}:3000"
+      # Loopback only: cloudflared on this host forwards chronolog.throb.online here.
+      - "127.0.0.1:${APP_PORT:-3123}:3000"
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-chronolog}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-chronolog}
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL}
-      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-false}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-chronolog}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}@postgres:5432/${POSTGRES_DB:-chronolog}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set ENCRYPTION_KEY in .env.prod}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env.prod}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:?set BETTER_AUTH_URL in .env.prod}
+      # adapter-node CSRF origin for form actions; defaults to the public URL.
+      ORIGIN: ${ORIGIN:-${BETTER_AUTH_URL}}
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-}
-      ORIGIN: ${BETTER_AUTH_URL}
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-false}
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      # /login is public and touches the session lookup, so a 200 means app + DB are serving.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+      start_interval: 2s
     networks:
-      - chronolog
+      - internal
 
   postgres:
-    image: postgres:17
+    image: postgres:17.11-alpine3.24
+    container_name: chronolog-prod-postgres
     restart: unless-stopped
+    # No `ports:` on purpose: only the app (and `docker exec` for backups) can reach it.
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-chronolog}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}
       POSTGRES_DB: ${POSTGRES_DB:-chronolog}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chronolog} -d ${POSTGRES_DB:-chronolog}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
+      start_interval: 1s
     networks:
-      - chronolog
+      - internal
 
 networks:
-  chronolog:
-    driver: bridge
+  internal:
+    name: chronolog-prod-internal
 
 volumes:
   postgres_data:
+    # Explicit name: independent of the -p/project name, never equal to the dev volume.
+    name: chronolog-prod-postgres-data

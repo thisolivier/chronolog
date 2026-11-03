@@ -1,28 +1,48 @@
+# Chronolog production image (adapter-node). Used by docker-compose.prod.yml.
+# Build stage installs everything and runs `vite build`; the final stage carries only
+# build/, the migrations, the migration runner and production dependencies, and runs as `node`.
+
 # ---- Build stage ----
-FROM node:20-alpine AS build
+FROM node:22.23.4-alpine3.24 AS build
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run prepare 2>/dev/null || true
 RUN npm run build
 
-# ---- Production stage ----
-FROM node:20-alpine
+# ---- Production dependencies only ----
+FROM node:22.23.4-alpine3.24 AS production-dependencies
 
 WORKDIR /app
 
-# Copy built output, migrations, and dependencies
-COPY --from=build /app/build ./build
-COPY --from=build /app/package*.json ./
-COPY --from=build /app/drizzle ./drizzle
-COPY --from=build /app/drizzle.config.ts ./
-COPY --from=build /app/node_modules ./node_modules
+COPY package.json package-lock.json ./
+# --ignore-scripts: the `prepare` script calls svelte-kit, a dev dependency.
+# --omit=optional: better-auth lists @sveltejs/kit, svelte, vitest, drizzle-kit... as optional peers,
+# and npm keeps them in the runtime tree otherwise. They are bundled into build/ or unused at
+# runtime. @sveltejs/adapter-node is a devDependency for the same reason: build time only.
+RUN npm ci --omit=dev --omit=optional --ignore-scripts && npm cache clean --force
+
+# ---- Runtime ----
+FROM node:22.23.4-alpine3.24
+
+ENV NODE_ENV=production \
+    PORT=3000 \
+    HOST=0.0.0.0
+
+WORKDIR /app
+
+COPY --from=production-dependencies --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/build ./build
+COPY --chown=node:node package.json ./
+COPY --chown=node:node drizzle ./drizzle
+COPY --chown=node:node scripts/migrate.mjs ./scripts/migrate.mjs
+
+USER node
 
 EXPOSE 3000
 
-# Run migrations then start production server
-CMD ["sh", "-c", "npx drizzle-kit migrate && node build"]
+# Apply pending migrations (idempotent: drizzle records applied ones), then hand PID 1 to the server.
+CMD ["sh", "-c", "node scripts/migrate.mjs && exec node build"]

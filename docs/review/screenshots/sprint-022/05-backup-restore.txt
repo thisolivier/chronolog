@@ -1,0 +1,113 @@
+# Paths under the session scratchpad are shown as <scratchpad>
+$ (seed 16 fake old daily dumps to exercise 14-day retention)
+16
+
+$ CHRONOLOG_BACKUP_ROOT=<scr>/root CHRONOLOG_BACKUP_MIRROR_VOLUME=<scr>/fake-volume CHRONOLOG_FORCE_WEEKLY=true scripts/backup-postgres.sh
+2026-11-03T15:53:25Z [INFO] === backup run start ts=2026-11-03T155325Z host=MistyMacMini container=chronolog-prod-postgres db=chronolog ===
+2026-11-03T15:53:25Z [INFO] dumped chronolog-2026-11-03T155325Z.dump ( 36K, 17 tables with data)
+2026-11-03T15:53:25Z [INFO] promoted chronolog-2026-11-03T155325Z.dump to weekly
+2026-11-03T15:53:25Z [INFO] pruned chronolog-2026-10-03T033000Z.dump (keep 14 in <scratchpad>/root/daily)
+2026-11-03T15:53:25Z [INFO] pruned chronolog-2026-10-02T033000Z.dump (keep 14 in <scratchpad>/root/daily)
+2026-11-03T15:53:25Z [INFO] pruned chronolog-2026-10-01T033000Z.dump (keep 14 in <scratchpad>/root/daily)
+2026-11-03T15:53:25Z [INFO] mirrored to <scratchpad>/fake-volume/Backups/chronolog
+2026-11-03T15:53:25Z [INFO] === backup run end status=0 ===
+exit=0
+
+$ ls root/daily root/weekly root/logs; mirror
+daily:  
+total  
+-rw-r--r--@ 0 chronolog-2026-10-04T033000Z.dump
+-rw-r--r--@ 0 chronolog-2026-10-05T033000Z.dump
+-rw-r--r--@ 0 chronolog-2026-10-06T033000Z.dump
+-rw-r--r--@ 0 chronolog-2026-10-07T033000Z.dump
+-rw-r--r--@ 0 chronolog-2026-10-08T033000Z.dump
+-rw-r--r--@ 0 chronolog-2026-10-09T033000Z.dump
+-rw-r--r--@ 0 chronolog-2026-10-10T033000Z.dump
+-rw-r--r--@ 0 chronolog-2026-10-11T033000Z.dump
+-rw-r--r--@ 0 chronolog-2026-10-12T033000Z.dump
+-rw-r--r--@ 0 chronolog-2026-10-13T033000Z.dump
+-rw-r--r--@ 0 chronolog-2026-10-14T033000Z.dump
+-rw-r--r--@ 0 chronolog-2026-10-15T033000Z.dump
+-rw-r--r--@ 0 chronolog-2026-10-16T033000Z.dump
+-rw-------@ 34232 chronolog-2026-11-03T155325Z.dump
+  
+logs:  
+total  
+-rw-------@ 1187 backup-2026-11.log
+  
+weekly:  
+total  
+-rw-------@ 34232 chronolog-2026-11-03T155325Z.dump
+mirror daily: 14 files, weekly: 1
+
+$ second run with an unmounted /Volumes mirror (must skip, exit 0)
+2026-11-03T15:53:25Z [INFO] === backup run start ts=2026-11-03T155325Z host=MistyMacMini container=chronolog-prod-postgres db=chronolog ===
+2026-11-03T15:53:25Z [INFO] dumped chronolog-2026-11-03T155325Z.dump ( 36K, 17 tables with data)
+2026-11-03T15:53:25Z [WARN] mirror volume /Volumes/NotMountedChronologTest not mounted; skipped mirror
+2026-11-03T15:53:25Z [INFO] === backup run end status=0 ===
+exit=0
+
+$ run against a stopped/missing container (must fail, exit 2)
+2026-11-03T15:53:25Z [INFO] === backup run start ts=2026-11-03T155325Z host=MistyMacMini container=chronolog-prod-nonexistent db=chronolog ===
+2026-11-03T15:53:25Z [ERROR] container chronolog-prod-nonexistent is not running; nothing dumped
+2026-11-03T15:53:25Z [INFO] === backup run end status=2 ===
+exit=2
+
+$ source row counts (live chronolog db)
+drizzle.__drizzle_migrations 7
+public.account 1
+public.attachments 0
+public.clients 1
+public.contracts 1
+public.deliverables 0
+public.note_links 0
+public.note_time_entries 0
+public.notes 3
+public.session 3
+public.time_entries 0
+public.two_factor 0
+public.user 1
+public.users 1
+public.verification 0
+public.weekly_statuses 0
+public.work_types 0
+
+$ scripts/restore-postgres.sh <scr>/root/daily/chronolog-2026-11-03T155325Z.dump chronolog_restore_check
+==> Creating database chronolog_restore_check
+==> Restoring chronolog-2026-11-03T155325Z.dump into chronolog_restore_check
+==> Row counts in chronolog_restore_check
+drizzle.__drizzle_migrations 7
+public.account 1
+public.attachments 0
+public.clients 1
+public.contracts 1
+public.deliverables 0
+public.note_links 0
+public.note_time_entries 0
+public.notes 3
+public.session 3
+public.time_entries 0
+public.two_factor 0
+public.user 1
+public.users 1
+public.verification 0
+public.weekly_statuses 0
+public.work_types 0
+Restore complete.
+exit=0
+
+$ diff source counts vs restored counts
+IDENTICAL (17 tables)
+
+$ restore again without --replace (must refuse)
+restore-postgres: database 'chronolog_restore_check' already exists (pass --replace to drop and recreate it)
+exit=1
+$ restore --replace into live db while app runs (must refuse)
+restore-postgres: stop chronolog-prod-app before replacing the live database 'chronolog'
+exit=1
+$ drop scratch database
+DROP DATABASE
+dropped
+
+$ plutil -lint scripts/launchd/com.olivier.chronolog-db-backup.plist
+scripts/launchd/com.olivier.chronolog-db-backup.plist: OK

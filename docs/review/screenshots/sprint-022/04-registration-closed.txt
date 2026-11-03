@@ -1,0 +1,36 @@
+$ sed ALLOW_REGISTRATION=false in .env.prod && scripts/deploy-prod.sh
+ Container chronolog-prod-app Recreate 
+ Container chronolog-prod-app Recreated 
+ Container chronolog-prod-app Started 
+==> Waiting for chronolog-prod-app to report healthy (timeout 180s)
+chronolog-prod-app        chronolog-prod-app:latest   "docker-entrypoint.s…"   app        13 seconds ago       Up 2 seconds (healthy)    127.0.0.1:3123->3000/tcp
+chronolog-prod-postgres   postgres:17.11-alpine3.24   "docker-entrypoint.s…"   postgres   About a minute ago   Up 59 seconds (healthy)   5432/tcp
+Chronolog is up.
+  Registration: ALLOW_REGISTRATION=false
+(deploy-prod.sh exit status not captured in this zsh pipeline; health shown below and above)
+
+$ docker exec chronolog-prod-app printenv ALLOW_REGISTRATION
+false
+$ docker logs chronolog-prod-app (restart on existing volume: migrations idempotent)
+[migrate] applying migrations from /app/drizzle
+[migrate] database is up to date
+Listening on http://0.0.0.0:3000
+$ psql migrations count after restart
+7
+
+--- ALLOW_REGISTRATION=false ---
+$ curl POST /api/auth/sign-up/email intruder@example.test
+{"code":"EMAIL_AND_PASSWORD_SIGN_UP_IS_NOT_ENABLED","message":"Email and password sign up is not enabled"}  HTTP 400
+$ psql: user rows
+owner@example.test
+$ curl GET /register | grep -i closed
+Registration is closed on this instance.
+$ curl POST /api/auth/sign-in/email (existing account)
+HTTP 200
+{"email":"owner@example.test","token_present":true}
+$ curl GET /api/clients (session cookie)
+{"clients":[{"id":"…","name":"Internal","shortCode":"INTL"}]}  HTTP 200
+$ docker inspect --format {{.State.Health.Status}} chronolog-prod-app
+healthy
+$ curl GET /api/clients (no session)
+{"error":"Unauthorized"}  HTTP 401

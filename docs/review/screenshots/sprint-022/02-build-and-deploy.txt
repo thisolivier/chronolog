@@ -1,0 +1,665 @@
+# Sprint 022 verification — 2026-11-03T15:51:48Z — throwaway .env.prod (values never printed)
+
+$ docker inspect dev stack (before; must be identical after teardown)
+/chronolog-postgres-1 id=cf92b3f35c18 started=2026-11-03T12:59:48.409736629Z ports={"5432/tcp":[{"HostIp":"","HostPort":"5432"}]}
+/chronolog-bucket-storage-1 id=2fec3f4a0561 started=2026-11-03T12:59:48.407509742Z ports={}
+
+$ docker volume ls | grep chronolog (before)
+chronolog_bucket_storage_data
+chronolog_postgres_data
+
+$ lsof -iTCP:3123 -sTCP:LISTEN (before)
+(port 3123 free)
+
+$ scripts/deploy-prod.sh   # fresh volume, ALLOW_REGISTRATION=true
+==> Validating docker-compose.prod.yml
+==> Building image and starting chronolog-prod
+ Image chronolog-prod-app:latest Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 585B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 1.66kB done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:22.23.4-alpine3.24
+#3 DONE 0.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 226B done
+#4 DONE 0.0s
+
+#5 [build 1/6] FROM docker.io/library/node:22.23.4-alpine3.24
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 25.66kB 0.0s done
+#6 DONE 0.0s
+
+#7 [build 3/6] COPY package.json package-lock.json ./
+#7 CACHED
+
+#8 [build 2/6] WORKDIR /app
+#8 CACHED
+
+#9 [build 4/6] RUN npm ci
+#9 CACHED
+
+#10 [build 5/6] COPY . .
+#10 DONE 0.1s
+
+#11 [build 6/6] RUN npm run build
+#11 0.171 
+#11 0.171 > chronolog@0.0.1 build
+#11 0.171 > vite build
+#11 0.171 
+#11 0.274 ▲ [WARNING] Cannot find base config file "./.svelte-kit/tsconfig.json" [tsconfig.json]
+#11 0.274 
+#11 0.274     tsconfig.json:2:12:
+#11 0.274       2 │   "extends": "./.svelte-kit/tsconfig.json",
+#11 0.274         ╵              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#11 0.274 
+#11 0.772 vite v7.3.1 building ssr environment for production...
+#11 0.785 transforming...
+#11 0.826 3:51:49 PM [vite-plugin-svelte] src/routes/+layout.svelte:15:18 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+#11 0.826 https://svelte.dev/e/state_referenced_locally
+#11 0.826 13:   // This is called once during component init and won't change
+#11 0.826 14:   // (user authentication state changes require page reload via auth redirects)
+#11 0.826 15:   const navState = data.user ? createNavigationState() : null;
+#11 0.826                            ^
+#11 0.826 16:   if (navState) {
+#11 0.826 17:     setNavigationContext(navState);
+#11 0.826 3:51:49 PM [vite-plugin-svelte] src/routes/+layout.svelte:22:20 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+#11 0.826 https://svelte.dev/e/state_referenced_locally
+#11 0.826 20:   // Initialize shared timer state for cross-component communication
+#11 0.826 21:   // (TimerWidget publishes; TimerIndicator in AppShell reads)
+#11 0.826 22:   const timerState = data.user ? createTimerState() : null;
+#11 0.826                              ^
+#11 0.826 23:   if (timerState) {
+#11 0.826 24:     setTimerStateContext(timerState);
+#11 0.826 3:51:49 PM [vite-plugin-svelte] src/routes/+layout.svelte:30:27 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+#11 0.826 https://svelte.dev/e/state_referenced_locally
+#11 0.826 28:   // A DelegatingDataService wraps the active implementation so that
+#11 0.826 29:   // existing component references remain valid if we swap backends.
+#11 0.826 30:   const delegatingService = data.user ? new DelegatingDataService(new FetchDataService()) : null;
+#11 0.826                                     ^
+#11 0.826 31:   if (delegatingService) {
+#11 0.826 32:     setDataServiceContext(delegatingService);
+#11 0.999 3:51:49 PM [vite-plugin-svelte] src/lib/components/admin/ContractRow.svelte:15:23 This reference only captures the initial value of `contract`. Did you mean to reference it inside a derived instead?
+#11 0.999 https://svelte.dev/e/state_referenced_locally
+#11 0.999 13:   let isEditing = $state(false);
+#11 0.999 14:   let isDeleting = $state(false);
+#11 0.999 15:   let editName = $state(contract.name);
+#11 0.999                                     ^
+#11 0.999 16:   let editDescription = $state(contract.description || '');
+#11 0.999 17:   let editIsActive = $state(contract.isActive);
+#11 0.999 3:51:49 PM [vite-plugin-svelte] src/lib/components/admin/ContractRow.svelte:16:30 This reference only captures the initial value of `contract`. Did you mean to reference it inside a derived instead?
+#11 0.999 https://svelte.dev/e/state_referenced_locally
+#11 0.999 14:   let isDeleting = $state(false);
+#11 0.999 15:   let editName = $state(contract.name);
+#11 0.999 16:   let editDescription = $state(contract.description || '');
+#11 0.999                                            ^
+#11 0.999 17:   let editIsActive = $state(contract.isActive);
+#11 0.999 18: </script>
+#11 0.999 3:51:49 PM [vite-plugin-svelte] src/lib/components/admin/ContractRow.svelte:17:27 This reference only captures the initial value of `contract`. Did you mean to reference it inside a derived instead?
+#11 0.999 https://svelte.dev/e/state_referenced_locally
+#11 0.999 15:   let editName = $state(contract.name);
+#11 0.999 16:   let editDescription = $state(contract.description || '');
+#11 0.999 17:   let editIsActive = $state(contract.isActive);
+#11 0.999                                         ^
+#11 0.999 18: </script>
+#11 0.999 19: 
+#11 1.003 3:51:49 PM [vite-plugin-svelte] src/lib/components/admin/ClientRow.svelte:7:23 This reference only captures the initial value of `client`. Did you mean to reference it inside a derived instead?
+#11 1.003 https://svelte.dev/e/state_referenced_locally
+#11 1.003  5: 
+#11 1.003  6:   let isEditing = $state(false);
+#11 1.003  7:   let editName = $state(client.name);
+#11 1.003                                   ^
+#11 1.003  8:   let editShortCode = $state(client.shortCode);
+#11 1.003  9:   let editEmoji = $state(client.emoji ?? '');
+#11 1.003 3:51:49 PM [vite-plugin-svelte] src/lib/components/admin/ClientRow.svelte:8:28 This reference only captures the initial value of `client`. Did you mean to reference it inside a derived instead?
+#11 1.003 https://svelte.dev/e/state_referenced_locally
+#11 1.003  6:   let isEditing = $state(false);
+#11 1.003  7:   let editName = $state(client.name);
+#11 1.003  8:   let editShortCode = $state(client.shortCode);
+#11 1.003                                        ^
+#11 1.003  9:   let editEmoji = $state(client.emoji ?? '');
+#11 1.003 10:   let isDeleting = $state(false);
+#11 1.003 3:51:49 PM [vite-plugin-svelte] src/lib/components/admin/ClientRow.svelte:9:24 This reference only captures the initial value of `client`. Did you mean to reference it inside a derived instead?
+#11 1.003 https://svelte.dev/e/state_referenced_locally
+#11 1.003  7:   let editName = $state(client.name);
+#11 1.003  8:   let editShortCode = $state(client.shortCode);
+#11 1.003  9:   let editEmoji = $state(client.emoji ?? '');
+#11 1.003                                    ^
+#11 1.003 10:   let isDeleting = $state(false);
+#11 1.003 11: </script>
+#11 1.009 3:51:49 PM [vite-plugin-svelte] src/lib/components/admin/DeliverableCard.svelte:17:23 This reference only captures the initial value of `deliverable`. Did you mean to reference it inside a derived instead?
+#11 1.009 https://svelte.dev/e/state_referenced_locally
+#11 1.009 15:   let isDeleting = $state(false);
+#11 1.009 16:   let showAddWorkType = $state(false);
+#11 1.009 17:   let editName = $state(deliverable.name);
+#11 1.009                                        ^
+#11 1.009 18:   let editSortOrder = $state(deliverable.sortOrder);
+#11 1.009 19: </script>
+#11 1.009 3:51:49 PM [vite-plugin-svelte] src/lib/components/admin/DeliverableCard.svelte:18:28 This reference only captures the initial value of `deliverable`. Did you mean to reference it inside a derived instead?
+#11 1.009 https://svelte.dev/e/state_referenced_locally
+#11 1.009 16:   let showAddWorkType = $state(false);
+#11 1.009 17:   let editName = $state(deliverable.name);
+#11 1.009 18:   let editSortOrder = $state(deliverable.sortOrder);
+#11 1.009                                             ^
+#11 1.009 19: </script>
+#11 1.009 20: 
+#11 1.137 3:51:49 PM [vite-plugin-svelte] src/lib/components/weekly/NewEntryRow.svelte:135:3 A form label must be associated with a control
+#11 1.137 https://svelte.dev/e/a11y_label_has_associated_control
+#11 1.137 133:     <!-- Contract select -->
+#11 1.137 134:     <div class="min-w-0 flex-1">
+#11 1.137 135:       <label class="mb-1 block text-xs font-medium text-stone-500">Contract</label>
+#11 1.137                                                                                         ^
+#11 1.137 136:       <ContractSelect bind:selectedContractId compact={true} />
+#11 1.137 137:     </div>
+#11 1.137 3:51:49 PM [vite-plugin-svelte] src/lib/components/weekly/NewEntryRow.svelte:141:3 A form label must be associated with a control
+#11 1.137 https://svelte.dev/e/a11y_label_has_associated_control
+#11 1.137 139:     <!-- Time input -->
+#11 1.137 140:     <div class="w-28">
+#11 1.137 141:       <label class="mb-1 block text-xs font-medium text-stone-500">Time</label>
+#11 1.137                                                                                     ^
+#11 1.137 142:       <input
+#11 1.137 143:         type="text"
+#11 1.145 3:51:49 PM [vite-plugin-svelte] src/lib/components/weekly/TimeEntryCard.svelte:275:4 Avoid using autofocus
+#11 1.145 https://svelte.dev/e/a11y_autofocus
+#11 1.145 273:         class="w-24 rounded border px-1.5 py-0.5 text-right text-sm font-medium tabular-nums focus:ring-1 focus:outline-none {timeInputError ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-stone-300 focus:border-blue-500 focus:ring-blue-500'}"
+#11 1.145 274:         placeholder="2h30m"
+#11 1.145 275:         autofocus
+#11 1.145                       ^
+#11 1.145 276:       />
+#11 1.145 277:     {:else}
+#11 1.171 3:51:49 PM [vite-plugin-svelte] src/lib/components/admin/WorkTypeRow.svelte:18:23 This reference only captures the initial value of `workType`. Did you mean to reference it inside a derived instead?
+#11 1.171 https://svelte.dev/e/state_referenced_locally
+#11 1.171 16:   let isEditing = $state(false);
+#11 1.171 17:   let isDeleting = $state(false);
+#11 1.171 18:   let editName = $state(workType.name);
+#11 1.171                                     ^
+#11 1.171 19:   let editSortOrder = $state(workType.sortOrder);
+#11 1.171 20: </script>
+#11 1.171 3:51:49 PM [vite-plugin-svelte] src/lib/components/admin/WorkTypeRow.svelte:19:28 This reference only captures the initial value of `workType`. Did you mean to reference it inside a derived instead?
+#11 1.171 https://svelte.dev/e/state_referenced_locally
+#11 1.171 17:   let isDeleting = $state(false);
+#11 1.171 18:   let editName = $state(workType.name);
+#11 1.171 19:   let editSortOrder = $state(workType.sortOrder);
+#11 1.171                                          ^
+#11 1.171 20: </script>
+#11 1.171 21: 
+#11 1.271 3:51:50 PM [vite-plugin-svelte] src/lib/components/notes/NoteEditor.svelte:55:5 `editorElement` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates
+#11 1.271 https://svelte.dev/e/non_reactive_update
+#11 1.271 53:   /* eslint-enable @typescript-eslint/no-unused-vars */
+#11 1.271 54: 
+#11 1.271 55:   let editorElement: HTMLDivElement;
+#11 1.271                                        ^
+#11 1.271 56:   let fileInput: HTMLInputElement;
+#11 1.271 57:   let editor: Editor | null = $state(null);
+#11 1.308 3:51:50 PM [vite-plugin-svelte] src/lib/components/weekly/WikiLinkInput.svelte:161:8 Avoid using autofocus
+#11 1.308 https://svelte.dev/e/a11y_autofocus
+#11 1.308 159:         onblur={handleBlur}
+#11 1.308 160:         class="block w-full border-0 border-b border-stone-200 bg-transparent px-0 py-0.5 text-sm text-stone-600 focus:border-blue-400 focus:ring-0 focus:outline-none"
+#11 1.308 161:         {autofocus}
+#11 1.308                         ^
+#11 1.308 162:     />
+#11 1.308 163: 
+#11 1.320 3:51:50 PM [vite-plugin-svelte] src/lib/components/timer/TimerCompletionForm.svelte:27:33 This reference only captures the initial value of `initialContractId`. Did you mean to reference it inside a closure instead?
+#11 1.320 https://svelte.dev/e/state_referenced_locally
+#11 1.320 25:   } = $props();
+#11 1.320 26: 
+#11 1.320 27:   let selectedContractId = $state(initialContractId);
+#11 1.320                                                        ^
+#11 1.320 28:   let selectedDeliverableId = $state('');
+#11 1.320 29:   let selectedWorkTypeId = $state('');
+#11 1.320 3:51:50 PM [vite-plugin-svelte] src/lib/components/timer/TimerCompletionForm.svelte:30:26 This reference only captures the initial value of `initialDescription`. Did you mean to reference it inside a closure instead?
+#11 1.320 https://svelte.dev/e/state_referenced_locally
+#11 1.320 28:   let selectedDeliverableId = $state('');
+#11 1.320 29:   let selectedWorkTypeId = $state('');
+#11 1.320 30:   let description = $state(initialDescription);
+#11 1.320                                                  ^
+#11 1.320 31:   let isSaving = $state(false);
+#11 1.320 32: 
+#11 1.326 3:51:50 PM [vite-plugin-svelte] src/lib/components/timer/AddTimeEntryModal.svelte:82:0 `<div>` with a click handler must have an ARIA role
+#11 1.326 https://svelte.dev/e/a11y_no_static_element_interactions
+#11 1.326 80: 
+#11 1.326 81: <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+#11 1.326 82: <div
+#11 1.326         ^
+#11 1.326 83:   class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+#11 1.326 84:   onclick={handleBackdropClick}
+#11 1.873 "optionsMiddleware" is imported from external module "@better-auth/core/api" but never used in "node_modules/better-auth/dist/api/index.mjs" and "node_modules/better-auth/dist/plugins/index.mjs".
+#11 1.873 "getTelemetryAuthConfig" is imported from external module "@better-auth/telemetry" but never used in "node_modules/better-auth/dist/index.mjs".
+#11 1.873 ✓ 537 modules transformed.
+#11 1.950 rendering chunks...
+#11 2.503 vite v7.3.1 building client environment for production...
+#11 2.505 transforming...
+#11 2.522 3:51:51 PM [vite-plugin-svelte] src/routes/+layout.svelte:15:18 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+#11 2.522 https://svelte.dev/e/state_referenced_locally
+#11 2.522 13:   // This is called once during component init and won't change
+#11 2.522 14:   // (user authentication state changes require page reload via auth redirects)
+#11 2.522 15:   const navState = data.user ? createNavigationState() : null;
+#11 2.522                            ^
+#11 2.522 16:   if (navState) {
+#11 2.522 17:     setNavigationContext(navState);
+#11 2.522 3:51:51 PM [vite-plugin-svelte] src/routes/+layout.svelte:22:20 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+#11 2.522 https://svelte.dev/e/state_referenced_locally
+#11 2.522 20:   // Initialize shared timer state for cross-component communication
+#11 2.522 21:   // (TimerWidget publishes; TimerIndicator in AppShell reads)
+#11 2.522 22:   const timerState = data.user ? createTimerState() : null;
+#11 2.522                              ^
+#11 2.522 23:   if (timerState) {
+#11 2.522 24:     setTimerStateContext(timerState);
+#11 2.522 3:51:51 PM [vite-plugin-svelte] src/routes/+layout.svelte:30:27 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+#11 2.522 https://svelte.dev/e/state_referenced_locally
+#11 2.522 28:   // A DelegatingDataService wraps the active implementation so that
+#11 2.522 29:   // existing component references remain valid if we swap backends.
+#11 2.522 30:   const delegatingService = data.user ? new DelegatingDataService(new FetchDataService()) : null;
+#11 2.522                                     ^
+#11 2.522 31:   if (delegatingService) {
+#11 2.522 32:     setDataServiceContext(delegatingService);
+#11 2.638 3:51:51 PM [vite-plugin-svelte] src/lib/components/admin/ClientRow.svelte:7:23 This reference only captures the initial value of `client`. Did you mean to reference it inside a derived instead?
+#11 2.638 https://svelte.dev/e/state_referenced_locally
+#11 2.638  5: 
+#11 2.638  6:   let isEditing = $state(false);
+#11 2.638  7:   let editName = $state(client.name);
+#11 2.638                                   ^
+#11 2.638  8:   let editShortCode = $state(client.shortCode);
+#11 2.638  9:   let editEmoji = $state(client.emoji ?? '');
+#11 2.638 3:51:51 PM [vite-plugin-svelte] src/lib/components/admin/ClientRow.svelte:8:28 This reference only captures the initial value of `client`. Did you mean to reference it inside a derived instead?
+#11 2.638 https://svelte.dev/e/state_referenced_locally
+#11 2.638  6:   let isEditing = $state(false);
+#11 2.638  7:   let editName = $state(client.name);
+#11 2.638  8:   let editShortCode = $state(client.shortCode);
+#11 2.638                                        ^
+#11 2.638  9:   let editEmoji = $state(client.emoji ?? '');
+#11 2.638 10:   let isDeleting = $state(false);
+#11 2.638 3:51:51 PM [vite-plugin-svelte] src/lib/components/admin/ClientRow.svelte:9:24 This reference only captures the initial value of `client`. Did you mean to reference it inside a derived instead?
+#11 2.638 https://svelte.dev/e/state_referenced_locally
+#11 2.638  7:   let editName = $state(client.name);
+#11 2.638  8:   let editShortCode = $state(client.shortCode);
+#11 2.638  9:   let editEmoji = $state(client.emoji ?? '');
+#11 2.638                                    ^
+#11 2.638 10:   let isDeleting = $state(false);
+#11 2.638 11: </script>
+#11 2.643 3:51:51 PM [vite-plugin-svelte] src/lib/components/admin/ContractRow.svelte:15:23 This reference only captures the initial value of `contract`. Did you mean to reference it inside a derived instead?
+#11 2.643 https://svelte.dev/e/state_referenced_locally
+#11 2.643 13:   let isEditing = $state(false);
+#11 2.643 14:   let isDeleting = $state(false);
+#11 2.643 15:   let editName = $state(contract.name);
+#11 2.643                                     ^
+#11 2.643 16:   let editDescription = $state(contract.description || '');
+#11 2.643 17:   let editIsActive = $state(contract.isActive);
+#11 2.643 3:51:51 PM [vite-plugin-svelte] src/lib/components/admin/ContractRow.svelte:16:30 This reference only captures the initial value of `contract`. Did you mean to reference it inside a derived instead?
+#11 2.643 https://svelte.dev/e/state_referenced_locally
+#11 2.643 14:   let isDeleting = $state(false);
+#11 2.643 15:   let editName = $state(contract.name);
+#11 2.643 16:   let editDescription = $state(contract.description || '');
+#11 2.643                                            ^
+#11 2.643 17:   let editIsActive = $state(contract.isActive);
+#11 2.643 18: </script>
+#11 2.643 3:51:51 PM [vite-plugin-svelte] src/lib/components/admin/ContractRow.svelte:17:27 This reference only captures the initial value of `contract`. Did you mean to reference it inside a derived instead?
+#11 2.643 https://svelte.dev/e/state_referenced_locally
+#11 2.643 15:   let editName = $state(contract.name);
+#11 2.643 16:   let editDescription = $state(contract.description || '');
+#11 2.643 17:   let editIsActive = $state(contract.isActive);
+#11 2.643                                         ^
+#11 2.643 18: </script>
+#11 2.643 19: 
+#11 2.647 3:51:51 PM [vite-plugin-svelte] src/lib/components/admin/DeliverableCard.svelte:17:23 This reference only captures the initial value of `deliverable`. Did you mean to reference it inside a derived instead?
+#11 2.647 https://svelte.dev/e/state_referenced_locally
+#11 2.647 15:   let isDeleting = $state(false);
+#11 2.647 16:   let showAddWorkType = $state(false);
+#11 2.647 17:   let editName = $state(deliverable.name);
+#11 2.647                                        ^
+#11 2.647 18:   let editSortOrder = $state(deliverable.sortOrder);
+#11 2.647 19: </script>
+#11 2.647 3:51:51 PM [vite-plugin-svelte] src/lib/components/admin/DeliverableCard.svelte:18:28 This reference only captures the initial value of `deliverable`. Did you mean to reference it inside a derived instead?
+#11 2.647 https://svelte.dev/e/state_referenced_locally
+#11 2.647 16:   let showAddWorkType = $state(false);
+#11 2.647 17:   let editName = $state(deliverable.name);
+#11 2.647 18:   let editSortOrder = $state(deliverable.sortOrder);
+#11 2.647                                             ^
+#11 2.647 19: </script>
+#11 2.647 20: 
+#11 2.783 3:51:51 PM [vite-plugin-svelte] src/lib/components/weekly/NewEntryRow.svelte:135:3 A form label must be associated with a control
+#11 2.783 https://svelte.dev/e/a11y_label_has_associated_control
+#11 2.783 133:     <!-- Contract select -->
+#11 2.783 134:     <div class="min-w-0 flex-1">
+#11 2.783 135:       <label class="mb-1 block text-xs font-medium text-stone-500">Contract</label>
+#11 2.783                                                                                         ^
+#11 2.783 136:       <ContractSelect bind:selectedContractId compact={true} />
+#11 2.783 137:     </div>
+#11 2.783 3:51:51 PM [vite-plugin-svelte] src/lib/components/weekly/NewEntryRow.svelte:141:3 A form label must be associated with a control
+#11 2.783 https://svelte.dev/e/a11y_label_has_associated_control
+#11 2.783 139:     <!-- Time input -->
+#11 2.783 140:     <div class="w-28">
+#11 2.783 141:       <label class="mb-1 block text-xs font-medium text-stone-500">Time</label>
+#11 2.783                                                                                     ^
+#11 2.783 142:       <input
+#11 2.783 143:         type="text"
+#11 2.794 3:51:51 PM [vite-plugin-svelte] src/lib/components/notes/NoteEditor.svelte:55:5 `editorElement` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates
+#11 2.794 https://svelte.dev/e/non_reactive_update
+#11 2.794 53:   /* eslint-enable @typescript-eslint/no-unused-vars */
+#11 2.794 54: 
+#11 2.794 55:   let editorElement: HTMLDivElement;
+#11 2.794                                        ^
+#11 2.794 56:   let fileInput: HTMLInputElement;
+#11 2.794 57:   let editor: Editor | null = $state(null);
+#11 2.805 3:51:51 PM [vite-plugin-svelte] src/lib/components/admin/WorkTypeRow.svelte:18:23 This reference only captures the initial value of `workType`. Did you mean to reference it inside a derived instead?
+#11 2.805 https://svelte.dev/e/state_referenced_locally
+#11 2.805 16:   let isEditing = $state(false);
+#11 2.805 17:   let isDeleting = $state(false);
+#11 2.805 18:   let editName = $state(workType.name);
+#11 2.805                                     ^
+#11 2.805 19:   let editSortOrder = $state(workType.sortOrder);
+#11 2.805 20: </script>
+#11 2.805 3:51:51 PM [vite-plugin-svelte] src/lib/components/admin/WorkTypeRow.svelte:19:28 This reference only captures the initial value of `workType`. Did you mean to reference it inside a derived instead?
+#11 2.805 https://svelte.dev/e/state_referenced_locally
+#11 2.805 17:   let isDeleting = $state(false);
+#11 2.805 18:   let editName = $state(workType.name);
+#11 2.805 19:   let editSortOrder = $state(workType.sortOrder);
+#11 2.805                                          ^
+#11 2.805 20: </script>
+#11 2.805 21: 
+#11 2.819 3:51:51 PM [vite-plugin-svelte] src/lib/components/weekly/TimeEntryCard.svelte:275:4 Avoid using autofocus
+#11 2.819 https://svelte.dev/e/a11y_autofocus
+#11 2.819 273:         class="w-24 rounded border px-1.5 py-0.5 text-right text-sm font-medium tabular-nums focus:ring-1 focus:outline-none {timeInputError ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-stone-300 focus:border-blue-500 focus:ring-blue-500'}"
+#11 2.819 274:         placeholder="2h30m"
+#11 2.819 275:         autofocus
+#11 2.819                       ^
+#11 2.819 276:       />
+#11 2.819 277:     {:else}
+#11 2.934 3:51:51 PM [vite-plugin-svelte] src/lib/components/timer/TimerCompletionForm.svelte:27:33 This reference only captures the initial value of `initialContractId`. Did you mean to reference it inside a closure instead?
+#11 2.934 https://svelte.dev/e/state_referenced_locally
+#11 2.934 25:   } = $props();
+#11 2.934 26: 
+#11 2.934 27:   let selectedContractId = $state(initialContractId);
+#11 2.934                                                        ^
+#11 2.934 28:   let selectedDeliverableId = $state('');
+#11 2.934 29:   let selectedWorkTypeId = $state('');
+#11 2.934 3:51:51 PM [vite-plugin-svelte] src/lib/components/timer/TimerCompletionForm.svelte:30:26 This reference only captures the initial value of `initialDescription`. Did you mean to reference it inside a closure instead?
+#11 2.934 https://svelte.dev/e/state_referenced_locally
+#11 2.934 28:   let selectedDeliverableId = $state('');
+#11 2.934 29:   let selectedWorkTypeId = $state('');
+#11 2.934 30:   let description = $state(initialDescription);
+#11 2.934                                                  ^
+#11 2.934 31:   let isSaving = $state(false);
+#11 2.934 32: 
+#11 2.951 3:51:51 PM [vite-plugin-svelte] src/lib/components/timer/AddTimeEntryModal.svelte:82:0 `<div>` with a click handler must have an ARIA role
+#11 2.951 https://svelte.dev/e/a11y_no_static_element_interactions
+#11 2.951 80: 
+#11 2.951 81: <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+#11 2.951 82: <div
+#11 2.951         ^
+#11 2.951 83:   class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+#11 2.951 84:   onclick={handleBackdropClick}
+#11 2.962 3:51:51 PM [vite-plugin-svelte] src/lib/components/weekly/WikiLinkInput.svelte:161:8 Avoid using autofocus
+#11 2.962 https://svelte.dev/e/a11y_autofocus
+#11 2.962 159:         onblur={handleBlur}
+#11 2.962 160:         class="block w-full border-0 border-b border-stone-200 bg-transparent px-0 py-0.5 text-sm text-stone-600 focus:border-blue-400 focus:ring-0 focus:outline-none"
+#11 2.962 161:         {autofocus}
+#11 2.962                         ^
+#11 2.962 162:     />
+#11 2.962 163: 
+#11 3.989 ✓ 761 modules transformed.
+#11 4.074 rendering chunks...
+#11 4.193 computing gzip size...
+#11 4.208 .svelte-kit/output/client/_app/version.json                         0.03 kB │ gzip:   0.05 kB
+#11 4.208 .svelte-kit/output/client/manifest.webmanifest                      0.44 kB
+#11 4.208 .svelte-kit/output/client/.vite/manifest.json                       9.97 kB │ gzip:   1.36 kB
+#11 4.208 .svelte-kit/output/client/_app/immutable/assets/3.DaYztOXy.css      5.35 kB │ gzip:   1.68 kB
+#11 4.208 .svelte-kit/output/client/_app/immutable/assets/0.D7YWJfa3.css     32.90 kB │ gzip:   6.75 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/DsnmJJEf.js         0.07 kB │ gzip:   0.08 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/entry/start.yKYxVLMa.js    0.08 kB │ gzip:   0.09 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/CqkleIqs.js         0.12 kB │ gzip:   0.13 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/BdjYB1bd.js         0.19 kB │ gzip:   0.17 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/DIz033hB.js         0.38 kB │ gzip:   0.28 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/CwkXZOGc.js         0.53 kB │ gzip:   0.34 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/nodes/1.hsW07xpn.js        0.56 kB │ gzip:   0.35 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/BCb6IexU.js         0.60 kB │ gzip:   0.40 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/CSgAxC5A.js         0.85 kB │ gzip:   0.48 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/DJ2qkBn5.js         0.89 kB │ gzip:   0.53 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/nodes/2.CyOuEkgD.js        0.92 kB │ gzip:   0.49 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/7HRY08Fj.js         1.15 kB │ gzip:   0.63 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/4e5gF53G.js         1.23 kB │ gzip:   0.70 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/PPVm8Dsz.js         1.23 kB │ gzip:   0.71 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/CVr561tg.js         1.36 kB │ gzip:   0.80 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/BqhhimoE.js         1.50 kB │ gzip:   0.67 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/nodes/4.BxMmMXfY.js        1.53 kB │ gzip:   0.82 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/C4e7vp1j.js         2.02 kB │ gzip:   1.00 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/C1eX3SXD.js         2.10 kB │ gzip:   1.02 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/nodes/8.Cx8GNiOt.js        3.86 kB │ gzip:   1.47 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/BpO8EAQ5.js         3.91 kB │ gzip:   1.86 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/DbhUZBjo.js         4.09 kB │ gzip:   1.35 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/nodes/9.BOMwAjID.js        4.30 kB │ gzip:   1.62 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/DjN6p-2U.js         4.89 kB │ gzip:   2.17 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/chunks/BIl4cyR9.js         5.76 kB │ gzip:   2.37 kB
+#11 4.209 .svelte-kit/output/client/_app/immutable/entry/app.CzsyJTXa.js      6.47 kB │ gzip:   2.51 kB
+#11 4.210 .svelte-kit/output/client/_app/immutable/nodes/5.DqDgwqgM.js        7.15 kB │ gzip:   2.24 kB
+#11 4.210 .svelte-kit/output/client/_app/immutable/nodes/0.xKudB10F.js        8.24 kB │ gzip:   2.82 kB
+#11 4.210 .svelte-kit/output/client/_app/immutable/nodes/6.BbABGWnZ.js        9.72 kB │ gzip:   2.72 kB
+#11 4.210 .svelte-kit/output/client/_app/immutable/nodes/7.DMXp1CNd.js       13.71 kB │ gzip:   3.53 kB
+#11 4.210 .svelte-kit/output/client/_app/immutable/chunks/D6MI6VWQ.js        23.58 kB │ gzip:   9.34 kB
+#11 4.210 .svelte-kit/output/client/_app/immutable/chunks/CbkivDUy.js        25.35 kB │ gzip:   9.55 kB
+#11 4.210 .svelte-kit/output/client/_app/immutable/chunks/BDEJm9cN.js        32.30 kB │ gzip:  12.59 kB
+#11 4.210 .svelte-kit/output/client/_app/immutable/nodes/10.D-Hy3iKw.js      33.49 kB │ gzip:  12.58 kB
+#11 4.210 .svelte-kit/output/client/_app/immutable/nodes/3.DLbeCzIx.js      762.54 kB │ gzip: 253.28 kB
+#11 4.210 
+#11 4.210 (!) Some chunks are larger than 500 kB after minification. Consider:
+#11 4.210 - Using dynamic import() to code-split the application
+#11 4.210 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+#11 4.210 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+#11 4.210 ✓ built in 1.71s
+#11 4.514 .svelte-kit/output/server/.vite/manifest.json                                                                19.75 kB
+#11 4.515 .svelte-kit/output/server/_app/immutable/assets/_page.DaYztOXy.css                                            5.35 kB
+#11 4.515 .svelte-kit/output/server/_app/immutable/assets/_layout.D7YWJfa3.css                                         32.90 kB
+#11 4.515 .svelte-kit/output/server/entries/pages/_layout.server.ts.js                                                  0.13 kB
+#11 4.515 .svelte-kit/output/server/entries/pages/register/_page.server.ts.js                                           0.19 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/auth/_...all_/_server.ts.js                                   0.23 kB
+#11 4.515 .svelte-kit/output/server/chunks/environment.js                                                               0.25 kB
+#11 4.515 .svelte-kit/output/server/chunks/shared-server.js                                                             0.28 kB
+#11 4.515 .svelte-kit/output/server/chunks/equality.js                                                                  0.33 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/timer/status/_server.ts.js                                    0.37 kB
+#11 4.515 .svelte-kit/output/server/chunks/state.svelte.js                                                              0.38 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/notes/_noteId_/backlinks/_server.ts.js                        0.40 kB
+#11 4.515 .svelte-kit/output/server/internal.js                                                                         0.43 kB
+#11 4.515 .svelte-kit/output/server/chunks/server.js                                                                    0.48 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/clients/_server.ts.js                                         0.48 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/notes/search/_server.ts.js                                    0.49 kB
+#11 4.515 .svelte-kit/output/server/chunks/escaping.js                                                                  0.53 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/deliverables/_server.ts.js                                    0.53 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/work-types/_server.ts.js                                      0.54 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/timer/discard/_server.ts.js                                   0.59 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/timer/stop/_server.ts.js                                      0.60 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/timer/start/_server.ts.js                                     0.75 kB
+#11 4.515 .svelte-kit/output/server/entries/pages/admin/_layout.svelte.js                                               0.86 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/timer/save/_server.ts.js                                      0.88 kB
+#11 4.515 .svelte-kit/output/server/chunks/utils2.js                                                                    0.96 kB
+#11 4.515 .svelte-kit/output/server/chunks/AdminBreadcrumb.js                                                           1.04 kB
+#11 4.515 .svelte-kit/output/server/chunks/reconcile-description-links.js                                               1.11 kB
+#11 4.515 .svelte-kit/output/server/entries/fallbacks/error.svelte.js                                                   1.14 kB
+#11 4.515 .svelte-kit/output/server/chunks/utils.js                                                                     1.15 kB
+#11 4.515 .svelte-kit/output/server/chunks/deliverables.js                                                              1.17 kB
+#11 4.515 .svelte-kit/output/server/chunks/context.js                                                                   1.18 kB
+#11 4.515 .svelte-kit/output/server/chunks/weekly-statuses.js                                                           1.22 kB
+#11 4.515 .svelte-kit/output/server/chunks/attachments.js                                                               1.26 kB
+#11 4.515 .svelte-kit/output/server/entries/pages/admin/_page.svelte.js                                                 1.26 kB
+#11 4.515 .svelte-kit/output/server/chunks/clients.js                                                                   1.26 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/time-entries/_server.ts.js                                    1.36 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/contracts-by-client/_server.ts.js                             1.37 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/notes/_noteId_/_server.ts.js                                  1.42 kB
+#11 4.515 .svelte-kit/output/server/chunks/work-types.js                                                                1.46 kB
+#11 4.515 .svelte-kit/output/server/chunks/index.js                                                                     1.46 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/attachments/_attachmentId_/_server.ts.js                      1.50 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/contracts/_server.ts.js                                       1.50 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/time-entries/weekly-statuses/_server.ts.js                    1.55 kB
+#11 4.515 .svelte-kit/output/server/chunks/contracts.js                                                                 1.63 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/notes/_noteId_/time-entries/_server.ts.js                     1.68 kB
+#11 4.515 .svelte-kit/output/server/chunks/env.js                                                                       1.93 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/time-entries/weekly/_server.ts.js                             1.99 kB
+#11 4.515 .svelte-kit/output/server/chunks/note-links.js                                                                2.04 kB
+#11 4.515 .svelte-kit/output/server/entries/pages/login/_page.svelte.js                                                 2.05 kB
+#11 4.515 .svelte-kit/output/server/entries/pages/settings/two-factor/_page.svelte.js                                   2.11 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/notes/_server.ts.js                                           2.17 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/notes/_noteId_/attachments/_server.ts.js                      2.19 kB
+#11 4.515 .svelte-kit/output/server/entries/endpoints/api/time-entries/_id_/_server.ts.js                               2.63 kB
+#11 4.515 .svelte-kit/output/server/entries/pages/admin/clients/_page.server.ts.js                                      3.26 kB
+#11 4.515 .svelte-kit/output/server/chunks/url.js                                                                       3.32 kB
+#11 4.515 .svelte-kit/output/server/entries/hooks.server.js                                                             3.39 kB
+#11 4.515 .svelte-kit/output/server/chunks/iso-week.js                                                                  3.47 kB
+#11 4.515 .svelte-kit/output/server/entries/pages/register/_page.svelte.js                                              3.58 kB
+#11 4.515 .svelte-kit/output/server/entries/pages/admin/clients/_clientId_/_page.server.ts.js                           4.05 kB
+#11 4.515 .svelte-kit/output/server/entries/pages/admin/clients/_page.svelte.js                                         4.06 kB
+#11 4.515 .svelte-kit/output/server/chunks/time-entries.js                                                              4.15 kB
+#11 4.515 .svelte-kit/output/server/chunks/bun-sqlite-dialect.js                                                        4.29 kB
+#11 4.515 .svelte-kit/output/server/chunks/node-sqlite-dialect.js                                                       4.30 kB
+#11 4.515 .svelte-kit/output/server/chunks/attributes.js                                                                4.42 kB
+#11 4.515 .svelte-kit/output/server/entries/pages/admin/clients/_clientId_/_page.svelte.js                              4.76 kB
+#11 4.515 .svelte-kit/output/server/chunks/context2.js                                                                  4.95 kB
+#11 4.515 .svelte-kit/output/server/chunks/notes.js                                                                     5.58 kB
+#11 4.515 .svelte-kit/output/server/chunks/exports.js                                                                   5.59 kB
+#11 4.515 .svelte-kit/output/server/entries/pages/admin/clients/_clientId_/contracts/_contractId_/_page.svelte.js       6.69 kB
+#11 4.515 .svelte-kit/output/server/entries/pages/admin/clients/_clientId_/contracts/_contractId_/_page.server.ts.js    8.83 kB
+#11 4.515 .svelte-kit/output/server/chunks/index4.js                                                                    9.31 kB
+#11 4.515 .svelte-kit/output/server/chunks/wiki-link.js                                                                10.24 kB
+#11 4.515 .svelte-kit/output/server/chunks/index3.js                                                                   10.29 kB
+#11 4.515 .svelte-kit/output/server/entries/pages/_layout.svelte.js                                                    11.25 kB
+#11 4.515 .svelte-kit/output/server/chunks/index5.js                                                                   14.37 kB
+#11 4.515 .svelte-kit/output/server/remote-entry.js                                                                    18.99 kB
+#11 4.515 .svelte-kit/output/server/chunks/auth-client.js                                                              21.19 kB
+#11 4.515 .svelte-kit/output/server/chunks/index2.js                                                                   25.87 kB
+#11 4.515 .svelte-kit/output/server/chunks/shared.js                                                                   25.96 kB
+#11 4.515 .svelte-kit/output/server/entries/pages/_page.svelte.js                                                      46.02 kB
+#11 4.515 .svelte-kit/output/server/chunks/internal.js                                                                 78.75 kB
+#11 4.515 .svelte-kit/output/server/index.js                                                                          120.33 kB
+#11 4.515 .svelte-kit/output/server/chunks/auth.js                                                                    346.23 kB
+#11 4.515 ✓ built in 3.74s
+#11 4.818 Browserslist: browsers data (caniuse-lite) is 10 months old. Please run:
+#11 4.818   npx update-browserslist-db@latest
+#11 4.818   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+#11 5.526 
+#11 5.526 PWA v1.2.0
+#11 5.526 mode      generateSW
+#11 5.526 precache  40 entries (988.01 KiB)
+#11 5.526 files generated
+#11 5.526   .svelte-kit/output/server/sw.js
+#11 5.526   .svelte-kit/output/server/workbox-a665390a.js
+#11 5.526 warnings
+#11 5.526   One of the glob patterns doesn't match any files. Please remove or fix the following: {
+#11 5.526   "globDirectory": "/app/.svelte-kit/output",
+#11 5.526   "globPattern": "prerendered/**/*.{html,json}",
+#11 5.526   "globIgnores": [
+#11 5.526     "server/**",
+#11 5.526     "server/sw.js",
+#11 5.526     "server/workbox-*.js"
+#11 5.526   ]
+#11 5.526 }
+#11 5.526 
+#11 5.530 
+#11 5.530 Run npm run preview to preview your production build locally.
+#11 5.532 
+#11 5.532 > Using @sveltejs/adapter-node
+#11 6.929 Circular dependency: node_modules/zod/v4/classic/schemas.js -> node_modules/zod/v4/classic/iso.js -> node_modules/zod/v4/classic/schemas.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/expression-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/binary-operation-parser.js -> node_modules/kysely/dist/esm/parser/reference-parser.js -> node_modules/kysely/dist/esm/parser/expression-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/reference-parser.js -> node_modules/kysely/dist/esm/parser/order-by-parser.js -> node_modules/kysely/dist/esm/dynamic/dynamic-reference-builder.js -> node_modules/kysely/dist/esm/parser/reference-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/expression-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/binary-operation-parser.js -> node_modules/kysely/dist/esm/parser/reference-parser.js -> node_modules/kysely/dist/esm/parser/order-by-parser.js -> node_modules/kysely/dist/esm/parser/expression-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/reference-parser.js -> node_modules/kysely/dist/esm/parser/order-by-parser.js -> node_modules/kysely/dist/esm/parser/reference-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/expression-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/binary-operation-parser.js -> node_modules/kysely/dist/esm/parser/value-parser.js -> node_modules/kysely/dist/esm/parser/expression-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/operation-node/select-query-node.js -> node_modules/kysely/dist/esm/operation-node/query-node.js -> node_modules/kysely/dist/esm/operation-node/select-query-node.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/operation-node/query-node.js -> node_modules/kysely/dist/esm/operation-node/delete-query-node.js -> node_modules/kysely/dist/esm/operation-node/query-node.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/parse-utils.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/parse-utils.js -> node_modules/kysely/dist/esm/query-creator.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/expression-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/parse-utils.js -> node_modules/kysely/dist/esm/query-creator.js -> node_modules/kysely/dist/esm/query-builder/insert-query-builder.js -> node_modules/kysely/dist/esm/parser/select-parser.js -> node_modules/kysely/dist/esm/parser/expression-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/table-parser.js -> node_modules/kysely/dist/esm/parser/expression-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/parse-utils.js -> node_modules/kysely/dist/esm/query-creator.js -> node_modules/kysely/dist/esm/query-builder/insert-query-builder.js -> node_modules/kysely/dist/esm/parser/select-parser.js -> node_modules/kysely/dist/esm/parser/table-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/parse-utils.js -> node_modules/kysely/dist/esm/query-creator.js -> node_modules/kysely/dist/esm/query-builder/insert-query-builder.js -> node_modules/kysely/dist/esm/parser/select-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/expression-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/parse-utils.js -> node_modules/kysely/dist/esm/query-creator.js -> node_modules/kysely/dist/esm/query-builder/insert-query-builder.js -> node_modules/kysely/dist/esm/parser/insert-values-parser.js -> node_modules/kysely/dist/esm/parser/expression-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/parse-utils.js -> node_modules/kysely/dist/esm/query-creator.js -> node_modules/kysely/dist/esm/query-builder/insert-query-builder.js -> node_modules/kysely/dist/esm/parser/insert-values-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/parse-utils.js -> node_modules/kysely/dist/esm/query-creator.js -> node_modules/kysely/dist/esm/query-builder/insert-query-builder.js -> node_modules/kysely/dist/esm/parser/update-set-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/expression-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/parse-utils.js -> node_modules/kysely/dist/esm/query-creator.js -> node_modules/kysely/dist/esm/query-builder/insert-query-builder.js -> node_modules/kysely/dist/esm/parser/expression-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/parse-utils.js -> node_modules/kysely/dist/esm/query-creator.js -> node_modules/kysely/dist/esm/query-builder/delete-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/table-parser.js -> node_modules/kysely/dist/esm/parser/expression-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/parse-utils.js -> node_modules/kysely/dist/esm/query-creator.js -> node_modules/kysely/dist/esm/query-builder/delete-query-builder.js -> node_modules/kysely/dist/esm/parser/table-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/parse-utils.js -> node_modules/kysely/dist/esm/query-creator.js -> node_modules/kysely/dist/esm/query-builder/update-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/table-parser.js -> node_modules/kysely/dist/esm/parser/expression-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/parse-utils.js -> node_modules/kysely/dist/esm/query-creator.js -> node_modules/kysely/dist/esm/query-builder/update-query-builder.js -> node_modules/kysely/dist/esm/parser/table-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/table-parser.js -> node_modules/kysely/dist/esm/parser/expression-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/parse-utils.js -> node_modules/kysely/dist/esm/query-creator.js -> node_modules/kysely/dist/esm/parser/table-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/parse-utils.js -> node_modules/kysely/dist/esm/query-creator.js -> node_modules/kysely/dist/esm/parser/with-parser.js -> node_modules/kysely/dist/esm/parser/parse-utils.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/parse-utils.js -> node_modules/kysely/dist/esm/query-creator.js -> node_modules/kysely/dist/esm/query-builder/merge-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/table-parser.js -> node_modules/kysely/dist/esm/parser/expression-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/parse-utils.js -> node_modules/kysely/dist/esm/parser/table-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/table-parser.js -> node_modules/kysely/dist/esm/parser/expression-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/join-parser.js -> node_modules/kysely/dist/esm/parser/table-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/table-parser.js -> node_modules/kysely/dist/esm/parser/expression-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/table-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/group-by-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/set-operation-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/expression-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/select-query-builder.js -> node_modules/kysely/dist/esm/parser/set-operation-parser.js -> node_modules/kysely/dist/esm/parser/expression-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/table-parser.js -> node_modules/kysely/dist/esm/parser/expression-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/parser/table-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/table-parser.js -> node_modules/kysely/dist/esm/parser/expression-parser.js -> node_modules/kysely/dist/esm/expression/expression-builder.js -> node_modules/kysely/dist/esm/query-builder/function-module.js -> node_modules/kysely/dist/esm/parser/table-parser.js
+#11 6.929 Circular dependency: node_modules/kysely/dist/esm/parser/table-parser.js -> node_modules/kysely/dist/esm/dynamic/dynamic-table-builder.js -> node_modules/kysely/dist/esm/parser/table-parser.js
+#11 6.929 Circular dependency: node_modules/@better-auth/core/dist/oauth2/validate-authorization-code.mjs -> node_modules/@better-auth/core/dist/oauth2/index.mjs -> node_modules/@better-auth/core/dist/oauth2/validate-authorization-code.mjs
+#11 7.711   ✔ done
+#11 DONE 7.9s
+
+#12 [production-dependencies 4/4] RUN npm ci --omit=dev --omit=optional --ignore-scripts && npm cache clean --force
+#12 CACHED
+
+#13 [stage-2 3/7] COPY --from=production-dependencies --chown=node:node /app/node_modules ./node_modules
+#13 CACHED
+
+#14 [stage-2 4/7] COPY --from=build --chown=node:node /app/build ./build
+#14 DONE 0.1s
+
+#15 [stage-2 5/7] COPY --chown=node:node package.json ./
+#15 DONE 0.1s
+
+#16 [stage-2 6/7] COPY --chown=node:node drizzle ./drizzle
+#16 DONE 0.0s
+
+#17 [stage-2 7/7] COPY --chown=node:node scripts/migrate.mjs ./scripts/migrate.mjs
+#17 DONE 0.1s
+
+#18 exporting to image
+#18 exporting layers 0.1s done
+#18 writing image sha256:14bf24fef1efe2021155f24a384001716831ca6dda4e3e323de5c6d28f1e58e1 done
+#18 naming to docker.io/library/chronolog-prod-app:latest done
+#18 DONE 0.1s
+
+#19 resolving provenance for metadata file
+#19 DONE 0.0s
+ Image chronolog-prod-app:latest Built 
+ Network chronolog-prod-internal Creating 
+ Volume chronolog-prod-postgres-data Creating 
+ Network chronolog-prod-internal Creating 
+ Volume chronolog-prod-postgres-data Creating 
+ Volume chronolog-prod-postgres-data Created 
+ Volume chronolog-prod-postgres-data Created 
+ Network chronolog-prod-internal Created 
+ Network chronolog-prod-internal Created 
+ Container chronolog-prod-postgres Creating 
+ Container chronolog-prod-postgres Created 
+ Container chronolog-prod-app Creating 
+ Container chronolog-prod-app Created 
+ Container chronolog-prod-postgres Starting 
+ Container chronolog-prod-postgres Started 
+ Container chronolog-prod-postgres Waiting 
+ Container chronolog-prod-postgres Healthy 
+ Container chronolog-prod-app Starting 
+ Container chronolog-prod-app Started 
+==> Waiting for chronolog-prod-app to report healthy (timeout 180s)
+
+NAME                      IMAGE                       COMMAND                  SERVICE    CREATED         STATUS                   PORTS
+chronolog-prod-app        chronolog-prod-app:latest   "docker-entrypoint.s…"   app        7 seconds ago   Up 4 seconds (healthy)   127.0.0.1:3123->3000/tcp
+chronolog-prod-postgres   postgres:17.11-alpine3.24   "docker-entrypoint.s…"   postgres   7 seconds ago   Up 6 seconds (healthy)   5432/tcp
+
+Chronolog is up.
+  Local:  http://127.0.0.1:3123
+  Public: http://127.0.0.1:3123  (via the cloudflared tunnel, see docs/DEPLOYMENT.md)
+  Registration: ALLOW_REGISTRATION=true
+
+First account (once per fresh database):
+  1. Set ALLOW_REGISTRATION=true in .env.prod and re-run scripts/deploy-prod.sh.
+  2. Open <public URL>/register and create the account; enable 2FA under Settings.
+  3. Set ALLOW_REGISTRATION=false and re-run scripts/deploy-prod.sh.
+  4. Confirm <public URL>/register now says registration is closed.
+
+WARNING: registration is OPEN. Close it (step 3) as soon as the account exists.
+exit=0

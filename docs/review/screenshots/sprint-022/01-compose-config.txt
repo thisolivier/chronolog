@@ -1,0 +1,61 @@
+$ docker compose -p chronolog-prod -f docker-compose.prod.yml --env-file .env.prod config --quiet
+exit=0 (valid)
+
+$ docker compose -f docker-compose.prod.yml config --quiet   # without env file: required vars fail loudly
+error while interpolating services.app.environment.DATABASE_URL: required variable POSTGRES_PASSWORD is missing a value: set POSTGRES_PASSWORD in .env.prod
+error while interpolating services.postgres.environment.POSTGRES_PASSWORD: required variable POSTGRES_PASSWORD is missing a value: set POSTGRES_PASSWORD in .env.prod
+exit=1
+
+$ ... config --format json | jq (non-secret structure)
+{
+  "name": "chronolog-prod",
+  "services": {
+    "app": {
+      "container_name": "chronolog-prod-app",
+      "image": "chronolog-prod-app:latest",
+      "ports": [
+        {
+          "mode": "ingress",
+          "host_ip": "127.0.0.1",
+          "target": 3000,
+          "published": "3123",
+          "protocol": "tcp"
+        }
+      ],
+      "restart": "unless-stopped",
+      "healthcheck": "[\"CMD\",\"node\",\"-e\",\"fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"]",
+      "env_keys": [
+        "ALLOW_REGISTRATION",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_URL",
+        "DATABASE_URL",
+        "ENCRYPTION_KEY",
+        "ORIGIN",
+        "TRUSTED_ORIGINS"
+      ]
+    },
+    "postgres": {
+      "container_name": "chronolog-prod-postgres",
+      "image": "postgres:17.11-alpine3.24",
+      "ports": null,
+      "restart": "unless-stopped",
+      "healthcheck": "[\"CMD-SHELL\",\"pg_isready -U chronolog -d chronolog\"]",
+      "env_keys": [
+        "POSTGRES_DB",
+        "POSTGRES_PASSWORD",
+        "POSTGRES_USER"
+      ]
+    }
+  },
+  "volumes": {
+    "postgres_data": {
+      "name": "chronolog-prod-postgres-data"
+    }
+  },
+  "networks": {
+    "internal": {
+      "name": "chronolog-prod-internal",
+      "ipam": {}
+    }
+  }
+}

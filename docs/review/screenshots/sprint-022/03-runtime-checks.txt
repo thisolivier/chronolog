@@ -1,0 +1,59 @@
+$ docker logs chronolog-prod-app (startup on fresh volume)
+[migrate] applying migrations from /app/drizzle
+[migrate] database is up to date
+Listening on http://0.0.0.0:3000
+
+$ image facts
+size=239727305 bytes  user=node  cmd=["sh","-c","node scripts/migrate.mjs && exec node build"]
+uid=1000(node) gid=1000(node) groups=1000(node),1000(node)
+build
+drizzle
+node_modules
+package.json
+scripts
+91.6M	node_modules
+dev tools present: 0
+
+$ psql: migrations applied / tables on fresh volume
+migrations=7
+public_tables=16
+
+$ lsof -iTCP:3123 -sTCP:LISTEN (expect 127.0.0.1 only)
+COMMAND NAME
+OrbStack 127.0.0.1:3123
+$ docker port chronolog-prod-postgres (expect nothing published)
+(end)
+
+$ curl GET /login
+HTTP 200
+$ curl GET /api/clients (no session)
+{"error":"Unauthorized"}  HTTP 401
+$ curl GET /api/time-entries (no session)
+{"error":"Unauthorized"}  HTTP 401
+$ curl GET /api/notes (no session)
+{"error":"Unauthorized"}  HTTP 401
+$ curl GET /api/timer (no session)
+{"error":"Unauthorized"}  HTTP 401
+$ curl GET / (no session)
+HTTP 303 -> http://127.0.0.1:3123/login
+
+--- ALLOW_REGISTRATION=true ---
+$ curl POST /api/auth/sign-up/email owner@example.test
+HTTP 200
+{"email":"owner@example.test","user_id_present":true}
+$ curl POST /api/auth/sign-in/email
+HTTP 200
+{"email":"owner@example.test","token_present":true}
+$ curl GET /api/clients (session cookie)
+{"clients":[{"id":"…","name":"Internal","shortCode":"INTL"}]}  HTTP 200
+$ curl GET / (session cookie)
+HTTP 200
+$ curl POST /api/auth/sign-in/email (wrong password)
+{"code":"INVALID_EMAIL_OR_PASSWORD","message":"Invalid email or password"}  HTTP 401
+$ curl POST /api/notes x3 (session cookie) — test rows for the backup/restore check
+HTTP 201
+HTTP 201
+HTTP 201
+$ psql: notes rows (titles are plaintext: encryption at rest is a later sprint, not 022)
+notes=3
+plaintext_titles=3

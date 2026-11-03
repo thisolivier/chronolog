@@ -1,14 +1,14 @@
 # Docker Compose Stack
 
 Local development stack for Chronolog (`docker-compose.yml`): PostgreSQL plus an optional
-containerised app. The production stack is the same shape (`docker-compose.prod.yml`); see
-[DEPLOYMENT.md](DEPLOYMENT.md).
+containerised app. The production stack (`docker-compose.prod.yml`, project `chronolog-prod`) is
+separate and never shares containers or volumes with this one; see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Services
 
 | Service | Image | Port | Purpose |
 |---------|-------|------|---------|
-| `postgres` | postgres:17 | 5432 | Application database (volume `postgres_data`, healthcheck) |
+| `postgres` | postgres:17 | 127.0.0.1:5432 | Application database (volume `postgres_data`, healthcheck) |
 | `app` | Built from `Dockerfile.dev` | 5173 | SvelteKit dev server with hot reload (`src/`, `static/` bind-mounted); runs `drizzle-kit migrate` on start |
 
 ## Quick Start
@@ -37,5 +37,5 @@ docker compose down -v       # stop services AND delete volumes (fresh start)
 ## Network
 
 Both services are on the `chronolog` bridge network and reference each other by service name
-(`postgres`, `app`). Postgres exposes port 5432 to the host for local tools (Drizzle CLI, psql,
+(`postgres`, `app`). Postgres exposes port 5432 on `127.0.0.1` only, for local tools (Drizzle CLI, psql,
 Drizzle Studio).
