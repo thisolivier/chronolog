@@ -4,7 +4,6 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
-| 021-CL | Client/Infra | Stabilise: dead sync code out, lost wiring back, doors closed (merges first) | active |
 | 019-CL | Client | Stabilise: timesheet bugs | active |
 | 020-CL | Client | Stabilise: notes and editor bugs | active |
 | 018-QA | QA | Manual testing backlog | superseded by docs/review/2026-11-03-qa-state.md |
@@ -13,6 +12,7 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 021-CL | Client/Infra | Stabilise: dead sync code out, lost wiring back, doors closed | merged |
 | 017-CL | Client | Timesheet redesign (UX-2 impl) | merged |
 | 004-CL | Client | Phase D — Wire PowerSyncDataService | merged |
 | 016-CL | Client | Note move between contracts | merged |
