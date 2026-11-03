@@ -13,10 +13,10 @@ Libraries tracked for this project. Used by the `context7` skill to look up docu
 
 | Library | context7_id | Version | Verified | Status |
 |---------|-------------|---------|----------|--------|
-| svelte | /svelte/svelte | ^5.49.2 | 2026-02-07 | active |
-| @sveltejs/kit | /sveltejs/kit | ^2.50.2 | 2026-02-07 | active |
-| @tiptap/core | /ueberdosis/tiptap | ^3.19.0 | 2026-02-07 | active |
-| @tiptap/suggestion | /ueberdosis/tiptap | ^3.19.0 | 2026-02-07 | active |
+| svelte | /sveltejs/svelte | ^5.49.2 | 2026-11-03 | active |
+| @sveltejs/kit | /sveltejs/kit | ^2.50.2 | 2026-11-03 | active |
+| @tiptap/core | /ueberdosis/tiptap-docs | ^3.19.0 | 2026-11-03 | active |
+| @tiptap/suggestion | /ueberdosis/tiptap-docs | ^3.19.0 | 2026-11-03 | active |
 | drizzle-orm | /drizzle-team/drizzle-orm | ^0.45.1 | 2026-02-07 | active |
 | better-auth | /better-auth/better-auth | ^1.4.18 | 2026-02-07 | active |
 | tailwindcss | /tailwindlabs/tailwindcss | ^4.0.0 | 2026-02-07 | active |
@@ -26,5 +26,5 @@ Libraries tracked for this project. Used by the `context7` skill to look up docu
 
 ## Notes
 
-- `@tiptap/suggestion` shares the same context7_id as `@tiptap/core` (`/ueberdosis/tiptap`) -- use the `topic` parameter to target specific sub-package docs.
+- `@tiptap/suggestion` shares the same context7_id as `@tiptap/core` (`/ueberdosis/tiptap-docs`) -- use the `topic` parameter to target specific sub-package docs.
 - `@tauri-apps/api` maps to `/tauri-apps/tauri` (the main Tauri monorepo).
