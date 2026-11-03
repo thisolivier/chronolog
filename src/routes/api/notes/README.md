@@ -99,6 +99,28 @@ Retrieves a single note with full content.
 }
 ```
 
+### `GET /api/notes/search?q=&exclude=&limit=&recent=1`
+
+Ranked search across all of the user's notes, used by the note list search and the wiki-link autocomplete. Matches are ranked: exact ID, ID prefix, title, ID substring, then body. Results are decrypted in memory (`src/lib/server/db/queries/note-search.ts`); encrypted columns are never matched with SQL `ILIKE`.
+
+- `q`: search text. An empty `q` returns no results unless `recent=1`, which returns the most recently edited notes
+- `exclude`: a note ID to leave out (the note being edited)
+- `limit`: default 10, max 50
+
+**Response:** `{ "notes": [{ id, title, displayTitle, contractId, contractName, clientId, clientName, clientShortCode, firstLine, secondLine, updatedAt }] }`
+
+### `GET /api/notes/titles?ids=A,B,C`
+
+Display titles for wiki-link rendering. IDs the user does not own are omitted; at most 100 IDs are read.
+
+**Response:** `{ "titles": [{ "id", "displayTitle", "contractId", "clientId" }] }`
+
+### `GET /api/notes/[noteId]/backlinks`
+
+Notes that link to this note.
+
+**Response:** `{ "backlinks": [{ "sourceNoteId", "headingAnchor", "noteTitle", "noteContractId", "noteClientId" }] }`. `noteTitle` is the display title (stored title, else first content line).
+
 ### `PUT /api/notes/[noteId]`
 
 Updates a note's title and/or content.
@@ -108,11 +130,15 @@ Updates a note's title and/or content.
 {
   "title": "Updated Title",
   "content": "# Updated markdown",
-  "contentJson": "{...}"
+  "contentJson": "{...}",
+  "contractId": "uuid",
+  "expectedUpdatedAt": "2026-02-07T10:00:00Z"
 }
 ```
 
 All fields are optional - only provided fields will be updated.
+
+`expectedUpdatedAt` is the `updatedAt` the client last saw. When the note has changed since (for example, in another tab), the save is refused with `409` and `{ "error": "conflict", "updatedAt": "..." }`. The editor then halts autosave and offers Reload. Without the field, the save is unconditional.
 
 **Response:**
 ```json
@@ -170,7 +196,7 @@ Lists all attachments for a note (metadata only, no binary data).
 
 ### `GET /api/attachments/[attachmentId]`
 
-Serves the attachment binary data with correct `Content-Type` header. Responses are cacheable (`Cache-Control: immutable`).
+Serves the attachment binary data with correct `Content-Type` header. Responses are `Cache-Control: private, max-age=31536000, immutable`, so decrypted bytes are never stored in a shared cache. A non-UUID ID returns `404`.
 
 ### `DELETE /api/attachments/[attachmentId]`
 
@@ -183,11 +209,14 @@ All routes return standard HTTP error codes:
 - `401 Unauthorized`: User not authenticated
 - `400 Bad Request`: Missing required parameters or invalid file type/size
 - `404 Not Found`: Note or attachment not found, or user doesn't have access
+- `409 Conflict`: `PUT` with `expectedUpdatedAt` for a note that changed since (body includes `updatedAt`)
 - `500 Internal Server Error`: Database or server error
 
 ## Implementation
 
 - **Note queries**: `/src/lib/server/db/queries/notes.ts`
+- **Note search**: `/src/lib/server/db/queries/note-search.ts`
+- **Backlinks and link extraction**: `/src/lib/server/db/queries/note-links.ts`
 - **Attachment queries**: `/src/lib/server/db/queries/attachments.ts`
 - **Schema**: `/src/lib/server/db/schema/notes.ts`, `/src/lib/server/db/schema/attachments.ts`
 - **Note routes**: `/src/routes/api/notes/`

@@ -54,6 +54,8 @@
 	let headerMessage = $state<string | null>(null);
 	let headerMessageTimeout: ReturnType<typeof setTimeout> | undefined;
 	let draftSessionCounter = 0;
+	/** Set on destroy: a create that finishes afterwards must not navigate (phone Back) */
+	let isPanelDestroyed = false;
 	let editorComponent = $state<{ flushPendingSave: () => Promise<void> } | null>(null);
 
 	function setEditorSession(session: EditorSession | null) {
@@ -105,7 +107,7 @@
 					createdAt: createdNote.createdAt,
 					updatedAt: createdNote.updatedAt
 				});
-				if (editorSession === session) {
+				if (editorSession === session && !isPanelDestroyed) {
 					currentNote = createdNote as unknown as NoteDetail;
 					endNoteDraft();
 					// The panel recognises this ID as the open session and keeps the editor mounted
@@ -336,7 +338,11 @@
 	}
 
 	onDestroy(() => {
+		isPanelDestroyed = true;
 		clearTimeout(headerMessageTimeout);
+		// Leaving the panel (phone Back) ends an open draft; if something was typed the
+		// editor's final save still creates the note.
+		if (editorSession && !editorSession.noteId) endNoteDraft();
 	});
 
 	// Open whatever the navigation selects: an existing note, a fresh draft, or nothing.

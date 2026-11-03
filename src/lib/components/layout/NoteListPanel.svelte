@@ -26,6 +26,8 @@
 	let moveFeedbackTimeout: ReturnType<typeof setTimeout> | undefined;
 	let sortOrder = $state<NoteSortOrder>(loadSortPreference());
 	let lastNewNoteClick = 0;
+	/** Notes announced by `note-created`; kept if a list fetch started before they existed */
+	const createdWhileLoading = new Map<string, NoteSummary>();
 
 	let searchQuery = $state('');
 	let searchResults = $state<NoteSearchResult[]>([]);
@@ -44,8 +46,14 @@
 		isLoading = true;
 		fetchError = null;
 		try {
+			createdWhileLoading.clear();
 			const loadedNotes = await dataService.getNotesForContract(contractId);
-			if (navigationContext.selectedContractId === contractId) notesList = loadedNotes;
+			if (navigationContext.selectedContractId === contractId) {
+				const missing = [...createdWhileLoading.values()].filter(
+					(created) => created.contractId === contractId && !loadedNotes.some((note) => note.id === created.id)
+				);
+				notesList = [...missing, ...loadedNotes];
+			}
 		} catch (error) {
 			fetchError = error instanceof Error ? error.message : 'An error occurred';
 			console.error('Error loading notes:', error);
@@ -151,19 +159,18 @@
 		const unsubscribers = [
 			onNoteEvent('note-created', (detail) => {
 				if (detail.contractId !== navigationContext.selectedContractId) return;
+				const createdNote: NoteSummary = {
+					id: detail.noteId,
+					contractId: detail.contractId,
+					isPinned: false,
+					createdAt: detail.createdAt,
+					updatedAt: detail.updatedAt,
+					firstLine: detail.firstLine,
+					secondLine: detail.secondLine
+				};
+				createdWhileLoading.set(detail.noteId, createdNote);
 				if (notesList.some((note) => note.id === detail.noteId)) return;
-				notesList = [
-					{
-						id: detail.noteId,
-						contractId: detail.contractId,
-						isPinned: false,
-						createdAt: detail.createdAt,
-						updatedAt: detail.updatedAt,
-						firstLine: detail.firstLine,
-						secondLine: detail.secondLine
-					},
-					...notesList
-				];
+				notesList = [createdNote, ...notesList];
 			}),
 			onNoteEvent('note-saved', ({ noteId, firstLine, secondLine, updatedAt }) => {
 				const noteIndex = notesList.findIndex((note) => note.id === noteId);
@@ -220,7 +227,8 @@
 	<div class="border-b border-stone-200 bg-white px-3 py-2">
 		<div class="relative">
 			<input
-				type="search"
+				type="text"
+				role="searchbox"
 				bind:value={searchQuery}
 				oninput={handleSearchInput}
 				onkeydown={(event) => event.key === 'Escape' && clearSearch()}
