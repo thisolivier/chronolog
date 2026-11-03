@@ -96,17 +96,18 @@
 		});
 	});
 
+	// Re-measure when the text, the element or the card width changes
 	$effect(() => {
 		void entry.description;
-		void isEditingDescription;
-		if (isDescriptionExpanded) return;
-		tick().then(() => {
-			if (!descriptionElement) {
-				isDescriptionOverflowing = false;
-				return;
-			}
-			isDescriptionOverflowing = descriptionElement.scrollHeight > descriptionElement.clientHeight + 1;
-		});
+		const measuredElement = descriptionElement;
+		if (!measuredElement || isDescriptionExpanded) return;
+		const measure = () => {
+			isDescriptionOverflowing = measuredElement.scrollHeight > measuredElement.clientHeight + 1;
+		};
+		tick().then(measure);
+		const resizeObserver = new ResizeObserver(measure);
+		resizeObserver.observe(measuredElement);
+		return () => resizeObserver.disconnect();
 	});
 
 	async function saveFields(data: Partial<TimeEntryFields>): Promise<boolean> {
@@ -319,7 +320,7 @@
 				{#if entry.description}
 					<span
 						bind:this={descriptionElement}
-						class="block break-words whitespace-pre-line {isDescriptionExpanded ? '' : 'line-clamp-3'}"
+						class="break-words whitespace-pre-line {isDescriptionExpanded ? 'block' : 'line-clamp-3'}"
 					>
 						<WikiLinkRenderer text={entry.description} {onNoteLinkClick} />
 					</span>

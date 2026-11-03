@@ -6,13 +6,16 @@
  * while no sidebar widget is mounted, so there is never more than one live timer
  * widget, whatever breakpoint the shell uses.
  */
+import { untrack } from 'svelte';
+
 const registry = $state({ sidebarWidgetCount: 0 });
 
 /** Call from a sidebar TimerWidget on mount; returns the unregister function. */
 export function registerSidebarTimerWidget(): () => void {
-	registry.sidebarWidgetCount += 1;
+	// untrack: called from an $effect, which must not depend on the count it changes
+	untrack(() => (registry.sidebarWidgetCount += 1));
 	return () => {
-		registry.sidebarWidgetCount -= 1;
+		untrack(() => (registry.sidebarWidgetCount -= 1));
 	};
 }
 
