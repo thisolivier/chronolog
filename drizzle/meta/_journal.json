@@ -50,6 +50,13 @@
       "when": 1779854022967,
       "tag": "0006_yielding_supreme_intelligence",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793737136811,
+      "tag": "0007_glossy_may_parker",
+      "breakpoints": true
     }
   ]
 }
