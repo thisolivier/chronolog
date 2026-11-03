@@ -13,6 +13,10 @@
 	let isLoading = $state(false);
 	let isCreating = $state(false);
 	let fetchError = $state<string | null>(null);
+	let moveFeedback = $state<string | null>(null);
+	let moveFeedbackTimeout: ReturnType<typeof setTimeout> | undefined;
+
+	const MOVE_FEEDBACK_DURATION_MS = 4000;
 
 	/**
 	 * Fetch notes for the currently selected contract.
@@ -121,13 +125,36 @@
 		}
 	}
 
-	/** Handle note-moved events — remove the note from this list since it changed contracts */
+	/** Fields of the `note-moved` event detail (dispatched by NoteEditorPanel) that this panel uses */
+	interface NoteMovedEventDetail {
+		noteId: string;
+		toContractName: string | null;
+		toClientName: string | null;
+	}
+
+	/**
+	 * Handle note-moved events — remove the note from this list since it changed
+	 * contracts, and confirm the move here because clearing the selection unmounts
+	 * the editor header where the message would otherwise have lived.
+	 */
 	function handleNoteMoved(event: Event) {
-		const { noteId } = (event as CustomEvent).detail;
+		const { noteId, toContractName, toClientName } = (event as CustomEvent<NoteMovedEventDetail>).detail;
 		notesList = notesList.filter((note) => note.id !== noteId);
 		if (navigationContext.selectedNoteId === noteId) {
 			navigationContext.clearSelectedNote();
 		}
+
+		const destinationLabel = [toClientName, toContractName].filter(Boolean).join(' / ');
+		showMoveFeedback(destinationLabel ? `Moved to ${destinationLabel}` : 'Note moved');
+	}
+
+	/** Show a transient confirmation under the header; any previous one is replaced */
+	function showMoveFeedback(message: string) {
+		moveFeedback = message;
+		clearTimeout(moveFeedbackTimeout);
+		moveFeedbackTimeout = setTimeout(() => {
+			moveFeedback = null;
+		}, MOVE_FEEDBACK_DURATION_MS);
 	}
 
 	onMount(() => {
@@ -138,6 +165,7 @@
 	onDestroy(() => {
 		window.removeEventListener('note-saved', handleNoteSaved);
 		window.removeEventListener('note-moved', handleNoteMoved);
+		clearTimeout(moveFeedbackTimeout);
 	});
 </script>
 
@@ -165,6 +193,17 @@
 			</button>
 		</div>
 	</div>
+
+	<!-- Transient confirmation after a note is moved to another contract -->
+	{#if moveFeedback}
+		<div
+			role="status"
+			data-testid="move-feedback"
+			class="border-b border-green-200 bg-green-50 px-4 py-2 text-xs text-green-700"
+		>
+			{moveFeedback}
+		</div>
+	{/if}
 
 	<!-- Note list -->
 	<div class="flex-1 overflow-y-auto">
