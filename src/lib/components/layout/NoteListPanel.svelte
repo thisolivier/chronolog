@@ -21,6 +21,8 @@
 	let isLoading = $state(false);
 	let fetchError = $state<string | null>(null);
 	let moveFeedback = $state<string | null>(null);
+	/** The contract the move message belongs to (the moved note's new contract) */
+	let moveFeedbackContractId: string | null = null;
 	let moveFeedbackTimeout: ReturnType<typeof setTimeout> | undefined;
 	let sortOrder = $state<NoteSortOrder>(loadSortPreference());
 	let lastNewNoteClick = 0;
@@ -78,8 +80,9 @@
 		saveSortPreference(sortOrder);
 	}
 
-	function showMoveFeedback(message: string) {
+	function showMoveFeedback(message: string, contractId: string) {
 		moveFeedback = message;
+		moveFeedbackContractId = contractId;
 		clearTimeout(moveFeedbackTimeout);
 		moveFeedbackTimeout = setTimeout(() => {
 			moveFeedback = null;
@@ -134,7 +137,8 @@
 	$effect(() => {
 		const contractId = navigationContext.selectedContractId;
 		untrack(() => {
-			clearMoveFeedback();
+			// A move switches to the destination contract; its message stays there only
+			if (contractId !== moveFeedbackContractId) clearMoveFeedback();
 			if (contractId) {
 				void fetchNotesForContract(contractId);
 			} else {
@@ -167,13 +171,12 @@
 					notesList[noteIndex] = { ...notesList[noteIndex], firstLine, secondLine, updatedAt };
 				}
 			}),
-			onNoteEvent('note-moved', ({ noteId, toContractName, toClientName }) => {
-				// The note left this contract; confirm here because clearing the selection
-				// unmounts the editor header.
+			onNoteEvent('note-moved', ({ noteId, toContractId, toContractName, toClientName }) => {
+				// The editor panel then opens the note under its new contract, so this list
+				// reloads for that contract and the message is shown there.
 				notesList = notesList.filter((note) => note.id !== noteId);
-				if (navigationContext.selectedNoteId === noteId) navigationContext.clearSelectedNote();
 				const destinationLabel = [toClientName, toContractName].filter(Boolean).join(' / ');
-				showMoveFeedback(destinationLabel ? `Moved to ${destinationLabel}` : 'Note moved');
+				showMoveFeedback(destinationLabel ? `Moved to ${destinationLabel}` : 'Note moved', toContractId);
 			}),
 			onNoteEvent('note-deleted', ({ noteId }) => {
 				notesList = notesList.filter((note) => note.id !== noteId);

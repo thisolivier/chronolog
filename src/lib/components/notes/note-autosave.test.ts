@@ -128,6 +128,36 @@ describe('AutosaveController', () => {
 	});
 });
 
+describe('AutosaveController conflicts', () => {
+	beforeEach(() => vi.useFakeTimers());
+	afterEach(() => vi.useRealTimers());
+
+	it('stops saving on a conflict instead of retrying or overwriting', async () => {
+		let content = '';
+		const statuses: SaveStatus[] = [];
+		const persist = vi.fn(async () => {
+			throw Object.assign(new Error('409'), { status: 409 });
+		});
+		const controller = new AutosaveController<string>({
+			capture: () => content,
+			persist,
+			onStatusChange: (status) => statuses.push(status),
+			isConflict: (error) => (error as { status?: number }).status === 409,
+			retryDelayMs: 1000
+		});
+		content = 'stale tab text';
+		controller.markDirty();
+		await controller.flush();
+		expect(statuses.at(-1)).toBe('conflict');
+		content += ' more typing';
+		controller.markDirty();
+		await controller.dispose({ keepalive: true });
+		await vi.advanceTimersByTimeAsync(5000);
+		expect(persist).toHaveBeenCalledTimes(1);
+		expect(controller.status).toBe('conflict');
+	});
+});
+
 describe('trackNoteSave / waitForNoteSaves', () => {
 	it('waits for every tracked save of a note', async () => {
 		let release: () => void = () => {};

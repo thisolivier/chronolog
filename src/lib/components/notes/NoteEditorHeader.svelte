@@ -18,9 +18,11 @@
 		onExportMarkdown: () => void;
 		onExportPdf: () => void;
 		onDelete: () => void;
+		/** Reload the server copy (offered when the note changed elsewhere) */
+		onReload?: () => void;
 	}
 
-	let { noteId, contractId, saveStatus, message = null, onMove, onExportMarkdown, onExportPdf, onDelete }: Props =
+	let { noteId, contractId, saveStatus, message = null, onMove, onExportMarkdown, onExportPdf, onDelete, onReload }: Props =
 		$props();
 
 	const dataService = getDataService();
@@ -69,6 +71,16 @@
 	<div class="flex min-w-0 items-center gap-3">
 		<span class="truncate font-mono text-xs text-stone-400">{noteId ?? 'New note'}</span>
 		<SaveStatusIndicator status={saveStatus} isDraft={!noteId} />
+		{#if saveStatus === 'conflict' && onReload}
+			<button
+				type="button"
+				onclick={onReload}
+				data-testid="reload-note"
+				class="rounded bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 hover:bg-red-100"
+			>
+				Reload
+			</button>
+		{/if}
 		{#if message}
 			<span role="alert" class="text-xs text-red-600">{message}</span>
 		{/if}

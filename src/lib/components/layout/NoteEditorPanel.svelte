@@ -37,6 +37,8 @@
 		initialJson: string;
 		autofocus: boolean;
 		creation: Promise<string> | null;
+		/** `updatedAt` of the server copy this editor is based on (conflict detection) */
+		lastSeenUpdatedAt: string | null;
 		save: (data: NoteSaveData, options: PersistOptions) => Promise<void>;
 		onStatus: (status: SaveStatus) => void;
 	};
@@ -67,7 +69,9 @@
 		}, 3000);
 	}
 
-	function createSession(fields: Pick<EditorSession, 'key' | 'noteId' | 'contractId' | 'initialContent' | 'initialJson' | 'autofocus'>): EditorSession {
+	function createSession(
+		fields: Pick<EditorSession, 'key' | 'noteId' | 'contractId' | 'initialContent' | 'initialJson' | 'autofocus' | 'lastSeenUpdatedAt'>
+	): EditorSession {
 		const session: EditorSession = {
 			...fields,
 			creation: null,
@@ -85,6 +89,7 @@
 		if (!session.creation) {
 			session.creation = dataService.createNote(session.contractId, data).then((createdNote) => {
 				session.noteId = createdNote.id;
+				session.lastSeenUpdatedAt = createdNote.updatedAt;
 				if (editorSession === session) activeNoteId = createdNote.id;
 				const preview = extractPreviewLines(data.contentJson);
 				rememberNoteTitle(createdNote.id, {
@@ -118,14 +123,29 @@
 		return { noteId: await session.creation, created: false };
 	}
 
-	async function persistSession(session: EditorSession, data: NoteSaveData, options: PersistOptions): Promise<void> {
-		const { noteId, created } = await ensureNoteExists(session, data);
-		if (created) return; // the create carried this snapshot
-
-		const updatedNote = await trackNoteSave(
-			noteId,
-			dataService.updateNote(noteId, data, { keepalive: options.keepalive })
+	function persistSession(session: EditorSession, data: NoteSaveData, options: PersistOptions): Promise<void> {
+		// Register an update synchronously, so a panel that remounts on this note right away
+		// (layout change) waits for it before loading.
+		if (session.noteId) return trackNoteSave(session.noteId, updateSessionNote(session, session.noteId, data, options));
+		return ensureNoteExists(session, data).then(({ noteId, created }) =>
+			created ? undefined : trackNoteSave(noteId, updateSessionNote(session, noteId, data, options))
 		);
+	}
+
+	async function updateSessionNote(
+		session: EditorSession,
+		noteId: string,
+		data: NoteSaveData,
+		options: PersistOptions
+	): Promise<void> {
+		// Rejects with status 409 if the note changed elsewhere (another tab); the editor
+		// then stops autosaving and asks for a reload instead of overwriting.
+		const updatedNote = await dataService.updateNote(
+			noteId,
+			{ ...data, expectedUpdatedAt: session.lastSeenUpdatedAt ?? undefined },
+			{ keepalive: options.keepalive }
+		);
+		session.lastSeenUpdatedAt = updatedNote.updatedAt;
 		if (editorSession === session) currentNote = updatedNote;
 
 		const preview = extractPreviewLines(data.contentJson);
@@ -151,6 +171,8 @@
 		backlinks = [];
 
 		try {
+			// Let an editor being torn down in this same update start its final save first
+			await new Promise((resolve) => setTimeout(resolve, 0));
 			await waitForNoteSaves(noteId);
 			const note = await dataService.getNoteById(noteId);
 			if (navigation.selectedNoteId !== noteId) return; // user moved on meanwhile
@@ -162,7 +184,8 @@
 				contractId: note.contractId,
 				initialContent: note.content ?? '',
 				initialJson: note.contentJson ?? '',
-				autofocus: false
+				autofocus: false,
+				lastSeenUpdatedAt: note.updatedAt
 			}));
 			void fetchBacklinks(noteId);
 		} catch (error) {
@@ -186,7 +209,8 @@
 			contractId,
 			initialContent: '',
 			initialJson: '',
-			autofocus: true
+			autofocus: true,
+			lastSeenUpdatedAt: null
 		}));
 	}
 
@@ -238,15 +262,20 @@
 		try {
 			await editorComponent?.flushPendingSave();
 			await waitForNoteSaves(noteId);
+			const session = editorSession;
 			const updatedNote = await dataService.updateNote(noteId, { contractId: targetContract.id });
 			currentNote = updatedNote;
+			if (session) {
+				session.lastSeenUpdatedAt = updatedNote.updatedAt;
+				session.contractId = targetContract.id;
+			}
 			rememberNoteTitle(noteId, {
 				displayTitle: getCachedNoteTitle(noteId)?.displayTitle ?? null,
 				contractId: targetContract.id,
 				clientId: targetContract.clientId ?? ''
 			});
-			// The notes list removes the note, clears the selection (unmounting this
-			// header) and shows the success message.
+			// The note stays open and the sidebar and list follow it to its new contract
+			// (the editor is kept: its session already holds this note ID).
 			dispatchNoteEvent('note-moved', {
 				noteId,
 				fromContractId: previousContractId,
@@ -254,6 +283,7 @@
 				toContractName: targetContract.name ?? null,
 				toClientName: targetContract.clientName ?? null
 			});
+			navigation.openNote(noteId, targetContract.id, targetContract.clientId);
 		} catch (moveError) {
 			console.error('Error moving note:', moveError);
 			showHeaderMessage('Failed to move note');
@@ -368,6 +398,7 @@
 			onExportMarkdown={handleExportMarkdown}
 			onExportPdf={handleExportPdf}
 			onDelete={handleDelete}
+			onReload={() => session.noteId && openExistingNote(session.noteId)}
 		/>
 
 		<!-- Editor: re-mounted per session; a draft keeps its editor when it is created -->
@@ -382,7 +413,9 @@
 					onSave={session.save}
 					onSaveStatusChange={session.onStatus}
 					onFileUpload={handleFileUpload}
-					onWikiLinkClick={(noteId) => noteNavigation.openNoteById(noteId)}
+					onWikiLinkClick={async (noteId) => {
+						if (!(await noteNavigation.openNoteById(noteId))) showHeaderMessage('That note no longer exists');
+					}}
 				/>
 			{/key}
 		</div>

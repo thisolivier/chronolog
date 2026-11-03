@@ -13,14 +13,16 @@
 		saved: 'Saved',
 		saving: 'Saving…',
 		unsaved: 'Unsaved changes',
-		error: "Couldn't save — retrying"
+		error: "Couldn't save — retrying",
+		conflict: 'This note changed elsewhere, reload to see it'
 	};
 
 	const dotClasses: Record<SaveStatus, string> = {
 		saved: 'bg-green-500',
 		saving: 'bg-amber-400 animate-pulse',
 		unsaved: 'bg-amber-400',
-		error: 'bg-red-500'
+		error: 'bg-red-500',
+		conflict: 'bg-red-500'
 	};
 
 	let label = $derived(isDraft && status === 'saved' ? 'Not saved yet' : labels[status]);
@@ -31,7 +33,7 @@
 	aria-live="polite"
 	data-testid="save-status"
 	data-status={isDraft && status === 'saved' ? 'draft' : status}
-	class="inline-flex items-center gap-1.5 whitespace-nowrap text-xs {status === 'error'
+	class="inline-flex items-center gap-1.5 whitespace-nowrap text-xs {status === 'error' || status === 'conflict'
 		? 'text-red-600'
 		: 'text-stone-400'}"
 >

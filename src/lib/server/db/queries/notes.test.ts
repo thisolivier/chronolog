@@ -1,7 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { database, clients, contracts, notes, users } from '$lib/server/db';
 import { eq } from 'drizzle-orm';
-import { getNextNoteId, createNoteForUser, searchNotesForUser } from './notes';
+import {
+	getNextNoteId,
+	createNoteForUser,
+	searchNotesForUser,
+	updateNoteForUser,
+	NoteConflictError
+} from './notes';
 import { rankNoteMatch } from './note-search';
 
 describe('Note ID Generation', () => {
@@ -221,5 +227,42 @@ describe('rankNoteMatch', () => {
 		expect(rank('1103.002')).toBe(3);
 		expect(rank('body')).toBe(4);
 		expect(rank('nothing')).toBeNull();
+	});
+});
+
+describe('updateNoteForUser conflict detection', () => {
+	const suffix = `${Date.now()}-conflict`;
+	const userId = `test-notes-conflict-${suffix}`;
+	let clientId: string;
+	let contractId: string;
+
+	beforeAll(async () => {
+		await database.insert(users).values({ id: userId, name: 'Conflict', email: `${userId}@example.com` });
+		clientId = (await database.insert(clients).values({ userId, name: 'Conflict Client', shortCode: 'CNFL' }).returning())[0].id;
+		contractId = (await database.insert(contracts).values({ clientId, name: 'Conflict Contract', isActive: true }).returning())[0].id;
+	});
+
+	afterAll(async () => {
+		await database.delete(notes).where(eq(notes.userId, userId));
+		await database.delete(contracts).where(eq(contracts.id, contractId));
+		await database.delete(clients).where(eq(clients.id, clientId));
+		await database.delete(users).where(eq(users.id, userId));
+	});
+
+	it('saves when expectedUpdatedAt matches, even for a freshly created note', async () => {
+		const created = await createNoteForUser(userId, contractId, 'one', 'one', undefined);
+		const updated = await updateNoteForUser(userId, created.id, 'two', 'two', undefined, undefined, new Date(created.updatedAt));
+		expect(updated?.content).toBe('two');
+		const again = await updateNoteForUser(userId, created.id, 'three', 'three', undefined, undefined, new Date(updated!.updatedAt));
+		expect(again?.content).toBe('three');
+	});
+
+	it('refuses a save based on an outdated copy', async () => {
+		const created = await createNoteForUser(userId, contractId, 'base', 'base', undefined);
+		const staleTimestamp = new Date(created.updatedAt);
+		await updateNoteForUser(userId, created.id, 'tab one', 'tab one', undefined, undefined, staleTimestamp);
+		await expect(
+			updateNoteForUser(userId, created.id, 'tab two', 'tab two', undefined, undefined, staleTimestamp)
+		).rejects.toBeInstanceOf(NoteConflictError);
 	});
 });

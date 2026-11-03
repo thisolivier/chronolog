@@ -125,13 +125,30 @@ export async function createNoteForUser(
 	}
 }
 
+/** Thrown by `updateNoteForUser` when `expectedUpdatedAt` no longer matches the row */
+export class NoteConflictError extends Error {
+	constructor(
+		readonly noteId: string,
+		readonly currentUpdatedAt: Date
+	) {
+		super(`Note ${noteId} changed since it was loaded`);
+		this.name = 'NoteConflictError';
+	}
+}
+
+/** Timestamps compare at millisecond precision (Postgres keeps microseconds, JS Dates do not). */
+function sameMillisecond(left: Date, right: Date): boolean {
+	return Math.floor(left.getTime()) === Math.floor(right.getTime());
+}
+
 export async function updateNoteForUser(
 	userId: string,
 	noteId: string,
 	title?: string,
 	content?: string,
 	contentJson?: string,
-	contractId?: string
+	contractId?: string,
+	expectedUpdatedAt?: Date
 ) {
 	const updateData: {
 		title?: string | null;
@@ -158,11 +175,24 @@ export async function updateNoteForUser(
 		updateData.contractId = contractId;
 	}
 
-	const results = await database
-		.update(notes)
-		.set(updateData)
-		.where(and(eq(notes.id, noteId), eq(notes.userId, userId)))
-		.returning();
+	const ownedNote = and(eq(notes.id, noteId), eq(notes.userId, userId));
+
+	// Optimistic concurrency: with `expectedUpdatedAt`, the row is locked, compared and
+	// only then updated, so a save based on an outdated copy (another tab) is refused.
+	const results = await database.transaction(async (transaction) => {
+		if (expectedUpdatedAt) {
+			const current = await transaction
+				.select({ updatedAt: notes.updatedAt })
+				.from(notes)
+				.where(ownedNote)
+				.for('update');
+			if (current.length === 0) return [];
+			if (!sameMillisecond(current[0].updatedAt, expectedUpdatedAt)) {
+				throw new NoteConflictError(noteId, current[0].updatedAt);
+			}
+		}
+		return transaction.update(notes).set(updateData).where(ownedNote).returning();
+	});
 	return decryptOptionalNote(results[0]);
 }
 

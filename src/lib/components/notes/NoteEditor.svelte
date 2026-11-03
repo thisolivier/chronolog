@@ -103,7 +103,8 @@
 	const autosave = new AutosaveController<NoteSaveData>({
 		capture: captureSnapshot,
 		persist: (snapshot, options) => boundOnSave?.(snapshot, options) ?? Promise.resolve(),
-		onStatusChange: (status) => boundOnStatusChange?.(status)
+		onStatusChange: (status) => boundOnStatusChange?.(status),
+		isConflict: (error) => (error as { status?: number } | null)?.status === 409
 	});
 
 	function markChanged() {

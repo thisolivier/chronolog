@@ -5,26 +5,12 @@
  * debounce): switch note, reload, switch contract. After a reload the text must be there.
  */
 import { test, expect, type Page } from '@playwright/test';
-
-const editor = (page: Page) => page.locator('[data-note-editor-content] .tiptap');
-const noteListItem = (page: Page, text: string) =>
-	page.locator('button', { hasText: text }).filter({ has: page.locator('span.truncate') }).first();
+import { editor, noteListItem, createNote } from './notes-helpers';
 
 async function openGeneralContract(page: Page) {
 	await page.goto('/');
 	await page.getByRole('button', { name: /General/ }).first().click();
 	await expect(page.getByRole('button', { name: 'New Note' })).toBeVisible();
-}
-
-/** Create a note through the UI and wait until it is saved. */
-async function createNote(page: Page, firstLine: string) {
-	await page.getByRole('button', { name: 'New Note' }).click();
-	await expect(editor(page)).toBeFocused();
-	await page.keyboard.type(firstLine);
-	await expect(page.getByTestId('save-status')).toHaveAttribute('data-status', 'saved', {
-		timeout: 10000
-	});
-	await expect(noteListItem(page, firstLine)).toBeVisible();
 }
 
 test.describe('note autosave never loses text', () => {

@@ -69,6 +69,8 @@ export type NoteDetail = {
 };
 
 export type UpdateNoteInput = {
+	/** The `updatedAt` the client last saw; the server answers 409 if the note changed since */
+	expectedUpdatedAt?: string;
 	title?: string;
 	content?: string;
 	contentJson?: string;

@@ -14,7 +14,7 @@
  * with) stale content.
  */
 
-export type SaveStatus = 'saved' | 'unsaved' | 'saving' | 'error';
+export type SaveStatus = 'saved' | 'unsaved' | 'saving' | 'error' | 'conflict';
 
 export type PersistOptions = { keepalive: boolean };
 
@@ -26,11 +26,17 @@ export interface AutosaveControllerOptions<Snapshot> {
 	retryDelayMs?: number;
 	/** Retries attempted after `dispose()` before giving up */
 	maxRetriesAfterDispose?: number;
+	/**
+	 * True for a failure that must not be retried because the server copy changed
+	 * elsewhere: autosave stops (status `conflict`) instead of overwriting it.
+	 */
+	isConflict?: (error: unknown) => boolean;
 }
 
 export class AutosaveController<Snapshot> {
-	private readonly options: Required<Omit<AutosaveControllerOptions<Snapshot>, 'onStatusChange'>> &
-		Pick<AutosaveControllerOptions<Snapshot>, 'onStatusChange'>;
+	private readonly options: Required<Omit<AutosaveControllerOptions<Snapshot>, 'onStatusChange' | 'isConflict'>> &
+		Pick<AutosaveControllerOptions<Snapshot>, 'onStatusChange' | 'isConflict'>;
+	private halted = false;
 	private debounceTimer: ReturnType<typeof setTimeout> | null = null;
 	private retryTimer: ReturnType<typeof setTimeout> | null = null;
 	private isDirty = false;
@@ -56,11 +62,12 @@ export class AutosaveController<Snapshot> {
 
 	/** True while anything typed has not been confirmed saved by the server. */
 	get hasUnsavedChanges(): boolean {
+		if (this.halted) return false;
 		return this.isDirty || this.failedSnapshot !== null || this.savesInFlight > 0;
 	}
 
 	markDirty(): void {
-		if (this.disposed) return;
+		if (this.disposed || this.halted) return;
 		this.isDirty = true;
 		this.failedSnapshot = null; // the next capture supersedes it
 		this.setStatus('unsaved');
@@ -72,6 +79,7 @@ export class AutosaveController<Snapshot> {
 	flush(flushOptions: Partial<PersistOptions> = {}): Promise<void> {
 		this.clearTimer('debounce');
 		this.clearTimer('retry');
+		if (this.halted) return this.queue;
 
 		let snapshot: Snapshot | null = null;
 		if (this.isDirty && !this.disposed) {
@@ -94,6 +102,10 @@ export class AutosaveController<Snapshot> {
 			this.options.persist(pendingSnapshot, { keepalive }).then(
 				() => this.onSaveSettled(null),
 				(error: unknown) => {
+					if (this.options.isConflict?.(error)) {
+						this.halt();
+						return;
+					}
 					console.error('Autosave failed:', error);
 					this.onSaveSettled(pendingSnapshot);
 				}
@@ -116,6 +128,17 @@ export class AutosaveController<Snapshot> {
 		}
 		this.disposed = true;
 		return this.flush(flushOptions);
+	}
+
+	/** Stop saving for good: the note changed elsewhere and must be reloaded. */
+	private halt(): void {
+		this.savesInFlight -= 1;
+		this.halted = true;
+		this.isDirty = false;
+		this.failedSnapshot = null;
+		this.clearTimer('debounce');
+		this.clearTimer('retry');
+		this.setStatus('conflict');
 	}
 
 	private onSaveSettled(failedSnapshot: Snapshot | null): void {

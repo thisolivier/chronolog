@@ -19,6 +19,17 @@ export function _resetLastLoadedResponses(): void {
 	lastLoadedResponses.clear();
 }
 
+/** A non-OK HTTP response; `status` lets callers react to specific codes (e.g. 409). */
+export class HttpError extends Error {
+	constructor(
+		message: string,
+		readonly status: number
+	) {
+		super(message);
+		this.name = 'HttpError';
+	}
+}
+
 /** Event dispatched when a session expiry is detected on reconnect */
 export class SessionExpiredError extends Error {
 	constructor(statusCode: number, url: string) {
@@ -75,8 +86,9 @@ export async function fetchJson<ResponseType>(
 
 	if (!response.ok) {
 		const errorText = await response.text().catch(() => 'Unknown error');
-		throw new Error(
-			`${options?.method ?? 'GET'} ${url} failed (${response.status}): ${errorText}`
+		throw new HttpError(
+			`${options?.method ?? 'GET'} ${url} failed (${response.status}): ${errorText}`,
+			response.status
 		);
 	}
 	const body = (await response.json()) as ResponseType;

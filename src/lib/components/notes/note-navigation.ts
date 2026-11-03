@@ -5,7 +5,8 @@ import { getCachedNoteTitle, rememberNoteTitle } from './note-titles.svelte';
 /**
  * Open a note by ID from a wiki-link or backlink, switching the sidebar and note list to
  * the note's contract (`navigation.openNote`) instead of only swapping the editor.
- * Falls back to `selectNote` if the note's contract cannot be resolved.
+ * Every way of opening a note from the notes UI goes through here, so the sidebar and
+ * list always follow. Resolves `false` (and navigates nowhere) for a missing note.
  */
 export function useNoteNavigation(navigation: NavigationContext) {
 	async function resolveNoteLocation(noteId: string) {
@@ -26,13 +27,11 @@ export function useNoteNavigation(navigation: NavigationContext) {
 		}
 	}
 
-	async function openNoteById(noteId: string): Promise<void> {
+	async function openNoteById(noteId: string): Promise<boolean> {
 		const location = await resolveNoteLocation(noteId);
-		if (location) {
-			navigation.openNote(noteId, location.contractId, location.clientId);
-		} else {
-			navigation.selectNote(noteId);
-		}
+		if (!location) return false;
+		navigation.openNote(noteId, location.contractId, location.clientId);
+		return true;
 	}
 
 	function openBacklink(backlink: Backlink): void {
