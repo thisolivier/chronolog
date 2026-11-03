@@ -81,17 +81,9 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 - `db:seed` writes plaintext; run `scripts/encrypt-existing.mjs` after seeding (023 sign-off).
 - `encrypt-existing.mjs` has no tested route to production Postgres; only a database created before 023 needs it (023 sign-off, `docs/DEPLOYMENT.md`).
 - Password reset has no tested production path: production Postgres has no host port and the image has no `tsx` (022 sign-off, `docs/DEPLOYMENT.md`).
-- Leftover `chronolog-bucket-storage-1` container and `chronolog_bucket_storage_data` volume from PowerSync; remove them (022 sign-off).
 - SSH key-only login and Screen Sharing restricted to the Tailscale interface are deferred; do them together with go-live, not unattended (`docs/decisions.md`).
 - `svelte-check` reports 12 pre-existing warnings (026 sign-off).
-- `.claude/context7-registry.md`: `/svelte/svelte` no longer resolves and `/ueberdosis/tiptap` redirects (020 sign-off).
 
-### Docs
-
-- `docs/SPEC.md` still describes Dexie and IndexedDB as the PWA storage layer (021 sign-off).
-- `docs/platform-abstraction.md` describes the deleted `src/lib/storage` design, and the README links to it (021 sign-off).
-- `docs/backlog-client.md` and `docs/backlog-infrastructure.md` carry obsolete PowerSync items; this file replaces them (021 sign-off).
-- `docs/ONBOARDING.md` restore section still mentions sprint 024 (028 sign-off).
 
 ## Housekeeping
 
