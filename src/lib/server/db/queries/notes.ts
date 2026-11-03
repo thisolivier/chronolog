@@ -1,6 +1,5 @@
 import { eq, and, desc, like } from "drizzle-orm";
 import { database, notes, noteTimeEntries, contracts, clients, timeEntries } from "$lib/server/db";
-import { extractPreviewLines } from '$lib/utils/extract-preview-lines';
 import { decryptNullable, decryptText, encryptNullable } from '$lib/server/crypto/server-cipher';
 
 type NoteRow = typeof notes.$inferSelect;
@@ -211,56 +210,8 @@ export async function getLinkedTimeEntriesForNote(noteId: string, userId: string
 	}));
 }
 
-/**
- * Search a user's notes by ID, title or markdown body content (case-insensitive substring).
- * Titles and content are encrypted at rest, so this loads the user's notes newest-first,
- * decrypts them and filters in memory (single user, small data), stopping at `limit`.
- * Returns the first two content lines for each match so the `[[` autocomplete
- * can show a preview of the note.
- */
-export async function searchNotesForUser(userId: string, query: string, limit: number = 10) {
-	const needle = query.toLowerCase();
-	const contains = (value: string | null) => value !== null && value.toLowerCase().includes(needle);
-
-	const rows = await database
-		.select({
-			id: notes.id,
-			title: notes.title,
-			contractId: notes.contractId,
-			content: notes.content,
-			contentJson: notes.contentJson
-		})
-		.from(notes)
-		.where(eq(notes.userId, userId))
-		.orderBy(desc(notes.updatedAt));
-
-	const matches: Array<{
-		id: string;
-		title: string | null;
-		contractId: string;
-		firstLine: string;
-		secondLine: string;
-	}> = [];
-
-	for (const row of rows) {
-		if (matches.length >= limit) break;
-		const title = decryptNullable(row.title, 'notes.title');
-		const isMatch =
-			contains(row.id) || contains(title) || contains(decryptNullable(row.content, 'notes.content'));
-		if (!isMatch) continue;
-
-		const preview = extractPreviewLines(decryptNullable(row.contentJson, 'notes.content_json'));
-		matches.push({
-			id: row.id,
-			title,
-			contractId: row.contractId,
-			firstLine: preview.firstLine,
-			secondLine: preview.secondLine
-		});
-	}
-
-	return matches;
-}
+// Search, autocomplete ranking and title lookup live in note-search.ts
+export { searchNotesForUser, getNoteTitlesForUser } from './note-search';
 
 // Re-export from shared utility so existing server imports keep working
 export { extractPreviewLines } from '$lib/utils/extract-preview-lines';

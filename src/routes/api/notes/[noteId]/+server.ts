@@ -47,8 +47,8 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 		throw error(404, 'Note not found');
 	}
 
-	// Update backlinks index from wiki-links in content
-	if (content) {
+	// Update backlinks index from wiki-links in content (also when emptied, to drop old links)
+	if (typeof content === 'string') {
 		await updateNoteLinks(params.noteId, content);
 	}
 

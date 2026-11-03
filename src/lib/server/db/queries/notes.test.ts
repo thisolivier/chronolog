@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { database, clients, contracts, notes, users } from '$lib/server/db';
 import { eq } from 'drizzle-orm';
 import { getNextNoteId, createNoteForUser, searchNotesForUser } from './notes';
+import { rankNoteMatch } from './note-search';
 
 describe('Note ID Generation', () => {
 	let testUserId: string;
@@ -175,5 +176,50 @@ describe('searchNotesForUser', () => {
 
 		const missingResults = await searchNotesForUser(testUserId, `no-such-term-${uniqueSuffix}`);
 		expect(missingResults).toHaveLength(0);
+	});
+
+	it('ranks an exact ID match first even when a newer note mentions that ID (R2)', async () => {
+		const mentioningNote = await createNoteForUser(
+			testUserId,
+			testContractId,
+			'',
+			`See [[${createdNoteId}]] for context`,
+			JSON.stringify({ type: 'doc', content: [] })
+		);
+		const results = await searchNotesForUser(testUserId, createdNoteId);
+		expect(results[0].id).toBe(createdNoteId);
+		expect(results.map((note) => note.id)).toContain(mentioningNote.id);
+	});
+
+	it('excludes the note being edited and returns contract details', async () => {
+		const results = await searchNotesForUser(testUserId, `zebra pricing ${uniqueSuffix}`, {
+			excludeNoteId: createdNoteId
+		});
+		expect(results.map((note) => note.id)).not.toContain(createdNoteId);
+
+		const withContract = await searchNotesForUser(testUserId, createdNoteId);
+		expect(withContract[0]).toMatchObject({
+			contractName: 'Search Contract',
+			clientName: 'Search Client',
+			clientShortCode: 'SRCH',
+			displayTitle: `Alpha title ${uniqueSuffix}`
+		});
+	});
+
+	it('returns recent notes for an empty query', async () => {
+		const results = await searchNotesForUser(testUserId, '');
+		expect(results.length).toBeGreaterThan(0);
+	});
+});
+
+describe('rankNoteMatch', () => {
+	it('orders exact id, id prefix, title, id substring, body', () => {
+		const rank = (needle: string) => rankNoteMatch(needle, 'ACME.20261103.002', 'Kickoff plan', 'body text');
+		expect(rank('acme.20261103.002')).toBe(0);
+		expect(rank('acme.2026')).toBe(1);
+		expect(rank('kickoff')).toBe(2);
+		expect(rank('1103.002')).toBe(3);
+		expect(rank('body')).toBe(4);
+		expect(rank('nothing')).toBeNull();
 	});
 });
