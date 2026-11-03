@@ -79,7 +79,12 @@ export default defineConfig({
 		})
 	],
 	server: {
-		allowedHosts: ['app']
+		allowedHosts: ['app'],
+		watch: {
+			// Other sessions' worktrees live under .claude/worktrees; their `svelte-kit sync`
+			// rewrites tsconfig files there, which would force full reloads of this dev server.
+			ignored: ['**/.claude/**']
+		}
 	},
 	test: {
 		include: ['src/**/*.test.ts'],
