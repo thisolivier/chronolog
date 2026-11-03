@@ -52,6 +52,7 @@ E2E_BASE_URL=http://127.0.0.1:3000 npm run test:e2e
 | `reference-data.e2e.test.ts` | GET /api/deliverables, GET /api/work-types |
 | `search.e2e.test.ts` | GET /api/notes/search |
 | `attachments-offline.e2e.test.ts` | Attachment upload, metadata listing, download and delete |
+| `api-tokens-cli.e2e.test.ts` | /api/tokens, bearer auth, /api/me, error shape, GET /api/time-entries range, the `chronolog` CLI as a child process, revoked token 403 |
 
 ## Configuration
 
