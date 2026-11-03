@@ -1,6 +1,10 @@
 import { json } from '@sveltejs/kit';
 import { getWeeklyStatus, upsertWeeklyStatus } from '$lib/server/db/queries/weekly-statuses';
+import { apiError } from '$lib/server/api-errors';
 import type { RequestHandler } from './$types';
+
+/** The week states the UI offers (WeekStatusMenu). */
+const WEEK_STATUSES = ['Unsubmitted', 'Draft ready', 'Submitted'] as const;
 
 /** GET: Fetch statuses for multiple weeks */
 export const GET: RequestHandler = async ({ url, locals }) => {
@@ -44,6 +48,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	if (!year || !weekNumber || !status) {
 		return json({ error: 'Missing required fields: year, weekNumber, status' }, { status: 400 });
+	}
+
+	if (!(WEEK_STATUSES as readonly string[]).includes(status)) {
+		return apiError(400, `status must be one of: ${WEEK_STATUSES.join(', ')}`, 'invalid_status');
 	}
 
 	const updated = await upsertWeeklyStatus(

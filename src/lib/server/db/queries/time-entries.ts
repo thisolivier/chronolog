@@ -101,6 +101,29 @@ export async function listTimeEntriesForWeek(
 	return rows.map(decryptTimeEntryWithContext);
 }
 
+/**
+ * Non-draft entries between two dates inclusive (`YYYY-MM-DD`), optionally for one contract.
+ * Used by `GET /api/time-entries?from=&to=` (machine clients; sprint 028-CL).
+ */
+export async function listTimeEntriesInRange(
+	userId: string,
+	fromDate: string,
+	toDate: string,
+	contractId?: string
+): Promise<TimeEntryWithContext[]> {
+	const conditions = [
+		eq(timeEntries.userId, userId),
+		between(timeEntries.date, fromDate, toDate),
+		eq(timeEntries.isDraft, false)
+	];
+	if (contractId) conditions.push(eq(timeEntries.contractId, contractId));
+
+	const rows = await timeEntrySelectWithContext()
+		.where(and(...conditions))
+		.orderBy(asc(timeEntries.date), sql`${timeEntries.startTime} asc nulls last`, asc(timeEntries.createdAt));
+	return rows.map(decryptTimeEntryWithContext);
+}
+
 /** Create a new time entry */
 export async function createTimeEntry(data: {
 	userId: string;
