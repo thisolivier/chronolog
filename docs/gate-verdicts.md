@@ -1,3 +1,5 @@
+*Historical: PowerSync era, removed in sprint 021. For current state see `docs/backlog.md` and `docs/decisions.md`.*
+
 # Gate Verdicts — Offline Sync Epic
 
 This document records the validation gate results for the Offline Sync via Self-Hosted PowerSync epic.

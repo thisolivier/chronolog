@@ -126,5 +126,5 @@ Use this after data loss, or when moving the instance to a new machine. Full det
 6. The device access key is not in the dump: its hash lives in `.env.prod`. Browsers keep their
    cookie only while the hash is unchanged, so a restore onto the same `.env.prod` does not need
    `/unlock` again. If the hash has changed since the dump, rotate the key (above).
-7. *(sprint 024)* API tokens are stored in the database, so they come back with the restore. Revoke
+7. API tokens are stored in the database, so they come back with the restore. Revoke
    any that belonged to lost devices.

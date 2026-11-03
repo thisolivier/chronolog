@@ -1,3 +1,5 @@
+*Historical: PowerSync era, removed in sprint 021. For current state see `docs/backlog.md` and `docs/decisions.md`.*
+
 # Chronolog — Backlog
 
 Previous completed tasks (1-10) are archived in [docs/BACKLOG-COMPLETE-1.md](docs/BACKLOG-COMPLETE-1.md).

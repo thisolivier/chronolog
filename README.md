@@ -10,7 +10,6 @@ Project documentation lives in the [`docs/`](docs/) directory:
 
 - **[SPEC.md](docs/SPEC.md)** — Full project specification (data model, tech stack, architecture, security)
 - **[UI-SPEC.md](docs/UI-SPEC.md)** — UI specification (three-panel layout, timer widget, mobile layout)
-- **[platform-abstraction.md](docs/platform-abstraction.md)** — Storage and window management abstraction for Tauri + PWA
 - **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** — Building and deploying for production
 
 The live backlog is in [`docs/backlog.md`](docs/backlog.md). The root [`BACKLOG.md`](BACKLOG.md) is the original long-form task list.

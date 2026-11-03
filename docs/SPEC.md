@@ -2,7 +2,7 @@
 
 ## Overview
 
-Chronolog is a time-tracking and note-taking app for consulting work, delivered as a **Tauri 2.0 desktop application** (macOS primary) with a **PWA fallback for mobile**. It supports 2-3 users managing time entries and markdown notes across 3-5 active client contracts, with offline-first capability, encryption at rest, and TOTP-based 2FA.
+Chronolog is a time-tracking and note-taking app for consulting work, delivered as a **Tauri 2.0 desktop application** (macOS primary) with a **PWA fallback for mobile**. It supports 2-3 users managing time entries and markdown notes across 3-5 active client contracts, with an online-first design (a read cache keeps the last loaded data visible when the server is unreachable, and an offline banner says so), encryption at rest, and TOTP-based 2FA.
 
 ## Data Model
 
@@ -87,7 +87,7 @@ Tracked via a backlinks index, extracted from `[[wiki-link]]` syntax in markdown
 | filename | TEXT | Original filename |
 | mime_type | TEXT | |
 | size_bytes | INT | |
-| data | BLOB | Encrypted at rest (server); stored as Blob in IndexedDB (client) |
+| data | BLOB | Encrypted at rest (server) |
 | created_at | TIMESTAMP | |
 
 ## Technology Stack
@@ -98,19 +98,16 @@ Tracked via a backlinks index, extracted from `[[wiki-link]]` syntax in markdown
   - `@sveltejs/adapter-node` for the server deployment (PWA mobile fallback)
 - **Svelte 5** runes for state management
 - **@vite-pwa/sveltekit** (v1.1+) for PWA / service worker (mobile only)
-- **Dexie.js** (v4.3+) for client-side IndexedDB storage (mobile/PWA)
 - **TipTap** (v3.x) for WYSIWYG markdown editing
   - `@tiptap/extension-markdown` for markdown serialisation
   - Custom WikiLink node using Suggestion utility for `[[note-links]]`
   - FileHandler extension for drag-and-drop attachments
   - AnchoredHeading extension for section-level linking
-- **Workbox Background Sync** for offline mutation queue (mobile/PWA)
 
 ### Desktop Shell (Tauri)
 - **Tauri 2.0** as the desktop application shell (Rust-based, WebView2/WebKit)
 - **Multi-window support** via Tauri's window management API (e.g. pop-out note editors)
 - **Native menus** and system tray integration
-- **tauri-plugin-sql** for native SQLite access (replaces IndexedDB on desktop)
 - **tauri-plugin-updater** for auto-update support
 - Primary target: macOS (.app / .dmg distribution)
 
@@ -122,65 +119,22 @@ Tracked via a backlinks index, extracted from `[[wiki-link]]` syntax in markdown
 - **Node.js crypto** (AES-256-GCM) for application-level encryption
 
 ### Deployment
-- **Desktop (Tauri)**: Built with `cargo tauri build`, distributed as macOS `.app` bundle / `.dmg` installer. Auto-updates via `tauri-plugin-updater`.
-- **Server / PWA**: **Coolify** on a **Hetzner** CX22 VPS (~EUR 4-6/mo)
-  - Automatic HTTPS via Let's Encrypt
-  - Built-in scheduled PostgreSQL backups to S3-compatible storage
-  - Git-push deploys
-- **Alternative server**: Docker Compose + Caddy on any VPS
+- **Production**: the app and PostgreSQL run as a two-container Docker Compose stack (`docker-compose.prod.yml`) on the Mac mini under OrbStack.
+  - The app listens on `127.0.0.1:3123`; PostgreSQL publishes no host port.
+  - Reached at `chronolog.throb.online` through the existing Cloudflare Tunnel.
+  - A self-managed device access key gates access before login.
+  - Nightly `pg_dump` backups run from launchd at 03:30.
+  - Details: `docs/DEPLOYMENT.md`.
 
 ### Offline Strategy
 
-A **storage abstraction layer** provides a unified interface for local data access. The underlying storage engine differs by platform:
+The app is **online-first**. The server (SvelteKit API routes over PostgreSQL) is the source of truth, and every write goes straight to it. There is no local database and no service-worker data queue.
 
-- **Desktop (Tauri)**: Native SQLite via `tauri-plugin-sql`. No IndexedDB or service worker needed.
-- **Mobile / PWA**: IndexedDB via Dexie.js, with service worker caching and Workbox Background Sync.
-
-The abstraction exposes the same reactive query and mutation API to the Svelte UI regardless of platform. Platform detection (`window.__TAURI__`) selects the appropriate backend at initialisation.
-
-```
-                  ┌─────────────┐
-                  │  PostgreSQL  │  (server, source of truth)
-                  └──────┬──────┘
-                         │ API
-                  ┌──────┴──────┐
-                  │  SvelteKit  │  (server routes, encryption/decryption)
-                  │   Server    │
-                  └──────┬──────┘
-                         │ HTTPS
-          ───────────────┼─────────────── network boundary
-                         │
-              ┌──────────┴──────────┐
-              │                     │
-     Desktop (Tauri)         Mobile (PWA)
-              │                     │
-      ┌───────┴───────┐    ┌───────┴───────┐
-      │  SQLite       │    │ Service Worker │
-      │  (tauri-      │    │ (app shell     │
-      │   plugin-sql) │    │  cache +       │
-      └───────┬───────┘    │  Background    │
-              │            │  Sync)         │
-              │            └───────┬───────┘
-              │                    │
-              │            ┌───────┴───────┐
-              │            │  Dexie.js     │
-              │            │  (IndexedDB)  │
-              │            └───────┬───────┘
-              │                    │
-      ┌───────┴────────────────────┴───────┐
-      │   Storage Abstraction Layer        │
-      │   (unified reactive query/mutate)  │
-      └────────────────┬──────────────────┘
-                       │
-               ┌───────┴───────┐
-               │  Svelte UI    │  (TipTap editor, time tracker, weekly view)
-               └───────────────┘
-```
-
-- **Reads**: Storage abstraction serves data from local store (SQLite or IndexedDB). Background sync pulls changes from server.
-- **Writes**: Saved to local store immediately. Queued for server sync (Background Sync on PWA; direct HTTP on Tauri).
-- **Conflict resolution**: Last-write-wins using `updated_at` timestamps. Acceptable for 2-3 users with low collision probability.
-- **Session expiry**: 30-day server sessions. App remains usable offline via cached data. Re-auth required on reconnection if session expired.
+- **Read cache**: the client keeps the last successful GET response per URL in memory (`src/lib/services/fetch-helpers.ts`). When a read fails because the server is unreachable, the cached copy is returned. The cache lives for the current page session only and is lost on reload.
+- **Write-through**: writes are never cached or queued. A successful write updates or evicts the cached reads of the resource it changed, so an offline read never shows a copy older than the last save.
+- **Offline banner**: each request reports its outcome to the connectivity store. The banner shows when the server is unreachable, and reads served from the cache say so rather than showing an empty state.
+- **Session expiry**: a 401 or a redirect to `/login` raises a session-expired error and sends the user to log in again.
+- **Planned: offline outbox** (`docs/decisions.md`). A later sprint adds a persistent write outbox with last-write-wins per field, a visible "replayed" marker, and a held queue with a prompt when the server copy changed meanwhile. Until it exists, a write made while the server is unreachable fails with an error and is not saved.
 
 ## Security
 
@@ -201,14 +155,14 @@ The abstraction exposes the same reactive query and mutation API to the Svelte U
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Desktop shell | Tauri 2.0 | Dock presence, native multi-window, native menus, SQLite access, small binary size (~10 MB); Rust backend avoids Electron's memory overhead |
-| DB architecture | PostgreSQL (server) + SQLite/IndexedDB (client) | Relational model fits linked data (notes ↔ entries); SQLite on desktop, IndexedDB on mobile; custom sync manageable at 2-3 user scale |
+| Desktop shell | Tauri 2.0 | Dock presence, native multi-window, native menus, small binary size (~10 MB); Rust backend avoids Electron's memory overhead |
+| DB architecture | PostgreSQL (server, source of truth); client keeps an in-memory read cache only | Relational model fits linked data (notes ↔ entries); the server owns all data, and the planned offline outbox is the only client-side write state, sized for 2-3 users |
 | Why not PouchDB/CouchDB | Ruled out | Document model awkward for relational links; smaller modern ecosystem |
 | Why not Turso | Ruled out for now | Browser offline sync is beta with no durability guarantees |
 | Editor | TipTap | Best Svelte 5 support; Suggestion system maps directly to wiki-links; markdown serialisation built-in |
 | Sync approach | Custom last-write-wins | Simple, sufficient for 2-3 users, avoids CRDT complexity |
 | Auth | Better Auth | First-class SvelteKit + TOTP support; avoids building auth from scratch |
-| Deployment | Coolify on Hetzner | Web UI, built-in backups, git-push deploys, ~EUR 5/mo |
+| Deployment | Mac mini (OrbStack) behind the existing Cloudflare Tunnel | App and Postgres containerised on the owner's Mac mini; no VPS. Access gated by a self-managed device key (`docs/decisions.md`, 2026-11-03) |
 
 ## Note ID System
 
@@ -222,7 +176,7 @@ CLIENT_CODE.YYYYMMDD.SEQ
 - `YYYYMMDD`: Creation date
 - `SEQ`: Zero-padded sequence number for that client+date (001, 002, ...)
 
-Generated automatically. Sequence counter stored per client+date in IndexedDB to ensure uniqueness even offline.
+Generated automatically by the server (`getNextNoteId`) from the client's short code and the date. Note creation needs the server, so IDs are not allocated offline; the planned offline outbox must handle this.
 
 **Sequence scope (decided in sprint 026-CL, UX finding 42):** the server derives `SEQ` from the
 highest existing `notes.id` with the same `CLIENT_CODE.YYYYMMDD.` prefix across the whole table, not
