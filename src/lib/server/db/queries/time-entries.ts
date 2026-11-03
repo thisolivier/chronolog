@@ -1,5 +1,6 @@
 import { eq, and, between, asc, sql } from 'drizzle-orm';
 import { database, timeEntries, contracts, clients, deliverables, workTypes } from '$lib/server/db';
+import { calculateTimerDurationMinutes } from './timer-duration';
 
 /** Shape returned by time entry queries that join related tables */
 export type TimeEntryWithContext = {
@@ -17,6 +18,7 @@ export type TimeEntryWithContext = {
 	createdAt: Date;
 	updatedAt: Date;
 	contractName: string;
+	clientId: string;
 	clientName: string;
 	clientShortCode: string;
 	clientColorIndex: number;
@@ -42,6 +44,7 @@ function timeEntrySelectWithContext() {
 			createdAt: timeEntries.createdAt,
 			updatedAt: timeEntries.updatedAt,
 			contractName: contracts.name,
+			clientId: clients.id,
 			clientName: clients.name,
 			clientShortCode: clients.shortCode,
 			clientColorIndex: clients.colorIndex,
@@ -168,12 +171,8 @@ export async function stopTimer(entryId: string, userId: string) {
 	const entry = existing[0];
 	if (!entry || !entry.startTime) return null;
 
-	// Calculate duration in minutes from start to now
-	const startParts = entry.startTime.split(':').map(Number);
-	const endParts = currentTime.split(':').map(Number);
-	const startMinutes = startParts[0] * 60 + startParts[1];
-	const endMinutes = endParts[0] * 60 + endParts[1];
-	const durationMinutes = Math.max(0, endMinutes - startMinutes);
+	// Duration from full seconds, rounded up, never 0 (see timer-duration.ts)
+	const durationMinutes = calculateTimerDurationMinutes(entry.startTime, currentTime);
 
 	const results = await database
 		.update(timeEntries)

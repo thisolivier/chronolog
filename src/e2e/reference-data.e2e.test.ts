@@ -1,7 +1,8 @@
 /**
  * E2E Tests: Deliverables and Work Types
  *
- * Verifies the reference data endpoints for deliverables and work types.
+ * Verifies the reference data endpoints for deliverables and work types,
+ * including UUID validation of their query parameters (400, never 500).
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -30,26 +31,42 @@ describe('Reference Data API', () => {
 		// May be empty for a new contract — that's fine
 	});
 
-	it('GET /api/work-types?deliverableId=X returns work types (may be empty)', async () => {
-		// First, check if there are any deliverables
+	it('GET /api/deliverables without contractId returns 400', async () => {
+		const response = await authGet('/api/deliverables');
+		expect(response.status).toBe(400);
+	});
+
+	it('GET /api/deliverables?contractId=<non-uuid> returns 400, not 500', async () => {
+		const response = await authGet('/api/deliverables?contractId=nonexistent');
+		expect(response.status).toBe(400);
+	});
+
+	it('GET /api/work-types?deliverableId=X returns work types for a real deliverable (when any exist)', async () => {
 		const deliverablesResponse = await authGet(`/api/deliverables?contractId=${contractId}`);
 		const deliverables = await deliverablesResponse.json();
 
-		if (deliverables.length > 0) {
-			const deliverableId = deliverables[0].id;
-			const response = await authGet(`/api/work-types?deliverableId=${deliverableId}`);
-			expect(response.ok).toBe(true);
-
-			const data = await response.json();
-			expect(Array.isArray(data)).toBe(true);
-		} else {
-			// No deliverables available — verify the endpoint at least responds.
-			// With a nonexistent deliverableId the server may return 200 (empty), 404, or 500
-			// depending on the query implementation. The key assertion is that the endpoint
-			// is reachable and returns a valid HTTP response.
-			const response = await authGet('/api/work-types?deliverableId=nonexistent');
-			expect(response.status).toBeGreaterThanOrEqual(200);
-			expect(response.status).toBeLessThan(600);
+		if (deliverables.length === 0) {
+			// No deliverables on the seeded contract — a random UUID must still answer 200 with an empty list
+			const response = await authGet(
+				'/api/work-types?deliverableId=00000000-0000-4000-8000-000000000000'
+			);
+			expect(response.status).toBe(200);
+			expect(await response.json()).toEqual([]);
+			return;
 		}
+
+		const response = await authGet(`/api/work-types?deliverableId=${deliverables[0].id}`);
+		expect(response.ok).toBe(true);
+		expect(Array.isArray(await response.json())).toBe(true);
+	});
+
+	it('GET /api/work-types without deliverableId returns 400', async () => {
+		const response = await authGet('/api/work-types');
+		expect(response.status).toBe(400);
+	});
+
+	it('GET /api/work-types?deliverableId=<non-uuid> returns 400, not 500', async () => {
+		const response = await authGet('/api/work-types?deliverableId=nonexistent');
+		expect(response.status).toBe(400);
 	});
 });

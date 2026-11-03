@@ -17,7 +17,8 @@ export const GET: RequestHandler = async ({ locals }) => {
 		clients: clientList.map((client) => ({
 			id: client.id,
 			name: client.name,
-			shortCode: client.shortCode
+			shortCode: client.shortCode,
+			colorIndex: client.colorIndex
 		}))
 	});
 };

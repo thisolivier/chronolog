@@ -1,10 +1,18 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import ClientRow from '$lib/components/admin/ClientRow.svelte';
+	import { CLIENT_COLORS } from '$lib/utils/client-colors';
 
 	let { data, form } = $props();
 
 	let showCreateForm = $state(false);
+
+	// Default a new client to the first palette colour no existing client uses, so clients differ by default
+	const suggestedColorIndex = $derived.by(() => {
+		const usedColorIndexes = new Set(data.clients.map((client) => client.colorIndex % CLIENT_COLORS.length));
+		const firstUnused = CLIENT_COLORS.findIndex((_, colorIndex) => !usedColorIndexes.has(colorIndex));
+		return firstUnused === -1 ? data.clients.length % CLIENT_COLORS.length : firstUnused;
+	});
 </script>
 
 <div class="space-y-6">
@@ -37,7 +45,7 @@
 		<div class="rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
 			<h2 class="mb-4 text-lg font-medium text-stone-900">New Client</h2>
 			<form method="POST" action="?/create" use:enhance class="space-y-4">
-				<div class="grid gap-4 sm:grid-cols-3">
+				<div class="grid gap-4 sm:grid-cols-4">
 					<div>
 						<label for="new-client-name" class="block text-sm font-medium text-stone-700">
 							Name
@@ -76,6 +84,21 @@
 							placeholder=""
 						/>
 					</div>
+					<div>
+						<label for="new-client-color" class="block text-sm font-medium text-stone-700">
+							Colour
+						</label>
+						<select
+							id="new-client-color"
+							name="color_index"
+							value={suggestedColorIndex}
+							class="mt-1 block w-full rounded-md border border-stone-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						>
+							{#each CLIENT_COLORS as color, colorIndex (colorIndex)}
+								<option value={colorIndex}>{color.name}</option>
+							{/each}
+						</select>
+					</div>
 				</div>
 				<div class="flex justify-end">
 					<button
@@ -106,6 +129,9 @@
 						</th>
 						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-stone-500">
 							Emoji
+						</th>
+						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-stone-500">
+							Colour
 						</th>
 						<th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-stone-500">
 							Actions

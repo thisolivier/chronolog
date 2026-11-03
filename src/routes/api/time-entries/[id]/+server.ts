@@ -22,6 +22,9 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	const updateData: Record<string, unknown> = {};
 
 	if (body.contractId !== undefined) updateData.contractId = body.contractId;
+	// null is a valid value here: it clears the deliverable / work type
+	if (body.deliverableId !== undefined) updateData.deliverableId = body.deliverableId || null;
+	if (body.workTypeId !== undefined) updateData.workTypeId = body.workTypeId || null;
 	if (body.durationMinutes !== undefined) updateData.durationMinutes = body.durationMinutes;
 	if (body.description !== undefined) updateData.description = body.description;
 	if (body.startTime !== undefined) updateData.startTime = body.startTime;

@@ -42,7 +42,8 @@ async function seed() {
 		.values({
 			userId: sampleUser.id,
 			name: 'Big Cheese Inc.',
-			shortCode: 'BIGCH'
+			shortCode: 'BIGCH',
+			colorIndex: 1
 		})
 		.returning();
 
@@ -51,7 +52,8 @@ async function seed() {
 		.values({
 			userId: sampleUser.id,
 			name: 'Internal',
-			shortCode: 'INTRL'
+			shortCode: 'INTRL',
+			colorIndex: 0
 		})
 		.returning();
 

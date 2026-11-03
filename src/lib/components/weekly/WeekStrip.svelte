@@ -1,11 +1,9 @@
 <script lang="ts">
 	import { getIsoWeekNumber, formatWeekRange } from '$lib/utils/iso-week';
-	import { getClientDotClass } from '$lib/utils/client-colors';
-
-	type DayEntry = {
-		clientColorIndex: number;
-		durationMinutes: number;
-	};
+	import {
+		computeColorSegments,
+		type WeekStripDayEntry as DayEntry
+	} from './week-strip-segments';
 
 	type DayData = {
 		date: string;
@@ -83,16 +81,6 @@
 		const nextIndex = (currentIndex + 1) % STATUS_CYCLE.length;
 		onStatusChange(STATUS_CYCLE[nextIndex]);
 	}
-
-	function computeColorSegments(entries: DayEntry[]): Array<{ colorClass: string; percentage: number }> {
-		if (entries.length === 0) return [];
-		const totalMinutesForDay = entries.reduce((sum, entry) => sum + entry.durationMinutes, 0);
-		if (totalMinutesForDay === 0) return [];
-		return entries.map((entry) => ({
-			colorClass: getClientDotClass(entry.clientColorIndex),
-			percentage: (entry.durationMinutes / totalMinutesForDay) * 100
-		}));
-	}
 </script>
 
 <div class="sticky top-0 z-10 border-b border-stone-200 bg-white">
@@ -133,7 +121,7 @@
 					<span class="text-xs tabular-nums text-stone-400">{formatDayHours(dayData.totalMinutes)}</span>
 					<!-- Color proportion bar -->
 					<div class="mt-1 flex h-1.5 w-full overflow-hidden rounded-full">
-						{#each colorSegments as segment (segment.colorClass + segment.percentage)}
+						{#each colorSegments as segment (segment.clientId)}
 							<div
 								class="{segment.colorClass} h-full"
 								style="width: {segment.percentage}%"

@@ -32,7 +32,7 @@ Reusable UI components live in `src/lib/components/admin/`:
 
 Query helpers in `src/lib/server/db/queries/`:
 
-- **clients.ts** — List, get, create, update, delete clients (scoped by user_id)
+- **clients.ts** — List, get, create, update, delete clients (scoped by user_id); `colorIndex` (0-7, palette in `src/lib/utils/client-colors.ts`) is set from the client row or via `PATCH /api/clients/:id`
 - **contracts.ts** — List, get, create, update, delete contracts (scoped by client_id)
 - **deliverables.ts** — List, get, create, update, delete deliverables (scoped by contract_id)
 - **work-types.ts** — List, create, update, delete, reorder work types (scoped by deliverable_id)

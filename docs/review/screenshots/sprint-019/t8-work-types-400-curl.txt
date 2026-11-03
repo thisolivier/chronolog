@@ -1,0 +1,4 @@
+GET /api/work-types?deliverableId=nonexistent -> {"message":"deliverableId must be a UUID"} [HTTP 400]
+GET /api/deliverables?contractId=nonexistent -> {"message":"contractId must be a UUID"} [HTTP 400]
+GET /api/work-types?deliverableId=00000000-0000-4000-8000-000000000000 -> [] [HTTP 200]
+GET /api/work-types -> {"message":"deliverableId query parameter is required"} [HTTP 400]
