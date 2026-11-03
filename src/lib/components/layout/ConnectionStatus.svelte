@@ -3,13 +3,16 @@
 	 * Offline banner (sprint 026-CL, finding 3). Says plainly what does and does not work offline;
 	 * nothing is queued yet (that is the future outbox sprint), so it never claims changes are kept.
 	 */
+	import { onMount } from 'svelte';
 	import { connectivity, trackBrowserConnectivity } from '$lib/stores/connectivity.svelte';
 	import type { NavigationMode } from '$lib/stores/navigation.svelte';
 
 	/** The main screen passes its mode so the message matches what is on screen. */
 	let { mode = null }: { mode?: NavigationMode | null } = $props();
 
-	$effect(() => trackBrowserConnectivity());
+	// onMount, not $effect: the subscription reads connectivity state synchronously, so an effect
+	// would re-run on every reportNetworkFailure() and reset it to "Back online" (QA 2, R1).
+	onMount(trackBrowserConnectivity);
 
 	const offlineMessage = $derived(
 		mode === 'time-entries'
