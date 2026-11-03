@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Chronolog is a time-tracking and note-taking app for consulting work, delivered as a Tauri 2.0 desktop app (macOS primary) with a PWA fallback for mobile. Backend services (Postgres, PowerSync, app server) are intended to run containerised on the Mac mini. See `docs/SPEC.md` for the full specification, `docs/backlog.md` for the live backlog, and `docs/sprints/readme.md` for sprint history.
+Chronolog is a time-tracking and note-taking app for consulting work, delivered as a Tauri 2.0 desktop app (macOS primary) with a PWA fallback for mobile. The app and its Postgres run containerised on the Mac mini, exposed at `chronolog.throb.online` through the existing Cloudflare tunnel. Decisions are logged in `docs/decisions.md`. See `docs/SPEC.md` for the full specification, `docs/backlog.md` for the live backlog, and `docs/sprints/readme.md` for sprint history.
 
 ## General Directives
 - Start each response with ☀️
@@ -36,8 +36,8 @@ Your work is deeply appreciated.
 - `src-tauri/` — Tauri 2.0 Rust backend
 - `drizzle/` — database migrations
 - `docs/` — specification, backlog, sprint specs, UX research, and state reviews
-- `config/` — PowerSync service config and sync rules
 - `e2e-playwright/`, `src/e2e/` — browser and API end-to-end tests
+- `scripts/` — deploy, backup and maintenance scripts
 - `static/` — static assets
 - `.claude/` — skills (synced from `~/sites/nakedClaude/.claude/`), context7 registry, session reviews
 

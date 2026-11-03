@@ -7,7 +7,7 @@ the detail; this file is the index a new session reads first.
 
 - **Hosting:** app + Postgres containerised on the Mac mini (OrbStack). Hetzner/Coolify is dropped.
 - **Exposure:** Cloudflare Tunnel on the existing `cloudflared` LaunchDaemon, hostname
-  `chronolog.throb.online` (to confirm). Not Tailscale-only: the owner's VPN and Tailscale conflict
+  `chronolog.throb.online` → `http://localhost:3123` (confirmed by the owner 2026-11-03). Not Tailscale-only: the owner's VPN and Tailscale conflict
   unpredictably and access to the app wins. Cloudflare Access is **not** used, because a standalone
   Tauri build cannot carry Access credentials cleanly.
 - **Gate instead of Access:** a self-managed device access key, following the music gateway's
