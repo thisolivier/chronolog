@@ -4,7 +4,6 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
-| 022-IF | Infrastructure | Production stack on the Mac mini | active |
 | 019-CL | Client | Stabilise: timesheet bugs | active |
 | 018-QA | QA | Manual testing backlog | superseded by docs/review/2026-11-03-qa-state.md |
 
@@ -12,6 +11,7 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 022-IF | Infrastructure | Production stack on the Mac mini | merged |
 | 020-CL | Client | Stabilise: notes and editor bugs | merged |
 | 021-CL | Client/Infra | Stabilise: dead sync code out, lost wiring back, doors closed | merged |
 | 017-CL | Client | Timesheet redesign (UX-2 impl) | merged |
