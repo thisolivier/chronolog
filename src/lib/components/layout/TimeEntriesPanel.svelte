@@ -5,7 +5,17 @@
 	import WeekStrip from '$lib/components/weekly/WeekStrip.svelte';
 	import TimeEntryCard from '$lib/components/weekly/TimeEntryCard.svelte';
 	import NewEntryRow from '$lib/components/weekly/NewEntryRow.svelte';
-	import { getMondayOfWeek, getIsoWeekNumber, getIsoYear, getWeekDates, formatDayHeader } from '$lib/utils/iso-week';
+	import TimerWidget from '$lib/components/timer/TimerWidget.svelte';
+	import { isSidebarTimerWidgetMounted } from '$lib/components/timer/timer-widget-registry.svelte';
+	import {
+		getMondayOfWeek,
+		getIsoWeekNumber,
+		getIsoYear,
+		getWeekDates,
+		formatDayHeader,
+		formatWeekRange
+	} from '$lib/utils/iso-week';
+	import { formatMinutes } from '$lib/utils/duration';
 	import { SvelteDate } from 'svelte/reactivity';
 	import { TIME_ENTRY_SAVED_EVENT, readTimeEntrySavedDetail } from '$lib/components/weekly/time-entry-events';
 	import type { WeekData, TimeEntryDisplay } from '$lib/services/types';
@@ -15,8 +25,12 @@
 
 	let loadedWeeks = $state<WeekData[]>([]);
 	let isLoading = $state(false);
-	let hasMoreWeeks = $state(true);
+	let isLoadingOlderWeek = $state(false);
 	let daySectionRefs: Record<string, HTMLElement> = {};
+
+	// "Load older weeks" appends earlier weeks below the selected one; reset on week change
+	let olderWeeksShown = $state(0);
+	let olderWeeksShownFor = $state('');
 
 	// UI state for add-entry
 	let expandedAddEntry: Record<string, boolean> = $state({});
@@ -50,14 +64,32 @@
 		})
 	);
 
-	// Get the days to display (up to today for the selected week)
-	let displayDays = $derived(getWeekDaysUpToToday(selectedWeekStart));
+	// Every day of the selected week is shown, future days included, so time can be logged ahead
+	let displayDays = $derived(getWeekDates(selectedWeekStart));
+
+	// Older weeks appended by "Load older weeks", newest first
+	let olderWeekStarts = $derived(
+		olderWeeksShownFor === selectedWeekStart
+			? Array.from({ length: olderWeeksShown }, (_, offset) => shiftWeek(selectedWeekStart, -(offset + 1)))
+			: []
+	);
+
+	// The Add Entry modal in the phone footer opens on today when today is in view
+	let addEntryDate = $derived(displayDays.includes(todayString) ? todayString : selectedWeekStart);
+
+	let showFooterTimer = $derived(!isSidebarTimerWidgetMounted());
 
 	function formatDate(date: Date): string {
 		const year = date.getFullYear();
 		const month = String(date.getMonth() + 1).padStart(2, '0');
 		const day = String(date.getDate()).padStart(2, '0');
 		return `${year}-${month}-${day}`;
+	}
+
+	function shiftWeek(weekStart: string, weekOffset: number): string {
+		const shiftedDate = new SvelteDate(weekStart + 'T00:00:00');
+		shiftedDate.setDate(shiftedDate.getDate() + weekOffset * 7);
+		return formatDate(shiftedDate);
 	}
 
 	function getWeekStarts(startWeek: string, count: number): string[] {
@@ -107,27 +139,23 @@
 		}
 	}
 
-	async function loadMoreWeeks() {
-		if (isLoading || !hasMoreWeeks) return;
-
-		isLoading = true;
+	/** Show one more week below the ones on screen (loading it first if needed) */
+	async function loadOlderWeek() {
+		if (isLoadingOlderWeek) return;
+		const shownSoFar = olderWeeksShownFor === selectedWeekStart ? olderWeeksShown : 0;
+		const nextOlderWeek = shiftWeek(selectedWeekStart, -(shownSoFar + 1));
+		isLoadingOlderWeek = true;
 		try {
-			const oldestWeek = loadedWeeks[loadedWeeks.length - 1];
-			if (!oldestWeek) return;
-
-			const oldestDate = new SvelteDate(oldestWeek.weekStart + 'T00:00:00');
-			oldestDate.setDate(oldestDate.getDate() - 7);
-			const nextStartWeek = formatDate(oldestDate);
-
-			const weekStarts = getWeekStarts(nextStartWeek, 4);
-			const fetchedWeeks = await loadWeeksFromApi(weekStarts);
-
-			loadedWeeks = [...loadedWeeks, ...fetchedWeeks];
-		} catch (error) {
-			console.error('Error loading more weeks:', error);
+			await ensureWeekLoaded(nextOlderWeek);
+			olderWeeksShownFor = selectedWeekStart;
+			olderWeeksShown = shownSoFar + 1;
 		} finally {
-			isLoading = false;
+			isLoadingOlderWeek = false;
 		}
+	}
+
+	function findWeekData(weekStart: string): WeekData | null {
+		return loadedWeeks.find((week) => week.weekStart === weekStart) ?? null;
 	}
 
 	/** Reload all currently loaded weeks (called after add/edit/delete) */
@@ -191,37 +219,22 @@
 		}
 	}
 
-	/** Get all dates in a week up to today */
-	function getWeekDaysUpToToday(weekStart: string): string[] {
-		return getWeekDates(weekStart).filter((dateString) => dateString <= todayString);
-	}
-
 	/** Find the day data for a given date in the selected week */
 	function findDayDataForDate(dateString: string) {
 		if (!selectedWeekData) return null;
 		return selectedWeekData.days.find((day) => day.date === dateString) ?? null;
 	}
 
-	/** Get a month label for month dividers */
-	function getMonthLabel(dateString: string): string {
-		const date = new Date(dateString + 'T00:00:00');
-		return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
-	}
-
 	// --- Week navigation handlers ---
 
 	function navigateToPrevWeek() {
-		const currentSelectedDate = new SvelteDate(selectedWeekStart + 'T00:00:00');
-		currentSelectedDate.setDate(currentSelectedDate.getDate() - 7);
-		const previousWeekStart = formatDate(currentSelectedDate);
+		const previousWeekStart = shiftWeek(selectedWeekStart, -1);
 		navigation.selectWeek(previousWeekStart);
 		ensureWeekLoaded(previousWeekStart);
 	}
 
 	function navigateToNextWeek() {
-		const currentSelectedDate = new SvelteDate(selectedWeekStart + 'T00:00:00');
-		currentSelectedDate.setDate(currentSelectedDate.getDate() + 7);
-		const nextWeekStart = formatDate(currentSelectedDate);
+		const nextWeekStart = shiftWeek(selectedWeekStart, 1);
 		navigation.selectWeek(nextWeekStart);
 		ensureWeekLoaded(nextWeekStart);
 	}
@@ -277,16 +290,17 @@
 				{#if !expandedAddEntry[dayDate]}
 					<button
 						onclick={() => toggleAddEntry(dayDate)}
-						class="text-sm leading-none text-stone-500 hover:text-blue-500"
+						class="rounded px-1.5 text-sm leading-none text-stone-500 hover:text-blue-500 pointer-coarse:py-1"
 						title="Add entry"
+						aria-label="Add entry for {formatDayHeader(dayDate)}"
 					>
 						+
 					</button>
 				{/if}
 			</div>
 			{#if totalMinutes > 0}
-				<span class="text-sm font-medium text-stone-500">
-					{Math.round((totalMinutes / 60) * 10) / 10} hrs
+				<span class="text-sm font-medium tabular-nums text-stone-500">
+					{formatMinutes(totalMinutes)}
 				</span>
 			{/if}
 		</div>
@@ -319,12 +333,32 @@
 	</div>
 {/snippet}
 
-<div class="flex h-full flex-col overflow-hidden bg-stone-50">
-	<!-- Mobile-only header -->
-	<div class="border-b border-stone-200 bg-white px-6 py-4 md:hidden">
-		<h1 class="text-xl font-bold text-stone-900">Time Entries</h1>
-	</div>
+{#snippet olderWeekSection(weekStart: string)}
+	{@const weekData = findWeekData(weekStart)}
+	{@const daysWithEntries = weekData?.days.filter((day) => day.entries.length > 0) ?? []}
+	<section class="mt-6" aria-label="Week {getIsoWeekNumber(weekStart)}">
+		<div class="mb-2 flex items-center gap-3">
+			<h2 class="text-xs font-semibold tracking-widest whitespace-nowrap text-stone-500 uppercase">
+				Week {getIsoWeekNumber(weekStart)} &middot; {formatWeekRange(weekStart)}
+			</h2>
+			<div class="h-px flex-1 bg-stone-200"></div>
+			<span class="text-xs font-medium tabular-nums text-stone-500">
+				{formatMinutes(weekData?.weeklyTotalMinutes ?? 0)}
+			</span>
+		</div>
+		{#if !weekData}
+			<p class="px-1 text-sm text-stone-400">Loading…</p>
+		{:else if daysWithEntries.length === 0}
+			<p class="px-1 text-sm italic text-stone-400">No entries this week</p>
+		{:else}
+			{#each daysWithEntries as day (day.date)}
+				{@render daySection(day.date, day.entries, day.totalMinutes)}
+			{/each}
+		{/if}
+	</section>
+{/snippet}
 
+<div class="flex h-full flex-col overflow-hidden bg-stone-50">
 	<!-- WeekStrip: sticky at the top of the panel -->
 	{#if selectedWeekData}
 		<WeekStrip
@@ -351,50 +385,38 @@
 		/>
 	{/if}
 
-	<!-- Scrollable content: selected week's day sections -->
-	<div class="flex-1 overflow-y-auto px-6 py-4">
+	<!-- Scrollable content: the selected week's seven days, then any older weeks loaded -->
+	<div class="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
 		{#if isLoading && loadedWeeks.length === 0}
 			<div class="flex items-center justify-center py-12">
 				<p class="text-stone-500">Loading weeks...</p>
 			</div>
 		{:else}
-			{#each displayDays as dayDate, dayIndex (dayDate)}
+			{#each displayDays as dayDate (dayDate)}
 				{@const dayData = findDayDataForDate(dayDate)}
-				{@const previousDayDate = dayIndex > 0 ? displayDays[dayIndex - 1] : null}
-				{@const isNewMonth = previousDayDate !== null && dayDate.substring(0, 7) !== previousDayDate.substring(0, 7)}
-
-				{#if isNewMonth}
-					<!-- Month divider -->
-					<div class="flex items-center gap-3 py-3">
-						<div class="h-px flex-1 bg-stone-200"></div>
-						<span class="text-xs font-medium uppercase tracking-widest text-stone-400">
-							{getMonthLabel(dayDate)}
-						</span>
-						<div class="h-px flex-1 bg-stone-200"></div>
-					</div>
-				{/if}
-
 				{@render daySection(dayDate, dayData?.entries ?? [], dayData?.totalMinutes ?? 0)}
 			{/each}
 
-			{#if displayDays.length === 0 && !isLoading}
-				<div class="flex items-center justify-center py-12">
-					<p class="text-stone-500">No days to display for this week.</p>
-				</div>
-			{/if}
+			{#each olderWeekStarts as olderWeekStart (olderWeekStart)}
+				{@render olderWeekSection(olderWeekStart)}
+			{/each}
 
-			<!-- Load more weeks (subtle) -->
-			{#if hasMoreWeeks}
-				<div class="flex justify-center pb-4 pt-2">
-					<button
-						onclick={loadMoreWeeks}
-						disabled={isLoading}
-						class="text-sm text-stone-400 hover:text-stone-600 disabled:opacity-50"
-					>
-						{isLoading ? 'Loading...' : 'Load older weeks'}
-					</button>
-				</div>
-			{/if}
+			<div class="flex justify-center pb-4 pt-4">
+				<button
+					onclick={loadOlderWeek}
+					disabled={isLoadingOlderWeek}
+					class="rounded px-2 py-1 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-700 disabled:opacity-50"
+				>
+					{isLoadingOlderWeek ? 'Loading…' : 'Show the week before'}
+				</button>
+			</div>
 		{/if}
 	</div>
+
+	<!-- Phone: the sidebar (and its timer) is off screen inside the timesheet -->
+	{#if showFooterTimer}
+		<div class="flex-shrink-0">
+			<TimerWidget placement="footer" {addEntryDate} />
+		</div>
+	{/if}
 </div>
