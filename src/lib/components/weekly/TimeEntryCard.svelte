@@ -1,11 +1,20 @@
 <script lang="ts">
-	import { formatTimeShort, formatDuration } from '$lib/utils/iso-week';
-	import { parseTimeInput } from '$lib/utils/time-parse';
+	import { tick } from 'svelte';
+	import {
+		parseDuration,
+		formatMinutes,
+		formatTimeRange,
+		formatDurationInput
+	} from '$lib/utils/duration';
 	import { getDataService } from '$lib/services/context';
 	import { getClientBorderClass, getClientDotClass } from '$lib/utils/client-colors';
 	import ContractSelect from '$lib/components/timer/ContractSelect.svelte';
 	import DeliverableSelect from '$lib/components/timer/DeliverableSelect.svelte';
 	import WorkTypeSelect from '$lib/components/timer/WorkTypeSelect.svelte';
+	import DurationField from '$lib/components/timer/DurationField.svelte';
+	import { formatContractLabel } from '$lib/components/timer/contract-label';
+	import { contractHasDeliverables } from '$lib/components/timer/deliverable-cache';
+	import { describeSaveError } from '$lib/components/timer/save-error';
 	import WikiLinkRenderer from './WikiLinkRenderer.svelte';
 	import WikiLinkInput from './WikiLinkInput.svelte';
 	import type { TimeEntryFields } from '$lib/services/types';
@@ -40,7 +49,7 @@
 		onNoteLinkClick?: (noteId: string) => void;
 	} = $props();
 
-	// Inline editing states
+	// Inline editing states. Every editor: Enter saves, Escape cancels.
 	let isEditingTime = $state(false);
 	let isEditingContract = $state(false);
 	let isEditingDeliverable = $state(false);
@@ -50,114 +59,147 @@
 
 	// Editable values
 	let timeInputValue = $state('');
-	let timeInputError = $state(false);
+	let timeInputError = $state('');
 	let selectedContractId = $state('');
 	let selectedDeliverableId = $state('');
 	let selectedWorkTypeId = $state('');
 	let descriptionInputValue = $state('');
-	let descriptionDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+	// Set by Escape so the blur that follows the editor closing does not save
+	let isDescriptionCancelled = false;
+	let isTimeCancelled = false;
 
-	// Derived style classes
+	// A failed save or delete, shown on the card until the next attempt
+	let cardError = $state('');
+
+	// Long descriptions are clamped to three lines with a toggle
+	let descriptionElement: HTMLElement | undefined = $state();
+	let isDescriptionExpanded = $state(false);
+	let isDescriptionOverflowing = $state(false);
+
+	// Whether the contract has deliverables; decides if "Add deliverable…" is always shown
+	let contractOffersDeliverables = $state(false);
+
 	let clientBorderClass = $derived(getClientBorderClass(entry.clientColorIndex));
 	let clientDotClass = $derived(getClientDotClass(entry.clientColorIndex));
-
-	let hasTimeRange = $derived(Boolean(entry.startTime && entry.endTime));
-	let durationDisplay = $derived(formatDuration(entry.durationMinutes));
-	let timeRangeDisplay = $derived(
-		hasTimeRange ? `${formatTimeShort(entry.startTime!)}-${formatTimeShort(entry.endTime!)}` : null
-	);
+	let durationDisplay = $derived(formatMinutes(entry.durationMinutes));
+	let timeRangeDisplay = $derived(formatTimeRange(entry.startTime, entry.endTime));
+	let contractLabel = $derived(formatContractLabel(entry.clientName, entry.contractName));
 	let hasDeliverableOrWorkType = $derived(Boolean(entry.deliverableName || entry.workTypeName));
 	let deliverableWorkTypeLabel = $derived(
 		[entry.deliverableName, entry.workTypeName].filter(Boolean).join(' > ')
 	);
 
-	async function saveField(field: string, value: unknown) {
+	$effect(() => {
+		const contractId = entry.contractId;
+		contractHasDeliverables(dataService, contractId).then((hasDeliverables) => {
+			if (contractId === entry.contractId) contractOffersDeliverables = hasDeliverables;
+		});
+	});
+
+	// Re-measure when the text, the element or the card width changes
+	$effect(() => {
+		void entry.description;
+		const measuredElement = descriptionElement;
+		if (!measuredElement || isDescriptionExpanded) return;
+		const measure = () => {
+			isDescriptionOverflowing = measuredElement.scrollHeight > measuredElement.clientHeight + 1;
+		};
+		tick().then(measure);
+		const resizeObserver = new ResizeObserver(measure);
+		resizeObserver.observe(measuredElement);
+		return () => resizeObserver.disconnect();
+	});
+
+	async function saveFields(data: Partial<TimeEntryFields>): Promise<boolean> {
+		cardError = '';
 		try {
-			await dataService.updateTimeEntry(entry.id, { [field]: value } as Partial<TimeEntryFields>);
+			await dataService.updateTimeEntry(entry.id, data);
 			onUpdated?.();
+			return true;
 		} catch (error) {
-			console.error(`Error saving ${field}:`, error);
+			cardError = describeSaveError(error);
+			return false;
 		}
 	}
 
-	async function saveMultipleFields(data: Record<string, unknown>) {
-		try {
-			await dataService.updateTimeEntry(entry.id, data as Partial<TimeEntryFields>);
-			onUpdated?.();
-		} catch (error) {
-			console.error('Error saving entry:', error);
-		}
-	}
-
-	// Time editing
+	// --- Time ---
 	function startEditingTime() {
-		timeInputValue = hasTimeRange
-			? `${formatTimeShort(entry.startTime!)}-${formatTimeShort(entry.endTime!)}`
-			: formatDuration(entry.durationMinutes);
-		timeInputError = false;
+		timeInputValue = formatDurationInput(entry.durationMinutes, entry.startTime, entry.endTime);
+		timeInputError = '';
+		isTimeCancelled = false;
 		isEditingTime = true;
 	}
 
-	function saveTimeInput() {
-		const parsed = parseTimeInput(timeInputValue);
-		if (parsed.type === 'invalid') {
-			timeInputError = true;
+	async function saveTimeInput() {
+		const parsed = parseDuration(timeInputValue);
+		if (!parsed.ok) {
+			timeInputError = parsed.error;
 			return;
 		}
-		if (parsed.type === 'range') {
-			saveMultipleFields({
-				startTime: parsed.startTime,
-				endTime: parsed.endTime,
-				durationMinutes: parsed.durationMinutes
-			});
-		} else {
-			saveMultipleFields({
-				startTime: null,
-				endTime: null,
-				durationMinutes: parsed.durationMinutes
-			});
-		}
 		isEditingTime = false;
-		timeInputError = false;
+		timeInputError = '';
+		const unchanged =
+			formatDurationInput(entry.durationMinutes, entry.startTime, entry.endTime) === timeInputValue.trim();
+		if (unchanged) return;
+		await saveFields(
+			parsed.kind === 'range'
+				? { startTime: parsed.startTime, endTime: parsed.endTime, durationMinutes: parsed.durationMinutes }
+				: { startTime: null, endTime: null, durationMinutes: parsed.durationMinutes }
+		);
 	}
 
 	function cancelTimeEdit() {
+		isTimeCancelled = true;
 		isEditingTime = false;
-		timeInputError = false;
+		timeInputError = '';
 	}
 
 	function handleTimeKeydown(event: KeyboardEvent) {
-		if (event.key === 'Enter') saveTimeInput();
-		else if (event.key === 'Escape') cancelTimeEdit();
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			saveTimeInput();
+		} else if (event.key === 'Escape') {
+			event.preventDefault();
+			cancelTimeEdit();
+		}
 	}
 
 	function handleTimeBlur() {
+		if (isTimeCancelled || !isEditingTime) return;
+		// Leaving the field saves a valid value; an invalid one stays open with its message
 		saveTimeInput();
 	}
 
-	// Contract editing
+	// --- Contract ---
 	function startEditingContract() {
 		selectedContractId = entry.contractId;
 		isEditingContract = true;
 	}
 
+	function closeContractEditor() {
+		isEditingContract = false;
+	}
+
 	$effect(() => {
 		if (isEditingContract && selectedContractId && selectedContractId !== entry.contractId) {
 			// A deliverable belongs to a contract, so a contract change also clears the deliverable chain
-			if (entry.deliverableId || entry.workTypeId) {
-				saveMultipleFields({
-					contractId: selectedContractId,
-					deliverableId: null,
-					workTypeId: null
-				});
-			} else {
-				saveField('contractId', selectedContractId);
-			}
+			const changes: Partial<TimeEntryFields> =
+				entry.deliverableId || entry.workTypeId
+					? { contractId: selectedContractId, deliverableId: null, workTypeId: null }
+					: { contractId: selectedContractId };
+			saveFields(changes);
 			isEditingContract = false;
 		}
 	});
 
-	// Deliverable / work type editing: each pick is saved immediately; Done or Escape closes the editor
+	function handleContractKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape' || event.key === 'Enter') {
+			event.preventDefault();
+			closeContractEditor();
+		}
+	}
+
+	// --- Deliverable / work type: each pick is saved immediately; Done, Enter or Escape closes ---
 	function startEditingDeliverable() {
 		selectedDeliverableId = entry.deliverableId ?? '';
 		selectedWorkTypeId = entry.workTypeId ?? '';
@@ -167,55 +209,59 @@
 	function handleDeliverableChange(nextDeliverableId: string) {
 		// Work types belong to a deliverable, so changing the deliverable clears the work type
 		selectedWorkTypeId = '';
-		saveMultipleFields({ deliverableId: nextDeliverableId || null, workTypeId: null });
+		saveFields({ deliverableId: nextDeliverableId || null, workTypeId: null });
 	}
 
 	function handleWorkTypeChange(nextWorkTypeId: string) {
-		saveMultipleFields({
-			deliverableId: selectedDeliverableId || null,
-			workTypeId: nextWorkTypeId || null
-		});
+		saveFields({ deliverableId: selectedDeliverableId || null, workTypeId: nextWorkTypeId || null });
 	}
 
 	function handleDeliverableKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape' || event.key === 'Enter') isEditingDeliverable = false;
+		if (event.key === 'Escape' || event.key === 'Enter') {
+			event.preventDefault();
+			isEditingDeliverable = false;
+		}
 	}
 
-	// Description editing
+	// --- Description ---
 	function startEditingDescription() {
 		descriptionInputValue = entry.description ?? '';
+		isDescriptionCancelled = false;
 		isEditingDescription = true;
 	}
 
 	function handleDescriptionInputValue(newValue: string) {
 		descriptionInputValue = newValue;
-		clearTimeout(descriptionDebounceTimer);
-		descriptionDebounceTimer = setTimeout(() => {
-			saveField('description', descriptionInputValue);
-		}, 1000);
 	}
 
-	function handleDescriptionBlur() {
-		clearTimeout(descriptionDebounceTimer);
-		if (descriptionInputValue !== (entry.description ?? '')) {
-			saveField('description', descriptionInputValue);
-		}
+	function commitDescription() {
+		if (isDescriptionCancelled || !isEditingDescription) return;
 		isEditingDescription = false;
+		if (descriptionInputValue !== (entry.description ?? '')) {
+			saveFields({ description: descriptionInputValue });
+		}
 	}
 
 	function handleDescriptionKeydown(event: KeyboardEvent) {
-		if (event.key === 'Enter') (event.target as HTMLInputElement).blur();
-		else if (event.key === 'Escape') isEditingDescription = false;
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			commitDescription();
+		} else if (event.key === 'Escape') {
+			event.preventDefault();
+			isDescriptionCancelled = true;
+			isEditingDescription = false;
+		}
 	}
 
-	// Delete
+	// --- Delete ---
 	async function handleDelete() {
 		isDeleting = true;
+		cardError = '';
 		try {
 			await dataService.deleteTimeEntry(entry.id);
 			onUpdated?.();
 		} catch (error) {
-			console.error('Error deleting entry:', error);
+			cardError = describeSaveError(error).replace("Couldn't save", "Couldn't delete");
 		} finally {
 			isDeleting = false;
 			isConfirmingDelete = false;
@@ -225,16 +271,18 @@
 
 <div
 	class="group relative mb-2 flex rounded-lg border border-stone-200 border-l-[3px] bg-white p-3 transition-colors hover:bg-stone-50/50 {clientBorderClass}"
+	data-testid="time-entry-card"
 >
-	<!-- Delete button: top-right corner, visible on hover -->
+	<!-- Delete: on hover, on keyboard focus and always on touch screens -->
 	<div class="absolute right-1.5 top-1.5">
 		{#if isConfirmingDelete}
-			<div class="flex items-center gap-1">
+			<div class="flex items-center gap-1 rounded bg-white">
+				<span class="text-xs text-stone-500">Delete?</span>
 				<button
 					onclick={handleDelete}
 					disabled={isDeleting}
 					class="rounded px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
-				>{isDeleting ? '...' : 'Yes'}</button>
+				>{isDeleting ? '…' : 'Yes'}</button>
 				<button
 					onclick={() => (isConfirmingDelete = false)}
 					disabled={isDeleting}
@@ -244,8 +292,9 @@
 		{:else}
 			<button
 				onclick={() => (isConfirmingDelete = true)}
-				class="rounded px-1 py-0.5 text-stone-300 opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
+				class="flex h-6 w-6 items-center justify-center rounded text-stone-400 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 pointer-coarse:h-8 pointer-coarse:w-8 pointer-coarse:opacity-100"
 				title="Delete entry"
+				aria-label="Delete entry"
 			>&times;</button>
 		{/if}
 	</div>
@@ -256,9 +305,9 @@
 		{#if isEditingDescription}
 			<WikiLinkInput
 				bind:value={descriptionInputValue}
-				placeholder="Add description... (type [[ to link a note)"
+				placeholder="What did you work on? (type [[ to link a note)"
 				onInput={handleDescriptionInputValue}
-				onBlur={handleDescriptionBlur}
+				onBlur={commitDescription}
 				onKeydown={handleDescriptionKeydown}
 				autofocus
 			/>
@@ -269,18 +318,43 @@
 				title="Click to edit description"
 			>
 				{#if entry.description}
-					<WikiLinkRenderer text={entry.description} {onNoteLinkClick} />
+					<span
+						bind:this={descriptionElement}
+						class="break-words whitespace-pre-line {isDescriptionExpanded ? 'block' : 'line-clamp-3'}"
+					>
+						<WikiLinkRenderer text={entry.description} {onNoteLinkClick} />
+					</span>
 				{:else}
-					<span class="italic text-stone-400">Add description...</span>
+					<span class="italic text-stone-400">What did you work on?</span>
 				{/if}
 			</button>
+			{#if isDescriptionOverflowing || isDescriptionExpanded}
+				<button
+					type="button"
+					onclick={() => (isDescriptionExpanded = !isDescriptionExpanded)}
+					class="mt-0.5 text-xs text-blue-600 hover:text-blue-800"
+					aria-expanded={isDescriptionExpanded}
+				>{isDescriptionExpanded ? 'Show less' : 'Show more'}</button>
+			{/if}
 		{/if}
 
-		<!-- Row 2: Client / Contract with color dot -->
+		<!-- Row 2: Client / Contract with colour dot -->
 		<div class="mt-1">
 			{#if isEditingContract}
-				<div class="max-w-xs">
-					<ContractSelect bind:selectedContractId compact={true} />
+				<div
+					class="max-w-xs"
+					onfocusout={(event) => {
+						if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node)) {
+							closeContractEditor();
+						}
+					}}
+				>
+					<ContractSelect
+						bind:selectedContractId
+						compact={true}
+						autofocus={true}
+						onkeydown={handleContractKeydown}
+					/>
 				</div>
 			{:else}
 				<button
@@ -289,12 +363,12 @@
 					title="Click to change contract"
 				>
 					<span class="inline-block h-2 w-2 shrink-0 rounded-full {clientDotClass}"></span>
-					{entry.clientName} / {entry.contractName}
+					{contractLabel}
 				</button>
 			{/if}
 		</div>
 
-		<!-- Row 3: Deliverable > Work Type (always editable) -->
+		<!-- Row 3: Deliverable > Work Type -->
 		<div class="mt-0.5 pl-3.5">
 			{#if isEditingDeliverable}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -318,34 +392,44 @@
 						type="button"
 					>Done</button>
 				</div>
-			{:else}
+			{:else if hasDeliverableOrWorkType}
 				<button
 					onclick={startEditingDeliverable}
 					class="block text-left text-xs text-stone-400 hover:text-blue-600"
 					title="Click to change deliverable / work type"
-				>
-					{#if hasDeliverableOrWorkType}
-						{deliverableWorkTypeLabel}
-					{:else}
-						<span class="italic">Add deliverable...</span>
-					{/if}
-				</button>
+				>{deliverableWorkTypeLabel}</button>
+			{:else}
+				<!-- Prompt only where it is useful: the contract has deliverables, or on hover/focus -->
+				<button
+					onclick={startEditingDeliverable}
+					class="block text-left text-xs italic text-stone-400 hover:text-blue-600 {contractOffersDeliverables
+						? ''
+						: 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100'}"
+					title="Click to add a deliverable"
+				>Add deliverable…</button>
 			{/if}
 		</div>
+
+		{#if cardError}
+			<p class="mt-1 text-xs text-red-600" role="alert">{cardError}</p>
+		{/if}
 	</div>
 
 	<!-- Right column: Duration + time range -->
-	<div class="ml-4 flex shrink-0 flex-col items-end justify-center">
+	<!-- mr leaves room for the delete button in the top-right corner -->
+	<div class="mr-6 ml-2 flex shrink-0 flex-col items-end justify-center pointer-coarse:mr-8">
 		{#if isEditingTime}
-			<input
-				type="text"
-				bind:value={timeInputValue}
-				onblur={handleTimeBlur}
-				onkeydown={handleTimeKeydown}
-				class="w-24 rounded border px-1.5 py-0.5 text-right text-sm font-medium tabular-nums focus:ring-1 focus:outline-none {timeInputError ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-stone-300 focus:border-blue-500 focus:ring-blue-500'}"
-				placeholder="2h30m"
-				autofocus
-			/>
+			<div class="w-36">
+				<DurationField
+					bind:value={timeInputValue}
+					errorMessage={timeInputError}
+					compact={true}
+					align="right"
+					autofocus={true}
+					onkeydown={handleTimeKeydown}
+					onblur={handleTimeBlur}
+				/>
+			</div>
 		{:else}
 			<button
 				onclick={startEditingTime}

@@ -13,6 +13,11 @@
     type SearchResult = { id: string; title: string | null };
 
     let inputElement: HTMLInputElement;
+
+    // Focus on mount when asked (instead of the autofocus attribute, which a11y lint flags)
+    $effect(() => {
+        if (autofocus) inputElement?.focus();
+    });
     let showDropdown = $state(false);
     let searchResults = $state<SearchResult[]>([]);
     let selectedIndex = $state(0);
@@ -158,7 +163,6 @@
         onkeydown={handleKeydown}
         onblur={handleBlur}
         class="block w-full border-0 border-b border-stone-200 bg-transparent px-0 py-0.5 text-sm text-stone-600 focus:border-blue-400 focus:ring-0 focus:outline-none"
-        {autofocus}
     />
 
     {#if showDropdown}

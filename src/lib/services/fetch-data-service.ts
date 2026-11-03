@@ -1,5 +1,6 @@
 import type { DataService } from './data-service';
-import type {
+import { localDateString, localTimeString } from '$lib/components/timer/local-date';
+import type { TimerLocalStart,
 	ContractsByClientResult,
 	ContractOption,
 	CreateContractInput,
@@ -160,21 +161,21 @@ export class FetchDataService implements DataService {
 		return fetchJson<TimerStatus>('/api/timer/status');
 	}
 
-	async startTimer(contractId?: string): Promise<TimerEntry> {
-		let resolvedContractId = contractId;
-		if (!resolvedContractId) {
-			const contracts = await this.getContracts();
-			const firstActive = contracts.find((contract) => contract.isActive);
-			if (!firstActive) {
-				throw new Error('No active contracts available to start timer');
-			}
-			resolvedContractId = firstActive.id;
+	async startTimer(contractId: string, localStart?: TimerLocalStart): Promise<TimerEntry> {
+		// Never guess a contract: hours bound to the wrong client are worse than no timer
+		if (!contractId) {
+			throw new Error('Pick a contract before the timer is saved to the server');
 		}
-		return postJson<TimerEntry>('/api/timer/start', { contractId: resolvedContractId });
+		// The browser's local date and time, so an evening timer is never dated tomorrow (UTC)
+		return postJson<TimerEntry>('/api/timer/start', {
+			contractId,
+			date: localStart?.date ?? localDateString(),
+			startTime: localStart?.startTime ?? localTimeString()
+		});
 	}
 
 	async stopTimer(): Promise<TimerEntry> {
-		return postJson<TimerEntry>('/api/timer/stop', {});
+		return postJson<TimerEntry>('/api/timer/stop', { endTime: localTimeString() });
 	}
 
 	async saveTimer(data: SaveTimerInput): Promise<void> {

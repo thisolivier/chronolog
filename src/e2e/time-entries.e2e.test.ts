@@ -215,6 +215,26 @@ describe('Time Entries API', () => {
 		});
 	});
 
+	it('POST and PUT /api/time-entries reject durations over 24 hours or not whole minutes', async () => {
+		const today = new Date().toISOString().split('T')[0];
+		const tooLong = await authPost('/api/time-entries', {
+			date: today,
+			durationMinutes: 1500,
+			contractId
+		});
+		expect(tooLong.status).toBe(400);
+		expect((await tooLong.json()).error).toContain('24 hours');
+
+		const created = await (
+			await authPost('/api/time-entries', { date: today, durationMinutes: 30, contractId })
+		).json();
+		const fractional = await authPut(`/api/time-entries/${created.entry.id}`, { durationMinutes: 1.5 });
+		expect(fractional.status).toBe(400);
+		const zero = await authPut(`/api/time-entries/${created.entry.id}`, { durationMinutes: 0 });
+		expect(zero.status).toBe(400);
+		await authDelete(`/api/time-entries/${created.entry.id}`);
+	});
+
 	it('POST /api/time-entries/weekly-statuses sets a week status', async () => {
 		const now = new Date();
 		// Get ISO year and week number

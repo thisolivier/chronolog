@@ -106,4 +106,57 @@ describe('Timer API', () => {
 		const statusData = await statusResponse.json();
 		expect(statusData.timer).toBeNull();
 	});
+
+	it('Timer start uses the browser-sent local date and start time', async () => {
+		const startResponse = await authPost('/api/timer/start', {
+			contractId,
+			date: '2030-01-02',
+			startTime: '23:40:00'
+		});
+		expect(startResponse.status).toBe(201);
+		const startData = await startResponse.json();
+		expect(startData.date).toBe('2030-01-02');
+		expect(startData.startTime).toBe('23:40:00');
+
+		// Stop with a local end time after midnight: midnight-safe 30 minutes
+		const stopResponse = await authPost('/api/timer/stop', { endTime: '00:10:00' });
+		const stopData = await stopResponse.json();
+		expect(stopData.durationMinutes).toBe(30);
+
+		await authPost('/api/timer/discard', { entryId: startData.id });
+	});
+
+	it('Timer start ignores a malformed local date and falls back to the server clock', async () => {
+		const startResponse = await authPost('/api/timer/start', { contractId, date: 'tomorrow' });
+		const startData = await startResponse.json();
+		expect(startData.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+		await authPost('/api/timer/stop', {});
+		await authPost('/api/timer/discard', { entryId: startData.id });
+	});
+
+	it('Timer save accepts an adjusted time and rejects one over 24 hours', async () => {
+		const startData = await (await authPost('/api/timer/start', { contractId })).json();
+		await authPost('/api/timer/stop', {});
+
+		const rejected = await authPost('/api/timer/save', {
+			entryId: startData.id,
+			contractId,
+			durationMinutes: 1500
+		});
+		expect(rejected.status).toBe(400);
+
+		const saved = await authPost('/api/timer/save', {
+			entryId: startData.id,
+			contractId,
+			description: 'Adjusted timer entry',
+			durationMinutes: 45,
+			startTime: null,
+			endTime: null
+		});
+		expect(saved.ok).toBe(true);
+		const savedEntry = await saved.json();
+		expect(savedEntry.durationMinutes).toBe(45);
+		expect(savedEntry.startTime).toBeNull();
+		expect(savedEntry.isDraft).toBe(false);
+	});
 });

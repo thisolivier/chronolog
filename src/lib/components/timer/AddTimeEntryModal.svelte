@@ -3,19 +3,27 @@
 	import ContractSelect from './ContractSelect.svelte';
 	import DeliverableSelect from './DeliverableSelect.svelte';
 	import WorkTypeSelect from './WorkTypeSelect.svelte';
+	import DurationField from './DurationField.svelte';
+	import { describeSaveError } from './save-error';
+	import { localDateString } from './local-date';
+	import { parseDuration } from '$lib/utils/duration';
 	import { getDataService } from '$lib/services/context';
+	import type { CreateTimeEntryInput } from '$lib/services/types';
 
 	const dataService = getDataService();
 
 	let {
+		initialDate = undefined,
 		onCreated,
 		onClose
 	}: {
-		onCreated: () => void;
+		/** Pre-selected date (YYYY-MM-DD); today when omitted */
+		initialDate?: string;
+		onCreated: (created: { entryId: string; date: string }) => void;
 		onClose: () => void;
 	} = $props();
 
-	let entryDate = $state(todayDateString());
+	let entryDate = $state(untrack(() => initialDate) ?? localDateString());
 	let durationText = $state('');
 	let selectedContractId = $state('');
 	let selectedDeliverableId = $state('');
@@ -23,26 +31,17 @@
 	let workTypesAvailable = $state(false);
 	let description = $state('');
 	let isSaving = $state(false);
-	let errorMessage = $state('');
 
-	function todayDateString(): string {
-		const now = new Date();
-		const year = now.getFullYear();
-		const month = String(now.getMonth() + 1).padStart(2, '0');
-		const day = String(now.getDate()).padStart(2, '0');
-		return `${year}-${month}-${day}`;
-	}
+	let dateError = $state('');
+	let contractError = $state('');
+	let durationError = $state('');
+	let saveError = $state('');
 
-	/** Parse "HH:MM" or "H:MM" into total minutes, returns null if invalid */
-	function parseDurationToMinutes(text: string): number | null {
-		const trimmed = text.trim();
-		const match = trimmed.match(/^(\d{1,2}):(\d{2})$/);
-		if (!match) return null;
-		const hours = parseInt(match[1], 10);
-		const minutes = parseInt(match[2], 10);
-		if (minutes >= 60) return null;
-		return hours * 60 + minutes;
-	}
+	let descriptionElement: HTMLTextAreaElement | undefined = $state();
+
+	$effect(() => {
+		descriptionElement?.focus();
+	});
 
 	// A deliverable belongs to a contract: changing the contract clears the deliverable chain
 	$effect(() => {
@@ -50,58 +49,78 @@
 		untrack(() => {
 			selectedDeliverableId = '';
 			selectedWorkTypeId = '';
+			if (selectedContractId) contractError = '';
 		});
 	});
 
-	const durationMinutes = $derived(parseDurationToMinutes(durationText));
-	const isFormValid = $derived(
-		!!selectedContractId && !!entryDate && durationMinutes !== null && durationMinutes > 0
-	);
+	$effect(() => {
+		void durationText;
+		untrack(() => (durationError = ''));
+	});
 
-	async function handleCreate() {
-		if (!isFormValid || durationMinutes === null) return;
+	async function handleSave() {
+		if (isSaving) return;
+		saveError = '';
+		const parsed = parseDuration(durationText);
+		dateError = entryDate ? '' : 'Pick a date';
+		contractError = selectedContractId ? '' : 'Pick a contract';
+		durationError = parsed.ok ? '' : parsed.error;
+		if (!parsed.ok || !entryDate || !selectedContractId) return;
+
 		isSaving = true;
-		errorMessage = '';
 		try {
-			await dataService.createTimeEntry({
+			const entryData: CreateTimeEntryInput = {
 				date: entryDate,
-				durationMinutes,
+				durationMinutes: parsed.durationMinutes,
 				contractId: selectedContractId,
 				deliverableId: selectedDeliverableId || null,
 				workTypeId: selectedWorkTypeId || null,
 				description: description.trim() || undefined
-			});
-			onCreated();
+			};
+			if (parsed.kind === 'range') {
+				entryData.startTime = parsed.startTime;
+				entryData.endTime = parsed.endTime;
+			}
+			const created = await dataService.createTimeEntry(entryData);
+			onCreated({ entryId: created.id, date: entryDate });
 		} catch (caughtError) {
-			errorMessage =
-				caughtError instanceof Error ? caughtError.message : 'Failed to create entry';
+			saveError = describeSaveError(caughtError);
 		} finally {
 			isSaving = false;
 		}
 	}
 
 	function handleBackdropClick(event: MouseEvent) {
-		if (event.target === event.currentTarget) {
-			onClose();
-		}
+		if (event.target === event.currentTarget) onClose();
 	}
 
-	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape') {
-			onClose();
+	function handleWindowKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape') onClose();
+	}
+
+	/** Enter in a single-line field saves (the description textarea keeps Shift+Enter for newlines) */
+	function handleFieldKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter' && !event.shiftKey) {
+			event.preventDefault();
+			handleSave();
 		}
 	}
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={handleWindowKeydown} />
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 <div
-	class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+	class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
 	onclick={handleBackdropClick}
+	role="presentation"
 >
-	<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-		<h2 class="mb-4 text-lg font-semibold text-stone-900">Add Time Entry</h2>
+	<div
+		class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="add-entry-title"
+	>
+		<h2 id="add-entry-title" class="mb-4 text-lg font-semibold text-stone-900">Add Time Entry</h2>
 
 		<div class="space-y-3">
 			<div>
@@ -112,28 +131,34 @@
 					bind:value={entryDate}
 					class="mt-0.5 block w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				/>
+				{#if dateError}<p class="mt-1 text-xs text-red-600" role="alert">{dateError}</p>{/if}
 			</div>
 
 			<div>
-				<label for="entry-duration" class="block text-xs font-medium text-stone-600">
-					Duration (HH:MM)
+				<label for="entry-description" class="block text-xs font-medium text-stone-600">
+					Description
 				</label>
-				<input
-					id="entry-duration"
-					type="text"
-					bind:value={durationText}
-					placeholder="1:30"
+				<textarea
+					id="entry-description"
+					bind:this={descriptionElement}
+					bind:value={description}
+					onkeydown={handleFieldKeydown}
+					rows="2"
 					class="mt-0.5 block w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-				/>
+					placeholder="What did you work on?"
+				></textarea>
 			</div>
 
 			<div>
-				<label for="entry-contract" class="block text-xs font-medium text-stone-600">
-					Contract <span class="text-red-500">*</span>
-				</label>
+				<label for="entry-contract" class="block text-xs font-medium text-stone-600">Contract</label>
 				<div class="mt-0.5">
-					<ContractSelect bind:selectedContractId />
+					<ContractSelect
+						id="entry-contract"
+						bind:selectedContractId
+						invalid={contractError !== ''}
+					/>
 				</div>
+				{#if contractError}<p class="mt-1 text-xs text-red-600" role="alert">{contractError}</p>{/if}
 			</div>
 
 			<div>
@@ -165,36 +190,37 @@
 			</div>
 
 			<div>
-				<label for="entry-description" class="block text-xs font-medium text-stone-600">
-					Description
-				</label>
-				<textarea
-					id="entry-description"
-					bind:value={description}
-					rows="2"
-					class="mt-0.5 block w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-					placeholder="What did you work on?"
-				></textarea>
+				<label for="entry-duration" class="block text-xs font-medium text-stone-600">Time</label>
+				<div class="mt-0.5">
+					<DurationField
+						id="entry-duration"
+						bind:value={durationText}
+						errorMessage={durationError}
+						onkeydown={handleFieldKeydown}
+					/>
+				</div>
 			</div>
 		</div>
 
-		{#if errorMessage}
-			<div class="mt-2 rounded-md bg-red-50 p-2 text-xs text-red-600">{errorMessage}</div>
+		{#if saveError}
+			<div class="mt-3 rounded-md bg-red-50 p-2 text-xs text-red-600" role="alert">{saveError}</div>
 		{/if}
 
-		<div class="mt-4 flex gap-2">
+		<div class="mt-4 flex justify-end gap-2">
 			<button
-				onclick={handleCreate}
-				disabled={!isFormValid || isSaving}
-				class="flex-1 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-			>
-				{isSaving ? 'Creating...' : 'Create'}
-			</button>
-			<button
+				type="button"
 				onclick={onClose}
 				class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
 			>
 				Cancel
+			</button>
+			<button
+				type="button"
+				onclick={handleSave}
+				disabled={isSaving}
+				class="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-70"
+			>
+				{isSaving ? 'Saving…' : saveError ? 'Retry' : 'Save'}
 			</button>
 		</div>
 	</div>

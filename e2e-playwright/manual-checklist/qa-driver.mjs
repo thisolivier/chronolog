@@ -444,7 +444,7 @@ await step('A5-new-entry-row-layout', async () => {
 	const descriptionBox = await description.boundingBox();
 	const contractSelect = newEntryField('Contract');
 	const deliverableSelect = newEntryField('Deliverable');
-	const timeInput = newEntryRow.locator('input[placeholder="2h30m"]');
+	const timeInput = newEntryRow.locator('input[placeholder="1h30m or 9:00-10:30"]');
 	assert((await contractSelect.count()) === 1, 'no Contract select in new entry row');
 	assert((await deliverableSelect.count()) === 1, 'NewEntryRow has no Deliverable select — checklist expects contract, deliverable, time');
 	const contractBox = await contractSelect.boundingBox();
@@ -478,7 +478,7 @@ await step('A5-new-entry-row-deliverable', async () => {
 });
 await step('E1-create-time-entry-manual', async () => {
 	await newEntryRow.locator('input[placeholder="What did you work on?"]').fill('Build the rocket engine');
-	await newEntryRow.locator('input[placeholder="2h30m"]').fill('1h30m');
+	await newEntryRow.locator('input[placeholder="1h30m or 9:00-10:30"]').fill('1h30m');
 	await newEntryRow.getByRole('button', { name: 'Save' }).click();
 	const card = todaySection.locator('div.group');
 	await card.first().waitFor({ timeout: 8000 });
@@ -519,18 +519,18 @@ await step('A4-card-hierarchy-and-colours', async () => {
 await step('A3-weekstrip-day-total-and-bar', async () => {
 	const todayColumn = page.locator('.sticky.top-0 .grid-cols-7 > button.bg-amber-100');
 	const hours = await todayColumn.locator('span').nth(2).innerText();
-	assert(hours === '1.5h', 'today hours ' + hours);
+	assert(hours === '1h30', 'today hours ' + hours);
 	const segments = await todayColumn.locator('div.rounded-full > div').count();
 	assert(segments === 1, 'bar segments ' + segments);
 	const segmentClass = await todayColumn.locator('div.rounded-full > div').first().getAttribute('class');
-	const weekly = await page.locator('.sticky.top-0 .w-32 span').first().innerText();
-	assert(weekly === '1.5 hrs', 'weekly total ' + weekly);
-	return `today column 1.5h, 1 colour segment (${segmentClass.match(/bg-[a-z]+-\d+/)[0]}), weekly total "${weekly}"`;
+	const weekly = await page.locator('.sticky.top-0 .sm\\:w-32 span').first().innerText();
+	assert(weekly === '1h 30m', 'weekly total ' + weekly);
+	return `today column 1h30, 1 colour segment (${segmentClass.match(/bg-[a-z]+-\d+/)[0]}), weekly total "${weekly}"`;
 });
 await step('E1-edit-time-entry-time', async () => {
 	const card = todaySection.locator('div.group').first();
 	await card.getByTitle('Click to edit time').click();
-	const input = card.locator('input[placeholder="2h30m"]');
+	const input = card.locator('input[placeholder="1h30m or 9:00-10:30"]');
 	await input.fill('09:00-11:15');
 	await input.press('Enter');
 	await card.getByTitle('Click to edit time').waitFor({ timeout: 5000 });
@@ -556,7 +556,7 @@ await step('E1-edit-time-entry-contract', async () => {
 await step('A4-wiki-link-autocomplete-in-description', async () => {
 	const card = todaySection.locator('div.group').first();
 	await card.getByTitle('Click to edit description').click();
-	const input = card.locator('input[placeholder^="Add description"]');
+	const input = card.locator('input[placeholder^="What did you work on"]');
 	await input.waitFor({ timeout: 5000 });
 	await input.press('End');
 	// Full id, not a shared prefix: Enter picks the first (most recent) suggestion
@@ -703,30 +703,36 @@ await step('C2-card-wiki-link-after-move', async () => {
 await page.getByRole('button', { name: 'Time Entries' }).click();
 await page.locator('.sticky.top-0').first().waitFor();
 await sleep(500);
-await step('A7-status-chip-cycle', async () => {
-	const chip = page.locator('.sticky.top-0 .w-32 button');
-	const initial = await chip.innerText();
+await step('A7-status-menu', async () => {
+	// Since 025-CL the pill opens a menu of the three states instead of cycling blindly
+	const chip = page.getByRole('button', { name: /Week status:/ });
+	const chipText = async () => (await chip.innerText()).replace('▾', '').trim();
+	const initial = await chipText();
 	assert(initial === 'Unsubmitted', 'initial ' + initial);
 	const initialClass = await chip.getAttribute('class');
 	await chip.click();
+	const options = await page.getByRole('menuitemradio').count();
+	assert(options === 3, 'menu options ' + options);
+	await page.getByRole('menuitemradio', { name: /Draft ready/ }).click();
 	await page.waitForResponse((response) => response.url().includes('weekly-status'), { timeout: 8000 }).catch(() => {});
 	await sleep(400);
-	const second = await chip.innerText();
+	const second = await chipText();
 	const secondClass = await chip.getAttribute('class');
 	await chip.click();
+	await page.getByRole('menuitemradio', { name: /Submitted/ }).click();
 	await sleep(600);
-	const third = await chip.innerText();
+	const third = await chipText();
 	const thirdClass = await chip.getAttribute('class');
-	assert(second === 'Draft ready' && third === 'Submitted', `cycle ${initial} -> ${second} -> ${third}`);
+	assert(second === 'Draft ready' && third === 'Submitted', `menu ${initial} -> ${second} -> ${third}`);
 	assert(initialClass.includes('bg-stone-100') && secondClass.includes('bg-amber-100') && thirdClass.includes('bg-emerald-100'), 'chip colours wrong');
 	await shot('19-status-submitted');
-	return `${initial}(stone) -> ${second}(amber) -> ${third}(emerald); chip is a button, not a text input`;
+	return `${initial}(stone) -> ${second}(amber) -> ${third}(emerald) via a 3-option menu`;
 });
 await step('A7-status-persists-after-reload', async () => {
 	await page.reload();
-	await page.locator('.sticky.top-0 .w-32 button').waitFor({ timeout: 10000 });
+	await page.getByRole('button', { name: /Week status:/ }).waitFor({ timeout: 10000 });
 	await sleep(800);
-	const text = await page.locator('.sticky.top-0 .w-32 button').innerText();
+	const text = (await page.getByRole('button', { name: /Week status:/ }).innerText()).replace('▾', '').trim();
 	assert(text === 'Submitted', 'after reload: ' + text);
 	return 'Submitted persisted after reload';
 });
@@ -748,7 +754,7 @@ await step('A3-next-week-beyond-today', async () => {
 	await page.getByRole('button', { name: 'Next week' }).click();
 	await sleep(800);
 	const sections = await page.locator('h2.text-sm.font-semibold').count();
-	const body = await page.locator('.flex-1.overflow-y-auto.px-6').innerText();
+	const body = await page.locator('.flex-1.overflow-y-auto.px-4').innerText();
 	await shot('21-next-week');
 	await page.getByRole('button', { name: 'Previous week' }).click();
 	await sleep(500);
@@ -765,7 +771,7 @@ await step('A3-click-day-scrolls', async () => {
 	return `Monday section top at y=${Math.round(firstSectionBox.y)} (strip bottom ${Math.round(stripBox.y + stripBox.height)}); sticky strip still visible`;
 });
 await step('A3-sticky-strip', async () => {
-	const scroller = page.locator('.flex-1.overflow-y-auto.px-6');
+	const scroller = page.locator('.flex-1.overflow-y-auto.px-4');
 	await scroller.evaluate((element) => { element.scrollTop = 400; });
 	await sleep(300);
 	const stripBox = await page.locator('.sticky.top-0').first().boundingBox();
@@ -800,7 +806,7 @@ await step('A9-timer-indicator', async () => {
 await step('E1-timer-stop-save', async () => {
 	await page.getByRole('button', { name: 'Stop' }).click();
 	await page.getByRole('button', { name: 'Save' }).waitFor({ timeout: 8000 });
-	const deliverableSelect = page.locator('#deliverable-select');
+	const deliverableSelect = page.locator('#timer-deliverable');
 	await deliverableSelect.waitFor({ timeout: 5000 }).catch(() => {});
 	assert((await deliverableSelect.count()) === 1, 'timer completion form has no deliverable select');
 	await selectByText(deliverableSelect, 'Phase 1');
@@ -827,7 +833,7 @@ await step('A4-deliverable-shown-on-card', async () => {
 	return 'deliverable "Phase 1" shown on card (muted line)';
 });
 await step('E1-add-entry-modal-deliverable-selector', async () => {
-	await page.getByRole('button', { name: 'Add Entry' }).click();
+	await page.getByRole('button', { name: 'Add Entry', exact: true }).click();
 	await page.locator('#entry-date').waitFor({ timeout: 5000 });
 	const modalText = await page.locator('#entry-date').locator('xpath=ancestor::div[contains(@class,"fixed")]').innerText().catch(() => '');
 	const hasDeliverable = (await page.locator('#deliverable-select').count()) > 0;
@@ -912,7 +918,7 @@ await step('M1-mobile-topbar-and-timesheet', async () => {
 		assert(lastDayBox.x + lastDayBox.width <= 376, 'Sunday column clipped at x=' + (lastDayBox.x + lastDayBox.width));
 		const overflow = await mobilePage.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 		assert(overflow <= 0, `horizontal overflow ${overflow}px`);
-		const scroller = mobilePage.locator('.flex-1.overflow-y-auto.px-6').first();
+		const scroller = mobilePage.locator('.flex-1.overflow-y-auto.px-4').first();
 		if (await scroller.count()) { await scroller.evaluate((element) => { element.scrollTop = 400; }); await sleep(300); }
 		const stripAfterScroll = await strip.boundingBox();
 		const topAfterScroll = await topBar.boundingBox();

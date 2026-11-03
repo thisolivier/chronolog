@@ -162,11 +162,25 @@ export async function getRunningTimer(userId: string) {
 	return results[0] ? decryptTimeEntryWithContext(results[0]) : null;
 }
 
-/** Start a new timer — creates a draft entry with start_time=now */
-export async function startTimer(userId: string, contractId: string) {
+/** Server-local `YYYY-MM-DD` (never the UTC date from toISOString). */
+function serverLocalDate(now: Date): string {
+	const month = String(now.getMonth() + 1).padStart(2, '0');
+	const day = String(now.getDate()).padStart(2, '0');
+	return `${now.getFullYear()}-${month}-${day}`;
+}
+
+/**
+ * Start a new timer — creates a draft entry dated and timed by the user's local clock
+ * (sent by the browser), falling back to the server's local clock.
+ */
+export async function startTimer(
+	userId: string,
+	contractId: string,
+	localStart: { date?: string; startTime?: string } = {}
+) {
 	const now = new Date();
-	const currentDate = now.toISOString().split('T')[0];
-	const currentTime = now.toTimeString().split(' ')[0]; // HH:MM:SS
+	const currentDate = localStart.date ?? serverLocalDate(now);
+	const currentTime = localStart.startTime ?? now.toTimeString().split(' ')[0]; // HH:MM:SS
 
 	const results = await database
 		.insert(timeEntries)
@@ -183,9 +197,9 @@ export async function startTimer(userId: string, contractId: string) {
 }
 
 /** Stop a running timer — sets end_time=now, calculates duration */
-export async function stopTimer(entryId: string, userId: string) {
+export async function stopTimer(entryId: string, userId: string, localEndTime?: string) {
 	const now = new Date();
-	const currentTime = now.toTimeString().split(' ')[0];
+	const currentTime = localEndTime ?? now.toTimeString().split(' ')[0];
 
 	// First get the entry to calculate duration
 	const existing = await database

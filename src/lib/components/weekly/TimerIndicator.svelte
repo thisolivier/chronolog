@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { getClientBorderClass } from '$lib/utils/client-colors';
+	import { getNavigationContext } from '$lib/stores/navigation.svelte';
+	import { isSidebarTimerWidgetMounted } from '$lib/components/timer/timer-widget-registry.svelte';
 
 	interface Props {
 		timerState: 'idle' | 'running' | 'paused' | 'stopped';
@@ -18,6 +20,12 @@
 		description.length > 30 ? description.slice(0, 30) + '…' : description
 	);
 	let isVisible = $derived(timerState === 'running' || timerState === 'paused');
+
+	// With the desktop sidebar collapsed its TimerWidget is out of sight: keep a way to reach it
+	const navigationContext = getNavigationContext();
+	let isSidebarTimerHidden = $derived(
+		navigationContext.panel1Collapsed && isSidebarTimerWidgetMounted()
+	);
 
 	function formatElapsedTime(totalSeconds: number): string {
 		const hours = Math.floor(totalSeconds / 3600);
@@ -44,11 +52,26 @@
 			<span class="text-xs text-stone-400">(paused)</span>
 		{/if}
 
-		<span class="text-sm text-stone-500 truncate max-w-[200px]">{truncatedDescription}</span>
+		<span class="hidden max-w-[200px] truncate text-sm text-stone-500 sm:inline">{truncatedDescription}</span>
 
 		{#if timerState === 'running' && contractName}
-			<span class="text-sm text-stone-400">·</span>
-			<span class="text-sm text-stone-400">{contractName}</span>
+			<span class="hidden text-sm text-stone-400 md:inline">·</span>
+			<span class="hidden text-sm text-stone-400 md:inline">{contractName}</span>
+		{/if}
+	</button>
+{:else if isSidebarTimerHidden}
+	<button
+		class="flex items-center gap-2 rounded border-l-2 border-l-stone-300 bg-stone-100 px-3 py-1.5 text-sm text-stone-600 transition-colors hover:bg-stone-200"
+		onclick={onIndicatorClick}
+		title="Open the sidebar timer"
+		data-testid="timer-indicator-collapsed"
+	>
+		{#if timerState === 'stopped'}
+			<span class="timer-dot-paused"></span>
+			Timer stopped: save entry
+		{:else}
+			<span aria-hidden="true">&#9654;</span>
+			Timer
 		{/if}
 	</button>
 {/if}

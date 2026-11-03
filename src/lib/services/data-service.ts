@@ -1,4 +1,5 @@
 import type {
+	TimerLocalStart,
 	ContractsByClientResult,
 	ContractOption,
 	CreateContractInput,
@@ -55,7 +56,8 @@ export interface DataService {
 
 	// Timer
 	getTimerStatus(): Promise<TimerStatus>;
-	startTimer(contractId?: string): Promise<TimerEntry>;
+	/** Creates the server draft; the contract is required (never guessed) */
+	startTimer(contractId: string, localStart?: TimerLocalStart): Promise<TimerEntry>;
 	stopTimer(): Promise<TimerEntry>;
 	saveTimer(data: SaveTimerInput): Promise<void>;
 	discardTimer(entryId: string): Promise<void>;

@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { createTimeEntry } from '$lib/server/db/queries/time-entries';
 import { linkTimeEntryToNote } from '$lib/server/db/queries/notes';
 import { extractDescriptionLinks } from '$lib/utils/reconcile-description-links';
+import { validateDurationMinutes } from '$lib/utils/duration';
 import type { RequestHandler } from './$types';
 
 /** POST: Create a manual time entry */
@@ -20,6 +21,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			{ error: 'Missing required fields: date, durationMinutes, contractId' },
 			{ status: 400 }
 		);
+	}
+
+	const durationError = validateDurationMinutes(Number(durationMinutes));
+	if (durationError) {
+		return json({ error: durationError }, { status: 400 });
 	}
 
 	const entry = await createTimeEntry({

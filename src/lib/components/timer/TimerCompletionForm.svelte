@@ -1,5 +1,13 @@
 <script lang="ts">
-	import CascadingSelects from './CascadingSelects.svelte';
+	import { untrack } from 'svelte';
+	import ContractSelect from './ContractSelect.svelte';
+	import DeliverableSelect from './DeliverableSelect.svelte';
+	import WorkTypeSelect from './WorkTypeSelect.svelte';
+	import DurationField from './DurationField.svelte';
+	import { describeSaveError } from './save-error';
+	import { parseDuration, formatDurationInput } from '$lib/utils/duration';
+	import type { TimerSaveData } from './timer-api';
+
 
 	let {
 		startTime,
@@ -15,60 +23,89 @@
 		elapsedSeconds: number;
 		initialContractId?: string;
 		initialDescription?: string;
-		onSave: (data: {
-			contractId: string;
-			deliverableId: string;
-			workTypeId: string;
-			description: string;
-		}) => void;
+		/** Resolves when saved; rejects with the error to show */
+		onSave: (data: TimerSaveData) => Promise<void>;
 		onDiscard: () => void;
 	} = $props();
 
-	let selectedContractId = $state(initialContractId);
+	// The form edits its own copy; later prop changes must not overwrite what the user typed
+	const measuredTimeText = untrack(() =>
+		formatDurationInput(Math.max(1, Math.ceil(elapsedSeconds / 60)), startTime || null, endTime || null)
+	);
+
+	let selectedContractId = $state(untrack(() => initialContractId));
 	let selectedDeliverableId = $state('');
 	let selectedWorkTypeId = $state('');
-	let description = $state(initialDescription);
+	let workTypesAvailable = $state(false);
+	let description = $state(untrack(() => initialDescription));
+	let timeText = $state(measuredTimeText);
 	let isSaving = $state(false);
 
-	function formatDuration(totalSeconds: number): string {
-		const hours = Math.floor(totalSeconds / 3600);
-		const minutes = Math.floor((totalSeconds % 3600) / 60);
-		if (hours > 0) {
-			return `${hours}h ${minutes}m`;
-		}
-		return `${minutes}m`;
-	}
+	let contractError = $state('');
+	let timeError = $state('');
+	let saveError = $state('');
 
-	function formatTimeForDisplay(timeString: string): string {
-		if (!timeString) return '--:--';
-		return timeString.substring(0, 5);
-	}
+	// A deliverable belongs to a contract: changing the contract clears the deliverable chain
+	let previousContractId = untrack(() => initialContractId);
+	$effect(() => {
+		const contractId = selectedContractId;
+		untrack(() => {
+			if (contractId !== previousContractId) {
+				selectedDeliverableId = '';
+				selectedWorkTypeId = '';
+				previousContractId = contractId;
+			}
+			if (contractId) contractError = '';
+		});
+	});
+
+	$effect(() => {
+		void timeText;
+		untrack(() => (timeError = ''));
+	});
 
 	async function handleSave() {
-		if (!selectedContractId) return;
-		isSaving = true;
-		onSave({
+		if (isSaving) return;
+		saveError = '';
+		contractError = selectedContractId ? '' : 'Pick a contract';
+
+		const timeChanged = timeText.trim() !== measuredTimeText;
+		const parsedTime = timeChanged ? parseDuration(timeText) : null;
+		timeError = parsedTime && !parsedTime.ok ? parsedTime.error : '';
+		if (!selectedContractId || timeError) return;
+
+		const saveData: TimerSaveData = {
 			contractId: selectedContractId,
 			deliverableId: selectedDeliverableId,
 			workTypeId: selectedWorkTypeId,
 			description
-		});
+		};
+		if (parsedTime && parsedTime.ok) {
+			saveData.durationMinutes = parsedTime.durationMinutes;
+			saveData.startTime = parsedTime.kind === 'range' ? parsedTime.startTime : null;
+			saveData.endTime = parsedTime.kind === 'range' ? parsedTime.endTime : null;
+		}
+
+		isSaving = true;
+		try {
+			await onSave(saveData);
+		} catch (error) {
+			saveError = describeSaveError(error);
+		} finally {
+			isSaving = false;
+		}
+	}
+
+	function handleFieldKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter' && !event.shiftKey) {
+			event.preventDefault();
+			handleSave();
+		}
 	}
 </script>
 
 <div class="space-y-3">
-	<div class="flex items-center justify-between text-sm text-stone-600">
-		<span>
-			{formatTimeForDisplay(startTime)} - {formatTimeForDisplay(endTime)}
-		</span>
-		<span class="font-medium">{formatDuration(elapsedSeconds)}</span>
-	</div>
-
-	<CascadingSelects
-		bind:selectedContractId
-		bind:selectedDeliverableId
-		bind:selectedWorkTypeId
-	/>
+	<p class="text-xs font-medium text-stone-500">Timer stopped: save or discard this entry</p>
 
 	<div>
 		<label for="timer-description" class="block text-xs font-medium text-stone-600">
@@ -77,25 +114,84 @@
 		<textarea
 			id="timer-description"
 			bind:value={description}
+			onkeydown={handleFieldKeydown}
 			rows="2"
 			class="mt-0.5 block w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 			placeholder="What did you work on?"
 		></textarea>
 	</div>
 
-	<div class="flex gap-2">
+	<div>
+		<label for="timer-contract" class="block text-xs font-medium text-stone-600">Contract</label>
+		<div class="mt-0.5">
+			<ContractSelect
+				id="timer-contract"
+				bind:selectedContractId
+				compact={true}
+				invalid={contractError !== ''}
+			/>
+		</div>
+		{#if contractError}<p class="mt-1 text-xs text-red-600" role="alert">{contractError}</p>{/if}
+	</div>
+
+	<div>
+		<label for="timer-deliverable" class="block text-xs font-medium text-stone-600">Deliverable</label>
+		<div class="mt-0.5">
+			<DeliverableSelect
+				id="timer-deliverable"
+				contractId={selectedContractId}
+				bind:selectedDeliverableId
+				compact={true}
+				alwaysRender={true}
+			/>
+		</div>
+	</div>
+
+	<div class:hidden={!workTypesAvailable}>
+		<label for="timer-work-type" class="block text-xs font-medium text-stone-600">Work type</label>
+		<div class="mt-0.5">
+			<WorkTypeSelect
+				id="timer-work-type"
+				deliverableId={selectedDeliverableId}
+				bind:selectedWorkTypeId
+				bind:hasWorkTypes={workTypesAvailable}
+				compact={true}
+			/>
+		</div>
+	</div>
+
+	<div>
+		<label for="timer-time" class="block text-xs font-medium text-stone-600">Time</label>
+		<div class="mt-0.5">
+			<DurationField
+				id="timer-time"
+				bind:value={timeText}
+				errorMessage={timeError}
+				compact={true}
+				onkeydown={handleFieldKeydown}
+			/>
+		</div>
+	</div>
+
+	{#if saveError}
+		<div class="rounded-md bg-red-50 p-2 text-xs text-red-600" role="alert">{saveError}</div>
+	{/if}
+
+	<div class="flex justify-end gap-2">
 		<button
-			onclick={handleSave}
-			disabled={!selectedContractId || isSaving}
-			class="flex-1 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-		>
-			{isSaving ? 'Saving...' : 'Save'}
-		</button>
-		<button
+			type="button"
 			onclick={onDiscard}
-			class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
+			class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm whitespace-nowrap text-stone-700 hover:bg-stone-50"
 		>
 			Discard
+		</button>
+		<button
+			type="button"
+			onclick={handleSave}
+			disabled={isSaving}
+			class="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium whitespace-nowrap text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-70"
+		>
+			{isSaving ? 'Saving…' : saveError ? 'Retry' : 'Save'}
 		</button>
 	</div>
 </div>
