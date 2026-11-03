@@ -14,7 +14,7 @@ describe('CLIENT_COLORS', () => {
 	it('each color has all required class fields', () => {
 		for (const color of CLIENT_COLORS) {
 			expect(color.name).toBeTruthy();
-			expect(color.borderClass).toMatch(/^border-/);
+			expect(color.borderClass).toMatch(/^border-l-/);
 			expect(color.dotClass).toMatch(/^bg-/);
 			expect(color.bgClass).toMatch(/^bg-.*-50$/);
 		}
@@ -23,11 +23,11 @@ describe('CLIENT_COLORS', () => {
 
 describe('getClientBorderClass', () => {
 	it('returns correct class for index 0 (Rose)', () => {
-		expect(getClientBorderClass(0)).toBe('border-rose-400');
+		expect(getClientBorderClass(0)).toBe('border-l-rose-400');
 	});
 
 	it('returns correct class for index 3 (Amber)', () => {
-		expect(getClientBorderClass(3)).toBe('border-amber-500');
+		expect(getClientBorderClass(3)).toBe('border-l-amber-500');
 	});
 
 	it('wraps around for index > 7', () => {
