@@ -36,12 +36,23 @@ async function step(id, fn) {
 function assert(condition, message) {
 	if (!condition) throw new Error(message);
 }
-async function selectByText(selectLocator, text) {
-	const value = await selectLocator.evaluate((element, wanted) => {
-		const option = Array.from(element.options).find((candidate) => candidate.textContent.includes(wanted));
-		return option ? option.value : null;
-	}, text);
-	if (!value) throw new Error(`no <option> containing "${text}"`);
+async function selectByText(selectLocator, text, timeoutMs = 5000) {
+	// Options are fetched after mount (ContractSelect, DeliverableSelect): poll until the wanted one exists
+	const deadline = Date.now() + timeoutMs;
+	let value = null;
+	let seen = [];
+	while (Date.now() < deadline) {
+		const probe = await selectLocator.evaluate((element, wanted) => {
+			const options = Array.from(element.options);
+			const option = options.find((candidate) => candidate.textContent.includes(wanted));
+			return { value: option && !element.disabled ? option.value : null, seen: options.map((candidate) => candidate.textContent.trim()) };
+		}, text);
+		value = probe.value;
+		seen = probe.seen;
+		if (value) break;
+		await new Promise((resolve) => setTimeout(resolve, 150));
+	}
+	if (!value) throw new Error(`no enabled <option> containing "${text}" (options: ${seen.join(' | ')})`);
 	await selectLocator.selectOption(value);
 }
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -61,6 +72,9 @@ page.on('requestfailed', (request) => failedRequests.push(`${request.method()} $
 page.on('response', (response) => { if (response.status() >= 400) failedRequests.push(`${response.request().method()} ${response.url()} -> ${response.status()}`); });
 page.on('framenavigated', (frame) => { if (frame === page.mainFrame()) navigations.push(frame.url()); });
 
+// Sidebar (panel 1) contract buttons; time cards also carry "<client> / <contract>" buttons
+const sidebarPanel = page.locator('.flex.flex-1.overflow-hidden > div').first();
+const sidebarContract = (pattern) => sidebarPanel.getByRole('button', { name: pattern });
 const shot = (name) => page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: false });
 
 // ---------------------------------------------------------------- AUTH
@@ -80,11 +94,24 @@ await step('AUTH-register', async () => {
 	await page.locator('#confirm-password').fill(USER.password);
 	const started = Date.now();
 	await page.locator('button[type="submit"]').click();
-	await page.waitForURL('**/login', { timeout: 15000 });
-	return `registered ${USER.email}, redirected to /login in ${Date.now() - started}ms`;
+	// Since 020-CL: Better Auth signs the new user in and /login bounces an authenticated user to /
+	await page.waitForURL((url) => url.pathname === '/', { timeout: 15000 });
+	await page.getByRole('button', { name: 'Time Entries' }).waitFor({ timeout: 15000 });
+	await shot('00-after-register');
+	return `registered ${USER.email}, landed signed in on ${page.url()} in ${Date.now() - started}ms`;
+});
+
+await step('AUTH-login-page-when-authenticated', async () => {
+	await page.goto(BASE + '/login');
+	await page.waitForURL((url) => url.pathname === '/', { timeout: 10000 });
+	await page.getByRole('button', { name: 'Time Entries' }).waitFor({ timeout: 15000 });
+	return `visiting /login while authenticated redirects to ${page.url()}`;
 });
 
 await step('AUTH-login-redirect', async () => {
+	// Sign out (drop the session cookie) so the login form is reachable again
+	await context.clearCookies();
+	await page.goto(BASE + '/login');
 	await page.waitForLoadState('networkidle');
 	await page.locator('#email').fill(USER.email);
 	await page.locator('#password').fill(USER.password);
@@ -96,23 +123,23 @@ await step('AUTH-login-redirect', async () => {
 	return `landed on ${page.url()} in ${Date.now() - started}ms; navigations: ${navigations.slice(-3).join(' , ')}`;
 });
 
-await step('AUTH-login-page-when-authenticated', async () => {
-	await page.goto(BASE + '/login');
-	await sleep(1000);
-	return `visiting /login while authenticated stays at ${page.url()} (no redirect to /)`;
-});
-
 // Native-submit race probe: submit the login form BEFORE hydration completes.
 await step('AUTH-native-submit-race', async () => {
-	const probePage = await context.newPage();
-	await probePage.route('**/_app/**', async (route) => { await sleep(1500); await route.continue(); }); // slow down hydration
+	// Fresh, unauthenticated context: the main page's session would redirect /login to /
+	const probeContext = await browser.newContext();
+	const probePage = await probeContext.newPage();
+	// Slow down hydration: delay every script (prod serves /_app/**, dev serves /src, /@fs, /node_modules/.vite)
+	await probePage.route('**/*', async (route) => {
+		if (route.request().resourceType() === 'script') await sleep(1500);
+		await route.continue();
+	});
 	await probePage.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
 	await probePage.locator('#email').fill(USER.email);
 	await probePage.locator('#password').fill(USER.password);
 	await probePage.locator('button[type="submit"]').click();
 	await sleep(3000);
 	const url = probePage.url();
-	await probePage.close();
+	await probeContext.close();
 	if (url.includes('?')) throw new Error(`form did native GET submit to ${url} (no preventDefault / pre-hydration click)`);
 	return `url after pre-hydration submit: ${url}`;
 });
@@ -255,7 +282,7 @@ await page.getByRole('button', { name: 'Time Entries' }).waitFor();
 await page.waitForLoadState('networkidle');
 let sidebarDots = {};
 await step('A10-sidebar-color-dots', async () => {
-	await page.getByRole('button', { name: /Rocket Build/ }).waitFor({ timeout: 10000 });
+	await sidebarContract(/Rocket Build/).waitFor({ timeout: 10000 });
 	const contractButtons = page.locator('button:has(span.rounded-full.h-2)');
 	const count = await contractButtons.count();
 	for (let index = 0; index < count; index++) {
@@ -273,7 +300,7 @@ await step('A10-sidebar-color-dots', async () => {
 // ---------------------------------------------------------------- Notes first (so wiki-link autocomplete has targets)
 let noteAId = '', noteBId = '';
 await step('E1-create-note', async () => {
-	await page.getByRole('button', { name: /General/ }).click();
+	await sidebarContract(/General/).click();
 	await page.getByRole('button', { name: 'New Note' }).waitFor({ timeout: 10000 });
 	await page.getByRole('button', { name: 'New Note' }).click();
 	const idSpan = page.locator('span.font-mono.text-stone-400');
@@ -305,7 +332,7 @@ await step('E1-edit-note-tiptap-autosave', async () => {
 	await sleep(500);
 	const modeAfterReload = (await page.locator('.tiptap').count()) ? 'notes (selection kept)' : 'time-entries (selection lost)';
 	// After reload, navigation state is in-memory only — re-open the note via sidebar
-	await page.getByRole('button', { name: /General/ }).click();
+	await sidebarContract(/General/).click();
 	await page.getByRole('button', { name: /Alpha note heading/ }).first().click();
 	await page.locator('.tiptap').waitFor({ timeout: 10000 });
 	const text = await page.locator('.tiptap').innerText();
@@ -364,9 +391,11 @@ await step('E1-wiki-link-editor-autocomplete', async () => {
 	await editor.click();
 	await page.keyboard.type('Beta note links to ');
 	await page.keyboard.type('[[');
-	await page.keyboard.type(noteAId.slice(0, 6), { delay: 50 });
+	// Full id: a shared prefix + Enter picks the first (most recent) suggestion, which is this note itself
+	await page.keyboard.type(noteAId, { delay: 30 });
 	const dropdown = page.locator('body > div.absolute.z-50');
 	await dropdown.waitFor({ timeout: 8000 });
+	await sleep(500);
 	const items = await dropdown.innerText();
 	assert(items.includes(noteAId), 'dropdown items: ' + items);
 	await shot('09-wiki-link-autocomplete');
@@ -374,6 +403,8 @@ await step('E1-wiki-link-editor-autocomplete', async () => {
 	await sleep(300);
 	const link = page.locator('.tiptap .wiki-link');
 	assert((await link.count()) === 1, 'no wiki-link node inserted');
+	const linkTarget = await link.first().getAttribute('data-note-id');
+	assert(linkTarget === noteAId, `wiki-link points at ${linkTarget}, expected ${noteAId}`);
 	await page.waitForResponse((response) => response.url().includes(`/api/notes/${noteBId}`) && response.request().method() === 'PUT', { timeout: 10000 });
 	return `B=${noteBId} got wiki-link to ${noteAId}; dropdown showed: ${items.replace(/\s+/g, ' ').slice(0, 80)}`;
 });
@@ -404,43 +435,58 @@ await page.getByRole('button', { name: 'Time Entries' }).click();
 await page.getByText('Today', { exact: true }).first().waitFor({ timeout: 10000 });
 await sleep(500);
 const todaySection = page.locator('div.bg-amber-50\\/60').first();
+const newEntryRow = page.locator('div.mb-2.rounded-lg.border').filter({ has: page.locator('input[placeholder="What did you work on?"]') }).first();
+const newEntryField = (labelText) => newEntryRow.locator('div').filter({ has: page.locator('label', { hasText: new RegExp('^' + labelText + '$') }) }).last().locator('select');
 await step('A5-new-entry-row-layout', async () => {
 	await todaySection.getByTitle('Add entry').click();
 	const description = page.locator('input[placeholder="What did you work on?"]');
 	await description.waitFor({ timeout: 5000 });
 	const descriptionBox = await description.boundingBox();
-	const contractSelect = page.locator('div.mb-2.rounded-lg select');
-	const timeInput = page.locator('input[placeholder="2h30m"]');
+	const contractSelect = newEntryField('Contract');
+	const deliverableSelect = newEntryField('Deliverable');
+	const timeInput = newEntryRow.locator('input[placeholder="2h30m"]');
+	assert((await contractSelect.count()) === 1, 'no Contract select in new entry row');
+	assert((await deliverableSelect.count()) === 1, 'NewEntryRow has no Deliverable select — checklist expects contract, deliverable, time');
 	const contractBox = await contractSelect.boundingBox();
+	const deliverableBox = await deliverableSelect.boundingBox();
 	const timeBox = await timeInput.boundingBox();
-	assert(descriptionBox.y < contractBox.y && Math.abs(contractBox.y - timeBox.y) < 10, 'layout rows wrong');
+	assert(descriptionBox.y < contractBox.y && Math.abs(contractBox.y - timeBox.y) < 10 && Math.abs(contractBox.y - deliverableBox.y) < 10, 'layout rows wrong');
+	assert(contractBox.x < deliverableBox.x && deliverableBox.x < timeBox.x, 'row 2 order is not contract, deliverable, time');
 	assert(descriptionBox.width > contractBox.width + timeBox.width, 'description not full width');
-	const hasDeliverable = (await page.locator('div.mb-2.rounded-lg select').count()) > 1 || (await page.getByText('Deliverable').count()) > 0;
-	await page.getByRole('button', { name: 'Cancel' }).waitFor();
-	await page.getByRole('button', { name: 'Save' }).waitFor();
+	const deliverableDisabled = await deliverableSelect.isDisabled();
+	const deliverablePlaceholder = (await deliverableSelect.innerText()).trim();
+	assert(deliverableDisabled, 'deliverable select enabled before a contract is chosen');
+	await newEntryRow.getByRole('button', { name: 'Cancel' }).waitFor();
+	await newEntryRow.getByRole('button', { name: 'Save' }).waitFor();
 	await shot('11-new-entry-row');
-	if (!hasDeliverable) throw new Error('NewEntryRow has no deliverable input (only contract + time) — checklist expects contract, deliverable, time');
-	return 'description full-width row 1; contract/deliverable/time row 2; Cancel/Save present';
+	return `description full-width row 1; contract/deliverable/time row 2 (deliverable disabled: "${deliverablePlaceholder}"); Cancel/Save present`;
 });
 await step('A5-border-updates-on-contract-select', async () => {
-	const row = page.locator('div.mb-2.rounded-lg.border').first();
+	const row = newEntryRow;
 	const before = await row.getAttribute('class');
-	await selectByText(row.locator('select'), 'Rocket Build');
+	await selectByText(newEntryField('Contract'), 'Rocket Build');
 	await sleep(200);
 	const after = await row.getAttribute('class');
 	assert(before.includes('border-l-stone-200') && !after.includes('border-l-stone-200'), `before="${before.match(/border-l-\S+/g)}" after="${after.match(/border-l-\S+/g)}"`);
 	return `left border ${before.match(/border-l-[a-z]+-\d+/)[0]} -> ${after.match(/border-l-[a-z]+-\d+/)[0]}`;
 });
+await step('A5-new-entry-row-deliverable', async () => {
+	const deliverableSelect = newEntryField('Deliverable');
+	await selectByText(deliverableSelect, 'Phase 1');
+	const workTypeVisible = await newEntryField('Work type').isVisible().catch(() => false);
+	return `deliverable "Phase 1" selectable after choosing Rocket Build; work type field visible=${workTypeVisible} (deliverable has no work types)`;
+});
 await step('E1-create-time-entry-manual', async () => {
-	await page.locator('input[placeholder="What did you work on?"]').fill('Build the rocket engine');
-	await page.locator('input[placeholder="2h30m"]').fill('1h30m');
-	await page.getByRole('button', { name: 'Save' }).click();
+	await newEntryRow.locator('input[placeholder="What did you work on?"]').fill('Build the rocket engine');
+	await newEntryRow.locator('input[placeholder="2h30m"]').fill('1h30m');
+	await newEntryRow.getByRole('button', { name: 'Save' }).click();
 	const card = todaySection.locator('div.group');
 	await card.first().waitFor({ timeout: 8000 });
 	const text = await card.first().innerText();
 	assert(text.includes('Build the rocket engine') && text.includes('1h 30m'), 'card: ' + text);
+	assert(text.includes('Phase 1'), 'deliverable picked in the new entry row not shown on card: ' + text.replace(/\s+/g, ' '));
 	await shot('12-entry-created');
-	return `card shows "Build the rocket engine" / 1h 30m`;
+	return `card shows "Build the rocket engine" / 1h 30m / Phase 1`;
 });
 await step('A4-card-hierarchy-and-colours', async () => {
 	const card = todaySection.locator('div.group').first();
@@ -513,7 +559,8 @@ await step('A4-wiki-link-autocomplete-in-description', async () => {
 	const input = card.locator('input[placeholder^="Add description"]');
 	await input.waitFor({ timeout: 5000 });
 	await input.press('End');
-	await input.type(' see [[' + noteAId.slice(0, 5), { delay: 40 });
+	// Full id, not a shared prefix: Enter picks the first (most recent) suggestion
+	await input.type(' see [[' + noteAId, { delay: 40 });
 	const dropdown = card.locator('div.z-50');
 	await dropdown.waitFor({ timeout: 5000 });
 	await sleep(600);
@@ -523,7 +570,15 @@ await step('A4-wiki-link-autocomplete-in-description', async () => {
 	await input.press('Enter');
 	await sleep(200);
 	const value = await input.inputValue();
-	assert(value.includes(`[[${noteAId}]]`), 'value ' + value);
+	if (!value.includes(`[[${noteAId}]]`)) {
+		// Record the failure, but save the intended link so the downstream seams (card click,
+		// linked time entries, move) are still exercised instead of cascading
+		await input.fill(value.replace(/\[\[[^\]]*\]\]\s*$/, `[[${noteAId}]]`));
+		await sleep(200);
+		await input.press('Enter');
+		await sleep(1500);
+		throw new Error(`typed the exact id ${noteAId} + Enter but got "${value}"; dropdown order: ${items.replace(/\s+/g, ' ').slice(0, 160)} (description corrected by hand so later steps can run)`);
+	}
 	await input.press('Enter');
 	await sleep(1500);
 	return `dropdown listed ${noteAId}; inserted [[${noteAId}]]`;
@@ -539,8 +594,20 @@ await step('A4-wiki-link-rendering-in-card', async () => {
 	await shot('14-wiki-link-rendered');
 	return `description renders ${noteAId} as link element`;
 });
+await step('A4-card-wiki-link-click-opens-note', async () => {
+	const card = todaySection.locator('div.group').first();
+	await card.getByTitle(`Go to note ${noteAId}`).click();
+	await page.locator('.tiptap').waitFor({ timeout: 8000 });
+	await sleep(600);
+	const currentId = (await page.locator('span.font-mono.text-stone-400').first().innerText()).trim();
+	assert(currentId === noteAId, 'card wiki-link opened ' + currentId);
+	const text = await page.locator('.tiptap').innerText();
+	assert(text.includes('Alpha note heading'), 'editor content: ' + text.slice(0, 60));
+	await shot('14b-card-wiki-link-opened-note');
+	return `clicking [[${noteAId}]] on the card switched to notes mode with ${noteAId} open`;
+});
 await step('C2-linked-time-entries-on-note', async () => {
-	await page.getByRole('button', { name: /General/ }).click();
+	await sidebarContract(/General/).click();
 	await page.getByRole('button', { name: /Alpha note heading/ }).first().click();
 	await page.locator('.tiptap').waitFor();
 	await sleep(800);
@@ -565,9 +632,10 @@ await step('C1-move-menu-visible-and-excludes-current', async () => {
 await step('C1-move-note', async () => {
 	const menu = page.locator('[data-move-menu] div.absolute');
 	await menu.getByRole('button', { name: /Rocket Build/ }).click();
-	const feedback = page.getByText(/Moved to/);
-	let feedbackText = '';
-	try { await feedback.waitFor({ timeout: 3000 }); feedbackText = await feedback.innerText(); } catch { feedbackText = '(feedback not observed)'; }
+	const feedback = page.getByTestId('move-feedback');
+	await feedback.waitFor({ timeout: 3000 });
+	const feedbackText = (await feedback.innerText()).trim();
+	assert(feedbackText === 'Moved to Acme Corp / Rocket Build', 'move feedback: ' + feedbackText);
 	await sleep(300);
 	const stillListed = await page.getByRole('button', { name: /Alpha note heading/ }).count();
 	await shot('17-after-move');
@@ -576,7 +644,7 @@ await step('C1-move-note', async () => {
 	return `feedback "${feedbackText}"; note removed from General list; editor still open=${editorVisible > 0}`;
 });
 await step('C1-note-appears-in-target', async () => {
-	await page.getByRole('button', { name: /Rocket Build/ }).first().click();
+	await sidebarContract(/Rocket Build/).first().click();
 	const noteButton = page.getByRole('button', { name: /Alpha note heading/ });
 	await noteButton.first().waitFor({ timeout: 8000 });
 	await noteButton.first().click();
@@ -601,7 +669,7 @@ await step('C2-linked-entries-after-move', async () => {
 	return 'linked time entries still shown after move';
 });
 await step('C2-wiki-link-from-B-after-move', async () => {
-	await page.getByRole('button', { name: /General/ }).click();
+	await sidebarContract(/General/).click();
 	await page.getByRole('button', { name: /Beta note/ }).first().waitFor({ timeout: 8000 });
 	await page.getByRole('button', { name: /Beta note/ }).first().click();
 	await page.locator('.tiptap .wiki-link').first().waitFor({ timeout: 8000 });
@@ -614,6 +682,21 @@ await step('C2-wiki-link-from-B-after-move', async () => {
 	await shot('18-cross-contract-wikilink');
 	const listPanelText = await page.locator('.flex.flex-1.overflow-hidden > div').nth(1).innerText();
 	return `[[${noteAId}]] from B (General) opens moved note; list panel now shows: ${listPanelText.replace(/\s+/g, ' ').slice(0, 60)}`;
+});
+
+await step('C2-card-wiki-link-after-move', async () => {
+	await page.getByRole('button', { name: 'Time Entries' }).click();
+	await page.getByText('Today', { exact: true }).first().waitFor({ timeout: 10000 });
+	await sleep(500);
+	const card = todaySection.locator('div.group').filter({ hasText: 'rocket' }).first();
+	await card.getByTitle(`Go to note ${noteAId}`).click();
+	await page.locator('.tiptap').waitFor({ timeout: 8000 });
+	await sleep(600);
+	const currentId = (await page.locator('span.font-mono.text-stone-400').first().innerText()).trim();
+	assert(currentId === noteAId, 'card wiki-link opened ' + currentId);
+	const listPanelText = await page.locator('.flex.flex-1.overflow-hidden > div').nth(1).innerText();
+	assert(listPanelText.includes('Alpha note heading') && !listPanelText.includes('Beta note'), 'list panel not on the moved-to contract: ' + listPanelText.replace(/\s+/g, ' ').slice(0, 120));
+	return `card [[${noteAId}]] opens the moved note under Rocket Build`;
 });
 
 // ---------------------------------------------------------------- A7 status, A3 nav, A9 timer
@@ -718,20 +801,21 @@ await step('E1-timer-stop-save', async () => {
 	await page.getByRole('button', { name: 'Stop' }).click();
 	await page.getByRole('button', { name: 'Save' }).waitFor({ timeout: 8000 });
 	const deliverableSelect = page.locator('#deliverable-select');
-	let deliverableNote = 'no deliverable select shown';
-	if (await deliverableSelect.count()) {
-		await selectByText(deliverableSelect, 'Phase 1');
-		deliverableNote = 'deliverable "Phase 1" selected';
-		await sleep(400);
-	}
+	await deliverableSelect.waitFor({ timeout: 5000 }).catch(() => {});
+	assert((await deliverableSelect.count()) === 1, 'timer completion form has no deliverable select');
+	await selectByText(deliverableSelect, 'Phase 1');
+	const deliverableNote = 'deliverable "Phase 1" selected';
+	await sleep(400);
 	await shot('23-timer-completion');
 	await page.getByRole('button', { name: 'Save' }).click();
 	await page.getByRole('button', { name: 'Start Timer' }).waitFor({ timeout: 8000 });
 	await sleep(800);
+	// No reload: the card must appear via the time-entry-saved event (019-CL task 2)
 	const cards = todaySection.locator('div.group');
+	await cards.filter({ hasText: 'Timer-driven work' }).first().waitFor({ timeout: 5000 }).catch(() => {});
 	const texts = await cards.allInnerTexts();
 	const match = texts.find((text) => text.includes('Timer-driven work'));
-	assert(match, 'timer entry not in today section: ' + JSON.stringify(texts));
+	assert(match, 'timer entry not in today section without reload: ' + JSON.stringify(texts));
 	assert((await page.locator('.timer-dot-running').count()) === 0, 'indicator still visible after save');
 	return `timer entry saved (${deliverableNote}); card: "${match.replace(/\s+/g, ' ').slice(0, 90)}"`;
 });
@@ -746,13 +830,14 @@ await step('E1-add-entry-modal-deliverable-selector', async () => {
 	await page.getByRole('button', { name: 'Add Entry' }).click();
 	await page.locator('#entry-date').waitFor({ timeout: 5000 });
 	const modalText = await page.locator('#entry-date').locator('xpath=ancestor::div[contains(@class,"fixed")]').innerText().catch(() => '');
-	const hasDeliverable = (await page.locator('#deliverable-select').count()) > 0 || /deliverable/i.test(modalText);
+	const hasDeliverable = (await page.locator('#deliverable-select').count()) > 0;
+	const modalHasWorkTypeLabel = (await page.locator('label[for="work-type-select"]').count()) > 0 || /work type/i.test(modalText);
 	await shot('25-add-entry-modal');
 	await page.keyboard.press('Escape');
 	const cancel = page.getByRole('button', { name: /Cancel|Close/ });
 	if (await cancel.count()) await cancel.first().click().catch(() => {});
 	if (!hasDeliverable) throw new Error('Add Entry modal has no deliverable selector (date, duration, contract, description only)');
-	return 'Add Entry modal exposes deliverable selector';
+	return `Add Entry modal exposes #deliverable-select (work type field present=${modalHasWorkTypeLabel})`;
 });
 await step('E1-delete-time-entry', async () => {
 	const cards = todaySection.locator('div.group');
@@ -769,7 +854,7 @@ await step('E1-delete-time-entry', async () => {
 
 // ---------------------------------------------------------------- E1 delete note
 await step('E1-delete-note', async () => {
-	await page.getByRole('button', { name: /General/ }).click();
+	await sidebarContract(/General/).click();
 	await page.getByRole('button', { name: /Beta note/ }).first().waitFor({ timeout: 8000 });
 	await page.getByRole('button', { name: /Beta note/ }).first().click();
 	await page.locator('.tiptap').waitFor();
@@ -788,7 +873,7 @@ await step('A2-no-layout-shift-switching-modes', async () => {
 	await sleep(400);
 	const topbarA = await page.locator('div.h-12').boundingBox();
 	const sidebarA = await page.locator('.flex.flex-1.overflow-hidden > div').first().boundingBox();
-	await page.getByRole('button', { name: /General/ }).click();
+	await sidebarContract(/General/).click();
 	await sleep(400);
 	const topbarB = await page.locator('div.h-12').boundingBox();
 	const sidebarB = await page.locator('.flex.flex-1.overflow-hidden > div').first().boundingBox();
@@ -799,6 +884,51 @@ await step('A2-no-layout-shift-switching-modes', async () => {
 await page.goto(BASE + '/');
 await sleep(1500);
 await shot('26-final-state');
+
+// ---------------------------------------------------------------- Mobile (375px): top bar + timesheet
+await step('M1-mobile-topbar-and-timesheet', async () => {
+	const mobileContext = await browser.newContext({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true, storageState: await context.storageState() });
+	const mobilePage = await mobileContext.newPage();
+	const mobileErrors = [];
+	mobilePage.on('pageerror', (error) => { mobileErrors.push(error.message.slice(0, 200)); pageErrors.push(`[mobile] ${mobilePage.url()} :: ${error.message.slice(0, 400)}`); });
+	try {
+		await mobilePage.goto(BASE + '/');
+		await mobilePage.waitForLoadState('networkidle');
+		const topBar = mobilePage.locator('div.h-12').first();
+		const rootText = (await topBar.innerText()).trim();
+		assert(rootText.includes('Chronolog'), 'level-0 top bar: ' + rootText);
+		await mobilePage.getByRole('button', { name: 'Time Entries' }).click();
+		const strip = mobilePage.locator('.sticky.top-0').first();
+		await strip.waitFor({ timeout: 10000 });
+		await mobilePage.getByRole('button', { name: /Back/ }).waitFor({ timeout: 5000 });
+		await sleep(800);
+		const topBox = await topBar.boundingBox();
+		const stripBox = await strip.boundingBox();
+		assert(topBox.y === 0 && topBox.height === 48, 'top bar box ' + JSON.stringify(topBox));
+		assert(stripBox.y >= 47 && stripBox.y < 120, 'WeekStrip y ' + stripBox.y);
+		const dayButtons = strip.locator('.grid-cols-7 > button');
+		assert((await dayButtons.count()) === 7, 'day columns ' + (await dayButtons.count()));
+		const lastDayBox = await dayButtons.nth(6).boundingBox();
+		assert(lastDayBox.x + lastDayBox.width <= 376, 'Sunday column clipped at x=' + (lastDayBox.x + lastDayBox.width));
+		const overflow = await mobilePage.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+		assert(overflow <= 0, `horizontal overflow ${overflow}px`);
+		const scroller = mobilePage.locator('.flex-1.overflow-y-auto.px-6').first();
+		if (await scroller.count()) { await scroller.evaluate((element) => { element.scrollTop = 400; }); await sleep(300); }
+		const stripAfterScroll = await strip.boundingBox();
+		const topAfterScroll = await topBar.boundingBox();
+		assert(topAfterScroll.y === 0, 'top bar scrolled away: y=' + topAfterScroll.y);
+		assert(stripAfterScroll.y >= 47 && stripAfterScroll.y < 120, 'WeekStrip not sticky under the top bar: y=' + stripAfterScroll.y);
+		const cardTexts = await mobilePage.locator('div.group').allInnerTexts();
+		await mobilePage.screenshot({ path: `${SHOTS}/27-mobile-timesheet.png` });
+		await mobilePage.getByRole('button', { name: /Back/ }).click();
+		await sleep(400);
+		assert((await topBar.innerText()).includes('Chronolog'), 'Back did not return to level 0');
+		assert(mobileErrors.length === 0, 'page errors: ' + mobileErrors.join(' | '));
+		return `top bar "Chronolog" -> "← Back" at y=0 h=48; WeekStrip y=${Math.round(stripBox.y)} (after scroll ${Math.round(stripAfterScroll.y)}), 7 columns fit; no horizontal overflow; ${cardTexts.length} card(s); Back returns to level 0`;
+	} finally {
+		await mobileContext.close();
+	}
+});
 
 writeFileSync(OUT, JSON.stringify({ user: USER.email, noteAId, noteBId, results, consoleErrors, pageErrors, failedRequests, navigations }, null, 2));
 console.log('\nSUMMARY', results.filter((r) => r.status === 'PASS').length, 'pass /', results.filter((r) => r.status === 'FAIL').length, 'fail');
