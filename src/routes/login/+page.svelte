@@ -5,7 +5,12 @@
 
 	let { data }: { data: PageData } = $props();
 
+	// Sign-in only works through the script below; until it has hydrated, the submit buttons stay
+	// disabled so a fast click can't fall back to a native GET submit to /login? (QA R1).
+	let isHydrated = $state(false);
+
 	onMount(() => {
+		isHydrated = true;
 		// Reached /login by client-side navigation while already signed in (see
 		// +page.server.ts). Full page reload so the root layout re-mounts with the
 		// authenticated user and initializes navigation context.
@@ -21,7 +26,8 @@
 	let isLoading = $state(false);
 	let requiresTwoFactor = $state(false);
 
-	async function handleLogin() {
+	async function handleLogin(event: SubmitEvent) {
+		event.preventDefault();
 		errorMessage = '';
 		isLoading = true;
 
@@ -52,7 +58,8 @@
 		}
 	}
 
-	async function handleTwoFactorVerification() {
+	async function handleTwoFactorVerification(event: SubmitEvent) {
+		event.preventDefault();
 		errorMessage = '';
 		isLoading = true;
 
@@ -76,6 +83,8 @@
 		}
 	}
 </script>
+
+<svelte:head><title>Chronolog · Sign in</title></svelte:head>
 
 <div class="flex min-h-screen items-center justify-center bg-stone-50">
 	<div class="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-md">
@@ -113,7 +122,7 @@
 
 				<button
 					type="submit"
-					disabled={isLoading}
+					disabled={isLoading || !isHydrated}
 					class="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
 				>
 					{isLoading ? 'Verifying...' : 'Verify'}
@@ -149,7 +158,7 @@
 
 				<button
 					type="submit"
-					disabled={isLoading}
+					disabled={isLoading || !isHydrated}
 					class="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
 				>
 					{isLoading ? 'Signing in...' : 'Sign in'}

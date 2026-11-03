@@ -3,6 +3,7 @@
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import { getTimerStateContext } from '$lib/stores/timer-state.svelte';
 	import TimerIndicator from '$lib/components/weekly/TimerIndicator.svelte';
+	import ConnectionStatus from './ConnectionStatus.svelte';
 
 	interface Props {
 		panel1: Snippet;
@@ -58,23 +59,53 @@
 		}
 	});
 
-	// Mobile detection
+	// Breakpoints (sprint 026-CL, finding 17):
+	// - below 768px: single-panel mobile drill-down
+	// - 768–1023px (tablet / half-screen laptop): two panels; in notes mode the sidebar becomes an
+	//   overlay opened with ≡ so the note list and editor keep their width
+	// - 1024px and up: sidebar + list + editor
+	// Tablet and desktop share one DOM branch, so crossing 1024px never remounts the editor.
 	let isMobile = $state(false);
+	let isTablet = $state(false);
 
 	$effect(() => {
-		const mediaQuery = window.matchMedia('(max-width: 1023px)');
-		isMobile = mediaQuery.matches;
-
-		const handleMediaChange = (event: MediaQueryListEvent) => {
-			isMobile = event.matches;
+		const mobileQuery = window.matchMedia('(max-width: 767px)');
+		const tabletQuery = window.matchMedia('(min-width: 768px) and (max-width: 1023px)');
+		const update = () => {
+			isMobile = mobileQuery.matches;
+			isTablet = tabletQuery.matches;
 		};
-
-		mediaQuery.addEventListener('change', handleMediaChange);
-
+		update();
+		mobileQuery.addEventListener('change', update);
+		tabletQuery.addEventListener('change', update);
 		return () => {
-			mediaQuery.removeEventListener('change', handleMediaChange);
+			mobileQuery.removeEventListener('change', update);
+			tabletQuery.removeEventListener('change', update);
 		};
 	});
+
+	const sidebarIsOverlay = $derived(isTablet && navigationContext.isNotesMode);
+	let overlaySidebarOpen = $state(false);
+	const sidebarVisible = $derived(
+		sidebarIsOverlay ? overlaySidebarOpen : !navigationContext.panel1Collapsed
+	);
+
+	// Picking a contract (or switching mode) closes the overlay sidebar
+	$effect(() => {
+		void navigationContext.selectedContractId;
+		void navigationContext.mode;
+		overlaySidebarOpen = false;
+	});
+
+	function toggleSidebar() {
+		if (sidebarIsOverlay) overlaySidebarOpen = !overlaySidebarOpen;
+		else navigationContext.toggleSidebar();
+	}
+
+	function openSidebar() {
+		if (sidebarIsOverlay) overlaySidebarOpen = true;
+		else if (navigationContext.panel1Collapsed) navigationContext.toggleSidebar();
+	}
 </script>
 
 <svelte:window onmouseup={handleResizeEnd} />
@@ -107,6 +138,7 @@
 				/>
 			{/if}
 		</div>
+		<ConnectionStatus mode={navigationContext.mode} />
 
 		<!-- Active panel. Panel 2 (note list) only exists in notes mode; in time mode
 		     level 1 goes straight to the time entries panel. -->
@@ -127,9 +159,10 @@
 		<div class="flex h-12 items-center justify-between border-b border-stone-200 bg-white px-4">
 			<div class="flex items-center gap-3">
 				<button
-					onclick={() => navigationContext.toggleSidebar()}
+					onclick={toggleSidebar}
 					class="text-lg text-stone-500 hover:text-stone-700"
 					aria-label="Toggle sidebar"
+					aria-expanded={sidebarVisible}
 				>≡</button>
 				<span class="text-sm font-semibold text-stone-700">Chronolog</span>
 			</div>
@@ -139,20 +172,27 @@
 				description={timerState.description}
 				contractName={timerState.contractName}
 				clientColorIndex={timerState.clientColorIndex}
-				onIndicatorClick={() => {
-					if (navigationContext.panel1Collapsed) {
-						navigationContext.toggleSidebar();
-					}
-				}}
+				onIndicatorClick={openSidebar}
 			/>
 		</div>
+		<ConnectionStatus mode={navigationContext.mode} />
 
 		<!-- Panels -->
-		<div class="flex flex-1 overflow-hidden">
-			<!-- Panel 1: Sidebar (collapsible) -->
+		<div class="relative flex flex-1 overflow-hidden">
+			{#if sidebarIsOverlay && overlaySidebarOpen}
+				<button
+					class="absolute inset-0 z-20 bg-black/20"
+					aria-label="Close sidebar"
+					onclick={() => (overlaySidebarOpen = false)}
+				></button>
+			{/if}
+			<!-- Panel 1: Sidebar (collapsible; an overlay in tablet notes mode) -->
 			<div
-				class="flex-shrink-0 border-r border-stone-200 bg-stone-50 transition-all duration-300"
-				style="width: {navigationContext.panel1Collapsed ? 0 : 240}px; overflow: hidden;"
+				class="flex-shrink-0 border-r border-stone-200 bg-stone-50 transition-all duration-300 {sidebarIsOverlay
+					? 'absolute inset-y-0 left-0 z-30 shadow-xl'
+					: ''}"
+				style="width: {sidebarVisible ? 240 : 0}px; overflow: hidden;"
+				data-testid="app-sidebar"
 			>
 				<div class="flex h-full w-60 flex-col overflow-y-auto">
 					{@render panel1()}
@@ -163,7 +203,7 @@
 			{#if navigationContext.isNotesMode}
 				<div
 					class="relative flex-shrink-0 border-r border-stone-200 bg-white"
-					style="width: {panel2Width}px;"
+					style="width: {isTablet ? Math.min(panel2Width, 260) : panel2Width}px;"
 				>
 					<div class="flex h-full flex-col overflow-y-auto">
 						{@render panel2()}

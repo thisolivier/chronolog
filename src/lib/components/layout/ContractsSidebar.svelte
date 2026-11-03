@@ -5,6 +5,9 @@
 	import TimerWidget from '$lib/components/timer/TimerWidget.svelte';
 	import ContractCreateModal from '$lib/components/admin/ContractCreateModal.svelte';
 	import type { ContractsByClientResult, ClientSummary } from '$lib/services/types';
+	import { NOTES_CHANGED_EVENT } from '$lib/services/notes-changed-event';
+	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
+	import { groupContractsByClient } from '$lib/utils/group-contracts-by-client';
 
 	const navigationContext = getNavigationContext();
 	const dataService = getDataService();
@@ -15,15 +18,40 @@
 	let errorMessage = $state('');
 	let showCreateModal = $state(false);
 
+	// Contracts grouped under client headings (archived and system ones never arrive from the API)
+	const clientGroups = $derived(groupContractsByClient(contractsList));
+
 	async function loadContracts() {
 		try {
 			contractsList = await dataService.getContractsByClient();
+			contractDirectory.replaceAll(contractsList);
+			errorMessage = '';
 		} catch (error) {
-			errorMessage = error instanceof Error ? error.message : 'Failed to load contracts';
+			// Keep showing the last list if we had one (offline); only an empty sidebar shows the error
+			if (contractsList.length === 0) {
+				errorMessage = error instanceof Error ? error.message : 'Failed to load contracts';
+			}
 		} finally {
 			isLoading = false;
 		}
 	}
+
+	// Note counts stay correct: refresh after a note is created, deleted or moved.
+	// Several events in a burst (move = note-moved + notes-changed) cause one request.
+	let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+	function scheduleCountRefresh() {
+		if (refreshTimer) clearTimeout(refreshTimer);
+		refreshTimer = setTimeout(loadContracts, 150);
+	}
+
+	$effect(() => {
+		const refreshEvents = [NOTES_CHANGED_EVENT, 'note-moved'];
+		for (const eventName of refreshEvents) window.addEventListener(eventName, scheduleCountRefresh);
+		return () => {
+			for (const eventName of refreshEvents) window.removeEventListener(eventName, scheduleCountRefresh);
+			if (refreshTimer) clearTimeout(refreshTimer);
+		};
+	});
 
 	async function loadClients() {
 		try {
@@ -47,8 +75,9 @@
 		navigationContext.selectContract(contractId, clientId);
 	}
 
-	function handleContractCreated() {
+	function handleContractCreated(created?: { id: string; clientId: string }) {
 		showCreateModal = false;
+		if (created) navigationContext.selectContract(created.id, created.clientId);
 		// Reload the contracts list and clients list
 		isLoading = true;
 		loadContracts();
@@ -74,7 +103,7 @@
 			<span class="text-xs font-semibold uppercase text-stone-400">Contracts</span>
 		</div>
 
-		<!-- Flat contract list -->
+		<!-- Contracts grouped by client -->
 		{#if isLoading}
 			<div class="py-4 text-center text-xs text-stone-400">Loading...</div>
 		{:else if errorMessage}
@@ -82,35 +111,44 @@
 				{errorMessage}
 			</div>
 		{:else if contractsList.length === 0}
-			<div class="py-4 text-center text-xs text-stone-500">No contracts found</div>
+			<div class="px-3 py-4 text-xs text-stone-500">
+				No contracts yet. Use <span class="font-medium">New Contract</span> below.
+			</div>
 		{:else}
-			{#each contractsList as contract (contract.id)}
-				<button
-					onclick={() => handleContractClick(contract.id, contract.clientId)}
-					class="flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-left text-sm transition-colors {navigationContext.selectedContractId ===
-					contract.id
-						? 'bg-blue-50 text-blue-700'
-						: 'text-stone-700 hover:bg-stone-100'}"
-					class:opacity-50={!contract.isActive}
-				>
-					<!-- Color dot indicating client -->
-					<span class="inline-block h-2 w-2 flex-shrink-0 rounded-full {getClientDotClass(contract.clientColorIndex)}"></span>
-
-					<!-- Contract name -->
-					<div class="min-w-0 flex-1 truncate">
-						{contract.name}
-						{#if !contract.isActive}
-							<span class="ml-1 text-xs text-stone-400">(inactive)</span>
-						{/if}
+			{#each clientGroups as group (group.clientId)}
+				<div class="mb-2" role="group" aria-label={group.clientName} data-testid="sidebar-client-group">
+					<div class="flex items-center gap-2 px-3 pt-1 pb-0.5 text-xs font-semibold text-stone-500">
+						<span class="inline-block h-2 w-2 flex-shrink-0 rounded-full {getClientDotClass(group.clientColorIndex)}" aria-hidden="true"></span>
+						<span class="truncate">{group.clientName}</span>
 					</div>
-
-					<!-- Note count (right-aligned, only if > 0) -->
-					{#if contract.noteCount > 0}
-						<span class="flex-shrink-0 text-xs text-stone-400">
-							{contract.noteCount}
-						</span>
-					{/if}
-				</button>
+					{#each group.contracts as contract (contract.id)}
+						<button
+							onclick={() => handleContractClick(contract.id, contract.clientId)}
+							class="flex w-full items-center gap-2 rounded-md py-1.5 pr-3 pl-7 text-left text-sm transition-colors {navigationContext.selectedContractId ===
+							contract.id
+								? 'bg-blue-50 text-blue-700'
+								: 'text-stone-700 hover:bg-stone-100'}"
+							class:opacity-50={!contract.isActive}
+							data-contract-id={contract.id}
+						>
+							<span class="min-w-0 flex-1 truncate">
+								{contract.name}
+								{#if !contract.isActive}
+									<span class="ml-1 text-xs text-stone-400">(inactive)</span>
+								{/if}
+							</span>
+							{#if contract.noteCount > 0}
+								<span
+									class="flex-shrink-0 text-[11px] tabular-nums text-stone-400"
+									title="{contract.noteCount} {contract.noteCount === 1 ? 'note' : 'notes'}"
+									data-testid="sidebar-note-count"
+								>
+									{contract.noteCount}
+								</span>
+							{/if}
+						</button>
+					{/each}
+				</div>
 			{/each}
 		{/if}
 
@@ -125,7 +163,7 @@
 			New Contract
 		</button>
 		<a
-			href="/admin"
+			href="/settings"
 			class="block w-full px-3 py-1 text-left text-xs text-stone-500 hover:text-stone-700"
 		>
 			Settings

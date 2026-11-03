@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-	<title>Unlock · Chronolog</title>
+	<title>Chronolog · Unlock</title>
 </svelte:head>
 
 <div class="flex min-h-screen items-center justify-center bg-stone-50">

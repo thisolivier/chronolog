@@ -5,7 +5,6 @@
 	import { setDataServiceContext } from '$lib/services/context';
 	import { FetchDataService } from '$lib/services/fetch-data-service';
 	import { DelegatingDataService } from '$lib/services/delegating-data-service';
-	import ConnectionStatus from '$lib/components/layout/ConnectionStatus.svelte';
 
 	let { children, data } = $props();
 
@@ -79,9 +78,8 @@
 	}
 </script>
 
-{#if data.user}
-	<ConnectionStatus />
-{/if}
+<!-- The offline banner lives inside AppShell and SettingsShell, in the page flow, so it is never
+     pushed off-screen by a full-height layout (sprint 026-CL). -->
 
 {#if showUpdatePrompt}
 	<div
