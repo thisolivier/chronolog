@@ -12,8 +12,8 @@ The review it was written for is `docs/review/2026-11-03-qa-state.md`.
 ## Running it
 
 ```bash
-# 1. Dev stack (Postgres + bucket storage; PowerSync is not needed)
-docker compose up -d postgres bucket-storage
+# 1. Dev stack (Postgres)
+docker compose up -d postgres
 
 # 2. Dev server on http://localhost:5173
 npm run dev

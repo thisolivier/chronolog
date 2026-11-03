@@ -82,23 +82,38 @@
 {#if isMobile}
 	<!-- Mobile: Single-panel push/pop navigation -->
 	<div class="flex h-screen flex-col overflow-hidden bg-white">
-		<!-- Back button header when not at level 0 -->
-		{#if navigationContext.mobileNavigationLevel > 0}
-			<div class="flex items-center gap-2 border-b border-stone-200 bg-white px-4 py-3">
-				<button
-					onclick={() => navigationContext.goBackMobile()}
-					class="text-sm font-medium text-blue-600 hover:text-blue-800"
-				>
-					&larr; Back
-				</button>
+		<!-- Mobile top bar: app name at the root, Back button once pushed in -->
+		<div class="flex h-12 items-center justify-between border-b border-stone-200 bg-white px-4">
+			<div class="flex items-center gap-3">
+				{#if navigationContext.mobileNavigationLevel > 0}
+					<button
+						onclick={() => navigationContext.goBackMobile()}
+						class="text-sm font-medium text-blue-600 hover:text-blue-800"
+					>
+						&larr; Back
+					</button>
+				{:else}
+					<span class="text-sm font-semibold text-stone-700">Chronolog</span>
+				{/if}
 			</div>
-		{/if}
+			{#if navigationContext.mobileNavigationLevel > 0}
+				<TimerIndicator
+					timerState={timerState.status}
+					elapsedSeconds={timerState.elapsedSeconds}
+					description={timerState.description}
+					contractName={timerState.contractName}
+					clientColorIndex={timerState.clientColorIndex}
+					onIndicatorClick={() => navigationContext.navigateMobile(0)}
+				/>
+			{/if}
+		</div>
 
-		<!-- Active panel -->
+		<!-- Active panel. Panel 2 (note list) only exists in notes mode; in time mode
+		     level 1 goes straight to the time entries panel. -->
 		<div class="flex flex-1 flex-col overflow-y-auto">
 			{#if navigationContext.mobileNavigationLevel === 0}
 				{@render panel1()}
-			{:else if navigationContext.mobileNavigationLevel === 1}
+			{:else if navigationContext.mobileNavigationLevel === 1 && navigationContext.isNotesMode}
 				{@render panel2()}
 			{:else}
 				{@render panel3()}

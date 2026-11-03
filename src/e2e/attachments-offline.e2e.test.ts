@@ -3,8 +3,8 @@
  *
  * Verifies the attachment pipeline works end-to-end and documents the
  * expected offline degradation behavior:
- * - Attachment metadata (filename, mime_type, size) is synced via PowerSync
- * - Actual file binary is served from the API (excluded from bucket sync)
+ * - Attachment metadata (filename, mime_type, size) is available from the list endpoint
+ * - Actual file binary is served separately from the download endpoint
  * - When offline: metadata available, file download fails gracefully
  *
  * Tests:
@@ -113,7 +113,7 @@ describe('GATE C: Attachment Offline Degradation (API)', () => {
 		);
 		expect(ourAttachment).toBeDefined();
 
-		// Verify all metadata fields are present (these are synced via PowerSync)
+		// Verify all metadata fields are present
 		expect(ourAttachment).toHaveProperty('filename', 'test-attachment.png');
 		expect(ourAttachment).toHaveProperty('mimeType', 'image/png');
 		expect(ourAttachment).toHaveProperty('sizeBytes');

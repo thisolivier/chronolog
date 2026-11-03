@@ -52,6 +52,12 @@ export default defineConfig({
 	webServer: {
 		command: 'npm run dev',
 		url: 'http://localhost:5173',
-		reuseExistingServer: true
+		reuseExistingServer: true,
+		// auth.setup.ts registers a fresh user per run, so sign-up must be open.
+		// Note: with reuseExistingServer, an already-running server keeps its own
+		// environment — start it with ALLOW_REGISTRATION=true yourself in that case.
+		env: {
+			ALLOW_REGISTRATION: 'true'
+		}
 	}
 });

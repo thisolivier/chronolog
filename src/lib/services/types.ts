@@ -160,14 +160,6 @@ export type TimeEntryDisplay = {
 	date: string;
 };
 
-export type WeekSummary = {
-	weekStart: string;
-	year: number;
-	weekNumber: number;
-	totalMinutes: number;
-	status: string;
-};
-
 // -- Timer --
 
 export type TimerStatus = {

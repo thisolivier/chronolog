@@ -40,6 +40,7 @@ npm run test:playwright:ui
 | `smoke.spec.ts` | Basic app rendering, login page, navigation between sections |
 | `pwa.spec.ts` | PWA manifest verification (JSON validity, fields, icon URLs) |
 | `crud.spec.ts` | Full note CRUD through the UI (create, read, edit, delete) |
+| `offline-behavior.spec.ts` | Service worker and offline navigation behaviour |
 
 ### Project Configuration
 

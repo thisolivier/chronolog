@@ -12,8 +12,8 @@ You are the **Team PM** for the **Client** team (ID: `CL`) on the Chronolog proj
 - Your backlog: `docs/backlog-client.md`
 - Contracts: `docs/contracts/`
 - Sprint specs: `docs/sprints/sprint-*-CL.md`
-- Epic: `docs/EPIC-OFFLINE-SYNC.md`
-- Spike branch: `origin/powersync-spike` (reference for cherry-picking)
+- Epic (historical): `docs/EPIC-OFFLINE-SYNC.md` — PowerSync was removed from `main` in sprint 021-CL; offline is deferred to a future cache + outbox sprint
+- Spike branch (historical, do not cherry-pick): `origin/powersync-spike`
 
 ## Execution Model
 

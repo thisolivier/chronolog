@@ -1,22 +1,30 @@
 import { auth } from '$lib/server/auth';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import { building } from '$app/environment';
-import { redirect } from '@sveltejs/kit';
+import { json, redirect } from '@sveltejs/kit';
 import type { Handle } from '@sveltejs/kit';
+import { getServerEnvironment } from '$lib/server/env';
 import { database } from '$lib/server/db';
 import { users } from '$lib/server/db/schema/users';
 import { clients } from '$lib/server/db/schema/clients';
 import { contracts } from '$lib/server/db/schema/contracts';
 import { eq } from 'drizzle-orm';
 
+// Fail fast at server boot when required secrets are missing (no-op during build).
+getServerEnvironment();
+
 /**
  * Routes that do not require authentication.
- * All other routes will redirect unauthenticated users to /login.
+ * Unauthenticated page requests elsewhere redirect to /login; API requests get a 401.
  */
-const publicRoutes = ['/login', '/register', '/api/auth', '/api/powersync/jwks', '/spike'];
+const publicRoutes = ['/login', '/register', '/api/auth'];
 
 function isPublicRoute(pathname: string): boolean {
 	return publicRoutes.some((route) => pathname === route || pathname.startsWith(route + '/'));
+}
+
+function isApiRoute(pathname: string): boolean {
+	return pathname === '/api' || pathname.startsWith('/api/');
 }
 
 /**
@@ -86,10 +94,17 @@ async function ensureAppUser(authUser: { id: string; email: string; name: string
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
-	// Populate session and user on event.locals for all requests
-	const sessionData = await auth.api.getSession({
-		headers: event.request.headers
-	});
+	// Populate session and user on event.locals for all requests.
+	// A throwing getSession (e.g. database unreachable, malformed cookie) is
+	// treated as "no session" rather than crashing the request.
+	let sessionData: Awaited<ReturnType<typeof auth.api.getSession>> = null;
+	try {
+		sessionData = await auth.api.getSession({
+			headers: event.request.headers
+		});
+	} catch (sessionError) {
+		console.error(`Failed to read session for ${event.url.pathname}:`, sessionError);
+	}
 
 	if (sessionData) {
 		event.locals.session = sessionData.session;
@@ -99,26 +114,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 		await ensureAppUser(sessionData.user);
 	}
 
-	// Auth guard: redirect unauthenticated users to login for protected routes
+	// Auth guard: API callers get a 401 JSON body; page requests redirect to login
 	if (!sessionData && !isPublicRoute(event.url.pathname)) {
+		if (isApiRoute(event.url.pathname)) {
+			return json({ error: 'Unauthorized' }, { status: 401 });
+		}
 		throw redirect(303, '/login');
-	}
-
-	// COOP/COEP headers for OPFS access — required for PowerSync's SharedArrayBuffer/OPFS.
-	// Applied globally when PUBLIC_SYNC_MODE is 'powersync', or just on /spike otherwise.
-	// Uses 'credentialless' for COEP to avoid breaking cross-origin resources (fonts, CDN).
-	const syncMode = process.env.PUBLIC_SYNC_MODE ?? '';
-	const needsCrossOriginIsolation =
-		syncMode === 'powersync' || event.url.pathname.startsWith('/spike');
-
-	if (needsCrossOriginIsolation) {
-		const response = await resolve(event, {
-			transformPageChunk: ({ html }) => html,
-			filterSerializedResponseHeaders: () => true
-		});
-		response.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
-		response.headers.set('Cross-Origin-Embedder-Policy', 'credentialless');
-		return response;
 	}
 
 	// Let Better Auth handle its own API routes

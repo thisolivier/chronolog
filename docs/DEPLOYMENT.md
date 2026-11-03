@@ -2,6 +2,10 @@
 
 Chronolog has two deployment targets: a Tauri desktop app (macOS) and a server-hosted PWA.
 
+The production server stack is deliberately small: **the SvelteKit app + PostgreSQL**. There is no
+sync service, no second database and no extra configuration directory. Offline support is deferred
+to a future cache + outbox sprint and will not add server components.
+
 ## Desktop App (Tauri)
 
 ### Building
@@ -44,35 +48,48 @@ The server listens on port 3000 by default. Set the `PORT` environment variable 
 
 ### Environment variables
 
-Copy `.env.example` and configure for production:
+Copy `.env.prod.example` to `.env.prod` and fill in real values. The app **refuses to boot** without
+`BETTER_AUTH_SECRET` and `ENCRYPTION_KEY` — there is no hard-coded fallback.
 
-| Variable | Description |
-|----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `ENCRYPTION_KEY` | 256-bit key for AES-256-GCM encryption at rest |
-| `BETTER_AUTH_SECRET` | Secret for session signing (generate with `openssl rand -base64 32`) |
-| `BETTER_AUTH_URL` | Public URL of the app (e.g. `https://chronolog.example.com`) |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | yes | PostgreSQL connection string (the compose file builds it from `POSTGRES_*`) |
+| `ENCRYPTION_KEY` | yes | 256-bit key for AES-256-GCM encryption at rest (`openssl rand -base64 32`) |
+| `BETTER_AUTH_SECRET` | yes | Session signing secret (`openssl rand -base64 32`) |
+| `BETTER_AUTH_URL` | yes | Public URL of the app (e.g. `https://chronolog.example.com`); also used as `ORIGIN` |
+| `ALLOW_REGISTRATION` | no | Default `false`: the `/register` page shows "Registration is closed on this instance" and the sign-up API refuses. See below |
+| `TRUSTED_ORIGINS` | no | Comma-separated extra origins Better Auth accepts in addition to `BETTER_AUTH_URL` (e.g. a Tailscale IP or LAN address you also open the app from) |
+| `POSTGRES_PASSWORD` | yes (compose) | Password for the bundled Postgres; `POSTGRES_USER` / `POSTGRES_DB` default to `chronolog` |
+| `APP_PORT` | no | Host port mapped to the app container (default `3000`) |
+
+#### Creating the first account
+
+Chronolog is a single-account-per-instance app and registration is closed by default. To create
+your account:
+
+1. Set `ALLOW_REGISTRATION=true` in `.env.prod` and start (or restart) the app.
+2. Open `/register`, create the account and enrol 2FA.
+3. Set `ALLOW_REGISTRATION=false` (or remove the line) and restart the app. The register page and
+   API are closed again; the existing account keeps working.
 
 ### Docker deployment
 
-A minimal Docker setup for production:
+The repo ships a production `Dockerfile` (multi-stage Node 20 build; the container runs
+`drizzle-kit migrate` and then `node build`) and `docker-compose.prod.yml` with two services:
 
-```dockerfile
-FROM node:20-slim AS build
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
+| Service | Image | Purpose |
+|---------|-------|---------|
+| `app` | built from `Dockerfile` | SvelteKit server on port 3000 (host port `APP_PORT`) |
+| `postgres` | `postgres:17` | Application database, volume `postgres_data`, healthcheck gates app start |
 
-FROM node:20-slim
-WORKDIR /app
-COPY --from=build /app/build ./build
-COPY --from=build /app/package*.json ./
-RUN npm ci --omit=dev
-EXPOSE 3000
-CMD ["node", "build"]
+```bash
+cp .env.prod.example .env.prod   # fill in the secrets
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 ```
+
+Migrations run automatically on every app container start, so there is no separate migration step.
+Put a reverse proxy with HTTPS (Caddy, Traefik, or Coolify's built-in proxy) in front of port 3000
+and make sure `BETTER_AUTH_URL` matches the public URL it serves.
 
 ### Recommended hosting: Coolify on Hetzner
 
@@ -85,27 +102,10 @@ The planned production setup (see [SPEC.md](SPEC.md) for details):
 
 ### Alternative: Docker Compose + Caddy
 
-For a simpler self-hosted setup, use Docker Compose with Caddy as a reverse proxy for automatic HTTPS:
+For a simpler self-hosted setup (for example on the Mac mini), run `docker-compose.prod.yml` as
+above and add a Caddy container in front of it for automatic HTTPS:
 
 ```yaml
-services:
-  app:
-    build: .
-    environment:
-      DATABASE_URL: postgresql://chronolog:chronolog@postgres:5432/chronolog
-      # ... other env vars
-    ports:
-      - "3000:3000"
-
-  postgres:
-    image: postgres:17
-    environment:
-      POSTGRES_USER: chronolog
-      POSTGRES_PASSWORD: <strong-password>
-      POSTGRES_DB: chronolog
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
   caddy:
     image: caddy:2
     ports:
@@ -113,17 +113,22 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
-
-volumes:
-  postgres_data:
+    networks:
+      - chronolog
 ```
+
+with a `Caddyfile` of `chronolog.example.com { reverse_proxy app:3000 }`.
 
 ### Database migrations in production
 
-Run migrations before starting the app:
+The app container runs `drizzle-kit migrate` before starting. If you run the Node build outside
+Docker, run migrations yourself before starting the app:
 
 ```bash
 npm run db:migrate
 ```
 
-Or include it in your deployment pipeline / Docker entrypoint.
+### Backups
+
+Back up the `postgres_data` volume (or `pg_dump` the `chronolog` database) before upgrades. It is
+the only state the stack holds.

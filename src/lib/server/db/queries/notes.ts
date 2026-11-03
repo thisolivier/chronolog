@@ -1,14 +1,6 @@
 import { eq, and, desc, like, or, ilike } from "drizzle-orm";
 import { database, notes, noteTimeEntries, contracts, clients, timeEntries } from "$lib/server/db";
 
-export async function listNotesForUser(userId: string) {
-	return database
-		.select()
-		.from(notes)
-		.where(eq(notes.userId, userId))
-		.orderBy(desc(notes.createdAt));
-}
-
 export async function listNotesForContract(userId: string, contractId: string) {
 	const results = await database
 		.select()
@@ -25,21 +17,6 @@ export async function getNoteForUser(noteId: string, userId: string) {
 		.where(and(eq(notes.id, noteId), eq(notes.userId, userId)))
 		.limit(1);
 	return results[0] ?? null;
-}
-
-export async function getNoteWithTimeEntriesForUser(noteId: string, userId: string) {
-	const noteData = await getNoteForUser(noteId, userId);
-	if (!noteData) return null;
-
-	const linkedTimeEntries = await database
-		.select()
-		.from(noteTimeEntries)
-		.where(eq(noteTimeEntries.noteId, noteId));
-
-	return {
-		...noteData,
-		linkedTimeEntries
-	};
 }
 
 /**

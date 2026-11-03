@@ -12,8 +12,8 @@ You are the **Team PM** for the **Gate Keeper** team (ID: `GK`) on the Chronolog
 - Root: `/Users/olivier/sites/chronolog`
 - Contracts: `docs/contracts/`
 - Sprint specs: `docs/sprints/sprint-*-GK.md`
-- Epic: `docs/EPIC-OFFLINE-SYNC.md`
-- Spike branch (reference): `origin/powersync-spike`
+- Epic (historical): `docs/EPIC-OFFLINE-SYNC.md` — PowerSync was removed from `main` in sprint 021-CL; offline is deferred to a future cache + outbox sprint
+- Spike branch (historical): `origin/powersync-spike`
 
 ## Execution Model
 

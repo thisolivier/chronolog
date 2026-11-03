@@ -56,15 +56,3 @@ export async function upsertWeeklyStatus(
 		.returning();
 	return results[0];
 }
-
-/** List all weekly statuses for a given year. */
-export async function listWeeklyStatuses(
-	userId: string,
-	year: number
-): Promise<WeeklyStatus[]> {
-	return database
-		.select()
-		.from(weeklyStatuses)
-		.where(and(eq(weeklyStatuses.userId, userId), eq(weeklyStatuses.year, year)))
-		.orderBy(weeklyStatuses.weekNumber);
-}

@@ -4,7 +4,7 @@ End-to-end tests that verify the full API surface against the live Docker stack.
 
 ## Prerequisites
 
-1. **Docker stack running** with all 4 services healthy:
+1. **Docker stack running** (app + Postgres) and healthy:
    ```bash
    docker compose up -d
    ```
@@ -44,7 +44,6 @@ E2E_BASE_URL=http://127.0.0.1:3000 npm run test:e2e
 
 | File | Endpoints Covered |
 |------|------------------|
-| `powersync-infra.e2e.test.ts` | JWKS, token, PowerSync liveness |
 | `clients.e2e.test.ts` | GET /api/clients |
 | `contracts.e2e.test.ts` | GET/POST /api/contracts, GET /api/contracts-by-client |
 | `notes.e2e.test.ts` | POST/GET/PUT/DELETE /api/notes, backlinks, attachments, time-entries sub-resources |
@@ -52,6 +51,7 @@ E2E_BASE_URL=http://127.0.0.1:3000 npm run test:e2e
 | `timer.e2e.test.ts` | GET/POST timer status, start, stop, save, discard |
 | `reference-data.e2e.test.ts` | GET /api/deliverables, GET /api/work-types |
 | `search.e2e.test.ts` | GET /api/notes/search |
+| `attachments-offline.e2e.test.ts` | Attachment upload, metadata listing, download and delete |
 
 ## Configuration
 

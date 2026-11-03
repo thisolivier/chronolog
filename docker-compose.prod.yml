@@ -11,8 +11,8 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL}
-      PUBLIC_SYNC_MODE: powersync
-      VITE_POWERSYNC_URL: ${VITE_POWERSYNC_URL:-http://localhost:8080}
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-false}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-}
       ORIGIN: ${BETTER_AUTH_URL}
     depends_on:
       postgres:
@@ -23,65 +23,17 @@ services:
   postgres:
     image: postgres:17
     restart: unless-stopped
-    command: ["postgres", "-c", "wal_level=logical"]
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-chronolog}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-chronolog}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./config/init-db.sql:/docker-entrypoint-initdb.d/init-replication.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chronolog} -d ${POSTGRES_DB:-chronolog}"]
       interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - chronolog
-
-  bucket-storage:
-    image: postgres:17
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: powersync
-      POSTGRES_PASSWORD: ${BUCKET_STORAGE_PASSWORD:-powersync_storage}
-      POSTGRES_DB: powersync_storage
-    volumes:
-      - bucket_storage_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U powersync -d powersync_storage"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      - chronolog
-
-  powersync:
-    image: journeyapps/powersync-service:latest
-    restart: unless-stopped
-    command: ["start", "-r", "unified"]
-    depends_on:
-      postgres:
-        condition: service_healthy
-      bucket-storage:
-        condition: service_healthy
-    ports:
-      - "${POWERSYNC_PORT:-8080}:8080"
-    volumes:
-      - ./config/powersync.yaml:/config/powersync.yaml
-      - ./config/sync_rules.yaml:/config/sync_rules.yaml
-    environment:
-      POWERSYNC_CONFIG_PATH: /config/powersync.yaml
-      PS_DATA_SOURCE_URI: "postgresql://${PS_REPL_USER:-powersync_repl}:${PS_REPL_PASSWORD:-powersync_repl_password}@postgres:5432/${POSTGRES_DB:-chronolog}"
-      PS_STORAGE_SOURCE_URI: "postgresql://powersync:${BUCKET_STORAGE_PASSWORD:-powersync_storage}@bucket-storage:5432/powersync_storage"
-      PS_PORT: "8080"
-      PS_JWKS_URI: "http://app:3000/api/powersync/jwks"
-    healthcheck:
-      test: ["CMD-SHELL", "node -e \"http=require('http');http.get('http://localhost:8080/probes/liveness',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))\""]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
     networks:
       - chronolog
 
@@ -91,4 +43,3 @@ networks:
 
 volumes:
   postgres_data:
-  bucket_storage_data:

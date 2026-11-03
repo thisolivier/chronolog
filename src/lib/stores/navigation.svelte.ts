@@ -30,7 +30,7 @@ export interface NavigationState {
 	selectedNoteId: string | null;
 	/** Whether Panel 1 (sidebar) is collapsed */
 	panel1Collapsed: boolean;
-	/** Mobile navigation level (0=contracts, 1=list, 2=content) */
+	/** Mobile navigation level (0=sidebar, 1=note list or time entries, 2=note editor) */
 	mobileNavigationLevel: MobileNavigationLevel;
 }
 
@@ -92,7 +92,7 @@ export function createNavigationState(): NavigationContext {
 		state.selectedContractId = null;
 		state.selectedClientId = null;
 		state.selectedNoteId = null;
-		// Auto-advance to panel 2 on mobile
+		// On mobile, level 1 in time mode is the time entries panel itself
 		state.mobileNavigationLevel = 1;
 	};
 
@@ -106,9 +106,9 @@ export function createNavigationState(): NavigationContext {
 	};
 
 	const selectWeek = (weekStart: string) => {
+		// Week changes come from the WeekStrip inside the time entries panel,
+		// which is already on screen, so the mobile level is left alone.
 		state.selectedWeek = weekStart;
-		// Auto-advance to panel 3 on mobile
-		state.mobileNavigationLevel = 2;
 	};
 
 	const selectNote = (noteId: string) => {

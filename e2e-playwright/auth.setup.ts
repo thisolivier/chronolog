@@ -4,6 +4,9 @@
  *
  * The storage state file is written to `e2e-playwright/.auth/user.json`.
  * Other test files import it via `storageState` in their `use` config.
+ *
+ * Requires the dev server to run with ALLOW_REGISTRATION=true (set in
+ * playwright.config.ts webServer.env; a reused server must set it itself).
  */
 
 import { test as setup, expect } from '@playwright/test';

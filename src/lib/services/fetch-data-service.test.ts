@@ -17,10 +17,8 @@ import type {
 	NoteDetail,
 	Backlink,
 	AttachmentSummary,
-	NoteTimeEntryLink,
 	LinkedTimeEntryDisplay,
 	WeekData,
-	WeekSummary,
 	TimerStatus,
 	TimerEntry,
 	DeliverableOption,
@@ -444,36 +442,6 @@ describe('FetchDataService', () => {
 		});
 	});
 
-	describe('getWeekSummaries', () => {
-		it('calls GET /api/weeks?count=N and unwraps .weeks', async () => {
-			const weeks: WeekSummary[] = [
-				{
-					weekStart: '2026-02-02',
-					year: 2026,
-					weekNumber: 6,
-					totalMinutes: 2400,
-					status: 'submitted'
-				}
-			];
-			mockFetch.mockResolvedValueOnce(mockJsonResponse({ weeks }));
-
-			const result = await service.getWeekSummaries(4);
-
-			const [url] = getLastFetchCall(mockFetch);
-			expect(url).toBe('/api/weeks?count=4');
-			expect(result).toEqual(weeks);
-		});
-
-		it('appends &before= when before parameter is provided', async () => {
-			mockFetch.mockResolvedValueOnce(mockJsonResponse({ weeks: [] }));
-
-			await service.getWeekSummaries(4, '2026-02-01');
-
-			const [url] = getLastFetchCall(mockFetch);
-			expect(url).toBe('/api/weeks?count=4&before=2026-02-01');
-		});
-	});
-
 	describe('createTimeEntry', () => {
 		it('calls POST /api/time-entries and extracts entry.id', async () => {
 			mockFetch.mockResolvedValueOnce(
@@ -786,7 +754,6 @@ describe('DelegatingDataService', () => {
 			linkNoteTimeEntry: vi.fn().mockResolvedValue(undefined),
 			unlinkNoteTimeEntry: vi.fn().mockResolvedValue(undefined),
 			getWeeklyTimeEntries: vi.fn().mockResolvedValue([]),
-			getWeekSummaries: vi.fn().mockResolvedValue([]),
 			createTimeEntry: vi.fn().mockResolvedValue({ id: `${label}-te` }),
 			updateTimeEntry: vi.fn().mockResolvedValue(undefined),
 			deleteTimeEntry: vi.fn().mockResolvedValue(undefined),
@@ -856,9 +823,6 @@ describe('DelegatingDataService', () => {
 
 		await delegator.getWeeklyTimeEntries(['2026-02-02']);
 		expect(inner.getWeeklyTimeEntries).toHaveBeenCalledWith(['2026-02-02']);
-
-		await delegator.getWeekSummaries(4, '2026-02-01');
-		expect(inner.getWeekSummaries).toHaveBeenCalledWith(4, '2026-02-01');
 
 		await delegator.createTimeEntry({ date: '2026-02-03', durationMinutes: 60, contractId: 'c1' });
 		expect(inner.createTimeEntry).toHaveBeenCalledWith({
@@ -973,7 +937,6 @@ describe('DataService interface completeness', () => {
 		'linkNoteTimeEntry',
 		'unlinkNoteTimeEntry',
 		'getWeeklyTimeEntries',
-		'getWeekSummaries',
 		'createTimeEntry',
 		'updateTimeEntry',
 		'deleteTimeEntry',

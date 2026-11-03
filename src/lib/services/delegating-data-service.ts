@@ -1,10 +1,9 @@
 /**
  * A DataService wrapper that delegates all calls to a mutable inner service.
  *
- * This allows swapping the underlying implementation at runtime (e.g.,
- * starting with FetchDataService and switching to PowerSyncDataService
- * once the async connection completes) without re-setting Svelte context
- * or updating component references.
+ * This allows swapping the underlying implementation at runtime via
+ * setDelegate() without re-setting Svelte context or updating component
+ * references. Today the only delegate is FetchDataService.
  */
 
 import type { DataService } from './data-service';
@@ -18,12 +17,10 @@ import type {
 	UpdateNoteInput,
 	Backlink,
 	AttachmentSummary,
-	NoteTimeEntryLink,
 	LinkedTimeEntryDisplay,
 	TimeEntryFields,
 	CreateTimeEntryInput,
 	WeekData,
-	WeekSummary,
 	TimerStatus,
 	TimerEntry,
 	SaveTimerInput,
@@ -121,10 +118,6 @@ export class DelegatingDataService implements DataService {
 
 	getWeeklyTimeEntries(weekStarts: string[]): Promise<WeekData[]> {
 		return this.delegate.getWeeklyTimeEntries(weekStarts);
-	}
-
-	getWeekSummaries(count: number, before?: string): Promise<WeekSummary[]> {
-		return this.delegate.getWeekSummaries(count, before);
 	}
 
 	createTimeEntry(data: CreateTimeEntryInput): Promise<{ id: string }> {

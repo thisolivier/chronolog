@@ -8,8 +8,8 @@ Apple Notes-inspired three-panel layout on desktop, single-panel drill-down on m
 
 ```
 ┌──────────────┬────────────────────┬──────────────────────────────────┐
-│  Contracts   │  Note / Week List  │  Content Area                    │
-│  Panel       │  Panel             │  (Note editor or Time entries)   │
+│  Contracts   │  Note List         │  Content Area                    │
+│  Panel       │  (notes mode only) │  (Note editor or Time entries)   │
 │              │                    │                                  │
 │  [Internal]  │  [pinned notes]    │                                  │
 │  [Client A]  │  [notes by date]   │                                  │
@@ -33,26 +33,23 @@ Apple Notes-inspired three-panel layout on desktop, single-panel drill-down on m
 - "Internal" is the default/top-level contract (for non-client work)
 - **"Time Entries"** option at the top, above all contracts — this is global (all clients)
 - Selecting a contract populates Panel 2 with that contract's notes
-- Selecting "Time Entries" populates Panel 2 with weeks
+- Selecting "Time Entries" hides Panel 2; Panel 3 shows the time entries, with the WeekStrip as the week navigator
 - Panel can be collapsed to give more space to Panels 2 and 3
 - **Timer widget** sits at the bottom of this panel (see below)
 
-**Panel 2 — List (middle left)**
-- **In Notes mode** (contract selected):
-  - Lists notes for the selected contract
-  - Sorted by creation date or modification date (toggle)
-  - Notes can be pinned to the top
-  - Selecting a note opens it in Panel 3
-- **In Time Entries mode**:
-  - Lists weeks (e.g. "W06 2026 — Feb 3-9")
-  - Selecting a week scrolls Panel 3 to that week
-  - Acts as a navigation index into the continuous scroll
+**Panel 2 — Note list (middle left)**
+- Shown in Notes mode only (contract selected); hidden in Time Entries mode
+- Lists notes for the selected contract
+- Sorted by creation date or modification date (toggle)
+- Notes can be pinned to the top
+- Selecting a note opens it in Panel 3
 
 **Panel 3 — Content (right, main area)**
 - **In Notes mode**:
   - TipTap editor for the selected note
   - Full markdown editing with toolbar
 - **In Time Entries mode**:
+  - WeekStrip at the top is the week navigator (there is no separate week list panel)
   - Continuous vertical scroll of time entries
   - Lazy-loaded by week
   - Broken into sections by day headers
@@ -91,7 +88,7 @@ Level 3: Note editor (full screen)
 
 - Back arrow / swipe-right to pop back up
 - Timer widget is a persistent fixed footer across all levels
-- "Time Entries" follows the same drill-down: Contracts → Weeks → Week detail
+- "Time Entries" drills down directly: Contracts → Time Entries panel (the WeekStrip inside it navigates weeks)
 
 ## Timer Widget
 

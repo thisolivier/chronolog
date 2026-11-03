@@ -20,7 +20,7 @@ The current task backlog is in [`BACKLOG.md`](BACKLOG.md) at the project root.
 ### Prerequisites
 
 - **Node.js** (v20+) and npm
-- **Docker** and Docker Compose (for PostgreSQL and the PowerSync stack)
+- **Docker** and Docker Compose (for PostgreSQL)
 - **Rust** toolchain (for Tauri desktop builds)
 - **Xcode Command Line Tools** (macOS — `xcode-select --install`)
 
@@ -51,10 +51,10 @@ npm install
 
 # 3. Copy environment variables
 cp .env.example .env
-# Edit .env — the defaults work for local dev with Docker
+# Edit .env — see "Environment variables" below; the Postgres defaults match docker-compose.yml
 
 # 4. Start PostgreSQL (Docker)
-docker compose up -d
+docker compose up -d postgres
 
 # 5. Run database migrations
 npm run db:migrate
@@ -71,11 +71,26 @@ npm run tauri:dev
 
 The web app is available at `http://localhost:5173`. The Tauri app opens as a native window.
 
+Alternatively, `docker compose up -d` (no service name) also starts a containerised app on port 5173 with hot reload, so you can skip `npm run dev`.
+
+### Environment variables
+
+`.env` is gitignored; `.env.example` lists every key. The app **refuses to boot** without the required ones.
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | yes | PostgreSQL connection string (`postgresql://chronolog:chronolog@localhost:5432/chronolog` for the Docker Postgres) |
+| `BETTER_AUTH_SECRET` | yes | Session signing secret (`openssl rand -base64 32`) |
+| `ENCRYPTION_KEY` | yes | 256-bit key for encryption at rest (`openssl rand -base64 32`) |
+| `BETTER_AUTH_URL` | yes | Public URL of the app (`http://localhost:5173` in dev) |
+| `ALLOW_REGISTRATION` | no | Registration is closed unless this is `true`. Set it to create your account, then unset it |
+| `TRUSTED_ORIGINS` | no | Comma-separated extra origins Better Auth accepts (e.g. a Tailscale IP) |
+
 ### Resuming development
 
 ```bash
-docker compose up -d    # start PostgreSQL if not running
-npm run dev             # or: npm run tauri:dev
+docker compose up -d postgres   # start PostgreSQL if not running
+npm run dev                     # or: npm run tauri:dev
 ```
 
 ### Useful commands
@@ -107,7 +122,8 @@ chronolog/
 ├── static/               # Static assets served by SvelteKit
 ├── drizzle/              # Database migration files (PostgreSQL)
 ├── docs/                 # Project documentation
-├── docker-compose.yml    # Local dev PostgreSQL container
+├── docker-compose.yml    # Local dev stack (PostgreSQL + optional containerised app)
+├── docker-compose.prod.yml # Production stack (app + PostgreSQL)
 ├── drizzle.config.ts     # Drizzle ORM configuration
 ├── svelte.config.js      # SvelteKit configuration
 ├── vite.config.ts        # Vite build configuration

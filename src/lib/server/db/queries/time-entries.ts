@@ -55,16 +55,6 @@ function timeEntrySelectWithContext() {
 		.leftJoin(workTypes, eq(timeEntries.workTypeId, workTypes.id));
 }
 
-/** List all time entries for a specific date */
-export async function listTimeEntriesForDate(
-	userId: string,
-	date: string
-): Promise<TimeEntryWithContext[]> {
-	return timeEntrySelectWithContext()
-		.where(and(eq(timeEntries.userId, userId), eq(timeEntries.date, date), eq(timeEntries.isDraft, false)))
-		.orderBy(sql`${timeEntries.startTime} asc nulls last`, asc(timeEntries.createdAt));
-}
-
 /** List all time entries for a week (7-day range starting from weekStart) */
 export async function listTimeEntriesForWeek(
 	userId: string,

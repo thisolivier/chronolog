@@ -626,7 +626,7 @@ await step('A7-status-chip-cycle', async () => {
 	assert(initial === 'Unsubmitted', 'initial ' + initial);
 	const initialClass = await chip.getAttribute('class');
 	await chip.click();
-	await page.waitForResponse((response) => response.url().includes('weekly-status') || response.url().includes('/api/weeks'), { timeout: 8000 }).catch(() => {});
+	await page.waitForResponse((response) => response.url().includes('weekly-status'), { timeout: 8000 }).catch(() => {});
 	await sleep(400);
 	const second = await chip.innerText();
 	const secondClass = await chip.getAttribute('class');

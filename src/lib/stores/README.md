@@ -23,8 +23,8 @@ navigation.selectTimeEntries();
 
 ### navigation.svelte.ts
 
-App-wide navigation state for the panel layout. Manages mode switching (time-entries vs notes), selected contract/week/note, sidebar collapsed state, and mobile navigation level. Actions include `selectTimeEntries()`, `selectContract()`, `selectWeek()`, `selectNote()`, `toggleSidebar()`.
+App-wide navigation state for the panel layout. Manages mode switching (time-entries vs notes), selected contract/week/note, sidebar collapsed state, and the mobile push level (`mobileNavigationLevel`: 0 = sidebar, 1 = note list in notes mode or time entries in time mode, 2 = note editor). Actions: `selectTimeEntries()` (time mode, mobile level 1), `selectContract()` (notes mode, mobile level 1), `selectWeek()` (does not change the mobile level), `selectNote()` (mobile level 2), `clearSelectedNote()`, `toggleSidebar()`, `navigateMobile()`, `goBackMobile()`.
 
 ### timer-state.svelte.ts
 
-Shared timer display state for cross-component communication. Allows the timer widget (in the sidebar) and the TimerIndicator (in the top bar) to share running/elapsed state without direct coupling. Provides reactive `isRunning`, `elapsedSeconds`, and `activeContractName` state.
+Shared timer display state for cross-component communication. `TimerWidget` (in the sidebar) writes to it with `update(partial)` / `reset()`; `TimerIndicator` (in the AppShell top bar) reads from it. Reactive fields: `status` (`'idle' | 'running' | 'paused' | 'stopped'`), `elapsedSeconds`, `description`, `contractName`, `clientColorIndex`. Provided with `setTimerStateContext(createTimerState())` and read with `getTimerStateContext()`.
