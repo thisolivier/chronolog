@@ -1,5 +1,6 @@
 <script lang="ts">
     import { parseWikiLinkText } from '$lib/components/notes/extensions/wiki-link';
+    import { wikiLinkDisplayText } from '$lib/components/notes/note-titles.svelte';
 
     interface Props {
         text: string;
@@ -62,9 +63,10 @@
                     event.stopPropagation();
                     onNoteLinkClick?.(segment.noteId);
                 }}
-                title="Go to note {segment.noteId}"
+                title={segment.noteId}
             >
-                {segment.label}
+                <!-- The linked note's title (fetched and cached), the ID until it arrives -->
+                {wikiLinkDisplayText(segment.noteId, segment.label)}
             </button>
         {/if}
     {/each}
