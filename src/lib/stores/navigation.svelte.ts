@@ -32,6 +32,7 @@ import { getMondayOfWeek } from '$lib/utils/iso-week';
 const NAVIGATION_CONTEXT_KEY = Symbol('navigation');
 const SIDEBAR_PREFERENCE_KEY = 'chronolog:sidebar-collapsed';
 const TIMESHEET_SCROLL_KEY = 'chronolog:timesheet-scroll';
+const LAST_WORKSPACE_KEY = 'chronolog:last-workspace-path';
 
 export type NavigationMode = 'time-entries' | 'notes';
 export type MobileNavigationLevel = 0 | 1 | 2;
@@ -153,10 +154,14 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 	const localStore = options.localStorage ?? null;
 
 	const initialPath = options.initialUrl?.pathname ?? '/';
-	const initialRoute = parseWorkspacePath(initialPath, currentMonday(now())) ?? { kind: 'home' as const };
+	// On settings or admin (even after a full page load) the store keeps the workspace place
+	// last shown in this tab, for "Back to app"
+	const lastWorkspacePath = readJson<string>(sessionStore, LAST_WORKSPACE_KEY);
+	const initialRoute: WorkspaceRoute = parseWorkspacePath(initialPath, currentMonday(now())) ??
+		(lastWorkspacePath ? parseWorkspacePath(lastWorkspacePath, currentMonday(now())) : null) ?? { kind: 'home' };
 
 	const state = $state({
-		route: initialRoute as WorkspaceRoute,
+		route: initialRoute,
 		/** The week the timesheet shows; sticky across mode changes */
 		lastWeek: initialRoute.kind === 'time' ? initialRoute.week : currentMonday(now()),
 		panel1Collapsed: readJson<boolean>(localStore, SIDEBAR_PREFERENCE_KEY) === true,
@@ -212,6 +217,7 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		history.save(sessionStore);
 		state.historyVersion++;
 		currentPath = path;
+		writeJson(sessionStore, LAST_WORKSPACE_KEY, path);
 		void adapter?.navigate(path, { replace: !push });
 	}
 
@@ -287,6 +293,7 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		const route = parseWorkspacePath(path, state.lastWeek);
 		// Settings, admin and other pages keep the last workspace place for the way back
 		if (!route) return;
+		writeJson(sessionStore, LAST_WORKSPACE_KEY, path);
 		if (route.kind === 'time') state.lastWeek = route.week;
 		// Same place: keep the object, so effects that read the route do not re-run for nothing
 		if (buildWorkspacePath(route) === buildWorkspacePath(state.route)) return;

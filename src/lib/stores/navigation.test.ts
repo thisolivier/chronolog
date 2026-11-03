@@ -160,6 +160,15 @@ describe('rule 2: the URL is the state', () => {
 		expect(nav.workspaceHref).toBe(`/notes/${CONTRACT_A}/ACME.1`);
 	});
 
+	it('a full page load of settings still knows the workspace place of this tab', async () => {
+		const storage = new MemoryStorage();
+		const first = setup('/', storage);
+		first.nav.openNote('ACME.1', CONTRACT_A, CLIENT_A);
+		await first.settle();
+		const onSettings = setup('/settings/two-factor', storage).nav;
+		expect(onSettings.workspaceHref).toBe(`/notes/${CONTRACT_A}/ACME.1`);
+	});
+
 	it('does not navigate when the URL would not change', async () => {
 		const { nav, calls, settle } = setup(`/notes/${CONTRACT_A}`);
 		nav.selectContract(CONTRACT_A, CLIENT_A);

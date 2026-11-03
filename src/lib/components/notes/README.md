@@ -50,7 +50,7 @@ interface Props {
 
 ### note-draft.svelte.ts
 
-Draft state for "New Note". A draft opens an empty editor; nothing is persisted until the first keystroke, and the note is created on that first save.
+Draft state for "New Note". A draft is the URL `/notes/<contractId>/new` and opens an empty editor; nothing is persisted until the first keystroke, and the note is created on that first save, after which the URL becomes the note's.
 
 ### note-navigation.ts
 
@@ -102,7 +102,7 @@ Result list for the note search field in the note list. Each result shows the co
 
 ### LinkedTimeEntries.svelte
 
-Displays time entries linked to the current note. Fetches from `/api/notes/[noteId]/time-entries` and supports unlinking entries. Rows open the entry's week in time mode; descriptions render wiki-links through `WikiLinkRenderer`, so they show note titles.
+Displays time entries linked to the current note. Fetches from `/api/notes/[noteId]/time-entries` and supports unlinking entries. Rows open the entry's day in time mode (`navigation.showTimeEntryDay`), which scrolls the timesheet to it; descriptions render wiki-links through `WikiLinkRenderer`, so they show note titles.
 
 ### AttachmentList.svelte
 
