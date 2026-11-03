@@ -27,6 +27,7 @@
 	let sortOrder = $state<NoteSortOrder>(loadSortPreference());
 	let lastNewNoteClick = 0;
 	/** Notes announced by `note-created`; kept if a list fetch started before they existed */
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity -- bookkeeping only, never rendered
 	const createdWhileLoading = new Map<string, NoteSummary>();
 
 	let searchQuery = $state('');
