@@ -4,6 +4,7 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 022-IF | Infrastructure | Production stack on the Mac mini | active |
 | 019-CL | Client | Stabilise: timesheet bugs | active |
 | 020-CL | Client | Stabilise: notes and editor bugs | active |
 | 018-QA | QA | Manual testing backlog | superseded by docs/review/2026-11-03-qa-state.md |
