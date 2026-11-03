@@ -4,6 +4,9 @@
 	import { getTimerStateContext } from '$lib/stores/timer-state.svelte';
 	import TimerIndicator from '$lib/components/weekly/TimerIndicator.svelte';
 	import ConnectionStatus from './ConnectionStatus.svelte';
+	import { labelForPath, titleForRoute } from './navigation-labels';
+	import { requestNoteTitles, subscribeToNoteTitles } from '$lib/components/notes/note-titles.svelte';
+	import { parseWorkspacePath } from '$lib/stores/navigation-routes';
 
 	interface Props {
 		panel1: Snippet;
@@ -74,6 +77,7 @@
 		const update = () => {
 			isMobile = mobileQuery.matches;
 			isTablet = tabletQuery.matches;
+			navigationContext.setLayoutMode(isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop');
 		};
 		update();
 		mobileQuery.addEventListener('change', update);
@@ -97,6 +101,20 @@
 		overlaySidebarOpen = false;
 	});
 
+	// Phone title bar: Back names where it goes, the title names where you are (rule 4).
+	// Note titles arrive asynchronously, so re-read the labels when the title cache fills.
+	let titleCacheVersion = $state(0);
+	$effect(() => subscribeToNoteTitles(() => titleCacheVersion++));
+	$effect(() => {
+		const previous = parseWorkspacePath(navigationContext.backTarget.path, '');
+		if (previous?.kind === 'notes' && previous.noteId) requestNoteTitles([previous.noteId]);
+	});
+	const backLabel = $derived.by(() => {
+		void titleCacheVersion;
+		return labelForPath(navigationContext.backTarget.path, navigationContext.selectedWeek ?? '');
+	});
+	const mobileTitle = $derived(titleForRoute(navigationContext.route));
+
 	function toggleSidebar() {
 		if (sidebarIsOverlay) overlaySidebarOpen = !overlaySidebarOpen;
 		else navigationContext.toggleSidebar();
@@ -115,14 +133,17 @@
 	<div class="flex h-screen flex-col overflow-hidden bg-white">
 		<!-- Mobile top bar: app name at the root, Back button once pushed in -->
 		<div class="flex h-12 items-center justify-between border-b border-stone-200 bg-white px-4">
-			<div class="flex items-center gap-3">
+			<div class="flex min-w-0 flex-1 items-center gap-3">
 				{#if navigationContext.mobileNavigationLevel > 0}
 					<button
 						onclick={() => navigationContext.goBackMobile()}
-						class="text-sm font-medium text-blue-600 hover:text-blue-800"
+						class="flex-shrink-0 text-sm font-medium text-blue-600 hover:text-blue-800"
+						aria-label="Back to {backLabel}"
+						data-testid="mobile-back"
 					>
-						&larr; Back
+						&larr; {backLabel}
 					</button>
+					<span class="min-w-0 truncate text-xs text-stone-500" data-testid="mobile-context-title">{mobileTitle}</span>
 				{:else}
 					<span class="text-sm font-semibold text-stone-700">Chronolog</span>
 				{/if}
