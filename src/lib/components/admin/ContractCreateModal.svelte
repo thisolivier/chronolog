@@ -10,6 +10,8 @@
 
 	interface Props {
 		clients: ClientOption[];
+		/** The client being viewed: preselected so the contract lands where you are */
+		initialClientId?: string | null;
 		onCreated: (created?: { id: string; clientId: string }) => void;
 		onClose: () => void;
 	}
@@ -19,7 +21,7 @@
 
 	const dataService = getDataService();
 
-	let { clients, onCreated, onClose }: Props = $props();
+	let { clients, initialClientId = null, onCreated, onClose }: Props = $props();
 
 	let contractName = $state('');
 	let contractDescription = $state('');
@@ -28,7 +30,15 @@
 	let submitError = $state('');
 
 	// With no clients yet, start straight on the inline new-client fields
-	let selectedClientId = $state(untrack(() => clients.length) === 0 ? NEW_CLIENT : '');
+	let selectedClientId = $state(
+		untrack(() =>
+			clients.length === 0
+				? NEW_CLIENT
+				: initialClientId && clients.some((client) => client.id === initialClientId)
+					? initialClientId
+					: ''
+		)
+	);
 	let newClientName = $state('');
 	let newClientShortCode = $state('');
 	const isCreatingClient = $derived(selectedClientId === NEW_CLIENT);

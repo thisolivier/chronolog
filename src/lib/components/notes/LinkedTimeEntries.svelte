@@ -6,7 +6,7 @@
 <script lang="ts">
 	import { getDataService } from '$lib/services/context';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
-	import { formatDuration, getMondayOfWeek } from '$lib/utils/iso-week';
+	import { formatDuration } from '$lib/utils/iso-week';
 	import WikiLinkRenderer from '$lib/components/weekly/WikiLinkRenderer.svelte';
 	import { useNoteNavigation } from './note-navigation';
 	import type { LinkedTimeEntryDisplay } from '$lib/services/types';
@@ -41,8 +41,7 @@
 
 	/** Show the entry's day: time mode, on the week that contains it */
 	function openEntryDay(entry: LinkedTimeEntryDisplay) {
-		navigation.selectTimeEntries();
-		navigation.selectWeek(getMondayOfWeek(entry.date));
+		navigation.showTimeEntryDay(entry.date);
 	}
 
 	function formatDate(dateStr: string): string {

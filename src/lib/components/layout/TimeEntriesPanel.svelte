@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import { getDataService } from '$lib/services/context';
 	import WeekStrip from '$lib/components/weekly/WeekStrip.svelte';
@@ -43,6 +43,85 @@
 			scrollContainer.scrollTop;
 		scrollContainer.scrollTo({ top: Math.max(0, offsetWithinContainer - 8), behavior });
 	}
+
+	// --- Returning restores (rule 7): each week remembers the day at the top of the list ---
+	let highlightedDay = $state<string | null>(null);
+	let highlightTimeout: ReturnType<typeof setTimeout> | undefined;
+	let positionedFor = '';
+	let isPositioning = false;
+	let scrollFrame = 0;
+
+	/** Remember where this week is scrolled to: the top visible day and the offset into it */
+	function rememberScroll() {
+		if (!scrollContainer || isPositioning) return;
+		const containerTop = scrollContainer.getBoundingClientRect().top;
+		let topDay: string | null = null;
+		let offsetWithinDay = 0;
+		for (const dayDate of displayDays) {
+			const dayElement = daySectionRefs[dayDate];
+			if (!dayElement) continue;
+			const box = dayElement.getBoundingClientRect();
+			if (box.bottom > containerTop + 8) {
+				topDay = dayDate;
+				offsetWithinDay = containerTop - box.top;
+				break;
+			}
+		}
+		navigation.rememberTimesheetScroll(selectedWeekStart, {
+			scrollTop: scrollContainer.scrollTop,
+			topDay,
+			offsetWithinDay
+		});
+	}
+
+	function handleScroll() {
+		cancelAnimationFrame(scrollFrame);
+		scrollFrame = requestAnimationFrame(rememberScroll);
+	}
+
+	/**
+	 * Put the list where it belongs for this week: a day asked for by a save (showTimeEntryDay),
+	 * else where the user left this week, else today (when in view), else the top.
+	 */
+	function positionList(weekStart: string) {
+		if (!scrollContainer) return;
+		isPositioning = true;
+		const focusDay = navigation.takeFocusDay();
+		const saved = navigation.getTimesheetScroll(weekStart);
+		if (focusDay && daySectionRefs[focusDay]) {
+			scrollDayToTop(focusDay, 'auto');
+			highlightedDay = focusDay;
+			clearTimeout(highlightTimeout);
+			highlightTimeout = setTimeout(() => (highlightedDay = null), 2500);
+		} else if (saved?.topDay && daySectionRefs[saved.topDay]) {
+			const dayElement = daySectionRefs[saved.topDay];
+			const offset =
+				dayElement.getBoundingClientRect().top -
+				scrollContainer.getBoundingClientRect().top +
+				scrollContainer.scrollTop;
+			scrollContainer.scrollTo({ top: Math.max(0, offset + saved.offsetWithinDay), behavior: 'auto' });
+		} else if (saved) {
+			scrollContainer.scrollTo({ top: saved.scrollTop, behavior: 'auto' });
+		} else if (displayDays.includes(todayString)) {
+			scrollDayToTop(todayString, 'auto');
+		} else {
+			scrollContainer.scrollTo({ top: 0, behavior: 'auto' });
+		}
+		requestAnimationFrame(() => {
+			isPositioning = false;
+		});
+	}
+
+	// Position once per week shown (and again whenever a save asks to show a day)
+	$effect(() => {
+		const weekStart = selectedWeekStart;
+		const focusToken = navigation.focusDayToken;
+		if (!selectedWeekData || !scrollContainer) return;
+		const key = `${weekStart}|${focusToken}`;
+		if (key === positionedFor) return;
+		positionedFor = key;
+		void tick().then(() => positionList(weekStart));
+	});
 
 	// "Load older weeks" appends earlier weeks below the selected one; reset on week change
 	let olderWeeksShown = $state(0);
@@ -267,14 +346,11 @@
 
 	onMount(() => {
 		window.addEventListener(TIME_ENTRY_SAVED_EVENT, handleTimeEntrySaved);
-		loadInitialWeeks().then(() => {
-			// Brief delay to let DOM render, then scroll to today's section
-			setTimeout(() => {
-				scrollDayToTop(todayString, 'auto');
-			}, 100);
-		});
+		void loadInitialWeeks();
 		return () => {
 			window.removeEventListener(TIME_ENTRY_SAVED_EVENT, handleTimeEntrySaved);
+			cancelAnimationFrame(scrollFrame);
+			clearTimeout(highlightTimeout);
 		};
 	});
 </script>
@@ -286,8 +362,15 @@
 {#snippet daySection(dayDate: string, entries: TimeEntryDisplay[], totalMinutes: number)}
 	{@const isToday = dayDate === todayString}
 	<div
-		class={['mb-3', isToday && 'rounded-lg bg-amber-50/60 p-3'].filter(Boolean).join(' ')}
+		class={[
+			'mb-3 transition-shadow',
+			isToday && 'rounded-lg bg-amber-50/60 p-3',
+			highlightedDay === dayDate && 'rounded-lg ring-2 ring-blue-300'
+		]
+			.filter(Boolean)
+			.join(' ')}
 		bind:this={daySectionRefs[dayDate]}
+		data-day={dayDate}
 	>
 		<div class="mb-1 flex items-center justify-between px-1">
 			<div class="flex items-center gap-2">
@@ -396,7 +479,7 @@
 	{/if}
 
 	<!-- Scrollable content: the selected week's seven days, then any older weeks loaded -->
-	<div bind:this={scrollContainer} class="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+	<div bind:this={scrollContainer} onscroll={handleScroll} class="flex-1 overflow-y-auto px-4 py-4 sm:px-6" data-testid="timesheet-scroll">
 		{#if isLoading && loadedWeeks.length === 0}
 			<div class="flex items-center justify-center py-12">
 				<p class="text-stone-500">Loading weeks...</p>

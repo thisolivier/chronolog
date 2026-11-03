@@ -17,6 +17,7 @@
 	import { localDateString, localTimeString } from './local-date';
 	import { registerSidebarTimerWidget } from './timer-widget-registry.svelte';
 	import { dispatchTimeEntrySaved } from '$lib/components/weekly/time-entry-events';
+	import { getWeekDates } from '$lib/utils/iso-week';
 	import type { ContractOption } from '$lib/services/types';
 
 	let {
@@ -56,6 +57,17 @@
 
 	// Modal state
 	let showAddEntryModal = $state(false);
+
+	// Rule 5, create from context: the modal opens on the contract being viewed (notes mode) and,
+	// in the timesheet, on the week being viewed (today when today is in that week)
+	const modalContractId = $derived(navigation.isNotesMode ? (navigation.selectedContractId ?? '') : '');
+	const modalDate = $derived.by(() => {
+		if (addEntryDate) return addEntryDate;
+		if (!navigation.isTimeEntriesMode || !navigation.selectedWeek) return undefined;
+		const today = localDateString();
+		const weekDates = getWeekDates(navigation.selectedWeek);
+		return weekDates.includes(today) ? today : weekDates[0];
+	});
 
 	// Contract list for looking up name/color for the shared timer state
 	let contractList: ContractOption[] = $state([]);
@@ -306,8 +318,9 @@
 			savedEntryId = created.id;
 		}
 		resetTimer();
-		// A timer entry is dated the local day it was started
+		// A timer entry is dated the local day it was started; the view follows it there
 		dispatchTimeEntrySaved({ entryId: savedEntryId, date: savedDate });
+		navigation.showTimeEntryDay(savedDate);
 	}
 
 	async function handleDiscard() {
@@ -341,6 +354,7 @@
 	function handleAddEntryCreated(created: { entryId: string; date: string }) {
 		showAddEntryModal = false;
 		dispatchTimeEntrySaved(created);
+		navigation.showTimeEntryDay(created.date);
 	}
 </script>
 
@@ -433,7 +447,8 @@
 
 {#if showAddEntryModal}
 	<AddTimeEntryModal
-		initialDate={addEntryDate}
+		initialDate={modalDate}
+		initialContractId={modalContractId}
 		onCreated={handleAddEntryCreated}
 		onClose={() => (showAddEntryModal = false)}
 	/>

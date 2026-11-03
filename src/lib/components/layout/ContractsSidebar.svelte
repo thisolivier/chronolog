@@ -67,6 +67,13 @@
 		loadClients();
 	});
 
+	// Rule 1/3: "Time Entries" is highlighted while the timesheet is on screen; on the phone's
+	// home (this list itself) nothing is open, so nothing is highlighted.
+	const isTimeEntriesHighlighted = $derived(
+		navigationContext.isTimeEntriesMode &&
+			!(navigationContext.isHome && navigationContext.layoutMode === 'mobile')
+	);
+
 	function handleTimeEntriesClick() {
 		navigationContext.selectTimeEntries();
 	}
@@ -91,9 +98,10 @@
 		<!-- Time Entries Link -->
 		<button
 			onclick={handleTimeEntriesClick}
-			class="mb-3 w-full rounded-md px-3 py-2 text-left text-sm font-medium transition-colors {navigationContext.isTimeEntriesMode
+			class="mb-3 w-full rounded-md px-3 py-2 text-left text-sm font-medium transition-colors {isTimeEntriesHighlighted
 				? 'bg-blue-50 text-blue-700'
 				: 'text-stone-700 hover:bg-stone-100'}"
+			aria-current={isTimeEntriesHighlighted ? 'page' : undefined}
 		>
 			Time Entries
 		</button>
@@ -117,7 +125,13 @@
 		{:else}
 			{#each clientGroups as group (group.clientId)}
 				<div class="mb-2" role="group" aria-label={group.clientName} data-testid="sidebar-client-group">
-					<div class="flex items-center gap-2 px-3 pt-1 pb-0.5 text-xs font-semibold text-stone-500">
+					<div
+						class="flex items-center gap-2 px-3 pt-1 pb-0.5 text-xs font-semibold {navigationContext.selectedClientId ===
+						group.clientId
+							? 'text-blue-700'
+							: 'text-stone-500'}"
+						data-testid="sidebar-client-heading"
+					>
 						<span class="inline-block h-2 w-2 flex-shrink-0 rounded-full {getClientDotClass(group.clientColorIndex)}" aria-hidden="true"></span>
 						<span class="truncate">{group.clientName}</span>
 					</div>
@@ -130,6 +144,7 @@
 								: 'text-stone-700 hover:bg-stone-100'}"
 							class:opacity-50={!contract.isActive}
 							data-contract-id={contract.id}
+							aria-current={navigationContext.selectedContractId === contract.id ? 'page' : undefined}
 						>
 							<span class="min-w-0 flex-1 truncate">
 								{contract.name}
@@ -179,6 +194,7 @@
 	{#if showCreateModal}
 		<ContractCreateModal
 			clients={allClients}
+			initialClientId={navigationContext.selectedClientId}
 			onCreated={handleContractCreated}
 			onClose={() => (showCreateModal = false)}
 		/>
