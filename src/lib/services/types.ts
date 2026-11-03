@@ -39,6 +39,7 @@ export type ClientSummary = {
 	id: string;
 	name: string;
 	shortCode: string;
+	colorIndex?: number;
 };
 
 // -- Notes --

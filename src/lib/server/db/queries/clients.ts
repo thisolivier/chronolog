@@ -1,6 +1,13 @@
 import { eq, and } from 'drizzle-orm';
 import { database, clients } from '$lib/server/db';
 
+export type ClientUpdateData = {
+	name?: string;
+	shortCode?: string;
+	emoji?: string | null;
+	colorIndex?: number;
+};
+
 export async function listClientsForUser(userId: string) {
 	return database
 		.select()
@@ -22,20 +29,17 @@ export async function createClient(
 	userId: string,
 	name: string,
 	shortCode: string,
-	emoji?: string | null
+	emoji?: string | null,
+	colorIndex?: number
 ) {
 	const results = await database
 		.insert(clients)
-		.values({ userId, name, shortCode, emoji: emoji ?? null })
+		.values({ userId, name, shortCode, emoji: emoji ?? null, colorIndex: colorIndex ?? 0 })
 		.returning();
 	return results[0];
 }
 
-export async function updateClient(
-	clientId: string,
-	userId: string,
-	data: { name?: string; shortCode?: string; emoji?: string | null }
-) {
+export async function updateClient(clientId: string, userId: string, data: ClientUpdateData) {
 	const results = await database
 		.update(clients)
 		.set({ ...data, updatedAt: new Date() })

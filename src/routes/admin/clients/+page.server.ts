@@ -6,6 +6,20 @@ import {
 	updateClient,
 	deleteClient
 } from '$lib/server/db/queries/clients';
+import { isValidClientColorIndex } from '$lib/utils/client-colors';
+
+/**
+ * Parses the optional `color_index` form field. Returns `undefined` when absent (keep the
+ * default / existing value) and `null` when present but not a valid palette index.
+ */
+function parseColorIndexField(formData: FormData): number | null | undefined {
+	const rawValue = formData.get('color_index')?.toString().trim();
+	if (rawValue === undefined || rawValue === '') return undefined;
+	const parsedValue = Number(rawValue);
+	return isValidClientColorIndex(parsedValue) ? parsedValue : null;
+}
+
+const INVALID_COLOR_MESSAGE = 'Colour must be a palette index between 0 and 7.';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const currentUser = locals.user;
@@ -29,8 +43,13 @@ export const actions: Actions = {
 			return fail(400, { error: 'Name and short code are required.', name, shortCode });
 		}
 
+		const colorIndex = parseColorIndexField(formData);
+		if (colorIndex === null) {
+			return fail(400, { error: INVALID_COLOR_MESSAGE, name, shortCode });
+		}
+
 		try {
-			await createClient(currentUser.id, name, shortCode, emoji);
+			await createClient(currentUser.id, name, shortCode, emoji, colorIndex);
 		} catch (databaseError: unknown) {
 			const errorMessage =
 				databaseError instanceof Error ? databaseError.message : 'Unknown error';
@@ -62,11 +81,17 @@ export const actions: Actions = {
 			return fail(400, { error: 'Client ID, name, and short code are required.' });
 		}
 
+		const colorIndex = parseColorIndexField(formData);
+		if (colorIndex === null) {
+			return fail(400, { error: INVALID_COLOR_MESSAGE });
+		}
+
 		try {
 			const updatedClient = await updateClient(clientId, currentUser.id, {
 				name,
 				shortCode,
-				emoji
+				emoji,
+				...(colorIndex !== undefined ? { colorIndex } : {})
 			});
 			if (!updatedClient) {
 				return fail(404, { error: 'Client not found.' });
