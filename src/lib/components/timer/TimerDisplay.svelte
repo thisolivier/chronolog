@@ -1,19 +1,10 @@
 <script lang="ts">
+	import { formatElapsedClock } from './timer-api';
+
 	let { elapsedSeconds, isPaused = false }: { elapsedSeconds: number; isPaused?: boolean } =
 		$props();
 
-	let formattedTime = $derived(formatElapsedTime(elapsedSeconds));
-
-	function formatElapsedTime(totalSeconds: number): string {
-		const hours = Math.floor(totalSeconds / 3600);
-		const minutes = Math.floor((totalSeconds % 3600) / 60);
-		const seconds = totalSeconds % 60;
-		return [
-			String(hours).padStart(2, '0'),
-			String(minutes).padStart(2, '0'),
-			String(seconds).padStart(2, '0')
-		].join(':');
-	}
+	let formattedTime = $derived(formatElapsedClock(elapsedSeconds));
 </script>
 
 <span class="font-mono text-2xl font-bold tabular-nums" class:text-stone-400={isPaused}>

@@ -2,6 +2,7 @@
 	import { getClientBorderClass } from '$lib/utils/client-colors';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import { isSidebarTimerWidgetMounted } from '$lib/components/timer/timer-widget-registry.svelte';
+	import { formatElapsedClock } from '$lib/components/timer/timer-api';
 
 	interface Props {
 		timerState: 'idle' | 'running' | 'paused' | 'stopped';
@@ -14,8 +15,9 @@
 
 	let { timerState, elapsedSeconds, description, contractName, clientColorIndex, onIndicatorClick }: Props = $props();
 
-	let formattedTime = $derived(formatElapsedTime(elapsedSeconds));
-	let borderClass = $derived(getClientBorderClass(clientColorIndex));
+	let formattedTime = $derived(formatElapsedClock(elapsedSeconds));
+	// No contract yet: a neutral edge, not the colour of whichever client sits in slot 0
+	let borderClass = $derived(contractName ? getClientBorderClass(clientColorIndex) : 'border-l-stone-300');
 	let truncatedDescription = $derived(
 		description.length > 30 ? description.slice(0, 30) + '…' : description
 	);
@@ -26,17 +28,11 @@
 	let isSidebarTimerHidden = $derived(
 		navigationContext.panel1Collapsed && isSidebarTimerWidgetMounted()
 	);
-
-	function formatElapsedTime(totalSeconds: number): string {
-		const hours = Math.floor(totalSeconds / 3600);
-		const minutes = Math.floor((totalSeconds % 3600) / 60);
-		const seconds = totalSeconds % 60;
-		return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-	}
 </script>
 
 {#if isVisible}
 	<button
+		data-testid="timer-indicator"
 		class="flex items-center gap-2 rounded bg-stone-100 px-3 py-1.5 border-l-2 cursor-pointer hover:bg-stone-200 transition-colors {borderClass}"
 		onclick={onIndicatorClick}
 	>
