@@ -12,7 +12,9 @@ export interface SuggestionDropdownProps {
 /**
  * Vanilla JS dropdown for the WikiLink suggestion popup.
  *
- * Renders a positioned dropdown list of matching notes below the cursor.
+ * Renders a positioned dropdown list of matching notes below the cursor. Each
+ * item shows the note ID, the first content line (falling back to the title)
+ * and, when present, a truncated second content line.
  * Supports keyboard navigation (arrow keys, Enter, Escape) and mouse
  * selection.
  */
@@ -114,13 +116,21 @@ export class SuggestionDropdown {
 			noteIdSpan.className = 'block text-xs font-mono text-stone-400';
 			noteIdSpan.textContent = item.noteId;
 
-			// Title line
-			const titleSpan = document.createElement('span');
-			titleSpan.className = 'block text-sm text-stone-800';
-			titleSpan.textContent = item.title || item.noteId;
+			// Preview line: first content line, falling back to title, then noteId
+			const previewSpan = document.createElement('span');
+			previewSpan.className = 'block text-sm text-stone-800 truncate';
+			previewSpan.textContent = item.firstLine || item.title || item.noteId;
 
 			itemElement.appendChild(noteIdSpan);
-			itemElement.appendChild(titleSpan);
+			itemElement.appendChild(previewSpan);
+
+			// Optional second line of content
+			if (item.secondLine) {
+				const secondLineSpan = document.createElement('span');
+				secondLineSpan.className = 'block text-xs text-stone-400 truncate';
+				secondLineSpan.textContent = item.secondLine;
+				itemElement.appendChild(secondLineSpan);
+			}
 
 			itemElement.addEventListener('mouseenter', () => {
 				this.selectedIndex = index;

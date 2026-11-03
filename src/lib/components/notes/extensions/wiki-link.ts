@@ -2,6 +2,7 @@ import { Node, mergeAttributes, InputRule, type Range } from '@tiptap/core';
 import { type Editor } from '@tiptap/core';
 import { PluginKey } from '@tiptap/pm/state';
 import { Suggestion, type SuggestionOptions } from '@tiptap/suggestion';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { SuggestionDropdown } from './SuggestionDropdown.js';
 
 /**
@@ -10,6 +11,8 @@ import { SuggestionDropdown } from './SuggestionDropdown.js';
 export interface WikiLinkSuggestionItem {
 	noteId: string;
 	title: string;
+	firstLine: string;
+	secondLine: string;
 }
 
 /**
@@ -63,6 +66,114 @@ export function parseWikiLinkText(raw: string): {
 }
 
 /**
+ * Build the `[[...]]` text form of a wiki-link from its components.
+ * The label is omitted when it equals the note ID. This is the inverse of
+ * `parseWikiLinkText` and is shared by `renderText` and the markdown
+ * serializer so saved markdown always round-trips.
+ */
+export function formatWikiLinkText(
+	noteId: string,
+	headingAnchor: string | null | undefined,
+	label: string | null | undefined
+): string {
+	let inner = noteId;
+	if (headingAnchor) inner += `#${headingAnchor}`;
+	if (label && label !== noteId) inner += `|${label}`;
+	return `[[${inner}]]`;
+}
+
+/**
+ * Minimal structural types for the parts of markdown-it the wiki-link parse
+ * rule touches. markdown-it is a transitive dependency (via tiptap-markdown),
+ * so these local types avoid importing its type package directly.
+ */
+interface MarkdownItToken {
+	content: string;
+}
+
+interface MarkdownItInlineState {
+	src: string;
+	pos: number;
+	posMax: number;
+	push(type: string, tag: string, nesting: number): MarkdownItToken;
+}
+
+type MarkdownItInlineRule = (state: MarkdownItInlineState, silent: boolean) => boolean;
+
+interface MarkdownItLike {
+	inline: {
+		ruler: {
+			before(beforeName: string, ruleName: string, rule: MarkdownItInlineRule): void;
+		};
+	};
+	renderer: {
+		rules: Record<string, ((tokens: MarkdownItToken[], index: number) => string) | undefined>;
+	};
+	utils: {
+		escapeHtml(text: string): string;
+	};
+}
+
+/**
+ * The subset of prosemirror-markdown's MarkdownSerializerState the serializer
+ * uses (also a transitive dependency, via tiptap-markdown).
+ */
+interface MarkdownSerializerStateLike {
+	write(content: string): void;
+}
+
+const WIKI_LINK_TOKEN_TYPE = 'wiki_link';
+
+/**
+ * markdown-it inline rule: recognises `[[...]]` and emits a `wiki_link` token.
+ * The interior may not contain brackets or newlines. Runs before the built-in
+ * `link` rule so the opening bracket is never consumed as a regular link.
+ */
+const wikiLinkInlineRule: MarkdownItInlineRule = (state, silent) => {
+	const start = state.pos;
+	if (state.src.charCodeAt(start) !== 0x5b /* [ */) return false;
+	if (state.src.charCodeAt(start + 1) !== 0x5b /* [ */) return false;
+
+	const closeIndex = state.src.indexOf(']]', start + 2);
+	if (closeIndex === -1 || closeIndex + 2 > state.posMax) return false;
+
+	const interior = state.src.slice(start + 2, closeIndex);
+	if (!interior || /[[\]\n]/.test(interior)) return false;
+
+	if (!silent) {
+		const token = state.push(WIKI_LINK_TOKEN_TYPE, 'span', 0);
+		token.content = interior;
+	}
+
+	state.pos = closeIndex + 2;
+	return true;
+};
+
+/**
+ * Register the wiki-link rule and renderer on a markdown-it instance.
+ * tiptap-markdown calls `parse.setup` on every parse, so this is idempotent.
+ */
+function registerWikiLinkMarkdownRule(markdownit: MarkdownItLike): void {
+	if (markdownit.renderer.rules[WIKI_LINK_TOKEN_TYPE]) return;
+
+	markdownit.inline.ruler.before('link', WIKI_LINK_TOKEN_TYPE, wikiLinkInlineRule);
+
+	// Render to the same HTML shape that `parseHTML` / `renderHTML` use so the
+	// generated DOM is picked up as a wikiLink node by TipTap.
+	markdownit.renderer.rules[WIKI_LINK_TOKEN_TYPE] = (tokens, index) => {
+		const { noteId, headingAnchor, label } = parseWikiLinkText(tokens[index].content);
+		const escape = markdownit.utils.escapeHtml;
+
+		let attributes = ` data-note-id="${escape(noteId)}" data-label="${escape(label)}"`;
+		if (headingAnchor) {
+			attributes += ` data-heading-anchor="${escape(headingAnchor)}"`;
+		}
+
+		return `<span data-wiki-link=""${attributes}>${escape(label)}</span>`;
+	};
+}
+
+/**
  * WikiLink is an inline TipTap Node extension that renders `[[note-links]]`
  * in the editor. It supports the full wiki-link syntax:
  *
@@ -73,6 +184,10 @@ export function parseWikiLinkText(raw: string): {
  *
  * It integrates TipTap's Suggestion utility (triggered by `[[`) to provide
  * autocomplete when typing wiki-links.
+ *
+ * It also contributes a tiptap-markdown spec (via `addStorage().markdown`) so
+ * `getMarkdown()` serialises the node as `[[...]]` text and markdown
+ * containing `[[...]]` parses back into wikiLink nodes.
  */
 export const WikiLink = Node.create<{
 	suggestion: Partial<SuggestionOptions<WikiLinkSuggestionItem, WikiLinkCommandProps>>;
@@ -107,11 +222,20 @@ export const WikiLink = Node.create<{
 						);
 						if (!response.ok) return [];
 						const data = await response.json();
-						// Map API shape { id, title } to WikiLinkSuggestionItem { noteId, title }
-						return (data.notes ?? []).map((note: { id: string; title: string | null }) => ({
-							noteId: note.id,
-							title: note.title ?? note.id,
-						}));
+						// Map API shape { id, title, firstLine, secondLine } to WikiLinkSuggestionItem
+						return (data.notes ?? []).map(
+							(note: {
+								id: string;
+								title: string | null;
+								firstLine?: string;
+								secondLine?: string;
+							}) => ({
+								noteId: note.id,
+								title: note.title ?? note.id,
+								firstLine: note.firstLine ?? '',
+								secondLine: note.secondLine ?? '',
+							})
+						);
 					} catch {
 						return [];
 					}
@@ -191,6 +315,30 @@ export const WikiLink = Node.create<{
 		};
 	},
 
+	addStorage() {
+		return {
+			// tiptap-markdown node spec: see MarkdownNodeSpec in tiptap-markdown.
+			markdown: {
+				serialize(state: MarkdownSerializerStateLike, node: ProseMirrorNode) {
+					// `state.write` emits raw text without markdown escaping, so note
+					// IDs such as `INTL.20261103.002` are preserved verbatim.
+					state.write(
+						formatWikiLinkText(
+							node.attrs.noteId as string,
+							node.attrs.headingAnchor as string | null,
+							node.attrs.label as string | null
+						)
+					);
+				},
+				parse: {
+					setup(markdownit: MarkdownItLike) {
+						registerWikiLinkMarkdownRule(markdownit);
+					},
+				},
+			},
+		};
+	},
+
 	addAttributes() {
 		return {
 			noteId: {
@@ -242,15 +390,11 @@ export const WikiLink = Node.create<{
 	},
 
 	renderText({ node }) {
-		const noteId = node.attrs.noteId as string;
-		const headingAnchor = node.attrs.headingAnchor as string | null;
-		const label = node.attrs.label as string | null;
-
-		let inner = noteId;
-		if (headingAnchor) inner += `#${headingAnchor}`;
-		if (label && label !== noteId) inner += `|${label}`;
-
-		return `[[${inner}]]`;
+		return formatWikiLinkText(
+			node.attrs.noteId as string,
+			node.attrs.headingAnchor as string | null,
+			node.attrs.label as string | null
+		);
 	},
 
 	addInputRules() {
