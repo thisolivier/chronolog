@@ -5,10 +5,11 @@ import { resolveContract, resolveDeliverable } from '../lib/resolve.mjs';
 import { formatMinutes, parseIsoWeek, resolveDateWord } from '../lib/dates.mjs';
 import { UsageError } from '../lib/args.mjs';
 import { fetchContracts } from './read.mjs';
+import { recordLastEntry } from '../lib/history.mjs';
 
 const WEEK_STATES = { unsubmitted: 'Unsubmitted', 'draft-ready': 'Draft ready', 'draft ready': 'Draft ready', draft: 'Draft ready', submitted: 'Submitted' };
 
-export async function log({ api, print, positionals, flags }) {
+export async function log({ api, print, positionals, flags, config, environment }) {
 	const [contractReference, duration, ...descriptionWords] = positionals;
 	if (!contractReference || !duration) {
 		throw new UsageError('Usage: chronolog log <contract> <duration> "<description>" [--date] [--deliverable] [--note <id>]');
@@ -28,8 +29,14 @@ export async function log({ api, print, positionals, flags }) {
 
 	const { entry } = await api.post('/api/time-entries', body);
 	const range = entry.startTime ? ` (${entry.startTime.slice(0, 5)}-${entry.endTime.slice(0, 5)})` : '';
+	const summary = `${formatMinutes(entry.durationMinutes)}${range} on ${entry.date} to ${contract.clientShortCode}/${contract.name}: ${entry.description ?? ''}`;
+	try {
+		recordLastEntry({ entryId: entry.id, baseUrl: config?.baseUrl ?? null, createdAt: new Date().toISOString(), summary }, environment);
+	} catch {
+		// Undo is a convenience; an unwritable config directory must not fail the log
+	}
 	print(
-		`Logged ${formatMinutes(entry.durationMinutes)}${range} on ${entry.date} to ${contract.clientShortCode}/${contract.name}: ${entry.description ?? ''}\nid=${entry.id}`,
+		`Logged ${summary}\nid=${entry.id}`,
 		{ ...entry, contractName: contract.name, clientShortCode: contract.clientShortCode }
 	);
 }

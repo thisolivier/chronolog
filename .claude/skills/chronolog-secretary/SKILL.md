@@ -55,8 +55,21 @@ chronolog log ACME/Website 45m "Fixed staging deploy" --deliverable "Phase 2" --
   `[[ID]]` to the description, which is how the app links them). Note ids look like
   `ACME.20261103.001`. Find one with `chronolog search "<words>" --json` or
   `chronolog notes ACME/Website --json`. An unknown note id exits 3 and nothing is logged.
-- After logging, report back in one line: duration, date, contract, description. The `--json`
-  result has the entry `id` if the owner wants it changed (corrections are made in the app).
+- After logging, report back in one line: duration, date, contract, description. Keep the
+  `--json` result's `id`: corrections use it.
+
+## Correcting an entry
+
+```bash
+chronolog undo --json                                   # "no, scrap that": deletes the last entry YOU logged
+chronolog edit <entry-id> --duration 2h --json          # also --description "...", --date D, --deliverable X|none
+```
+
+- `undo` deletes only the last entry this CLI logged, once. It exits 2 "Nothing to undo" when
+  there is none; then find the entry with `chronolog week --json` and ask before deleting
+  anything in the app. Never use `undo` for an entry the owner made in the app.
+- `edit` changes only the flags given. Get the id from the `log` result or `chronolog week
+  --json`; if several entries could be the one meant, list them and ask. Report the new line.
 
 ## Writing a note
 
