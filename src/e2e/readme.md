@@ -44,7 +44,7 @@ E2E_BASE_URL=http://127.0.0.1:3000 npm run test:e2e
 
 | File | Endpoints Covered |
 |------|------------------|
-| `clients.e2e.test.ts` | GET /api/clients |
+| `clients.e2e.test.ts` | GET /api/clients, PATCH /api/clients/:id (colour index validation) |
 | `contracts.e2e.test.ts` | GET/POST /api/contracts, GET /api/contracts-by-client |
 | `notes.e2e.test.ts` | POST/GET/PUT/DELETE /api/notes, backlinks, attachments, time-entries sub-resources |
 | `time-entries.e2e.test.ts` | POST/PUT/DELETE /api/time-entries, weekly, weekly-statuses, weeks |
