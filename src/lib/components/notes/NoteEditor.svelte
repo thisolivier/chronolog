@@ -4,7 +4,6 @@
 	import StarterKit from '@tiptap/starter-kit';
 	import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 	import { common, createLowlight } from 'lowlight';
-	import Link from '@tiptap/extension-link';
 	import Image from '@tiptap/extension-image';
 	import { FileHandler } from '@tiptap/extension-file-handler';
 	import Placeholder from '@tiptap/extension-placeholder';
@@ -52,7 +51,10 @@
 	}: Props = $props();
 	/* eslint-enable @typescript-eslint/no-unused-vars */
 
-	let editorElement: HTMLDivElement;
+	// The editor mount point stays in the DOM for the lifetime of the component (it is
+	// hidden, not removed, in raw mode) because TipTap keeps a reference to the element
+	// it was mounted into. `undefined` until mounted, hence the guards below.
+	let editorElement = $state<HTMLDivElement>();
 	let fileInput: HTMLInputElement;
 	let editor: Editor | null = $state(null);
 	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -143,7 +145,19 @@
 		}
 	}
 
+	/**
+	 * Resolve chronolog:// image URLs inside the editor pane, if it is mounted.
+	 */
+	function resolveImagesInEditorPane() {
+		if (editorElement) {
+			resolveAllChronologImages(editorElement);
+		}
+	}
+
 	onMount(() => {
+		const mountElement = editorElement;
+		if (!mountElement) return;
+
 		// Determine initial content
 		let content: string | Record<string, unknown> = '';
 		if (initialJson) {
@@ -158,12 +172,17 @@
 		}
 
 		editor = new Editor({
-			element: editorElement,
+			element: mountElement,
 			extensions: [
-				StarterKit.configure({ heading: false, codeBlock: false }),
-			CodeBlockLowlight.configure({ lowlight: createLowlight(common) }),
+				// StarterKit v3 bundles Link, so its options are passed here rather than
+				// registering @tiptap/extension-link a second time (duplicate name 'link').
+				StarterKit.configure({
+					heading: false,
+					codeBlock: false,
+					link: { openOnClick: false },
+				}),
+				CodeBlockLowlight.configure({ lowlight: createLowlight(common) }),
 				AnchoredHeading,
-				Link.configure({ openOnClick: false }),
 				Image.configure({ inline: true, allowBase64: false }),
 				FileHandler.configure({
 					allowedMimeTypes: ALL_ALLOWED_MIME_TYPES,
@@ -182,21 +201,21 @@
 			editable: !readonly,
 			onCreate: () => {
 				// Resolve any chronolog:// image URLs in the initial content
-				resolveAllChronologImages(editorElement);
+				resolveImagesInEditorPane();
 			},
-			onTransaction: () => {
-				// Force Svelte reactivity update for toolbar state
-				editor = editor;
-			},
+			// Note: there is deliberately no `onTransaction: () => { editor = editor; }` here.
+			// `editor` is a class instance (never proxied by $state), so re-assigning the same
+			// reference is a no-op for Svelte reactivity, and it raised `state_unsafe_mutation`
+			// when a transaction fired during a derived update (e.g. wiki-link navigation).
 			onUpdate: () => {
 				// Resolve any newly inserted chronolog:// image URLs
-				resolveAllChronologImages(editorElement);
+				resolveImagesInEditorPane();
 				triggerDebouncedsave();
 			}
 		});
 
 		// Handle wiki-link clicks
-		editorElement.addEventListener('click', (event) => {
+		mountElement.addEventListener('click', (event) => {
 			const target = event.target as HTMLElement;
 			const wikiLinkElement = target.closest('[data-wiki-link]') as HTMLElement;
 			if (wikiLinkElement && onWikiLinkClick) {
@@ -323,9 +342,12 @@
 				class="w-full h-full p-4 font-mono text-sm resize-none outline-none bg-white"
 				placeholder="Write markdown here..."
 			></textarea>
-		{:else}
-			<div bind:this={editorElement} class="prose prose-sm max-w-none p-4"></div>
 		{/if}
+		<!-- Always mounted: TipTap owns this element, so it is hidden rather than removed in raw mode -->
+		<div
+			bind:this={editorElement}
+			class={['prose prose-sm max-w-none p-4', editorMode === 'raw' && 'hidden']}
+		></div>
 	</div>
 </div>
 
