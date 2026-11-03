@@ -50,10 +50,15 @@
 	let positionedFor = '';
 	let isPositioning = false;
 	let scrollFrame = 0;
+	/** Set on teardown: the emptied scroller fires late scroll events that must not overwrite the position */
+	let isPanelDestroyed = false;
+	/** The week the list has been placed for; scroll positions are only recorded after that */
+	let positionedWeek: string | null = null;
 
 	/** Remember where this week is scrolled to: the top visible day and the offset into it */
 	function rememberScroll() {
-		if (!scrollContainer || isPositioning) return;
+		if (!scrollContainer || isPositioning || isPanelDestroyed || !scrollContainer.isConnected) return;
+		if (positionedWeek !== selectedWeekStart) return;
 		const containerTop = scrollContainer.getBoundingClientRect().top;
 		let topDay: string | null = null;
 		let offsetWithinDay = 0;
@@ -75,6 +80,7 @@
 	}
 
 	function handleScroll() {
+		if (isPanelDestroyed) return;
 		cancelAnimationFrame(scrollFrame);
 		scrollFrame = requestAnimationFrame(rememberScroll);
 	}
@@ -109,6 +115,7 @@
 		}
 		requestAnimationFrame(() => {
 			isPositioning = false;
+			positionedWeek = weekStart;
 		});
 	}
 
@@ -348,6 +355,7 @@
 		window.addEventListener(TIME_ENTRY_SAVED_EVENT, handleTimeEntrySaved);
 		void loadInitialWeeks();
 		return () => {
+			isPanelDestroyed = true;
 			window.removeEventListener(TIME_ENTRY_SAVED_EVENT, handleTimeEntrySaved);
 			cancelAnimationFrame(scrollFrame);
 			clearTimeout(highlightTimeout);

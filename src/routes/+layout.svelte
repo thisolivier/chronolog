@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { browser } from '$app/environment';
-	import { afterNavigate, goto } from '$app/navigation';
+	import { afterNavigate, goto, preloadCode } from '$app/navigation';
 	import { page } from '$app/state';
 	import { createNavigationState, setNavigationContext } from '$lib/stores/navigation.svelte';
 	import { createTimerState, setTimerStateContext } from '$lib/stores/timer-state.svelte';
@@ -39,6 +39,16 @@
 			void navState.syncFromUrl(navigation.to.url, navigation.type, navigation.delta, loadType);
 		});
 	}
+
+	// Load every workspace route's code up front: moving between them is then a pure client-side
+	// change that also works offline (a missing chunk would fall back to a full page load).
+	$effect(() => {
+		if (!navState) return;
+		const sampleContract = '00000000-0000-4000-8000-000000000000';
+		for (const path of ['/', '/time/2026-W01', `/notes/${sampleContract}`, `/notes/${sampleContract}/new`]) {
+			void preloadCode(path).catch(() => {});
+		}
+	});
 
 	function safeStorage(getStorage: () => Storage): Storage | null {
 		try {

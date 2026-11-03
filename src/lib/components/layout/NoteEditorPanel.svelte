@@ -165,7 +165,12 @@
 	}
 
 	/** Load an existing note (after any in-flight save of it) and open an editor for it. */
+	/** The note being fetched: a second request to open it while it loads is the same request */
+	let loadingNoteId: string | null = null;
+
 	async function openExistingNote(noteId: string) {
+		if (loadingNoteId === noteId) return;
+		loadingNoteId = noteId;
 		isLoading = true;
 		fetchError = null;
 		currentNote = null;
@@ -199,6 +204,7 @@
 			fetchError = error instanceof Error ? error.message : 'Unknown error loading note';
 			console.error('Error fetching note:', error);
 		} finally {
+			if (loadingNoteId === noteId) loadingNoteId = null;
 			if (navigation.selectedNoteId === noteId) isLoading = false;
 		}
 	}

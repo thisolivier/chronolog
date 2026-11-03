@@ -21,7 +21,7 @@ test.describe('Note CRUD', () => {
 		// --- Navigate to notes mode by clicking the "General" contract ---
 		const generalContract = page.getByText('General').first();
 		await generalContract.click();
-		await expect(page.getByRole('heading', { name: 'Notes' })).toBeVisible({ timeout: 5000 });
+		await expect(page.getByTestId('note-list-context')).toBeVisible({ timeout: 5000 });
 
 		// --- CREATE: Click "New Note" button ---
 		const newNoteButton = page.getByRole('button', { name: 'New Note' });
@@ -52,10 +52,11 @@ test.describe('Note CRUD', () => {
 		await noteListItem.click();
 		await page.waitForTimeout(500);
 
-		// The "Delete" button appears in the Notes panel header when a note is selected
-		const deleteButton = page.getByRole('button', { name: 'Delete' });
+		// Delete lives in the editor header and asks for confirmation inline (sprint 024)
+		const deleteButton = page.getByTestId('note-editor-header').getByRole('button', { name: 'Delete' });
 		await expect(deleteButton).toBeVisible({ timeout: 5000 });
 		await deleteButton.click();
+		await page.getByTestId('delete-confirm').getByRole('button', { name: 'Delete' }).click();
 
 		// --- VERIFY DELETION: The note should no longer appear in the note list ---
 		await expect(noteListItem).not.toBeVisible({ timeout: 10000 });
