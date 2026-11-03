@@ -57,6 +57,9 @@
 	let editorElement = $state<HTMLDivElement>();
 	let fileInput: HTMLInputElement;
 	let editor: Editor | null = $state(null);
+	// Incremented after every TipTap transaction so the toolbar's active states
+	// re-evaluate; the Editor instance itself never changes identity.
+	let transactionCount = $state(0);
 	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	let editorMode: 'rendered' | 'raw' = $state('rendered');
@@ -203,10 +206,15 @@
 				// Resolve any chronolog:// image URLs in the initial content
 				resolveImagesInEditorPane();
 			},
-			// Note: there is deliberately no `onTransaction: () => { editor = editor; }` here.
-			// `editor` is a class instance (never proxied by $state), so re-assigning the same
-			// reference is a no-op for Svelte reactivity, and it raised `state_unsafe_mutation`
-			// when a transaction fired during a derived update (e.g. wiki-link navigation).
+			onTransaction: () => {
+				// Deferred so the state write never happens inside a Svelte derived/template
+				// evaluation (the old `editor = editor` hack raised `state_unsafe_mutation`
+				// when a transaction fired during wiki-link navigation, and was a no-op anyway
+				// because the Editor instance keeps the same identity).
+				queueMicrotask(() => {
+					transactionCount += 1;
+				});
+			},
 			onUpdate: () => {
 				// Resolve any newly inserted chronolog:// image URLs
 				resolveImagesInEditorPane();
@@ -319,7 +327,7 @@
 	{#if !readonly}
 		<div class="flex items-center">
 			<div class="flex-grow overflow-x-auto">
-				<EditorToolbar {editor} onAttachFile={handleAttachFileClick} />
+				<EditorToolbar {editor} {transactionCount} onAttachFile={handleAttachFileClick} />
 			</div>
 			<button
 				type="button"

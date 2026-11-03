@@ -3,10 +3,22 @@
 
 	interface Props {
 		editor: Editor | null;
+		/** Bumped by NoteEditor on every TipTap transaction so active states re-evaluate */
+		transactionCount?: number;
 		onAttachFile?: () => void;
 	}
 
-	let { editor, onAttachFile }: Props = $props();
+	let { editor, transactionCount = 0, onAttachFile }: Props = $props();
+
+	/**
+	 * Active-state check that depends on `transactionCount`: the Editor instance
+	 * itself never changes identity, so reading the counter here is what makes
+	 * the toolbar highlight follow the selection and marks.
+	 */
+	function isActive(name: string, attributes?: Record<string, unknown>): boolean {
+		void transactionCount;
+		return editor?.isActive(name, attributes) ?? false;
+	}
 
 	function handleLink() {
 		if (!editor) return;
@@ -41,7 +53,7 @@
 		onclick={() => editor?.chain().focus().toggleBold().run()}
 		disabled={!editor || !editor.can().chain().focus().toggleBold().run()}
 		class="px-3 py-1.5 text-sm rounded transition-colors
-			{editor?.isActive('bold') ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
+			{isActive('bold') ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Bold (⌘B)"
 	>
@@ -53,7 +65,7 @@
 		onclick={() => editor?.chain().focus().toggleItalic().run()}
 		disabled={!editor || !editor.can().chain().focus().toggleItalic().run()}
 		class="px-3 py-1.5 text-sm rounded transition-colors italic
-			{editor?.isActive('italic') ? 'bg-blue-100 text-blue-700' : 'text-stone-600 hover:bg-stone-100'}
+			{isActive('italic') ? 'bg-blue-100 text-blue-700' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Italic (⌘I)"
 	>
@@ -67,7 +79,7 @@
 		onclick={() => toggleHeading(1)}
 		disabled={!editor || !editor.can().chain().focus().toggleHeading({ level: 1 }).run()}
 		class="px-3 py-1.5 text-sm rounded transition-colors
-			{editor?.isActive('heading', { level: 1 }) ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
+			{isActive('heading', { level: 1 }) ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Heading 1"
 	>
@@ -79,7 +91,7 @@
 		onclick={() => toggleHeading(2)}
 		disabled={!editor || !editor.can().chain().focus().toggleHeading({ level: 2 }).run()}
 		class="px-3 py-1.5 text-sm rounded transition-colors
-			{editor?.isActive('heading', { level: 2 }) ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
+			{isActive('heading', { level: 2 }) ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Heading 2"
 	>
@@ -91,7 +103,7 @@
 		onclick={() => toggleHeading(3)}
 		disabled={!editor || !editor.can().chain().focus().toggleHeading({ level: 3 }).run()}
 		class="px-3 py-1.5 text-sm rounded transition-colors
-			{editor?.isActive('heading', { level: 3 }) ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
+			{isActive('heading', { level: 3 }) ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Heading 3"
 	>
@@ -105,7 +117,7 @@
 		onclick={() => editor?.chain().focus().toggleBulletList().run()}
 		disabled={!editor || !editor.can().chain().focus().toggleBulletList().run()}
 		class="px-3 py-1.5 text-sm rounded transition-colors
-			{editor?.isActive('bulletList') ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
+			{isActive('bulletList') ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Bullet List"
 	>
@@ -117,7 +129,7 @@
 		onclick={() => editor?.chain().focus().toggleOrderedList().run()}
 		disabled={!editor || !editor.can().chain().focus().toggleOrderedList().run()}
 		class="px-3 py-1.5 text-sm rounded transition-colors
-			{editor?.isActive('orderedList') ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
+			{isActive('orderedList') ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Ordered List"
 	>
@@ -142,7 +154,7 @@
 		onclick={handleLink}
 		disabled={!editor}
 		class="px-3 py-1.5 text-sm rounded transition-colors
-			{editor?.isActive('link') ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
+			{isActive('link') ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Link"
 	>
@@ -154,7 +166,7 @@
 		onclick={() => editor?.chain().focus().toggleCodeBlock().run()}
 		disabled={!editor}
 		class="px-3 py-1.5 text-sm rounded transition-colors
-			{editor?.isActive('codeBlock') ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
+			{isActive('codeBlock') ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Code Block"
 	>
