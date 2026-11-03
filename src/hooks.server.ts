@@ -1,11 +1,19 @@
 import { auth } from '$lib/server/auth';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import { building } from '$app/environment';
-import { json, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import type { Handle } from '@sveltejs/kit';
 import { getServerEnvironment } from '$lib/server/env';
 import { ensureAppUser } from '$lib/server/db/queries/app-user';
-import { enforceDeviceGate, isGateExemptPath } from '$lib/server/device-gate/gate';
+import { clientIpAddress, enforceDeviceGate, isGateExemptPath } from '$lib/server/device-gate/gate';
+import { apiError, normalizeApiErrorResponse } from '$lib/server/api-errors';
+import { readBearerToken } from '$lib/server/auth-tokens/token-format';
+import {
+	authFailureLimiter,
+	authenticateBearer,
+	isLimitedAuthPath,
+	rateLimitedResponse
+} from '$lib/server/auth-tokens/bearer';
 
 // Fail fast at server boot when required secrets are missing (no-op during build).
 const serverEnvironment = getServerEnvironment();
@@ -33,14 +41,45 @@ function isApiRoute(pathname: string): boolean {
 	return pathname === '/api' || pathname.startsWith('/api/');
 }
 
+function isBetterAuthRoute(pathname: string): boolean {
+	return pathname === '/api/auth' || pathname.startsWith('/api/auth/');
+}
+
+/** App API routes (not Better Auth's) answer errors as `{ error, code, message }`. */
+async function finishApiResponse(pathname: string, response: Response): Promise<Response> {
+	return isApiRoute(pathname) && !isBetterAuthRoute(pathname) ? normalizeApiErrorResponse(response) : response;
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
+	const pathname = event.url.pathname;
+
 	// Device access gate first: an unauthorised request never reaches the session lookup or DB.
 	const gateResponse = enforceDeviceGate(event);
-	if (gateResponse) return gateResponse;
+	if (gateResponse) {
+		if (!isApiRoute(pathname)) return gateResponse;
+		return gateResponse.status === 429
+			? apiError(429, 'Too many failed device key attempts; try again later', 'device_locked')
+			: apiError(gateResponse.status, 'Device not authorised', 'device_not_authorised');
+	}
 
 	// Gate-exempt paths (/unlock, its assets, the PWA manifest and SW) need no session:
 	// skip the lookup so a device that has not unlocked never causes a database query.
-	if (isGateExemptPath(event.url.pathname)) return resolve(event);
+	if (isGateExemptPath(pathname)) return resolve(event);
+
+	const clientIp = clientIpAddress(event);
+
+	// Personal API token (sprint 028-CL): `Authorization: Bearer clg_…` on app API routes
+	// resolves to the token's user exactly like a session, without a cookie lookup.
+	const bearerToken = readBearerToken(event.request.headers.get('authorization'));
+	if (bearerToken !== null && isApiRoute(pathname) && !isBetterAuthRoute(pathname)) {
+		const bearerFailure = await authenticateBearer(event, bearerToken, clientIp);
+		if (bearerFailure) return bearerFailure;
+		return finishApiResponse(pathname, await resolve(event));
+	}
+
+	// Password and 2FA guesses share the per-IP failure limit with bad tokens.
+	const isLimitedAuthRequest = isLimitedAuthPath(pathname);
+	if (isLimitedAuthRequest && authFailureLimiter.isLimited(clientIp)) return rateLimitedResponse();
 
 	// Populate session and user on event.locals for all requests.
 	// A throwing getSession (e.g. database unreachable, malformed cookie) is
@@ -51,7 +90,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 			headers: event.request.headers
 		});
 	} catch (sessionError) {
-		console.error(`Failed to read session for ${event.url.pathname}:`, sessionError);
+		console.error(`Failed to read session for ${pathname}:`, sessionError);
 	}
 
 	if (sessionData) {
@@ -63,13 +102,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	// Auth guard: API callers get a 401 JSON body; page requests redirect to login
-	if (!sessionData && !isPublicRoute(event.url.pathname)) {
-		if (isApiRoute(event.url.pathname)) {
-			return json({ error: 'Unauthorized' }, { status: 401 });
+	if (!sessionData && !isPublicRoute(pathname)) {
+		if (isApiRoute(pathname)) {
+			return apiError(401, 'Unauthorized: sign in or send an API token', 'unauthorized');
 		}
 		throw redirect(303, '/login');
 	}
 
 	// Let Better Auth handle its own API routes
-	return svelteKitHandler({ event, resolve, auth, building });
+	const response = await svelteKitHandler({ event, resolve, auth, building });
+	if (isLimitedAuthRequest && (response.status === 401 || response.status === 403)) {
+		authFailureLimiter.recordFailure(clientIp);
+	}
+	return finishApiResponse(pathname, response);
 };

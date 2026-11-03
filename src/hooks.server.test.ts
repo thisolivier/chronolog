@@ -13,6 +13,10 @@ const mockEnvironment: { deviceAccessKeyHash: string | null } = { deviceAccessKe
 vi.mock('$lib/server/env', () => ({ getServerEnvironment: () => mockEnvironment }));
 vi.mock('$lib/server/db', () => ({ database: {} }));
 vi.mock('$lib/server/auth', () => ({ auth: { api: { getSession } } }));
+const resolveApiToken = vi.fn();
+const getAuthUserById = vi.fn();
+vi.mock('$lib/server/auth-tokens/token-store', () => ({ resolveApiToken, getAuthUserById }));
+vi.mock('$lib/server/db/queries/app-user', () => ({ ensureAppUser: vi.fn() }));
 vi.mock('better-auth/svelte-kit', () => ({
 	svelteKitHandler: ({ event, resolve }: { event: RequestEvent; resolve: (e: RequestEvent) => Response }) =>
 		resolve(event)
@@ -50,7 +54,7 @@ describe('hooks.server handle auth guard', () => {
 		getSession.mockResolvedValue(null);
 		const response = await handle({ event: makeEvent('/api/clients'), resolve });
 		expect(response.status).toBe(401);
-		expect(await response.json()).toEqual({ error: 'Unauthorized' });
+		expect(await response.json()).toMatchObject({ code: 'unauthorized' });
 		expect(resolve).not.toHaveBeenCalled();
 	});
 
@@ -102,7 +106,7 @@ describe('hooks.server handle device gate', () => {
 		for (const pathname of ['/api/clients', '/api/auth/sign-in/email']) {
 			const response = await handle({ event: makeEvent(pathname), resolve });
 			expect(response.status).toBe(401);
-			expect(await response.json()).toEqual({ error: 'Device not authorised' });
+			expect(await response.json()).toMatchObject({ error: 'Device not authorised', code: 'device_not_authorised' });
 		}
 		expect(getSession).not.toHaveBeenCalled();
 	});
@@ -122,7 +126,7 @@ describe('hooks.server handle device gate', () => {
 			resolve
 		});
 		expect(response.status).toBe(401);
-		expect(await response.json()).toEqual({ error: 'Unauthorized' });
+		expect(await response.json()).toMatchObject({ code: 'unauthorized' });
 		expect(getSession).toHaveBeenCalledTimes(1);
 	});
 
@@ -161,5 +165,64 @@ describe('hooks.server handle device gate', () => {
 			resolve
 		});
 		expect(lockedResponse.status).toBe(429);
+	});
+});
+
+describe('hooks.server handle bearer tokens (sprint 028-CL)', () => {
+	const owner = { id: 'user-1', email: 'owner@example.test', name: 'Owner' };
+
+	it('resolves Authorization: Bearer on /api/* to the user without a session lookup', async () => {
+		resolveApiToken.mockResolvedValue({ kind: 'valid', userId: 'user-1', tokenId: 't1' });
+		getAuthUserById.mockResolvedValue(owner);
+		const event = makeEvent('/api/clients', { headers: { authorization: 'Bearer clg_valid' }, clientAddress: '10.9.0.1' });
+		const response = await handle({ event, resolve });
+		expect(response.status).toBe(200);
+		expect(event.locals.user).toEqual(owner);
+		expect(event.locals.session).toBeNull();
+		expect(getSession).not.toHaveBeenCalled();
+	});
+
+	it('answers a revoked token with 403 token_revoked and never resolves the route', async () => {
+		resolveApiToken.mockResolvedValue({ kind: 'revoked', tokenId: 't1' });
+		const response = await handle({
+			event: makeEvent('/api/clients', { headers: { authorization: 'Bearer clg_old' }, clientAddress: '10.9.0.2' }),
+			resolve
+		});
+		expect(response.status).toBe(403);
+		expect(await response.json()).toMatchObject({ code: 'token_revoked' });
+		expect(resolve).not.toHaveBeenCalled();
+	});
+
+	it('runs the device gate before the token', async () => {
+		mockEnvironment.deviceAccessKeyHash = hashDeviceKey('the-device-key');
+		resolveApiToken.mockClear();
+		const response = await handle({
+			event: makeEvent('/api/clients', { headers: { authorization: 'Bearer clg_valid' }, clientAddress: '10.9.0.3' }),
+			resolve
+		});
+		expect(response.status).toBe(401);
+		expect(await response.json()).toMatchObject({ code: 'device_not_authorised' });
+		expect(resolveApiToken).not.toHaveBeenCalled();
+	});
+
+	it('ignores bearer tokens on page routes and on Better Auth routes', async () => {
+		getSession.mockResolvedValue(null);
+		resolveApiToken.mockClear();
+		await expect(
+			handle({ event: makeEvent('/time', { headers: { authorization: 'Bearer clg_valid' } }), resolve })
+		).rejects.toMatchObject({ status: 303 });
+		await handle({ event: makeEvent('/api/auth/get-session', { headers: { authorization: 'Bearer clg_valid' } }), resolve });
+		expect(resolveApiToken).not.toHaveBeenCalled();
+	});
+
+	it('normalises route errors on /api/* to { error, code }', async () => {
+		resolveApiToken.mockResolvedValue({ kind: 'valid', userId: 'user-1', tokenId: 't1' });
+		getAuthUserById.mockResolvedValue(owner);
+		const notFound = vi.fn(async () => new Response(JSON.stringify({ message: 'Note not found' }), { status: 404 }));
+		const response = await handle({
+			event: makeEvent('/api/notes/X', { headers: { authorization: 'Bearer clg_valid' }, clientAddress: '10.9.0.4' }),
+			resolve: notFound
+		});
+		expect(await response.json()).toEqual({ error: 'Note not found', code: 'not_found', message: 'Note not found' });
 	});
 });

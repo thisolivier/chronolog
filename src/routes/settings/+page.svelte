@@ -23,6 +23,11 @@
 			href: '/settings/two-factor',
 			title: 'Two-factor authentication',
 			description: 'Protect sign-in with an authenticator app and recovery codes.'
+		},
+		{
+			href: '/settings/api-tokens',
+			title: 'API tokens',
+			description: 'Personal tokens for the laptop CLI and Claude: create, see last use, revoke.'
 		}
 	];
 </script>

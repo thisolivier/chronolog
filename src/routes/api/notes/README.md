@@ -16,25 +16,32 @@ The ID is auto-generated when creating a note.
 
 ## Routes
 
-### `GET /api/notes?contractId=X`
+### `GET /api/notes[?contractId=X][&updatedSince=ISO-8601]`
 
-Lists notes for a specific contract.
+Lists the user's notes. At least one filter is required (400 `bad_request` otherwise).
 
 **Query Parameters:**
-- `contractId` (required): The contract UUID
+- `contractId` (optional): only this contract's notes. Must be a UUID (400 `invalid_contract`).
+- `updatedSince` (optional): only notes changed after this ISO 8601 date or date-time (400 `invalid_date` if unparseable). Used for incremental sync; the CLI's `chronolog notes --since` sends it.
 
-**Response:**
+**Response:** each note has `id`, `contractId`, `title`, `displayTitle`, `firstLine`, `secondLine`, `isPinned`, `createdAt` and `updatedAt`. No body content is returned.
+
+- `displayTitle` is the stored title, else the first line of the body, else `null`.
+- `firstLine` and `secondLine` are preview lines. Notes created over the API have no TipTap JSON, so their preview is taken from the markdown `content`.
+
 ```json
 {
   "notes": [
     {
       "id": "BIGCH.20260207.001",
-      "title": "Meeting Notes",
       "contractId": "uuid",
-      "wordCount": 150,
+      "title": "Meeting Notes",
+      "displayTitle": "Meeting Notes",
       "isPinned": false,
       "createdAt": "2026-02-07T10:00:00Z",
-      "updatedAt": "2026-02-07T10:00:00Z"
+      "updatedAt": "2026-02-07T10:00:00Z",
+      "firstLine": "Agenda",
+      "secondLine": "Budget review"
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { eq, and, desc, like } from "drizzle-orm";
+import { eq, and, desc, gt, like } from "drizzle-orm";
 import { database, notes, noteTimeEntries, contracts, clients, timeEntries } from "$lib/server/db";
 import { decryptNullable, decryptText, encryptNullable } from '$lib/server/crypto/server-cipher';
 
@@ -26,6 +26,25 @@ export async function listNotesForContract(userId: string, contractId: string) {
 		.select()
 		.from(notes)
 		.where(and(eq(notes.userId, userId), eq(notes.contractId, contractId)))
+		.orderBy(desc(notes.isPinned), desc(notes.updatedAt));
+	return results.map(decryptNote);
+}
+
+/**
+ * The user's notes, optionally for one contract and/or changed after `updatedSince`,
+ * pinned first then newest first. Used by `GET /api/notes` (sprint 028-CL).
+ */
+export async function listNotesForUser(
+	userId: string,
+	filters: { contractId?: string; updatedSince?: Date } = {}
+) {
+	const conditions = [eq(notes.userId, userId)];
+	if (filters.contractId) conditions.push(eq(notes.contractId, filters.contractId));
+	if (filters.updatedSince) conditions.push(gt(notes.updatedAt, filters.updatedSince));
+	const results = await database
+		.select()
+		.from(notes)
+		.where(and(...conditions))
 		.orderBy(desc(notes.isPinned), desc(notes.updatedAt));
 	return results.map(decryptNote);
 }
