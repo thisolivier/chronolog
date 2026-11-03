@@ -5,6 +5,7 @@
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
 | 027-CL | Client | Navigation state, URLs and context | active |
+| 028-CL | Client/Server | API tokens, CLI and the laptop skill | active |
 | 018-QA | QA | Manual testing backlog | superseded by docs/review/2026-11-03-qa-state.md |
 
 ## Completed Sprints
