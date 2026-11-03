@@ -7,7 +7,7 @@
 	import NewEntryRow from '$lib/components/weekly/NewEntryRow.svelte';
 	import { getMondayOfWeek, getIsoWeekNumber, getIsoYear, getWeekDates, formatDayHeader } from '$lib/utils/iso-week';
 	import { SvelteDate } from 'svelte/reactivity';
-	import type { WeekData } from '$lib/services/types';
+	import type { WeekData, TimeEntryDisplay } from '$lib/services/types';
 
 	const navigation = getNavigationContext();
 	const dataService = getDataService();
@@ -41,6 +41,7 @@
 				date,
 				totalMinutes: dayData?.totalMinutes ?? 0,
 				entries: dayData?.entries.map((entry) => ({
+					clientId: entry.clientId ?? entry.clientShortCode,
 					clientColorIndex: entry.clientColorIndex,
 					durationMinutes: entry.durationMinutes
 				})) ?? []
@@ -229,7 +230,7 @@
 	Day section snippet used for each day in the selected week.
 	"+" button always in the heading row; NewEntryRow expands below heading, above entries.
 -->
-{#snippet daySection(dayDate: string, entries: Array<{ id: string; startTime: string | null; endTime: string | null; durationMinutes: number; contractId: string; contractName: string; clientName: string; clientShortCode: string; clientColorIndex: number; deliverableName: string | null; workTypeName: string | null; description: string | null; date: string }>, totalMinutes: number)}
+{#snippet daySection(dayDate: string, entries: TimeEntryDisplay[], totalMinutes: number)}
 	{@const isToday = dayDate === todayString}
 	<div
 		class={['mb-3', isToday && 'rounded-lg bg-amber-50/60 p-3'].filter(Boolean).join(' ')}

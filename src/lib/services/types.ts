@@ -126,6 +126,8 @@ export type CreateTimeEntryInput = {
 	date: string;
 	durationMinutes: number;
 	contractId: string;
+	deliverableId?: string | null;
+	workTypeId?: string | null;
 	description?: string;
 	startTime?: string;
 	endTime?: string;
@@ -151,10 +153,14 @@ export type TimeEntryDisplay = {
 	durationMinutes: number;
 	contractId: string;
 	contractName: string;
+	/** Optional only until the PowerSync client (which does not map it) is removed in 021-CL */
+	clientId?: string;
 	clientName: string;
 	clientShortCode: string;
 	clientColorIndex: number;
+	deliverableId?: string | null;
 	deliverableName: string | null;
+	workTypeId?: string | null;
 	workTypeName: string | null;
 	description: string | null;
 	date: string;
@@ -171,6 +177,11 @@ export type TimerEntry = {
 	startTime: string | null;
 	endTime: string | null;
 	durationMinutes: number;
+	/** Draft contract chosen while the timer ran (restored after a reload) */
+	contractId?: string | null;
+	deliverableId?: string | null;
+	workTypeId?: string | null;
+	description?: string | null;
 };
 
 export type SaveTimerInput = {

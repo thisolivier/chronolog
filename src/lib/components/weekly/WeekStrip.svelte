@@ -3,6 +3,7 @@
 	import { getClientDotClass } from '$lib/utils/client-colors';
 
 	type DayEntry = {
+		clientId: string;
 		clientColorIndex: number;
 		durationMinutes: number;
 	};

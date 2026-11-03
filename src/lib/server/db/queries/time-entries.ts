@@ -17,6 +17,7 @@ export type TimeEntryWithContext = {
 	createdAt: Date;
 	updatedAt: Date;
 	contractName: string;
+	clientId: string;
 	clientName: string;
 	clientShortCode: string;
 	clientColorIndex: number;
@@ -42,6 +43,7 @@ function timeEntrySelectWithContext() {
 			createdAt: timeEntries.createdAt,
 			updatedAt: timeEntries.updatedAt,
 			contractName: contracts.name,
+			clientId: clients.id,
 			clientName: clients.name,
 			clientShortCode: clients.shortCode,
 			clientColorIndex: clients.colorIndex,
