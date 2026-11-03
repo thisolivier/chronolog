@@ -204,7 +204,7 @@ Add a case to `src/lib/services/offline-read-cache.test.ts`.
 ### Observations (passing steps, low)
 
 - **O1: A note title drops wiki-link text.** B's first line is "Beta note links to [[A]]". Its title in
-  the list, in "Linked from" and in the export filename is "Beta note links to", with the link silently
+  the note list and in "Linked from" is "Beta note links to", with the link silently
   missing. The title derivation from `contentJson` skips the `wikiLink` atom nodes (likely
   `src/lib/utils/note-display-title.ts` and the title computed on save). Using the cached title or the ID
   for the atom would fix it.
