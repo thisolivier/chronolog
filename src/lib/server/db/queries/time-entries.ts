@@ -124,6 +124,17 @@ export async function listTimeEntriesInRange(
 	return rows.map(decryptTimeEntryWithContext);
 }
 
+/** One of the user's entries with contract, client, deliverable and work type names, or null. */
+export async function getTimeEntryForUser(
+	entryId: string,
+	userId: string
+): Promise<TimeEntryWithContext | null> {
+	const rows = await timeEntrySelectWithContext()
+		.where(and(eq(timeEntries.id, entryId), eq(timeEntries.userId, userId)))
+		.limit(1);
+	return rows[0] ? decryptTimeEntryWithContext(rows[0]) : null;
+}
+
 /** Create a new time entry */
 export async function createTimeEntry(data: {
 	userId: string;

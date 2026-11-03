@@ -4,6 +4,8 @@ import { listNotesForUser, createNoteForUser, extractPreviewLines } from '$lib/s
 import { extractMarkdownPreviewLines } from '$lib/utils/markdown-preview-lines';
 import { noteDisplayTitle } from '$lib/utils/note-display-title';
 import { apiError } from '$lib/server/api-errors';
+import { readJsonObject, readRequestTimezone } from '$lib/server/api-request';
+import { contractBelongsToUser } from '$lib/server/db/queries/contracts';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -60,26 +62,41 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 /**
  * POST /api/notes
  *
- * Creates a new note with auto-generated ID.
- * Body: { contractId, title?, content?, contentJson? } — `content` is markdown.
+ * Creates a new note with auto-generated ID (`SHORTCODE.YYYYMMDD.SEQ`, the date in the caller's
+ * timezone from `X-Timezone` or `?tz=`, as for `GET /api/me`). 403 when the contract is not the
+ * caller's. Body: { contractId, title?, content?, contentJson? } — `content` is markdown.
  */
-export const POST: RequestHandler = async ({ locals, request }) => {
+export const POST: RequestHandler = async ({ locals, request, url }) => {
 	const currentUser = locals.user;
 	if (!currentUser) throw error(401, 'Unauthorized');
 
-	const body = await request.json();
-	const { contractId, title, content, contentJson } = body;
+	const parsedBody = await readJsonObject(request);
+	if (!parsedBody.ok) return parsedBody.response;
+	const { contractId, title, content, contentJson } = parsedBody.body;
 
-	if (!contractId) {
-		throw error(400, 'contractId is required');
+	if (!contractId) return apiError(400, 'contractId is required');
+	if (typeof contractId !== 'string' || !UUID_PATTERN.test(contractId)) {
+		return apiError(400, 'contractId must be a UUID', 'invalid_contract');
 	}
+	for (const [fieldName, value] of Object.entries({ title, content, contentJson })) {
+		if (value !== undefined && value !== null && typeof value !== 'string') {
+			return apiError(400, `${fieldName} must be text`, 'bad_request');
+		}
+	}
+	if (!(await contractBelongsToUser(contractId, currentUser.id))) {
+		return apiError(403, 'That contract does not belong to you', 'contract_forbidden');
+	}
+
+	const timezoneResult = readRequestTimezone(url, request);
+	if (!timezoneResult.ok) return timezoneResult.response;
 
 	const note = await createNoteForUser(
 		currentUser.id,
 		contractId,
-		title,
-		content,
-		contentJson
+		(title as string | null) ?? undefined,
+		(content as string | null) ?? undefined,
+		(contentJson as string | null) ?? undefined,
+		{ timezone: timezoneResult.timezone }
 	);
 
 	return json({ note }, { status: 201 });

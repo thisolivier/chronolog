@@ -165,6 +165,20 @@ export async function reorderContractsForUser(
 
 // Contract deletion lives in `./safe-deletion.ts`: it reassigns entries and notes first.
 
+/**
+ * True when the contract exists and its client belongs to the user. Write routes
+ * (`POST /api/notes`, `POST`/`PATCH /api/time-entries`) answer 403 otherwise (sprint 029-CL).
+ */
+export async function contractBelongsToUser(contractId: string, userId: string): Promise<boolean> {
+	const results = await database
+		.select({ id: contracts.id })
+		.from(contracts)
+		.innerJoin(clients, eq(contracts.clientId, clients.id))
+		.where(and(eq(contracts.id, contractId), eq(clients.userId, userId)))
+		.limit(1);
+	return results.length > 0;
+}
+
 /** Verify that a client belongs to a user (used for authorization checks) */
 export async function verifyClientOwnership(clientId: string, userId: string) {
 	const results = await database
