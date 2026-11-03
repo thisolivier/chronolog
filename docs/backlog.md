@@ -132,3 +132,17 @@ Phase 3 (UX, sequential):                 │
 - UX-3 unblocks CL-8
 - CL-4, CL-5, CL-6, CL-7 unblock QA-H
 - UX-2, UX-3 unblock UX-4
+
+## Carried-over Housekeeping (2026-11-03)
+
+- **Three unmerged API-hardening branches on origin** from March 2026, small and sensible but
+  behind main: `fix/json-parse-error-handling` (try/catch around `request.json()` in 9 routes),
+  `fix/time-entry-search-input-validation`, `fix/weekly-status-input-validation`. Re-apply onto
+  current main (merge or redo by hand), then delete the branches.
+- **`wip/2026-05-27-debug-session`** holds the last pre-pause working tree (login-hang logging,
+  WeekListPanel removal, notes-search preview with a missing import). Salvage per the code-state
+  review in `docs/review/`, then delete.
+- **Sprint 018-QA manual checklist** was never run; the live QA review in `docs/review/` covers
+  the automatable parts.
+- Pre-prune safety net: `~/sites/chronolog-prune-backup-2026-11-03.bundle` holds every ref that
+  existed before the worktree and branch prune.
