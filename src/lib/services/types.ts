@@ -175,6 +175,8 @@ export type TimerStatus = {
 
 export type TimerEntry = {
 	id: string;
+	/** Local date (YYYY-MM-DD) the timer was started on */
+	date?: string;
 	startTime: string | null;
 	endTime: string | null;
 	durationMinutes: number;
@@ -191,6 +193,10 @@ export type SaveTimerInput = {
 	deliverableId: string;
 	workTypeId: string;
 	description: string;
+	/** Adjusted time from the completion form; omitted to keep what the timer measured */
+	durationMinutes?: number;
+	startTime?: string | null;
+	endTime?: string | null;
 };
 
 // -- Deliverables & Work Types --

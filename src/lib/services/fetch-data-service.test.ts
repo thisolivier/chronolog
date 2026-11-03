@@ -255,7 +255,7 @@ describe('FetchDataService', () => {
 			const [url, options] = getLastFetchCall(mockFetch);
 			expect(url).toBe('/api/notes');
 			expect(options?.method).toBe('POST');
-			expect(getLastFetchBody(mockFetch)).toEqual({ contractId: 'c1' });
+			expect(getLastFetchBody(mockFetch)).toMatchObject({ contractId: 'c1' });
 			expect(result).toEqual(note);
 		});
 	});
@@ -536,7 +536,7 @@ describe('FetchDataService', () => {
 			const [url, options] = getLastFetchCall(mockFetch);
 			expect(url).toBe('/api/timer/start');
 			expect(options?.method).toBe('POST');
-			expect(getLastFetchBody(mockFetch)).toEqual({ contractId: 'c1' });
+			expect(getLastFetchBody(mockFetch)).toMatchObject({ contractId: 'c1' });
 			expect(result).toEqual(timerEntry);
 		});
 
@@ -584,7 +584,9 @@ describe('FetchDataService', () => {
 			expect(url).toBe('/api/timer/start');
 			expect(options.method).toBe('POST');
 			const body = JSON.parse(options.body as string);
-			expect(body).toEqual({ contractId: 'c-active' });
+			expect(body).toMatchObject({ contractId: 'c-active' });
+			expect(body.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+			expect(body.startTime).toMatch(/^\d{2}:\d{2}:\d{2}$/);
 			expect(result).toEqual(timerEntry);
 		});
 
@@ -609,7 +611,7 @@ describe('FetchDataService', () => {
 	});
 
 	describe('stopTimer', () => {
-		it('calls POST /api/timer/stop with empty body', async () => {
+		it('calls POST /api/timer/stop with the local end time', async () => {
 			const timerEntry: TimerEntry = {
 				id: 'timer-1',
 				startTime: '2026-02-03T10:00:00Z',
@@ -623,7 +625,7 @@ describe('FetchDataService', () => {
 			const [url, options] = getLastFetchCall(mockFetch);
 			expect(url).toBe('/api/timer/stop');
 			expect(options?.method).toBe('POST');
-			expect(getLastFetchBody(mockFetch)).toEqual({});
+			expect(getLastFetchBody(mockFetch)).toEqual({ endTime: expect.stringMatching(/^\d{2}:\d{2}:\d{2}$/) });
 			expect(result).toEqual(timerEntry);
 		});
 	});

@@ -1,4 +1,5 @@
 import type { DataService } from './data-service';
+import { localDateString, localTimeString } from '$lib/components/timer/local-date';
 import type {
 	ContractsByClientResult,
 	ContractOption,
@@ -170,11 +171,16 @@ export class FetchDataService implements DataService {
 			}
 			resolvedContractId = firstActive.id;
 		}
-		return postJson<TimerEntry>('/api/timer/start', { contractId: resolvedContractId });
+		// The browser's local date and time, so an evening timer is never dated tomorrow (UTC)
+		return postJson<TimerEntry>('/api/timer/start', {
+			contractId: resolvedContractId,
+			date: localDateString(),
+			startTime: localTimeString()
+		});
 	}
 
 	async stopTimer(): Promise<TimerEntry> {
-		return postJson<TimerEntry>('/api/timer/stop', {});
+		return postJson<TimerEntry>('/api/timer/stop', { endTime: localTimeString() });
 	}
 
 	async saveTimer(data: SaveTimerInput): Promise<void> {
