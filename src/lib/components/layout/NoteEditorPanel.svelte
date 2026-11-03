@@ -42,6 +42,8 @@
 	};
 
 	let editorSession = $state.raw<EditorSession | null>(null);
+	// Reactive mirror of editorSession.noteId (the session object itself is not reactive)
+	let activeNoteId = $state<string | null>(null);
 	let currentNote = $state<NoteDetail | null>(null);
 	let isLoading = $state(false);
 	let fetchError = $state<string | null>(null);
@@ -51,6 +53,11 @@
 	let headerMessageTimeout: ReturnType<typeof setTimeout> | undefined;
 	let draftSessionCounter = 0;
 	let editorComponent = $state<{ flushPendingSave: () => Promise<void> } | null>(null);
+
+	function setEditorSession(session: EditorSession | null) {
+		editorSession = session;
+		activeNoteId = session?.noteId ?? null;
+	}
 
 	function showHeaderMessage(message: string) {
 		headerMessage = message;
@@ -78,6 +85,7 @@
 		if (!session.creation) {
 			session.creation = dataService.createNote(session.contractId, data).then((createdNote) => {
 				session.noteId = createdNote.id;
+				if (editorSession === session) activeNoteId = createdNote.id;
 				const preview = extractPreviewLines(data.contentJson);
 				rememberNoteTitle(createdNote.id, {
 					displayTitle: noteDisplayTitle(data.title, data.contentJson),
@@ -99,6 +107,10 @@
 					navigation.selectNote(createdNote.id);
 				}
 				return createdNote.id;
+			});
+			// A failed create must not poison later retries of this draft
+			session.creation.catch(() => {
+				if (!session.noteId) session.creation = null;
 			});
 			const createdNoteId = await session.creation;
 			return { noteId: createdNoteId, created: true };
@@ -135,7 +147,7 @@
 		isLoading = true;
 		fetchError = null;
 		currentNote = null;
-		editorSession = null;
+		setEditorSession(null);
 		backlinks = [];
 
 		try {
@@ -144,14 +156,14 @@
 			if (navigation.selectedNoteId !== noteId) return; // user moved on meanwhile
 			currentNote = note;
 			saveStatus = 'saved';
-			editorSession = createSession({
+			setEditorSession(createSession({
 				key: note.id,
 				noteId: note.id,
 				contractId: note.contractId,
 				initialContent: note.content ?? '',
 				initialJson: note.contentJson ?? '',
 				autofocus: false
-			});
+			}));
 			void fetchBacklinks(noteId);
 		} catch (error) {
 			fetchError = error instanceof Error ? error.message : 'Unknown error loading note';
@@ -168,14 +180,14 @@
 		backlinks = [];
 		isLoading = false;
 		saveStatus = 'saved';
-		editorSession = createSession({
+		setEditorSession(createSession({
 			key: `draft-${draftSessionCounter}`,
 			noteId: null,
 			contractId,
 			initialContent: '',
 			initialJson: '',
 			autofocus: true
-		});
+		}));
 	}
 
 	async function fetchBacklinks(noteId: string) {
@@ -254,14 +266,14 @@
 		if (!session.noteId) {
 			// Unsaved draft: nothing on the server to delete
 			endNoteDraft();
-			editorSession = null;
+			setEditorSession(null);
 			return;
 		}
 		const noteId = session.noteId;
 		try {
 			await waitForNoteSaves(noteId);
 			await dataService.deleteNote(noteId);
-			editorSession = null; // unmount first so the editor does not save it again
+			setEditorSession(null); // unmount first so the editor does not save it again
 			forgetNoteTitle(noteId);
 			dispatchNoteEvent('note-deleted', { noteId, contractId: currentNote?.contractId });
 			navigation.clearSelectedNote();
@@ -313,7 +325,7 @@
 				void draftToken;
 				openDraft(draftContractId);
 			} else {
-				editorSession = null;
+				setEditorSession(null);
 				currentNote = null;
 				fetchError = null;
 				backlinks = [];
@@ -348,7 +360,7 @@
 	{:else if editorSession}
 		{@const session = editorSession}
 		<NoteEditorHeader
-			noteId={session.noteId}
+			noteId={activeNoteId}
 			contractId={currentNote?.contractId ?? session.contractId}
 			{saveStatus}
 			message={headerMessage}
@@ -375,10 +387,10 @@
 			{/key}
 		</div>
 
-		{#if session.noteId}
+		{#if activeNoteId}
 			<NoteBacklinks {backlinks} onOpen={(backlink) => noteNavigation.openBacklink(backlink)} />
-			<LinkedTimeEntries noteId={session.noteId} />
-			<AttachmentList noteId={session.noteId} />
+			<LinkedTimeEntries noteId={activeNoteId} />
+			<AttachmentList noteId={activeNoteId} />
 		{/if}
 	{:else}
 		<div class="flex flex-1 items-center justify-center">

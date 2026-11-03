@@ -309,7 +309,8 @@
 		window.removeEventListener('beforeunload', handleBeforeUnload);
 		// Capture and save anything typed since the last save BEFORE the editor goes away
 		// (note switch, contract switch, layout change, navigation).
-		if (editor) void autosave.dispose();
+		// keepalive: the user may be reloading or closing right after leaving the note.
+		if (editor) void autosave.dispose({ keepalive: true });
 		// Clean up all blob URLs created by the attachment resolver
 		revokeAllTrackedUrls();
 		editor?.destroy();

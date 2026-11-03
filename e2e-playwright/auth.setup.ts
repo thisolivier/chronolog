@@ -39,6 +39,8 @@ export const TEST_CREDENTIALS = {
 setup('register and authenticate test user', async ({ page }) => {
 	// Step 1: Register a new user via the registration page
 	await page.goto('/register');
+	// Wait for hydration: before it, the form submits natively (GET /register?) and is lost
+	await page.waitForLoadState('networkidle');
 	await expect(page.locator('h1')).toContainText('Chronolog');
 
 	await page.locator('#name').fill(TEST_USER_NAME);
@@ -48,18 +50,18 @@ setup('register and authenticate test user', async ({ page }) => {
 
 	await page.locator('button[type="submit"]').click();
 
-	// After registration, the app redirects to /login
-	await page.waitForURL('**/login', { timeout: 15000 });
-
-	// Step 2: Log in with the newly created user
-	await page.locator('#email').fill(TEST_USER_EMAIL);
-	await page.locator('#password').fill(TEST_USER_PASSWORD);
-	await page.locator('button[type="submit"]').click();
-
-	// The login handler does `window.location.href = '/'` on success,
-	// which triggers a full page reload. Wait for the main app to load.
-	// After login, unauthenticated redirect to /login should NOT happen.
-	await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 15000 });
+	// Better Auth signs the new user in, so registration ends on `/` (via a brief stop
+	// at /login, which redirects signed-in users). Older builds stayed on /login.
+	const landedOnRoot = await page
+		.waitForURL((url) => url.pathname === '/', { timeout: 15000 })
+		.then(() => true)
+		.catch(() => false);
+	if (!landedOnRoot) {
+		await page.locator('#email').fill(TEST_USER_EMAIL);
+		await page.locator('#password').fill(TEST_USER_PASSWORD);
+		await page.locator('button[type="submit"]').click();
+		await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });
+	}
 
 	// Verify we see the authenticated app shell (sidebar has "Time Entries" button)
 	await expect(page.getByRole('button', { name: 'Time Entries' })).toBeVisible({ timeout: 10000 });

@@ -84,6 +84,14 @@ export async function getNextNoteId(contractId: string): Promise<string> {
 	return `${shortCode}.${dateStr}.${seqStr}`;
 }
 
+/** Postgres unique_violation, raised when two creates race for the same next note ID */
+function isUniqueViolation(error: unknown): boolean {
+	const candidate = error as { code?: string; cause?: { code?: string } } | null;
+	return candidate?.code === '23505' || candidate?.cause?.code === '23505';
+}
+
+const CREATE_NOTE_ATTEMPTS = 5;
+
 export async function createNoteForUser(
 	userId: string,
 	contractId: string,
@@ -91,23 +99,30 @@ export async function createNoteForUser(
 	content?: string,
 	contentJson?: string
 ) {
-	const noteId = await getNextNoteId(contractId);
-
 	const wordCount = contentJson ? calculateWordCountFromJson(contentJson) : 0;
 
-	const results = await database
-		.insert(notes)
-		.values({
-			id: noteId,
-			userId,
-			contractId,
-			title: encryptNullable(title ?? null),
-			content: encryptNullable(content ?? null),
-			contentJson: encryptNullable(contentJson ?? null),
-			wordCount
-		})
-		.returning();
-	return decryptNote(results[0]);
+	// IDs are "next sequence number for client+day": concurrent creates can pick the same
+	// one, so retry with a fresh ID on a unique-key conflict.
+	for (let attempt = 1; ; attempt += 1) {
+		const noteId = await getNextNoteId(contractId);
+		try {
+			const results = await database
+				.insert(notes)
+				.values({
+					id: noteId,
+					userId,
+					contractId,
+					title: encryptNullable(title ?? null),
+					content: encryptNullable(content ?? null),
+					contentJson: encryptNullable(contentJson ?? null),
+					wordCount
+				})
+				.returning();
+			return decryptNote(results[0]);
+		} catch (error) {
+			if (!isUniqueViolation(error) || attempt >= CREATE_NOTE_ATTEMPTS) throw error;
+		}
+	}
 }
 
 export async function updateNoteForUser(

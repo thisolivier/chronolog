@@ -27,6 +27,9 @@ import type { TimerLocalStart,
 } from './types';
 import { fetchJson, postJson, putJson, deleteRequest } from './fetch-helpers';
 
+/** Stay safely under the browser's 64 KB limit for keepalive request bodies */
+const KEEPALIVE_BODY_LIMIT_BYTES = 60_000;
+
 /**
  * DataService implementation backed by fetch() calls to SvelteKit API routes.
  * This replicates the same HTTP calls that components currently make directly.
@@ -80,8 +83,10 @@ export class FetchDataService implements DataService {
 		updateData: UpdateNoteInput,
 		options?: UpdateNoteOptions
 	): Promise<NoteDetail> {
+		// Browsers cap keepalive bodies at 64 KB; a larger note is sent normally instead
+		const fitsKeepalive = JSON.stringify(updateData).length < KEEPALIVE_BODY_LIMIT_BYTES;
 		const data = await putJson<{ note: NoteDetail }>(`/api/notes/${noteId}`, updateData, {
-			keepalive: options?.keepalive
+			keepalive: Boolean(options?.keepalive) && fitsKeepalive
 		});
 		return data.note;
 	}
