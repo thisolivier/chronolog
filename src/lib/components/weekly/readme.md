@@ -4,9 +4,8 @@ Components for displaying and editing time entries, used by the layout panels.
 
 ## Components
 
-- **WeekStrip.svelte** — Sticky horizontal week strip showing Mon-Sun with day numbers, total hours per day, and today highlight. Replaces WeekListPanel as the week navigator in time mode. Tapping a day scrolls TimeEntriesPanel to that day.
+- **WeekStrip.svelte** — Sticky horizontal week strip showing Mon-Sun with day numbers, total hours per day, today highlight, prev/next week navigation and the weekly status chip (cycled inline). Tapping a day scrolls TimeEntriesPanel to that day.
 - **TimerIndicator.svelte** — Compact timer display for the AppShell top bar. Shows elapsed time and active contract; pulses when running. Reads from shared `timer-state` store.
-- **StatusBadge.svelte** — Clickable status chip (draft/submitted/approved) with color coding. Used in week section headers to display and cycle weekly status.
 - **TimeEntryCard.svelte** — Individual time entry card with description-first layout and a left border colored by client. Inline editing for description, contract, and time with debounced auto-save. Supports `[[NOTE_ID]]` wiki-link syntax.
 - **NewEntryRow.svelte** — Card-style inline form for adding a time entry. Description-first layout matching TimeEntryCard, with contract select and time input supporting duration and range formats.
 - **WikiLinkRenderer.svelte** — Renders `[[NOTE_ID]]` patterns as clickable inline link spans. Used in TimeEntryCard read mode.
@@ -14,7 +13,7 @@ Components for displaying and editing time entries, used by the layout panels.
 
 ## Data Flow
 
-Components receive data as props from the parent layout panels (`TimeEntriesPanel`, `WeekListPanel`). Mutations (create, update, delete) are handled via API calls within each component, with `onUpdated`/`onEntryCreated` callbacks to trigger parent re-fetches.
+Components receive data as props from the parent layout panel (`TimeEntriesPanel`). Mutations (create, update, delete) go through the `DataService` from context within each component, with `onUpdated`/`onEntryCreated` callbacks to trigger parent re-fetches.
 
 ## Related Files
 

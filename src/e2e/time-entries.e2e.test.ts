@@ -103,23 +103,4 @@ describe('Time Entries API', () => {
 		const data = await response.json();
 		expect(data).toHaveProperty('success', true);
 	});
-
-	it('GET /api/weeks?count=4 returns week summaries', async () => {
-		const response = await authGet('/api/weeks?count=4');
-		expect(response.ok).toBe(true);
-
-		const data = await response.json();
-		expect(data).toHaveProperty('weeks');
-		expect(Array.isArray(data.weeks)).toBe(true);
-		expect(data.weeks.length).toBeLessThanOrEqual(4);
-
-		if (data.weeks.length > 0) {
-			const firstWeek = data.weeks[0];
-			expect(firstWeek).toHaveProperty('weekStart');
-			expect(firstWeek).toHaveProperty('year');
-			expect(firstWeek).toHaveProperty('weekNumber');
-			expect(firstWeek).toHaveProperty('totalMinutes');
-			expect(firstWeek).toHaveProperty('status');
-		}
-	});
 });

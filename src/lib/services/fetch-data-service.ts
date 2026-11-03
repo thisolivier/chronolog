@@ -9,12 +9,10 @@ import type {
 	UpdateNoteInput,
 	Backlink,
 	AttachmentSummary,
-	NoteTimeEntryLink,
 	LinkedTimeEntryDisplay,
 	TimeEntryFields,
 	CreateTimeEntryInput,
 	WeekData,
-	WeekSummary,
 	TimerStatus,
 	TimerEntry,
 	SaveTimerInput,
@@ -136,15 +134,6 @@ export class FetchDataService implements DataService {
 		const data = await fetchJson<{ weeks: WeekData[] }>(
 			`/api/time-entries/weekly?weeks=${weeksParam}`
 		);
-		return data.weeks;
-	}
-
-	async getWeekSummaries(count: number, before?: string): Promise<WeekSummary[]> {
-		let url = `/api/weeks?count=${count}`;
-		if (before) {
-			url += `&before=${encodeURIComponent(before)}`;
-		}
-		const data = await fetchJson<{ weeks: WeekSummary[] }>(url);
 		return data.weeks;
 	}
 

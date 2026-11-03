@@ -22,21 +22,6 @@ export async function getBacklinksForNote(targetNoteId: string) {
 }
 
 /**
- * Get all outgoing links from a given note.
- */
-export async function getOutgoingLinksForNote(sourceNoteId: string) {
-	return database
-		.select({
-			targetNoteId: noteLinks.targetNoteId,
-			headingAnchor: noteLinks.headingAnchor,
-			noteTitle: notes.title
-		})
-		.from(noteLinks)
-		.innerJoin(notes, eq(noteLinks.targetNoteId, notes.id))
-		.where(eq(noteLinks.sourceNoteId, sourceNoteId));
-}
-
-/**
  * Parse wiki-links from markdown content and update the note_links table.
  * Deletes all existing outgoing links for the source note, then inserts
  * new links for any valid target note IDs found in the content.

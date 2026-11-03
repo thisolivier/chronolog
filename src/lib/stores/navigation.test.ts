@@ -129,12 +129,12 @@ function demonstrateMobileWorkflow() {
 	// Start at contracts list (level 0)
 	console.assert(nav.mobileNavigationLevel === 0, 'Start at level 0');
 
-	// User taps a contract to see its week list
+	// User taps a contract to see its note list
 	nav.selectContract('contract-123', 'client-456');
 	nav.navigateMobile(1);
 	console.assert(nav.mobileNavigationLevel === 1, 'Advance to level 1');
 
-	// User taps a week to see time entries
+	// User taps a note to open the editor
 	nav.navigateMobile(2);
 	console.assert(nav.mobileNavigationLevel === 2, 'Advance to level 2');
 
@@ -199,6 +199,28 @@ if (import.meta.vitest) {
 			expect(nav.mobileNavigationLevel).toBe(0);
 			nav.goBackMobile(); // Should not go below 0
 			expect(nav.mobileNavigationLevel).toBe(0);
+		});
+
+		it('should reach time entries in one step on mobile and return with one back', () => {
+			const nav = createNavigationState();
+			nav.selectTimeEntries();
+			expect(nav.isTimeEntriesMode).toBe(true);
+			expect(nav.mobileNavigationLevel).toBe(1);
+			// Changing week from the WeekStrip must not push another level
+			nav.selectWeek('2026-02-03');
+			expect(nav.mobileNavigationLevel).toBe(1);
+			nav.goBackMobile();
+			expect(nav.mobileNavigationLevel).toBe(0);
+		});
+
+		it('should push to the note list then the editor in notes mode on mobile', () => {
+			const nav = createNavigationState();
+			nav.selectContract('contract-123', 'client-456');
+			expect(nav.mobileNavigationLevel).toBe(1);
+			nav.selectNote('note-789');
+			expect(nav.mobileNavigationLevel).toBe(2);
+			nav.goBackMobile();
+			expect(nav.mobileNavigationLevel).toBe(1);
 		});
 
 		it('should clear note selection when switching contracts', () => {

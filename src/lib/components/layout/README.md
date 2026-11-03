@@ -16,6 +16,15 @@ Components that make up the panel layout for Chronolog. The layout is mode-aware
   Top bar: hamburger toggle | TimerIndicator
 ```
 
+### Mobile (<1024px, single panel push/pop)
+
+```
+Level 0: sidebar (contracts + timer widget)   top bar: "Chronolog"
+Level 1: note list (notes mode)               top bar: Back | TimerIndicator
+         time entries (time mode)
+Level 2: note editor (notes mode only)        top bar: Back | TimerIndicator
+```
+
 ### Notes Mode (3 panels)
 
 ```
@@ -31,19 +40,11 @@ Components that make up the panel layout for Chronolog. The layout is mode-aware
 
 ### AppShell.svelte
 
-Mode-aware layout container. In time mode, hides Panel 2 (WeekListPanel) and shows a top bar with hamburger sidebar toggle and TimerIndicator. In notes mode, shows the traditional three-panel layout with resizable Panel 2.
+Mode-aware layout container. On desktop the top bar always shows the hamburger sidebar toggle and the TimerIndicator; in time mode Panel 2 is hidden (sidebar + content), in notes mode the three-panel layout with a resizable Panel 2 is shown. On mobile a permanent top bar shows "Chronolog" at level 0 and a Back button plus the TimerIndicator at deeper levels; level 1 renders Panel 2 only in notes mode and goes straight to Panel 3 (time entries) in time mode. Tapping the mobile TimerIndicator returns to level 0 where the timer widget lives.
 
 ### ContractsSidebar.svelte
 
 Panel 1 sidebar content. Shows app header, navigation items, and contracts grouped by client. Each contract displays a colored dot matching its client color. Timer widget pinned to bottom.
-
-### SidebarToggle.svelte
-
-Toggle button that collapses/expands Panel 1. Shows directional chevron.
-
-### WeekListPanel.svelte
-
-Panel 2 content in notes mode (hidden in time mode, replaced by WeekStrip). Shows a scrollable list of weeks with week number, date range, total hours, and status badge. Supports infinite scroll.
 
 ### TimeEntriesPanel.svelte
 
@@ -65,7 +66,8 @@ All layout components use the navigation context from `$lib/stores/navigation.sv
 - `selectedContractId` / `selectedClientId`: Active contract context
 - `selectedWeek`: ISO Monday date string for the current week view
 - `selectedNoteId`: Active note (notes mode)
-- `panel1Collapsed`: Sidebar visibility
+- `panel1Collapsed`: Sidebar visibility (desktop)
+- `mobileNavigationLevel`: 0 / 1 / 2 push depth (mobile)
 
 ## Dependencies
 

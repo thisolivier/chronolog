@@ -8,12 +8,10 @@ import type {
 	UpdateNoteInput,
 	Backlink,
 	AttachmentSummary,
-	NoteTimeEntryLink,
 	LinkedTimeEntryDisplay,
 	TimeEntryFields,
 	CreateTimeEntryInput,
 	WeekData,
-	WeekSummary,
 	TimerStatus,
 	TimerEntry,
 	SaveTimerInput,
@@ -50,7 +48,6 @@ export interface DataService {
 
 	// Time Entries
 	getWeeklyTimeEntries(weekStarts: string[]): Promise<WeekData[]>;
-	getWeekSummaries(count: number, before?: string): Promise<WeekSummary[]>;
 	createTimeEntry(data: CreateTimeEntryInput): Promise<{ id: string }>;
 	updateTimeEntry(entryId: string, data: Partial<TimeEntryFields>): Promise<void>;
 	deleteTimeEntry(entryId: string): Promise<void>;
