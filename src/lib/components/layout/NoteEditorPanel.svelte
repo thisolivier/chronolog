@@ -1,334 +1,388 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import { getDataService } from '$lib/services/context';
-	import NoteEditor from '$lib/components/notes/NoteEditor.svelte';
+	import NoteEditor, { type NoteSaveData } from '$lib/components/notes/NoteEditor.svelte';
+	import NoteEditorHeader from '$lib/components/notes/NoteEditorHeader.svelte';
+	import NoteBacklinks from '$lib/components/notes/NoteBacklinks.svelte';
 	import LinkedTimeEntries from '$lib/components/notes/LinkedTimeEntries.svelte';
 	import AttachmentList from '$lib/components/notes/AttachmentList.svelte';
 	import { buildChronologUrl } from '$lib/components/notes/extensions/attachment-resolver.js';
-	import { exportAsMarkdown, exportAsPdf } from '$lib/components/notes/note-export';
+	import { exportAsMarkdown } from '$lib/components/notes/note-export';
+	import { printNote } from '$lib/components/notes/note-print';
+	import { trackNoteSave, waitForNoteSaves, type SaveStatus, type PersistOptions } from '$lib/components/notes/note-autosave';
+	import { noteDraft, endNoteDraft } from '$lib/components/notes/note-draft.svelte';
+	import { dispatchNoteEvent } from '$lib/components/notes/note-events';
+	import { getCachedNoteTitle, rememberNoteTitle, forgetNoteTitle, requestNoteTitles } from '$lib/components/notes/note-titles.svelte';
+	import { useNoteNavigation } from '$lib/components/notes/note-navigation';
 	import '$lib/components/notes/print-styles.css';
 	import { extractPreviewLines } from '$lib/utils/extract-preview-lines';
+	import { noteDisplayTitle } from '$lib/utils/note-display-title';
 	import type { NoteDetail, Backlink, ContractOption } from '$lib/services/types';
 
 	const navigation = getNavigationContext();
 	const dataService = getDataService();
+	const noteNavigation = useNoteNavigation(navigation);
 
+	/**
+	 * One editor session = one mounted NoteEditor. Plain (non-reactive) object: the save
+	 * function is bound to it, so a flush while the editor is torn down still saves to the
+	 * right note, and a draft keeps its editor when the note gets created.
+	 */
+	type EditorSession = {
+		key: string;
+		noteId: string | null;
+		contractId: string;
+		initialContent: string;
+		initialJson: string;
+		autofocus: boolean;
+		creation: Promise<string> | null;
+		save: (data: NoteSaveData, options: PersistOptions) => Promise<void>;
+		onStatus: (status: SaveStatus) => void;
+	};
+
+	let editorSession = $state.raw<EditorSession | null>(null);
 	let currentNote = $state<NoteDetail | null>(null);
 	let isLoading = $state(false);
 	let fetchError = $state<string | null>(null);
 	let backlinks = $state<Backlink[]>([]);
-	let showExportMenu = $state(false);
-	let showMoveMenu = $state(false);
-	let moveContracts = $state<ContractOption[]>([]);
-	let moveMessage = $state<string | null>(null);
-	let moveMessageTimeout: ReturnType<typeof setTimeout> | undefined;
+	let saveStatus = $state<SaveStatus>('saved');
+	let headerMessage = $state<string | null>(null);
+	let headerMessageTimeout: ReturnType<typeof setTimeout> | undefined;
+	let draftSessionCounter = 0;
+	let editorComponent = $state<{ flushPendingSave: () => Promise<void> } | null>(null);
 
-	/** Detail payload of the window `note-moved` event consumed by NoteListPanel */
-	interface NoteMovedEventDetail {
-		noteId: string;
-		fromContractId: string | undefined;
-		toContractId: string;
-		toContractName: string | null;
-		toClientName: string | null;
+	function showHeaderMessage(message: string) {
+		headerMessage = message;
+		clearTimeout(headerMessageTimeout);
+		headerMessageTimeout = setTimeout(() => {
+			headerMessage = null;
+		}, 3000);
 	}
 
-	/** Close dropdown on outside click — reused for both menus */
-	function closeOnOutsideClick(selector: string, closeFn: () => void) {
-		const handleClick = (event: MouseEvent) => {
-			const target = event.target as HTMLElement;
-			if (!target.closest(selector)) {
-				closeFn();
+	function createSession(fields: Pick<EditorSession, 'key' | 'noteId' | 'contractId' | 'initialContent' | 'initialJson' | 'autofocus'>): EditorSession {
+		const session: EditorSession = {
+			...fields,
+			creation: null,
+			save: (data, options) => persistSession(session, data, options),
+			onStatus: (status) => {
+				if (editorSession === session) saveStatus = status;
 			}
 		};
-		setTimeout(() => document.addEventListener('click', handleClick), 0);
-		return () => document.removeEventListener('click', handleClick);
+		return session;
 	}
 
-	$effect(() => {
-		if (showExportMenu) {
-			return closeOnOutsideClick('[data-export-menu]', () => { showExportMenu = false; });
+	/** Create the note on the draft's first save; later saves wait for that, then update. */
+	async function ensureNoteExists(session: EditorSession, data: NoteSaveData): Promise<{ noteId: string; created: boolean }> {
+		if (session.noteId) return { noteId: session.noteId, created: false };
+		if (!session.creation) {
+			session.creation = dataService.createNote(session.contractId, data).then((createdNote) => {
+				session.noteId = createdNote.id;
+				const preview = extractPreviewLines(data.contentJson);
+				rememberNoteTitle(createdNote.id, {
+					displayTitle: noteDisplayTitle(data.title, data.contentJson),
+					contractId: session.contractId,
+					clientId: navigation.selectedClientId ?? ''
+				});
+				dispatchNoteEvent('note-created', {
+					noteId: createdNote.id,
+					contractId: session.contractId,
+					firstLine: preview.firstLine,
+					secondLine: preview.secondLine,
+					createdAt: createdNote.createdAt,
+					updatedAt: createdNote.updatedAt
+				});
+				if (editorSession === session) {
+					currentNote = createdNote as unknown as NoteDetail;
+					endNoteDraft();
+					// The panel recognises this ID as the open session and keeps the editor mounted
+					navigation.selectNote(createdNote.id);
+				}
+				return createdNote.id;
+			});
+			const createdNoteId = await session.creation;
+			return { noteId: createdNoteId, created: true };
 		}
-	});
+		return { noteId: await session.creation, created: false };
+	}
 
-	$effect(() => {
-		if (showMoveMenu) {
-			return closeOnOutsideClick('[data-move-menu]', () => { showMoveMenu = false; });
-		}
-	});
+	async function persistSession(session: EditorSession, data: NoteSaveData, options: PersistOptions): Promise<void> {
+		const { noteId, created } = await ensureNoteExists(session, data);
+		if (created) return; // the create carried this snapshot
 
-	/** Fetch the full note via DataService */
-	async function fetchNote(noteId: string) {
+		const updatedNote = await trackNoteSave(
+			noteId,
+			dataService.updateNote(noteId, data, { keepalive: options.keepalive })
+		);
+		if (editorSession === session) currentNote = updatedNote;
+
+		const preview = extractPreviewLines(data.contentJson);
+		rememberNoteTitle(noteId, {
+			displayTitle: noteDisplayTitle(data.title, data.contentJson),
+			contractId: updatedNote.contractId,
+			clientId: getCachedNoteTitle(noteId)?.clientId ?? navigation.selectedClientId ?? ''
+		});
+		dispatchNoteEvent('note-saved', {
+			noteId,
+			firstLine: preview.firstLine,
+			secondLine: preview.secondLine,
+			updatedAt: updatedNote.updatedAt
+		});
+	}
+
+	/** Load an existing note (after any in-flight save of it) and open an editor for it. */
+	async function openExistingNote(noteId: string) {
 		isLoading = true;
 		fetchError = null;
 		currentNote = null;
+		editorSession = null;
+		backlinks = [];
 
 		try {
-			currentNote = await dataService.getNoteById(noteId);
+			await waitForNoteSaves(noteId);
+			const note = await dataService.getNoteById(noteId);
+			if (navigation.selectedNoteId !== noteId) return; // user moved on meanwhile
+			currentNote = note;
+			saveStatus = 'saved';
+			editorSession = createSession({
+				key: note.id,
+				noteId: note.id,
+				contractId: note.contractId,
+				initialContent: note.content ?? '',
+				initialJson: note.contentJson ?? '',
+				autofocus: false
+			});
+			void fetchBacklinks(noteId);
 		} catch (error) {
 			fetchError = error instanceof Error ? error.message : 'Unknown error loading note';
 			console.error('Error fetching note:', error);
 		} finally {
-			isLoading = false;
+			if (navigation.selectedNoteId === noteId) isLoading = false;
 		}
 	}
 
-	/** Fetch backlinks for a note via DataService */
+	function openDraft(contractId: string) {
+		draftSessionCounter += 1;
+		currentNote = null;
+		fetchError = null;
+		backlinks = [];
+		isLoading = false;
+		saveStatus = 'saved';
+		editorSession = createSession({
+			key: `draft-${draftSessionCounter}`,
+			noteId: null,
+			contractId,
+			initialContent: '',
+			initialJson: '',
+			autofocus: true
+		});
+	}
+
 	async function fetchBacklinks(noteId: string) {
 		try {
-			backlinks = await dataService.getNoteBacklinks(noteId);
+			const loadedBacklinks = await dataService.getNoteBacklinks(noteId);
+			if (editorSession?.noteId !== noteId) return;
+			backlinks = loadedBacklinks;
+			for (const backlink of loadedBacklinks) {
+				if (backlink.noteContractId) {
+					rememberNoteTitle(backlink.sourceNoteId, {
+						displayTitle: backlink.noteTitle,
+						contractId: backlink.noteContractId,
+						clientId: backlink.noteClientId ?? ''
+					});
+				}
+			}
 		} catch (backlinkError) {
 			console.error('Error fetching backlinks:', backlinkError);
 			backlinks = [];
 		}
 	}
 
-	/** Save note content via DataService */
-	async function handleSave(saveData: { title: string; content: string; contentJson: string }) {
-		const noteId = navigation.selectedNoteId;
-		if (!noteId) return;
-
-		try {
-			const updatedNote = await dataService.updateNote(noteId, {
-				title: saveData.title,
-				content: saveData.content,
-				contentJson: saveData.contentJson
-			});
-
-			currentNote = updatedNote;
-
-			// Notify the notes list panel to update this note's preview
-			const preview = extractPreviewLines(saveData.contentJson);
-			window.dispatchEvent(
-				new CustomEvent('note-saved', {
-					detail: {
-						noteId,
-						firstLine: preview.firstLine,
-						secondLine: preview.secondLine,
-						updatedAt: updatedNote.updatedAt
-					}
-				})
-			);
-		} catch (error) {
-			console.error('Error saving note:', error);
-		}
-	}
-
 	/** Upload a file as an attachment and return a chronolog:// URL */
 	async function handleFileUpload(file: File): Promise<string | null> {
-		const noteId = navigation.selectedNoteId;
-		if (!noteId) return null;
-
+		const session = editorSession;
+		if (!session) return null;
 		try {
+			// A draft needs a note to attach to: create it first
+			const { noteId } = session.noteId
+				? { noteId: session.noteId }
+				: await ensureNoteExists(session, { title: '', content: '', contentJson: '' });
 			const result = await dataService.uploadAttachment(noteId, file);
+			window.dispatchEvent(new CustomEvent('note-attachments-changed', { detail: { noteId } }));
 			return buildChronologUrl(result.id);
 		} catch (uploadError) {
 			console.error('Error uploading file:', uploadError);
+			showHeaderMessage('Upload failed');
 			return null;
 		}
 	}
 
-	/** Open the move menu, fetching available contracts */
-	async function toggleMoveMenu() {
-		if (showMoveMenu) {
-			showMoveMenu = false;
-			return;
-		}
+	/** Move the current note to a different contract */
+	async function handleMoveToContract(targetContract: ContractOption) {
+		const noteId = editorSession?.noteId;
+		if (!noteId) return;
+		const previousContractId = currentNote?.contractId;
+
 		try {
-			const allContracts = await dataService.getContracts();
-			// Exclude the note's current contract
-			moveContracts = allContracts.filter(
-				(contract) => contract.id !== currentNote?.contractId
-			);
-			showMoveMenu = true;
-		} catch (contractError) {
-			console.error('Error loading contracts:', contractError);
+			await editorComponent?.flushPendingSave();
+			await waitForNoteSaves(noteId);
+			const updatedNote = await dataService.updateNote(noteId, { contractId: targetContract.id });
+			currentNote = updatedNote;
+			rememberNoteTitle(noteId, {
+				displayTitle: getCachedNoteTitle(noteId)?.displayTitle ?? null,
+				contractId: targetContract.id,
+				clientId: targetContract.clientId ?? ''
+			});
+			// The notes list removes the note, clears the selection (unmounting this
+			// header) and shows the success message.
+			dispatchNoteEvent('note-moved', {
+				noteId,
+				fromContractId: previousContractId,
+				toContractId: targetContract.id,
+				toContractName: targetContract.name ?? null,
+				toClientName: targetContract.clientName ?? null
+			});
+		} catch (moveError) {
+			console.error('Error moving note:', moveError);
+			showHeaderMessage('Failed to move note');
 		}
 	}
 
-	/** Move the current note to a different contract */
-	async function handleMoveToContract(targetContractId: string) {
-		const noteId = navigation.selectedNoteId;
-		if (!noteId) return;
-
-		const previousContractId = currentNote?.contractId;
-
-		// Resolve the target contract so the list panel can name it in its confirmation
-		const targetContract = moveContracts.find((contract) => contract.id === targetContractId);
-
+	async function handleDelete() {
+		const session = editorSession;
+		if (!session) return;
+		if (!session.noteId) {
+			// Unsaved draft: nothing on the server to delete
+			endNoteDraft();
+			editorSession = null;
+			return;
+		}
+		const noteId = session.noteId;
 		try {
-			const updatedNote = await dataService.updateNote(noteId, { contractId: targetContractId });
-			currentNote = updatedNote;
-			showMoveMenu = false;
+			await waitForNoteSaves(noteId);
+			await dataService.deleteNote(noteId);
+			editorSession = null; // unmount first so the editor does not save it again
+			forgetNoteTitle(noteId);
+			dispatchNoteEvent('note-deleted', { noteId, contractId: currentNote?.contractId });
+			navigation.clearSelectedNote();
+		} catch (deleteError) {
+			console.error('Error deleting note:', deleteError);
+			showHeaderMessage('Failed to delete note');
+		}
+	}
 
-			// Notify the notes list: it removes the note from the current contract view,
-			// clears the selection (which unmounts this header) and shows the success message.
-			window.dispatchEvent(
-				new CustomEvent<NoteMovedEventDetail>('note-moved', {
-					detail: {
-						noteId,
-						fromContractId: previousContractId,
-						toContractId: targetContractId,
-						toContractName: targetContract?.name ?? null,
-						toClientName: targetContract?.clientName ?? null
-					}
-				})
-			);
-		} catch (moveError) {
-			// The editor stays mounted on failure, so the header is a visible place for the error
-			console.error('Error moving note:', moveError);
-			moveMessage = 'Failed to move note';
-			clearTimeout(moveMessageTimeout);
-			moveMessageTimeout = setTimeout(() => { moveMessage = null; }, 3000);
+	async function handleExportMarkdown() {
+		await editorComponent?.flushPendingSave();
+		const noteId = editorSession?.noteId;
+		if (!noteId) return;
+		await waitForNoteSaves(noteId);
+		const title = currentNote?.title || noteDisplayTitle(null, currentNote?.contentJson) || noteId;
+		exportAsMarkdown(title, currentNote?.content ?? null);
+	}
+
+	async function handleExportPdf() {
+		const editorRoot = document.querySelector<HTMLElement>('[data-note-editor-content] .tiptap');
+		if (!editorRoot || !editorSession) return;
+		const noteId = editorSession.noteId ?? 'New note';
+		const title = noteDisplayTitle(currentNote?.title, currentNote?.contentJson) ?? noteId;
+		try {
+			await printNote({ title, noteId, editorRoot });
+		} catch (printError) {
+			console.error('Error printing note:', printError);
+			showHeaderMessage('Could not open print');
 		}
 	}
 
 	onDestroy(() => {
-		clearTimeout(moveMessageTimeout);
+		clearTimeout(headerMessageTimeout);
 	});
 
-	// Re-fetch when selected note changes
+	// Open whatever the navigation selects: an existing note, a fresh draft, or nothing.
 	$effect(() => {
 		const selectedNoteId = navigation.selectedNoteId;
-		if (selectedNoteId) {
-			fetchNote(selectedNoteId);
-			fetchBacklinks(selectedNoteId);
-		} else {
-			currentNote = null;
-			fetchError = null;
-			backlinks = [];
-		}
+		const selectedContractId = navigation.selectedContractId;
+		const draftToken = noteDraft.token;
+		const draftContractId = noteDraft.contractId;
+
+		untrack(() => {
+			if (selectedNoteId) {
+				// A draft that was just created is already open under this ID
+				if (editorSession?.noteId === selectedNoteId) return;
+				void openExistingNote(selectedNoteId);
+			} else if (draftContractId && draftContractId === selectedContractId) {
+				void draftToken;
+				openDraft(draftContractId);
+			} else {
+				editorSession = null;
+				currentNote = null;
+				fetchError = null;
+				backlinks = [];
+				isLoading = false;
+			}
+		});
+	});
+
+	// Titles for the "Linked from" chips are also needed by wiki-links elsewhere
+	$effect(() => {
+		requestNoteTitles(backlinks.map((backlink) => backlink.sourceNoteId));
 	});
 </script>
 
-<div class="flex h-full flex-col overflow-hidden bg-stone-50">
-	{#if !navigation.selectedNoteId}
-		<!-- Empty state -->
-		<div class="flex flex-1 items-center justify-center">
-			<p class="text-stone-400">Select a note to view</p>
-		</div>
-	{:else if isLoading}
-		<!-- Loading state -->
+<div class="flex h-full flex-col overflow-y-auto bg-stone-50">
+	{#if isLoading}
 		<div class="flex flex-1 items-center justify-center">
 			<p class="text-stone-500">Loading note...</p>
 		</div>
 	{:else if fetchError}
-		<!-- Error state -->
 		<div class="flex flex-1 items-center justify-center">
 			<div class="text-center">
 				<p class="text-red-600">{fetchError}</p>
 				<button
-					onclick={() => navigation.selectedNoteId && fetchNote(navigation.selectedNoteId)}
+					onclick={() => navigation.selectedNoteId && openExistingNote(navigation.selectedNoteId)}
 					class="mt-2 text-sm text-blue-600 hover:text-blue-800"
 				>
 					Try again
 				</button>
 			</div>
 		</div>
-	{:else if currentNote}
-		<!-- Note header with export actions -->
-		<div class="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-2">
-			<div class="flex items-center gap-2">
-				<span class="text-xs font-mono text-stone-400">{currentNote.id}</span>
-				{#if moveMessage}
-					<span role="status" class="text-xs text-red-600">{moveMessage}</span>
-				{/if}
-			</div>
-			<div class="flex items-center gap-1">
-				<!-- Move to... dropdown -->
-				<div class="relative" data-move-menu>
-					<button
-						type="button"
-						onclick={toggleMoveMenu}
-						class="inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700 transition-colors"
-					>
-						Move ▾
-					</button>
-					{#if showMoveMenu}
-						<div class="absolute right-0 top-full z-10 mt-1 w-56 rounded-md border border-stone-200 bg-white py-1 shadow-lg">
-							{#if moveContracts.length === 0}
-								<span class="block px-3 py-1.5 text-sm text-stone-400">No other contracts</span>
-							{:else}
-								{#each moveContracts as contract (contract.id)}
-									<button
-										type="button"
-										onclick={() => handleMoveToContract(contract.id)}
-										class="block w-full px-3 py-1.5 text-left text-sm text-stone-700 hover:bg-stone-100"
-									>
-										<span class="font-medium">{contract.clientName}</span>
-										<span class="text-stone-400"> / </span>
-										{contract.name}
-									</button>
-								{/each}
-							{/if}
-						</div>
-					{/if}
-				</div>
-				<!-- Export dropdown -->
-				<div class="relative" data-export-menu>
-				<button
-					type="button"
-					onclick={() => { showExportMenu = !showExportMenu; }}
-					class="inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700 transition-colors"
-				>
-					Export ▾
-				</button>
-				{#if showExportMenu}
-					<div class="absolute right-0 top-full z-10 mt-1 w-44 rounded-md border border-stone-200 bg-white py-1 shadow-lg">
-						<button
-							type="button"
-							onclick={() => { exportAsMarkdown(currentNote?.title ?? null, currentNote?.content ?? null); showExportMenu = false; }}
-							class="block w-full px-3 py-1.5 text-left text-sm text-stone-700 hover:bg-stone-100"
-						>
-							Export as Markdown
-						</button>
-						<button
-							type="button"
-							onclick={() => { exportAsPdf(); showExportMenu = false; }}
-							class="block w-full px-3 py-1.5 text-left text-sm text-stone-700 hover:bg-stone-100"
-						>
-							Export as PDF
-						</button>
-					</div>
-				{/if}
-				</div>
-			</div>
-		</div>
+	{:else if editorSession}
+		{@const session = editorSession}
+		<NoteEditorHeader
+			noteId={session.noteId}
+			contractId={currentNote?.contractId ?? session.contractId}
+			{saveStatus}
+			message={headerMessage}
+			onMove={handleMoveToContract}
+			onExportMarkdown={handleExportMarkdown}
+			onExportPdf={handleExportPdf}
+			onDelete={handleDelete}
+		/>
 
-		<!-- Editor (re-mount on note change) -->
-		<div class="flex-1 overflow-hidden">
-			{#key currentNote.id}
+		<!-- Editor: re-mounted per session; a draft keeps its editor when it is created -->
+		<div class="flex min-h-[24rem] flex-1 flex-col">
+			{#key session.key}
 				<NoteEditor
-					initialContent={currentNote.content ?? ''}
-					initialJson={currentNote.contentJson ?? ''}
-					noteId={currentNote.id}
-					onSave={handleSave}
+					bind:this={editorComponent}
+					initialContent={session.initialContent}
+					initialJson={session.initialJson}
+					getNoteId={() => session.noteId}
+					autofocus={session.autofocus}
+					onSave={session.save}
+					onSaveStatusChange={session.onStatus}
 					onFileUpload={handleFileUpload}
-					onWikiLinkClick={(noteId) => navigation.selectNote(noteId)}
+					onWikiLinkClick={(noteId) => noteNavigation.openNoteById(noteId)}
 				/>
 			{/key}
 		</div>
 
-		{#if backlinks.length > 0}
-			<div class="border-t border-stone-200 bg-white px-6 py-3">
-				<h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">Linked from</h4>
-				<div class="flex flex-wrap gap-2">
-					{#each backlinks as backlink (backlink.sourceNoteId)}
-						<button
-							onclick={() => navigation.selectNote(backlink.sourceNoteId)}
-							class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-mono text-indigo-700 hover:bg-indigo-100"
-						>
-							{backlink.sourceNoteId}
-							{#if backlink.noteTitle}
-								<span class="font-sans text-stone-500">&middot; {backlink.noteTitle}</span>
-							{/if}
-						</button>
-					{/each}
-				</div>
-			</div>
+		{#if session.noteId}
+			<NoteBacklinks {backlinks} onOpen={(backlink) => noteNavigation.openBacklink(backlink)} />
+			<LinkedTimeEntries noteId={session.noteId} />
+			<AttachmentList noteId={session.noteId} />
 		{/if}
-
-		<LinkedTimeEntries noteId={currentNote.id} />
-		<AttachmentList noteId={currentNote.id} />
+	{:else}
+		<div class="flex flex-1 items-center justify-center">
+			<p class="text-stone-400">Select a note to view</p>
+		</div>
 	{/if}
 </div>

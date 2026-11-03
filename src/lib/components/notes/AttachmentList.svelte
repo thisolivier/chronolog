@@ -45,6 +45,15 @@
 			fetchAttachments();
 		}
 	});
+
+	// Uploads from the editor announce themselves so the list refreshes without a reload
+	$effect(() => {
+		const handleAttachmentsChanged = (event: Event) => {
+			if ((event as CustomEvent<{ noteId: string }>).detail?.noteId === noteId) fetchAttachments();
+		};
+		window.addEventListener('note-attachments-changed', handleAttachmentsChanged);
+		return () => window.removeEventListener('note-attachments-changed', handleAttachmentsChanged);
+	});
 </script>
 
 {#if attachmentItems.length > 0}
