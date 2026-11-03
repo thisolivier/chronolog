@@ -4,6 +4,7 @@ import { database, noteTimeEntries } from '$lib/server/db';
 import { deleteTimeEntry, updateTimeEntry } from '$lib/server/db/queries/time-entries';
 import { linkTimeEntryToNote, unlinkTimeEntryFromNote } from '$lib/server/db/queries/notes';
 import { extractDescriptionLinks, reconcileLinks } from '$lib/utils/reconcile-description-links';
+import { validateDurationMinutes } from '$lib/utils/duration';
 import type { RequestHandler } from './$types';
 
 /** PUT: Update a time entry (partial updates) */
@@ -25,7 +26,11 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	// null is a valid value here: it clears the deliverable / work type
 	if (body.deliverableId !== undefined) updateData.deliverableId = body.deliverableId || null;
 	if (body.workTypeId !== undefined) updateData.workTypeId = body.workTypeId || null;
-	if (body.durationMinutes !== undefined) updateData.durationMinutes = body.durationMinutes;
+	if (body.durationMinutes !== undefined) {
+		const durationError = validateDurationMinutes(body.durationMinutes);
+		if (durationError) return json({ error: durationError }, { status: 400 });
+		updateData.durationMinutes = body.durationMinutes;
+	}
 	if (body.description !== undefined) updateData.description = body.description;
 	if (body.startTime !== undefined) updateData.startTime = body.startTime;
 	if (body.endTime !== undefined) updateData.endTime = body.endTime;
