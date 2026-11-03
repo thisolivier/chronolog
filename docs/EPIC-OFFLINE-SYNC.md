@@ -1,3 +1,5 @@
+*Historical: PowerSync era, removed in sprint 021. For current state see `docs/backlog.md` and `docs/decisions.md`.*
+
 > **Status (2026-11-03, sprint 021-CL):** PowerSync removed from main; offline deferred to a future cache + outbox sprint. Kept for history.
 
 # Epic: Offline Sync via Self-Hosted PowerSync (Single-User)
