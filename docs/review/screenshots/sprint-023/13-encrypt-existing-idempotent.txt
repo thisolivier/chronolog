@@ -1,0 +1,56 @@
+# Target: chronolog_sprint023_copy, a pg_dump clone of the shared dev database 'chronolog' taken just before this run.
+# (Not run on 'chronolog' itself: other sessions' dev servers on pre-023 code share it and would then read ciphertext.)
+# ENCRYPTION_KEY comes from the worktree .env via --env-file; its value is never printed.
+
+$ DATABASE_URL=<copy> node --env-file=.env scripts/encrypt-existing.mjs --dry-run
+[encrypt-existing] clients.name: 69 non-null, 63 would be encrypted, 6 already encrypted
+[encrypt-existing] contracts.name: 75 non-null, 69 would be encrypted, 6 already encrypted
+[encrypt-existing] contracts.description: 9 non-null, 6 would be encrypted, 3 already encrypted
+[encrypt-existing] time_entries.description: 43 non-null, 42 would be encrypted, 1 already encrypted
+[encrypt-existing] notes.title: 35 non-null, 32 would be encrypted, 3 already encrypted
+[encrypt-existing] notes.content: 35 non-null, 32 would be encrypted, 3 already encrypted
+[encrypt-existing] notes.content_json: 31 non-null, 28 would be encrypted, 3 already encrypted
+[encrypt-existing] attachments.filename: 1 non-null, 1 would be encrypted, 0 already encrypted
+[encrypt-existing] attachments.data: 1 non-null, 1 would be encrypted, 0 already encrypted
+[encrypt-existing] done: 274 value(s) would be encrypted (dry run).
+
+$ DATABASE_URL=<copy> node --env-file=.env scripts/encrypt-existing.mjs
+[encrypt-existing] clients.name: 69 non-null, 63 encrypted, 6 already encrypted
+[encrypt-existing] contracts.name: 75 non-null, 69 encrypted, 6 already encrypted
+[encrypt-existing] contracts.description: 9 non-null, 6 encrypted, 3 already encrypted
+[encrypt-existing] time_entries.description: 43 non-null, 42 encrypted, 1 already encrypted
+[encrypt-existing] notes.title: 35 non-null, 32 encrypted, 3 already encrypted
+[encrypt-existing] notes.content: 35 non-null, 32 encrypted, 3 already encrypted
+[encrypt-existing] notes.content_json: 31 non-null, 28 encrypted, 3 already encrypted
+[encrypt-existing] attachments.filename: 1 non-null, 1 encrypted, 0 already encrypted
+[encrypt-existing] attachments.data: 1 non-null, 1 encrypted, 0 already encrypted
+[encrypt-existing] done: 274 value(s) encrypted.
+
+$ DATABASE_URL=<copy> node --env-file=.env scripts/encrypt-existing.mjs   # second run: idempotent
+[encrypt-existing] clients.name: 69 non-null, 0 encrypted, 69 already encrypted
+[encrypt-existing] contracts.name: 75 non-null, 0 encrypted, 75 already encrypted
+[encrypt-existing] contracts.description: 9 non-null, 0 encrypted, 9 already encrypted
+[encrypt-existing] time_entries.description: 43 non-null, 0 encrypted, 43 already encrypted
+[encrypt-existing] notes.title: 35 non-null, 0 encrypted, 35 already encrypted
+[encrypt-existing] notes.content: 35 non-null, 0 encrypted, 35 already encrypted
+[encrypt-existing] notes.content_json: 31 non-null, 0 encrypted, 31 already encrypted
+[encrypt-existing] attachments.filename: 1 non-null, 0 encrypted, 1 already encrypted
+[encrypt-existing] attachments.data: 1 non-null, 0 encrypted, 1 already encrypted
+[encrypt-existing] done: 0 value(s) encrypted.
+
+$ DATABASE_URL=<copy> ENCRYPTION_KEY=<a different valid key> node scripts/encrypt-existing.mjs   # refuses to mix keys
+[encrypt-existing] failed, nothing was changed: Cannot decrypt clients.name: authentication failed (wrong key or tampered value). Check that ENCRYPTION_KEY is the key that was live when this value was written.
+exit code: 1
+
+$ psql chronolog_sprint023_copy: rows still without the enc1: prefix in any encrypted column
+ clients_name | contracts | time_entries | notes | attachments 
+--------------+-----------+--------------+-------+-------------
+            0 |         0 |            0 |     0 |           0
+(1 row)
+
+
+
+# Re-cloned and re-migrated for a decrypt check (same procedure as above):
+$ node decrypt-check.mjs   # every value in every encrypted column opens with the app envelope module
+[decrypt-check] 299 stored values decrypt with the app's envelope module, 0 failures
+# clone dropped after verification

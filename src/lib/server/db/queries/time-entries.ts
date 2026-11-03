@@ -1,6 +1,28 @@
 import { eq, and, between, asc, sql } from 'drizzle-orm';
 import { database, timeEntries, contracts, clients, deliverables, workTypes } from '$lib/server/db';
 import { calculateTimerDurationMinutes } from './timer-duration';
+import { decryptNullable, decryptText, encryptNullable } from '$lib/server/crypto/server-cipher';
+
+type TimeEntryRow = typeof timeEntries.$inferSelect;
+
+/** `time_entries.description` is encrypted at rest; decrypt rows leaving this module. */
+function decryptTimeEntry(row: TimeEntryRow): TimeEntryRow {
+	return { ...row, description: decryptNullable(row.description, 'time_entries.description') };
+}
+
+function decryptOptionalTimeEntry(row: TimeEntryRow | undefined): TimeEntryRow | null {
+	return row ? decryptTimeEntry(row) : null;
+}
+
+/** Decrypts the description plus the joined contract and client names. */
+function decryptTimeEntryWithContext(row: TimeEntryWithContext): TimeEntryWithContext {
+	return {
+		...row,
+		description: decryptNullable(row.description, 'time_entries.description'),
+		contractName: decryptText(row.contractName, 'contracts.name'),
+		clientName: decryptText(row.clientName, 'clients.name')
+	};
+}
 
 /** Shape returned by time entry queries that join related tables */
 export type TimeEntryWithContext = {
@@ -67,7 +89,7 @@ export async function listTimeEntriesForWeek(
 	weekEndDate.setDate(weekEndDate.getDate() + 6);
 	const weekEnd = weekEndDate.toISOString().split('T')[0];
 
-	return timeEntrySelectWithContext()
+	const rows = await timeEntrySelectWithContext()
 		.where(
 			and(
 				eq(timeEntries.userId, userId),
@@ -76,6 +98,7 @@ export async function listTimeEntriesForWeek(
 			)
 		)
 		.orderBy(asc(timeEntries.date), sql`${timeEntries.startTime} asc nulls last`, asc(timeEntries.createdAt));
+	return rows.map(decryptTimeEntryWithContext);
 }
 
 /** Create a new time entry */
@@ -91,8 +114,11 @@ export async function createTimeEntry(data: {
 	description?: string | null;
 	isDraft?: boolean;
 }) {
-	const results = await database.insert(timeEntries).values(data).returning();
-	return results[0];
+	const results = await database
+		.insert(timeEntries)
+		.values({ ...data, description: encryptNullable(data.description) })
+		.returning();
+	return decryptTimeEntry(results[0]);
 }
 
 /** Update an existing time entry (scoped by userId for security) */
@@ -113,10 +139,10 @@ export async function updateTimeEntry(
 ) {
 	const results = await database
 		.update(timeEntries)
-		.set({ ...data, updatedAt: new Date() })
+		.set({ ...data, description: encryptNullable(data.description), updatedAt: new Date() })
 		.where(and(eq(timeEntries.id, entryId), eq(timeEntries.userId, userId)))
 		.returning();
-	return results[0] ?? null;
+	return decryptOptionalTimeEntry(results[0]);
 }
 
 /** Delete a time entry (scoped by userId for security) */
@@ -125,7 +151,7 @@ export async function deleteTimeEntry(entryId: string, userId: string) {
 		.delete(timeEntries)
 		.where(and(eq(timeEntries.id, entryId), eq(timeEntries.userId, userId)))
 		.returning();
-	return results[0] ?? null;
+	return decryptOptionalTimeEntry(results[0]);
 }
 
 /** Get the current draft/running timer entry for a user */
@@ -133,7 +159,7 @@ export async function getRunningTimer(userId: string) {
 	const results = await timeEntrySelectWithContext()
 		.where(and(eq(timeEntries.userId, userId), eq(timeEntries.isDraft, true)))
 		.limit(1);
-	return results[0] ?? null;
+	return results[0] ? decryptTimeEntryWithContext(results[0]) : null;
 }
 
 /** Start a new timer — creates a draft entry with start_time=now */
@@ -153,7 +179,7 @@ export async function startTimer(userId: string, contractId: string) {
 			isDraft: true
 		})
 		.returning();
-	return results[0];
+	return decryptTimeEntry(results[0]);
 }
 
 /** Stop a running timer — sets end_time=now, calculates duration */
@@ -183,5 +209,5 @@ export async function stopTimer(entryId: string, userId: string) {
 		})
 		.where(and(eq(timeEntries.id, entryId), eq(timeEntries.userId, userId)))
 		.returning();
-	return results[0] ?? null;
+	return decryptOptionalTimeEntry(results[0]);
 }

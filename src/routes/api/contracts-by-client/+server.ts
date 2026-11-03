@@ -1,7 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { eq, sql } from 'drizzle-orm';
-import { database, contracts, clients, notes } from '$lib/server/db';
+import { listContractsByClientWithNoteCount } from '$lib/server/db/queries/contracts';
 
 /**
  * GET /api/contracts-by-client
@@ -13,25 +12,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 	const currentUser = locals.user;
 	if (!currentUser) throw error(401, 'Unauthorized');
 
-	const contractList = await database
-		.select({
-			id: contracts.id,
-			name: contracts.name,
-			isActive: contracts.isActive,
-			sortOrder: contracts.sortOrder,
-			clientId: clients.id,
-			clientName: clients.name,
-			clientShortCode: clients.shortCode,
-			clientEmoji: clients.emoji,
-			clientColorIndex: clients.colorIndex,
-			noteCount: sql<number>`cast(count(${notes.id}) as int)`
-		})
-		.from(contracts)
-		.innerJoin(clients, eq(contracts.clientId, clients.id))
-		.leftJoin(notes, eq(notes.contractId, contracts.id))
-		.where(eq(clients.userId, currentUser.id))
-		.groupBy(contracts.id, clients.id)
-		.orderBy(contracts.sortOrder, contracts.name);
+	const contractList = await listContractsByClientWithNoteCount(currentUser.id);
 
 	return json({
 		contracts: contractList.map((row) => ({

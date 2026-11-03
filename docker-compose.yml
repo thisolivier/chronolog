@@ -13,7 +13,7 @@ services:
       - ./svelte.config.js:/app/svelte.config.js
     environment:
       DATABASE_URL: postgresql://chronolog:chronolog@postgres:5432/chronolog
-      ENCRYPTION_KEY: dev-encryption-key-for-docker-stack-000
+      ENCRYPTION_KEY: Y2hyb25vbG9nLWRldi1kb2NrZXItc3RhY2sta2V5LTA= # dev only: base64 of 32 bytes
       BETTER_AUTH_SECRET: dev-auth-secret-for-docker-stack-0000
       BETTER_AUTH_URL: http://localhost:5173
       ALLOW_REGISTRATION: "true"

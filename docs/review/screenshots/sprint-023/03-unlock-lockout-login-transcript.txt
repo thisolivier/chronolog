@@ -1,0 +1,52 @@
+# Dev server log lines from the device gate during the Playwright run (IP and path only; no key material)
+# 203.0.113.5x = simulated Cloudflare client IP (CF-Connecting-IP header), ::1 = local browser
+[device-gate] wrong device key ip=203.0.113.50 path=/unlock
+[device-gate] wrong device key ip=203.0.113.50 path=/unlock
+[device-gate] wrong device key ip=203.0.113.50 path=/unlock
+[device-gate] wrong device key ip=203.0.113.50 path=/unlock
+[device-gate] wrong device key ip=203.0.113.50 path=/unlock
+[device-gate] LOCKOUT ip=203.0.113.50 path=/unlock for 15 minutes
+[device-gate] locked IP attempted a key ip=203.0.113.50 path=/unlock
+[device-gate] device unlocked ip=::1
+[device-gate] device unlocked ip=::1
+[device-gate] wrong device key ip=203.0.113.51 path=/unlock
+[device-gate] wrong device key ip=203.0.113.51 path=/unlock
+[device-gate] wrong device key ip=203.0.113.51 path=/unlock
+[device-gate] wrong device key ip=203.0.113.51 path=/unlock
+[device-gate] wrong device key ip=203.0.113.51 path=/unlock
+[device-gate] LOCKOUT ip=203.0.113.51 path=/unlock for 15 minutes
+[device-gate] locked IP attempted a key ip=203.0.113.51 path=/unlock
+[device-gate] device unlocked ip=::1
+[device-gate] wrong device key ip=203.0.113.52 path=/unlock
+[device-gate] wrong device key ip=203.0.113.52 path=/unlock
+[device-gate] wrong device key ip=203.0.113.52 path=/unlock
+[device-gate] wrong device key ip=203.0.113.52 path=/unlock
+[device-gate] wrong device key ip=203.0.113.52 path=/unlock
+[device-gate] LOCKOUT ip=203.0.113.52 path=/unlock for 15 minutes
+[device-gate] locked IP attempted a key ip=203.0.113.52 path=/unlock
+[device-gate] device unlocked ip=::1
+
+# Playwright flow transcript (final run)
+A fresh browser: GET / landed on /unlock
+A wrong key attempt 1: "That key is not valid for this server."
+A wrong key attempt 2: "That key is not valid for this server."
+A wrong key attempt 3: "That key is not valid for this server."
+A wrong key attempt 4: "That key is not valid for this server."
+A wrong key attempt 5: "Too many failed attempts. Try again in 15 minutes."
+A wrong key attempt 6: "Too many failed attempts. Try again in 15 minutes."
+B fresh browser: GET / landed on /unlock
+B right key: redirected to /login
+B cookie chronolog_device: httpOnly=true sameSite=Lax secure=false expiresInDays=365 valueContainsKey=false
+B after register: at /
+B registered + logged in as qa-023-1757da@chronolog.test: app shell visible at /
+B reload: still in the app at / (no /unlock, no /login)
+
+C browser with only the device cookie: GET / landed on /login
+C full login with email + password: app shell visible
+C created client "Quokka Partners b0e5" via /admin/clients
+C created contract "Confidential Retainer b0e5"
+C created note "Board minutes b0e5" in the editor (auto-save)
+C [[ autocomplete for "wombat licensing" (note body text, not title) offered QKVA.20261103.001
+C saved time entry "Drafted licensing memo b0e5" (1h15m) on Confidential Retainer b0e5
+C GET /api/notes/search?q=WOMBAT LICENSING DEAL b0e5 -> 200 {"notes":[{"id":"QKVA.20261103.001","title":"","contractId":"3fd4991c-e6d7-4c8c-a399-9640ad3e68f3","firstLine":"Board minutes b0e5","secondLine":"We agreed the wombat licensing deal b0e5."}]}
+C GET /api/clients -> 200 names: ["Internal","Quokka Partners 0c4e","Quokka Partners 6d81","Quokka Partners b0e5"]
