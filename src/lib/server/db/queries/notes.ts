@@ -255,7 +255,14 @@ export async function updateNoteForUser(
 // Delete is a move to the trash; trash, restore and purge live in note-trash.ts (sprint 037-CL)
 export { deleteNoteForUser, restoreNoteForUser, listTrashedNotesForUser } from './note-trash';
 
+/**
+ * Links a time entry to a note. Throws for a note in the trash (sprint 037-CL), as for a missing one
+ * (the foreign key); the description-link callers ignore that failure. Links made before the note
+ * went to the trash are kept and come back with it.
+ */
 export async function linkTimeEntryToNote(noteId: string, timeEntryId: string, headingAnchor?: string) {
+	const live = await database.select({ id: notes.id }).from(notes).where(and(eq(notes.id, noteId), notInTrash)).limit(1);
+	if (live.length === 0) throw new Error(`Note ${noteId} not found`);
 	const results = await database
 		.insert(noteTimeEntries)
 		.values({ noteId, timeEntryId, headingAnchor: headingAnchor ?? null })

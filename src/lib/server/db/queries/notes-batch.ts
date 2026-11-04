@@ -6,9 +6,11 @@
  * allocated under the same advisory lock with the same `getNextNoteId`, the row is encrypted the
  * same way, and markdown without TipTap JSON clears `content_json` and counts words from the
  * markdown, as the CLI's PATCH does. A non-atomic batch calls the notes.ts functions directly.
+ * Notes in the trash (sprint 037-CL) are invisible here as everywhere: lock and update skip them, so
+ * an atomic import cannot append to a trashed note (`note_not_found`, the batch's 404).
  */
 
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { clients, contracts, notes } from '$lib/server/db';
 import { decryptNullable, encryptNullable } from '$lib/server/crypto/server-cipher';
 import { getNextNoteId, noteIdDate, NoteConflictError, type NoteClock } from './notes';
@@ -56,19 +58,20 @@ export async function createNoteInTransaction(
 			title: encryptNullable(title ?? null),
 			content: encryptNullable(content ?? null),
 			contentJson: null,
-			wordCount: 0,
+			// As POST /api/notes since sprint 037-CL: counted from the markdown
+			wordCount: calculateWordCountFromMarkdown(content ?? ''),
 			...(clock.now ? { createdAt: clock.now } : {})
 		})
 		.returning();
 	return decryptNote(row);
 }
 
-/** The user's note, locked for the rest of the transaction; null when it is not theirs. */
+/** The user's note, locked for the rest of the transaction; null when it is not theirs or in the trash. */
 export async function lockNoteInTransaction(transaction: BatchTransaction, userId: string, noteId: string) {
 	const [row] = await transaction
 		.select()
 		.from(notes)
-		.where(and(eq(notes.id, noteId), eq(notes.userId, userId)))
+		.where(and(eq(notes.id, noteId), eq(notes.userId, userId), isNull(notes.deletedAt)))
 		.for('update');
 	return row ? decryptNote(row) : null;
 }
@@ -99,7 +102,7 @@ export async function updateNoteInTransaction(
 	const [row] = await transaction
 		.update(notes)
 		.set(updateData)
-		.where(and(eq(notes.id, noteId), eq(notes.userId, userId)))
+		.where(and(eq(notes.id, noteId), eq(notes.userId, userId), isNull(notes.deletedAt)))
 		.returning();
 	return row ? decryptNote(row) : null;
 }

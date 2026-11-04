@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { database, noteTimeEntries, timeEntries } from '$lib/server/db';
-import { createNoteForUser } from '$lib/server/db/queries/notes';
+import { createNoteForUser, deleteNoteForUser } from '$lib/server/db/queries/notes';
 import { getTimeEntryForUser } from '$lib/server/db/queries/time-entries';
 import { callBatch, removeBatchFixture, seedBatchFixture, type BatchFixture } from '$lib/server/batch/batch-test-fixture';
 import * as batchRoute from './+server';
@@ -91,6 +91,24 @@ describe('POST /api/time-entries/batch', () => {
 		expect(response.body).toMatchObject({ created: 2, failed: 0 });
 		const links = await database.select().from(noteTimeEntries).where(eq(noteTimeEntries.noteId, note.id));
 		expect(links).toHaveLength(2);
+	});
+
+	it('atomic: a noteId in the trash is note_not_found, and a description link to it is not made (sprint 037-CL)', async () => {
+		const trashed = await createNoteForUser(fixture.ownerId, fixture.retainer.id, 'Trashed log', 'x');
+		await deleteNoteForUser(fixture.ownerId, trashed.id);
+		const refused = await post({
+			atomic: true,
+			items: [{ contractId: fixture.retainer.id, date: '2026-09-03', duration: '1h', noteId: trashed.id }]
+		});
+		expect(refused.body.results[0]).toMatchObject({ ok: false, code: 'note_not_found' });
+
+		const described = await post({
+			atomic: true,
+			items: [{ contractId: fixture.retainer.id, date: '2026-09-03', duration: '1h', description: `See [[${trashed.id}]]` }]
+		});
+		expect(described.body).toMatchObject({ created: 1, failed: 0 });
+		const links = await database.select().from(noteTimeEntries).where(eq(noteTimeEntries.noteId, trashed.id));
+		expect(links).toHaveLength(0);
 	});
 
 	it('atomic: the first failure rolls every item back', async () => {
