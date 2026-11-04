@@ -1,6 +1,6 @@
 # Sprint 040 — CL: Checkbox task lists in notes, `chronolog todos`
 
-**Status:** ready for review
+**Status:** merged
 **Branch:** `sprint-040-CL/task-lists` · **Worktree:** `.claude/worktrees/sprint-040-CL` · **Port:** 5218
 **Sources:** owner request 2026-11-04 in `docs/backlog.md` ("Checkbox task lists in notes"). Wave rules: `docs/sprints/_wave-rules.md`.
 

@@ -1,6 +1,6 @@
 # Sprint 042 — CL: Global search and find in page
 
-**Status:** ready for review
+**Status:** merged
 **Branch:** `sprint-042-CL/search` · **Worktree:** `.claude/worktrees/sprint-042-CL` · **Port:** 5220
 **Sources:** owner requests 2026-11-04 in `docs/backlog.md`: global search, find in page (Cmd+F). Wave rules: `docs/sprints/_wave-rules.md`.
 

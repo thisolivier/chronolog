@@ -1,6 +1,6 @@
 # Sprint 041 — CL: Editable timer start, Today button, Archive/Activate in Settings
 
-**Status:** ready for review
+**Status:** merged
 **Branch:** `sprint-041-CL/timer-start-today` · **Worktree:** `.claude/worktrees/sprint-041-CL` · **Port:** 5219
 **Sources:** owner requests 2026-11-04 in `docs/backlog.md`: editable start time on a running timer, Today button, Archive / Activate as direct actions in Settings. Wave rules: `docs/sprints/_wave-rules.md`.
 

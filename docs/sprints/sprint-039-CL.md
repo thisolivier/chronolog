@@ -1,6 +1,6 @@
 # Sprint 039 — CL: Pinned notes, client view, sidebar collapse and client reorder
 
-**Status:** ready for review
+**Status:** merged
 **Branch:** `sprint-039-CL/sidebar-client-view` · **Worktree:** `.claude/worktrees/sprint-039-CL` · **Port:** 5217
 **Sources:** owner requests 2026-11-04 in `docs/backlog.md` ("Owner-requested, back of the queue"): pin a note, client view, drag to reorder clients, click a client heading to collapse. Wave rules: `docs/sprints/_wave-rules.md`.
 
