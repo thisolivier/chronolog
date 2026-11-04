@@ -185,6 +185,11 @@ chronolog client remove ACME        # entries move to Deleted Client; prefer arc
 Durations: `1h30m`, `1.5`, `1:30`, `90m`, `9:00-10:30`. Dates: `YYYY-MM-DD`, `today`, `yesterday`,
 `monday`.
 
+## 9. Optional: the desktop app
+
+A macOS app with the running timer in the menu bar, built from the same clone. Steps, including
+copying a build from the Mac mini: [DESKTOP.md](DESKTOP.md).
+
 ## Updating
 
 Server: a sprint merges to `main`, and the Mac mini session runs `scripts/deploy-prod.sh` from the
