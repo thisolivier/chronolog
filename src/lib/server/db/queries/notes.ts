@@ -2,6 +2,7 @@ import { eq, and, desc, gt, like, sql } from "drizzle-orm";
 import { localDateString } from '$lib/utils/local-calendar';
 import { database, notes, noteTimeEntries, contracts, clients, timeEntries } from "$lib/server/db";
 import { decryptNullable, decryptText, encryptNullable } from '$lib/server/crypto/server-cipher';
+import { calculateWordCountFromJson, calculateWordCountFromMarkdown } from './note-word-count';
 
 type NoteRow = typeof notes.$inferSelect;
 
@@ -171,12 +172,22 @@ function sameMillisecond(left: Date, right: Date): boolean {
 	return Math.floor(left.getTime()) === Math.floor(right.getTime());
 }
 
+/**
+ * Changes the fields given (`undefined` leaves a field alone).
+ *
+ * `contentJson` (TipTap) must describe the same text as `content` (markdown). The browser sends
+ * both on every save. A caller that sends `content` without `contentJson` (the CLI, sprint 034-CL)
+ * clears `contentJson`, so the editor reloads from the new markdown rather than showing the old
+ * TipTap document, and the word count is taken from the markdown. An explicit `null` clears it.
+ * A new `contractId` moves the note; its ID keeps its prefix (journeys P-07). Ownership of the
+ * target contract is the route's check.
+ */
 export async function updateNoteForUser(
 	userId: string,
 	noteId: string,
 	title?: string,
 	content?: string,
-	contentJson?: string,
+	contentJson?: string | null,
 	contractId?: string,
 	expectedUpdatedAt?: Date
 ) {
@@ -197,9 +208,12 @@ export async function updateNoteForUser(
 	if (content !== undefined) {
 		updateData.content = encryptNullable(content);
 	}
-	if (contentJson !== undefined) {
+	if (typeof contentJson === 'string') {
 		updateData.contentJson = encryptNullable(contentJson);
 		updateData.wordCount = calculateWordCountFromJson(contentJson);
+	} else if (content !== undefined || contentJson === null) {
+		updateData.contentJson = null;
+		if (content !== undefined) updateData.wordCount = calculateWordCountFromMarkdown(content ?? '');
 	}
 	if (contractId !== undefined) {
 		updateData.contractId = contractId;
@@ -226,14 +240,26 @@ export async function updateNoteForUser(
 	return decryptOptionalNote(results[0]);
 }
 
+/**
+ * Hard-deletes the user's note and its time-entry links in one transaction; returns the deleted
+ * row (decrypted) or null when the note is not the user's. Links of someone else's note with the
+ * same ID are never touched.
+ */
 export async function deleteNoteForUser(userId: string, noteId: string) {
-	await database.delete(noteTimeEntries).where(eq(noteTimeEntries.noteId, noteId));
-
-	const results = await database
-		.delete(notes)
-		.where(and(eq(notes.id, noteId), eq(notes.userId, userId)))
-		.returning();
-	return decryptOptionalNote(results[0]);
+	return database.transaction(async (transaction) => {
+		const owned = await transaction
+			.select({ id: notes.id })
+			.from(notes)
+			.where(and(eq(notes.id, noteId), eq(notes.userId, userId)))
+			.limit(1);
+		if (owned.length === 0) return null;
+		await transaction.delete(noteTimeEntries).where(eq(noteTimeEntries.noteId, noteId));
+		const results = await transaction
+			.delete(notes)
+			.where(and(eq(notes.id, noteId), eq(notes.userId, userId)))
+			.returning();
+		return decryptOptionalNote(results[0]);
+	});
 }
 
 export async function linkTimeEntryToNote(noteId: string, timeEntryId: string, headingAnchor?: string) {
@@ -290,26 +316,3 @@ export { searchNotesForUser, getNoteTitlesForUser } from './note-search';
 
 // Re-export from shared utility so existing server imports keep working
 export { extractPreviewLines } from '$lib/utils/extract-preview-lines';
-
-function calculateWordCountFromJson(contentJson: string): number {
-	try {
-		const content = JSON.parse(contentJson);
-		if (!content.content || !Array.isArray(content.content)) {
-			return 0;
-		}
-
-		let wordCount = 0;
-		for (const block of content.content) {
-			if (block.content && Array.isArray(block.content)) {
-				for (const node of block.content) {
-					if (node.type === "text" && node.text) {
-						wordCount += node.text.split(/\s+/).filter((word: string) => word.length > 0).length;
-					}
-				}
-			}
-		}
-		return wordCount;
-	} catch {
-		return 0;
-	}
-}
