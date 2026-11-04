@@ -27,7 +27,7 @@ const USAGE = `Usage: chronolog <command> [arguments] [--json]
   contracts [client] [--all]             list contracts (optionally one client's)
   week [2026-W45] [--client X | --contract X]   entries and totals for a week (default: current)
   log <contract> <duration> "<desc>" [--date D] [--deliverable X [--work-type Y]] [--note ID]
-  edit <entry-id> [--duration D] [--description "..."] [--date D] [--deliverable X|none]
+  edit <entry-id> [--duration D] [--description "..."] [--date D] [--deliverable X|none] [--work-type X|none]
   undo                                   delete the last entry this CLI logged
   note new <contract> "<title>" [--file body.md]   body from --file or stdin
   note show <note-id>
