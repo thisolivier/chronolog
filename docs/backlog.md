@@ -23,6 +23,7 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 - **034-CL** `note edit/append/delete/restore`, `note new --date`, PATCH notes with conflict detection, markdown-only saves clear stale TipTap JSON.
 - **036-CL** PDF attachments, upload type checked by magic bytes, `note attach`/`attachments`, `attachment get/delete`, `chronolog --version` 1.0.0, `BODY_SIZE_LIMIT` fix.
 - **035-DT** macOS menu-bar app: window loads production, close hides, tray shows the running timer, built on the Mac mini (`~/sites/chronolog-desktop/`).
+- **038-CL** `POST /api/notes/batch`, `POST /api/time-entries/batch`, `chronolog import notes|entries`, `undo --last-import`, CLI 1.1.0.
 - **Offline banner and read cache** (`fix/offline-banner-and-cache`): the banner shows when the server is unreachable, and the read cache is write-through.
 
 ## Next (owner-decided, in this order)
@@ -88,6 +89,8 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 - The in-app history mirror resets when the browser jumps to an entry it did not record, for example after a crash restore (027 sign-off).
 
 ### API / CLI
+
+- `undo --last-import` removes entries only; imported notes are not undoable (038 sign-off).
 
 - Opening a CLI note in the editor autosaves it as TipTap JSON, which counts as an edit (028 sign-off).
 - No bulk reorder route for work types; names containing `/` are reachable by id only (031 sign-off).

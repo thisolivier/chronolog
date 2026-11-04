@@ -1,6 +1,6 @@
 # Sprint 038 — CL: Batch create and update for notes and time entries, `chronolog import`
 
-**Status:** ready for review
+**Status:** merged
 **Branch:** `sprint-038-CL/batch-import` · **Worktree:** `.claude/worktrees/sprint-038-CL` · **Port:** 5216
 **Sources:** owner request 2026-11-04 (the laptop secretary is back-filling history one call at a time). Runs in parallel with 037 (note trash), which owns `queries/notes.ts`, the single-note routes, the wiki-link renderer and the CLI trash commands: **do not edit those files**; add new files and keep shared-file edits to one registration line each.
 
