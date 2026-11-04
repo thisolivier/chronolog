@@ -1,7 +1,8 @@
 /**
- * The time entries the last `chronolog import entries` created (sprint 038-CL), so
- * `chronolog undo --last-import` can delete them all. Stored next to the config file as
- * `last-import.json` (mode 600): `{ entryIds, baseUrl, createdAt, file }`. Separate from
+ * What the last `chronolog import` created (038-CL; notes since 044-CL), so
+ * `chronolog undo --last-import` can remove it. Stored next to the config file as
+ * `last-import.json` (mode 600): `{ kind, entryIds, noteIds, baseUrl, createdAt, file }`; a record
+ * from before 044 has `entryIds` only and reads with `noteIds: []`. Separate from
  * `last-entry.json` (`log` / `undo`), so an import never replaces the undo of a single entry.
  */
 
@@ -18,7 +19,9 @@ export function readLastImport(environment = process.env) {
 	if (!existsSync(path)) return null;
 	try {
 		const record = JSON.parse(readFileSync(path, 'utf8'));
-		return Array.isArray(record?.entryIds) ? record : null;
+		const entryIds = Array.isArray(record?.entryIds) ? record.entryIds : [];
+		const noteIds = Array.isArray(record?.noteIds) ? record.noteIds : [];
+		return entryIds.length || noteIds.length ? { ...record, entryIds, noteIds } : null;
 	} catch {
 		return null;
 	}

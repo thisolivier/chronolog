@@ -6,7 +6,8 @@
  * whole file before anything is sent (exit 3, listing the lines). Then the items go to
  * `POST /api/notes/batch` in chunks of 100 or `POST /api/time-entries/batch` in chunks of 200
  * (`--atomic` per chunk). One line per item, then a summary; exit 1 if any item failed.
- * Created entries are remembered so `undo --last-import` can delete them all (confirmed).
+ * Created entries and created notes are remembered so `undo --last-import` can delete the entries
+ * or trash the notes (confirmed; see undo-import.mjs).
  */
 
 import { readFileSync } from 'node:fs';
@@ -15,8 +16,8 @@ import { UsageError } from '../lib/args.mjs';
 import { ReferenceError_ } from '../lib/resolve.mjs';
 import { chunk, parseImportText } from '../lib/import-file.mjs';
 import { createReferenceLookups, resolveImportItems } from '../lib/import-items.mjs';
-import { clearLastImport, readLastImport, recordLastImport } from '../lib/import-history.mjs';
-import { confirmRemoval } from '../lib/confirm.mjs';
+import { recordLastImport } from '../lib/import-history.mjs';
+import { undoLastImport } from './undo-import.mjs';
 import * as correct from './correct.mjs';
 
 const KINDS = {
@@ -93,10 +94,12 @@ export async function importFile({ api, print, positionals, flags, config, envir
 	try {
 		outcomes = await sendChunks(api, kind, payloads, Boolean(flags.atomic));
 	} finally {
-		const entryIds = kind === 'entries' ? outcomes.filter((outcome) => outcome.ok).map((outcome) => outcome.id) : [];
-		if (entryIds.length) {
+		// Entries: every one saved. Notes: only the ones created (an update to an existing note stays).
+		const createdIds = outcomes.filter((outcome) => outcome.ok && (kind === 'entries' || outcome.action === 'create')).map((outcome) => outcome.id);
+		if (createdIds.length) {
 			try {
-				recordLastImport({ entryIds, baseUrl: config?.baseUrl ?? null, createdAt: new Date().toISOString(), file: resolvePath(filePath) }, environment);
+				const ids = kind === 'entries' ? { entryIds: createdIds, noteIds: [] } : { entryIds: [], noteIds: createdIds };
+				recordLastImport({ kind, ...ids, baseUrl: config?.baseUrl ?? null, createdAt: new Date().toISOString(), file: resolvePath(filePath) }, environment);
 			} catch {
 				// Undo is a convenience; an unwritable config directory must not fail the import
 			}
@@ -121,35 +124,8 @@ export async function importFile({ api, print, positionals, flags, config, envir
 	}
 }
 
-/** `undo` deletes the last logged entry; `undo --last-import` the entries of the last import. */
+/** `undo` deletes the last logged entry; `undo --last-import` undoes the last import. */
 export async function undo(context) {
 	if (!context.flags.lastImport) return correct.undo(context);
-	const { api, print, flags, config, environment } = context;
-	const record = readLastImport(environment);
-	if (!record) throw new UsageError('Nothing to undo: this CLI has no record of an entries import.');
-	if (record.baseUrl && config.baseUrl && record.baseUrl !== config.baseUrl) {
-		throw new UsageError(`The last import went to ${record.baseUrl}, not ${config.baseUrl}; nothing undone.`);
-	}
-	const count = record.entryIds.length;
-	await confirmRemoval({
-		flags,
-		summary: `The last import (${basename(record.file ?? 'file')}, ${record.createdAt}) created ${count} time entr${count === 1 ? 'y' : 'ies'}.`,
-		question: 'Delete them all?',
-		refusal: 'Not deleted: confirm with the owner, then run again with --yes.'
-	});
-
-	let deleted = 0;
-	let alreadyGone = 0;
-	for (const entryId of record.entryIds) {
-		try {
-			await api.delete(`/api/time-entries/${entryId}`);
-			deleted += 1;
-		} catch (failure) {
-			if (failure.status !== 404) throw failure;
-			alreadyGone += 1;
-		}
-	}
-	clearLastImport(environment);
-	const gone = alreadyGone ? ` (${alreadyGone} were already gone)` : '';
-	print(`Deleted ${deleted} time entries from the import of ${basename(record.file ?? 'file')}${gone}.`, { deleted, alreadyGone, file: record.file ?? null });
+	return undoLastImport(context);
 }
