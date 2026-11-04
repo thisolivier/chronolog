@@ -1,0 +1,35 @@
+name: UIDriver
+options:
+  deploymentTarget:
+    iOS: 16.0
+targets:
+  DriverHost:
+    type: application
+    platform: iOS
+    sources: [Host]
+    info:
+      path: Host/Info.plist
+      properties:
+        UILaunchScreen: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.local.uidriver.host
+        GENERATE_INFOPLIST_FILE: YES
+  DriverUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [DriverUITests]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.local.uidriver.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: DriverHost
+    dependencies:
+      - target: DriverHost
+schemes:
+  DriverUITests:
+    build:
+      targets:
+        DriverUITests: all
+    test:
+      targets: [DriverUITests]
