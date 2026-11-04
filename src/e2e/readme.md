@@ -58,6 +58,7 @@ E2E_USER_PREFIX=qa-029-e2e E2E_BASE_URL=http://localhost:5207 BETTER_AUTH_URL=ht
 | `timer-cli.e2e.test.ts` | Sprint 041-CL: `chronolog timer start --at` (an overlap warns and needs `--yes`), `timer adjust` (future refused, overlap needs `--yes`), `timer`, `timer stop` saving from the adjusted start. Clears its user's entries for yesterday and today first (other files log at fixed times). |
 | `reference-data.e2e.test.ts` | GET /api/deliverables, GET /api/work-types (a deliverable that is not the caller's is 404) |
 | `search.e2e.test.ts` | GET /api/notes/search |
+| `search-cli.e2e.test.ts` | Sprint 042-CL: `chronolog search` (grouped notes and entries, marked snippets, `--json`, a trashed note drops out, short query exit 2) over GET /api/search |
 | `attachments-offline.e2e.test.ts` | Attachment upload, metadata listing, download and delete |
 | `api-tokens-cli.e2e.test.ts` | /api/tokens, bearer auth, /api/me, error shape, GET /api/time-entries range, the `chronolog` CLI as a child process, revoked token 403 |
 | `admin-objects-cli.e2e.test.ts` | Sprint 031-CL: the CLI builds client → contract → deliverable → work type, logs against the work type, archives and unarchives, refuses `remove` without `--yes`, then removes the client and checks the entry was reassigned |

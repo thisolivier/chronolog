@@ -1,4 +1,5 @@
 <script lang="ts">
+	import FindBar from '$lib/components/find/FindBar.svelte';
 	import { onMount, tick } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import { getDataService } from '$lib/services/context';
@@ -484,6 +485,7 @@
 {/snippet}
 
 <div class="flex h-full flex-col overflow-hidden bg-stone-50">
+	<FindBar mode="dom" />
 	<!-- WeekStrip: sticky at the top of the panel -->
 	{#if selectedWeekData}
 		<WeekStrip
