@@ -1,6 +1,6 @@
 # Sprint 045 — CL: Offline outbox
 
-**Status:** ready for review
+**Status:** merged
 **Branch:** `sprint-045-CL/offline-outbox` · **Worktree:** `.claude/worktrees/sprint-045-CL` · **Port:** 5223
 **Sources:** `docs/backlog.md` Next #2 and `docs/decisions.md` (Offline): long-lived read cache plus write outbox, last-write-wins per field, a visible "replayed" marker, and a held queue with a prompt when the server copy changed meanwhile. Also the 024 follow-up: the offline backend must implement `searchNotes`, `getNoteTitles`, `createNote`, `updateNote`.
 

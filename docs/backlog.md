@@ -32,12 +32,13 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 - **046-CL** Search results as one interleaved list with type icons; one-line meta on phones.
 - **043-CL** Trash view `/notes/trash`, link text in previews and titles, deleted-attachment styling, `NoteEditorPanel` split, reactive toolbar disabled states, phone Undo/linked entries/landscape.
 - **044-CL** Playwright 2FA login test, version drift notice (`serverCommit` on `/api/me`), desktop sign-out clears the tray timer, distinct client colours, root navigation context, `undo --last-import` trashes imported notes, 0 svelte-check warnings, skill split into SKILL.md + reference.md, deterministic WebKit tests, screenshots only with `UPDATE_SPRINT_SCREENSHOTS=1`. CLI 1.3.0.
+- **045-CL** Offline outbox: per-user IndexedDB read cache, service worker for offline reload (not in Tauri), localStorage outbox with per-field conflict hold, `clientRequestId` idempotent creates (migration 0011), account-safe replay. Not queued offline: note move/pin/trash, attachments, week status, stopping a server timer.
 - **Offline banner and read cache** (`fix/offline-banner-and-cache`): the banner shows when the server is unreachable, and the read cache is write-through.
 
 ## Next (owner-decided, in this order)
 
 1. **Go-live on the Mac mini.** Owner steps in `docs/DEPLOYMENT.md`: `.env.prod`, first deploy, first account with registration opened then closed, Cloudflare Tunnel ingress and rate-limit rules, nightly backups.
-2. **Offline outbox sprint** (045-CL; runs last in the 2026-11-04 backlog run). Long-lived read cache plus write outbox, last-write-wins per field, a visible "replayed" marker, and a held queue with a prompt when the server copy changed meanwhile (`docs/decisions.md`).
+2. ~~Offline outbox~~ done in 045-CL. Follow-ups: queue note move/pin/trash and server-timer stop offline; `offline-data-service.ts` and `outbox-replay.ts` over 200 lines. Long-lived read cache plus write outbox, last-write-wins per field, a visible "replayed" marker, and a held queue with a prompt when the server copy changed meanwhile (`docs/decisions.md`).
 3. **Airtable hours logging skill.** Deferred by the owner until the MCP details are in hand.
 4. **End-client status and hours API skill.** Deferred until the owner has API access.
 5. **Invoice generation from existing templates.** Deferred until 3 and 4 are sorted.
@@ -58,7 +59,6 @@ All done in sprints 039–042 and 046 (2026-11-04). Open from them: global searc
 - PDF export has not been tried in the native macOS print dialog; check on the Mac (024 sign-off, friction #11).
 - No note-side picker to reference a time entry; only the time-entry side links today (friction #21, 024 task 8).
 - Note IDs keep the old client code after a client rename or a move (journeys P-07).
-- The offline backend must implement the DataService methods added in 024 (`searchNotes`, `getNoteTitles`, `createNote`, `updateNote`) (024 sign-off).
 
 ### Timesheet / timer
 

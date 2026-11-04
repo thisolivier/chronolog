@@ -11,6 +11,7 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 045-CL | Client/Server | Offline outbox: persistent read cache, write outbox, idempotent creates, service worker | merged |
 | 044-CL | Client/Infra | Platform follow-ups: 2FA test, drift notice, colours, flaky tests | merged |
 | 043-CL | Client | Notes follow-ups: trash view, previews, phone Undo, panel split | merged |
 | 046-CL | Client | Search results interleaved with type icons | merged |
