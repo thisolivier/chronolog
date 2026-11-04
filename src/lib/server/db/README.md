@@ -60,6 +60,8 @@ Notes and time entries are linked via the `note_time_entries` join table.
 - **Deliverable or work type**: entries keep a `Formerly: ...` line, then their reference is cleared and the row deleted.
 - **Usage counts**: `getContractUsage` and `getEntryCountsBy` feed the confirm dialogs.
 
+`queries/entry-references.ts` (`assertEntryReferences`) is the one rule for what an entry may point at: the contract is the user's, the deliverable is on that contract, the work type is under that deliverable (so never without one). Every entry write route calls it (through `entryReferenceProblem` in `src/routes/api/time-entries/entry-input.ts`); `scripts/check-entry-references.mjs` reports existing rows that break it.
+
 `queries/formerly-line.ts` builds the appended `Formerly: ...` line on its own line so the original description is untouched.
 
 ## Usage
