@@ -83,4 +83,4 @@ The user's contracts, archived ones included, filled by the sidebar when it load
 
 ### timer-state.svelte.ts
 
-Shared timer display state for cross-component communication. `TimerWidget` (in the sidebar) writes to it with `update(partial)` / `reset()`; `TimerIndicator` (in the AppShell top bar) reads from it. Reactive fields: `status` (`'idle' | 'running' | 'paused' | 'stopped'`), `elapsedSeconds`, `description`, `contractName`, `clientColorIndex`. Provided with `setTimerStateContext(createTimerState())` and read with `getTimerStateContext()`.
+Shared timer display state for cross-component communication. `TimerWidget` (in the sidebar) writes to it with `update(partial)` / `reset()`; `TimerIndicator` (in the AppShell top bar) reads from it. Reactive fields: `status` (`'idle' | 'running' | 'paused' | 'stopped'`), `elapsedSeconds`, `description`, `contractName`, `clientColorIndex`, `contractShortCode` (client short code). Inside the desktop app it also pushes the timer to the menu bar through `$lib/desktop/bridge`. Provided with `setTimerStateContext(createTimerState())` and read with `getTimerStateContext()`.

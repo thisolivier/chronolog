@@ -55,7 +55,6 @@
 		"vitest": "^4.0.18"
 	},
 	"dependencies": {
-		"@tauri-apps/api": "^2.0.0",
 		"@tiptap/core": "^3.19.0",
 		"@tiptap/extension-code-block-lowlight": "^3.23.6",
 		"@tiptap/extension-file-handler": "^3.19.0",

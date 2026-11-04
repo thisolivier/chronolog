@@ -212,7 +212,8 @@
 				contractName: selectedContract
 					? formatContractLabel(selectedContract.clientName, selectedContract.name)
 					: '',
-				clientColorIndex: selectedContract?.clientColorIndex ?? 0
+				clientColorIndex: selectedContract?.clientColorIndex ?? 0,
+				contractShortCode: selectedContract?.clientShortCode ?? ''
 			});
 		} else if (timerState === 'idle') {
 			sharedTimerState.reset();

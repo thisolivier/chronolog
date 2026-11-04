@@ -64,13 +64,9 @@ Troubleshooting (the CLI exits 4 for 401 and 403, and 6 for 429):
 
 ## New Tauri desktop install
 
-_The shell is not yet pointed at the production origin; these steps apply once it is. The origin must
-also be listed in `TRUSTED_ORIGINS` in `.env.prod`._
-
-- Install the `.app` (build from `npm run tauri:build`, or a signed build when distribution exists).
-- Enter the device access key once; the app sends it as the `X-Device-Key` header on every request
-  (the same header as the CLI above). Keep the raw key in the password manager.
-- Sign in.
+Build or copy the macOS app and install it as in [DESKTOP.md](DESKTOP.md). The app is the production
+site in a window: on first launch enter the device access key on its unlock page, then sign in; both
+are remembered. No `.env.prod` change is needed.
 
 ## Rotating the device key
 
@@ -82,7 +78,7 @@ Rotation replaces the one key for every device at once; per-device keys are not 
 2. On the box, in `.env.prod`, replace the `DEVICE_ACCESS_KEY_HASH=` line with the new hash line,
    then redeploy: `scripts/deploy-prod.sh`.
 3. Every browser visits `/unlock` again, because the old cookies are invalid under the new hash.
-   Update the `X-Device-Key` value in the CLI and the Tauri app.
+   Update the `X-Device-Key` value in the CLI; the desktop app unlocks at `/unlock` like a browser.
 
 Logs show `[device-gate] device unlocked ip=…` for each successful unlock, which helps confirm that
 the expected devices have come back.
