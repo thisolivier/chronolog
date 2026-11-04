@@ -1,0 +1,393 @@
+[
+ {
+  "contract": "CODE/Research",
+  "date": "2026-09-28",
+  "duration": "30m",
+  "description": "Imported entry 01",
+  "deliverable": "Discovery",
+  "workType": "Interviews"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-09-29",
+  "duration": "1h",
+  "description": "Imported entry 02"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-09-30",
+  "duration": "1h30m",
+  "description": "Imported entry 03"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-10-01",
+  "duration": "45m",
+  "description": "Imported entry 04"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-10-02",
+  "duration": "2h",
+  "description": "Imported entry 05",
+  "deliverable": "Discovery",
+  "workType": "Interviews"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-10-02",
+  "startTime": "09:00",
+  "endTime": "10:30",
+  "description": "Imported entry 06 (a range)"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-10-04",
+  "duration": "1:15",
+  "description": "Imported entry 07"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-09-28",
+  "duration": "90m",
+  "description": "Imported entry 08"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-09-29",
+  "duration": "30m",
+  "description": "Imported entry 09",
+  "deliverable": "Discovery",
+  "workType": "Interviews"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-09-30",
+  "duration": "1h",
+  "description": "Imported entry 10"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-10-01",
+  "duration": "1h30m",
+  "description": "Imported entry 11"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-10-02",
+  "duration": "45m",
+  "description": "Imported entry 12"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-10-03",
+  "duration": "2h",
+  "description": "Imported entry 13",
+  "deliverable": "Discovery",
+  "workType": "Interviews"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-10-04",
+  "duration": "0.5",
+  "description": "Imported entry 14"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-09-28",
+  "duration": "1:15",
+  "description": "Imported entry 15"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-09-29",
+  "duration": "90m",
+  "description": "Imported entry 16"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-09-30",
+  "duration": "30m",
+  "description": "Imported entry 17",
+  "deliverable": "Discovery",
+  "workType": "Interviews"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-10-01",
+  "duration": "1h",
+  "description": "Imported entry 18"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-10-02",
+  "duration": "1h30m",
+  "description": "Imported entry 19"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-10-03",
+  "duration": "45m",
+  "description": "Imported entry 20"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-10-04",
+  "duration": "2h",
+  "description": "Imported entry 21",
+  "deliverable": "Discovery",
+  "workType": "Interviews"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-09-28",
+  "duration": "0.5",
+  "description": "Imported entry 22"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-09-29",
+  "duration": "1:15",
+  "description": "Imported entry 23"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-09-30",
+  "duration": "90m",
+  "description": "Imported entry 24"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-10-01",
+  "duration": "30m",
+  "description": "Imported entry 25",
+  "deliverable": "Discovery",
+  "workType": "Interviews"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-10-02",
+  "duration": "1h",
+  "description": "Imported entry 26"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-10-03",
+  "duration": "1h30m",
+  "description": "Imported entry 27"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-10-04",
+  "duration": "45m",
+  "description": "Imported entry 28"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-09-28",
+  "duration": "2h",
+  "description": "Imported entry 29",
+  "deliverable": "Discovery",
+  "workType": "Interviews"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-09-29",
+  "duration": "0.5",
+  "description": "Imported entry 30"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-09-30",
+  "duration": "1:15",
+  "description": "Imported entry 31"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-10-01",
+  "duration": "90m",
+  "description": "Imported entry 32"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-10-02",
+  "duration": "30m",
+  "description": "Imported entry 33",
+  "deliverable": "Discovery",
+  "workType": "Interviews"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-10-03",
+  "duration": "1h",
+  "description": "Imported entry 34"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-10-04",
+  "duration": "1h30m",
+  "description": "Imported entry 35"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-09-28",
+  "duration": "45m",
+  "description": "Imported entry 36"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-09-29",
+  "duration": "2h",
+  "description": "Imported entry 37",
+  "deliverable": "Discovery",
+  "workType": "Interviews"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-09-30",
+  "duration": "0.5",
+  "description": "Imported entry 38"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-10-01",
+  "duration": "1:15",
+  "description": "Imported entry 39"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-10-02",
+  "duration": "90m",
+  "description": "Imported entry 40"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-10-03",
+  "duration": "30m",
+  "description": "Imported entry 41",
+  "deliverable": "Discovery",
+  "workType": "Interviews"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-10-04",
+  "duration": "1h",
+  "description": "Imported entry 42"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-09-28",
+  "duration": "1h30m",
+  "description": "Imported entry 43"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-09-29",
+  "duration": "45m",
+  "description": "Imported entry 44"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-09-30",
+  "duration": "2h",
+  "description": "Imported entry 45",
+  "deliverable": "Discovery",
+  "workType": "Interviews"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-10-01",
+  "duration": "0.5",
+  "description": "Imported entry 46"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-10-02",
+  "duration": "1:15",
+  "description": "Imported entry 47"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-10-03",
+  "duration": "90m",
+  "description": "Imported entry 48"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-10-04",
+  "duration": "30m",
+  "description": "Imported entry 49",
+  "deliverable": "Discovery",
+  "workType": "Interviews"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-09-28",
+  "duration": "1h",
+  "description": "Imported entry 50"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-09-29",
+  "duration": "1h30m",
+  "description": "Imported entry 51"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-09-30",
+  "duration": "45m",
+  "description": "Imported entry 52"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-10-01",
+  "duration": "2h",
+  "description": "Imported entry 53",
+  "deliverable": "Discovery",
+  "workType": "Interviews"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-10-02",
+  "duration": "0.5",
+  "description": "Imported entry 54"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-10-03",
+  "duration": "1:15",
+  "description": "Imported entry 55"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-10-04",
+  "duration": "90m",
+  "description": "Imported entry 56"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-09-28",
+  "duration": "30m",
+  "description": "Imported entry 57",
+  "deliverable": "Discovery",
+  "workType": "Interviews"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-09-29",
+  "duration": "1h",
+  "description": "Imported entry 58"
+ },
+ {
+  "contract": "CODE/Research",
+  "date": "2026-09-30",
+  "duration": "1h30m",
+  "description": "Imported entry 59"
+ },
+ {
+  "contract": "CODE/Support",
+  "date": "2026-10-01",
+  "duration": "45m",
+  "description": "Imported entry 60"
+ }
+]

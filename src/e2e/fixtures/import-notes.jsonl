@@ -1,0 +1,32 @@
+// Sprint 038-CL import fixture: 29 new notes (12 backdated) and one append to an existing note.
+// CODE is replaced by the test's client short code, __NOTE_ID__ by a note the test creates first.
+{"contract": "CODE/Research", "title": "Imported note 01", "body": "Back-filled history, item 1.\n\n- point one\n- point two", "date": "2026-09-28"}
+{"contract": "CODE/Support", "title": "Imported note 02", "body": "Back-filled history, item 2.\n\n- point one\n- point two", "date": "2026-09-29"}
+{"contract": "CODE/Research", "title": "Imported note 03", "body": "Back-filled history, item 3.\n\n- point one\n- point two", "date": "2026-09-30"}
+{"contract": "CODE/Support", "title": "Imported note 04", "body": "Back-filled history, item 4.\n\n- point one\n- point two", "date": "2026-10-01"}
+{"contract": "CODE/Research", "title": "Imported note 05", "body": "Back-filled history, item 5.\n\n- point one\n- point two", "date": "2026-10-02"}
+{"contract": "CODE/Support", "title": "Imported note 06", "body": "Back-filled history, item 6.\n\n- point one\n- point two", "date": "2026-10-03"}
+{"contract": "CODE/Research", "title": "Imported note 07", "body": "Back-filled history, item 7.\n\n- point one\n- point two", "date": "2026-09-28"}
+{"contract": "CODE/Support", "title": "Imported note 08", "body": "Back-filled history, item 8.\n\n- point one\n- point two", "date": "2026-09-29"}
+{"contract": "CODE/Research", "title": "Imported note 09", "body": "Back-filled history, item 9.\n\n- point one\n- point two", "date": "2026-09-30"}
+{"contract": "CODE/Support", "title": "Imported note 10", "body": "Back-filled history, item 10.\n\n- point one\n- point two", "date": "2026-10-01"}
+{"contract": "CODE/Research", "title": "Imported note 11", "body": "Back-filled history, item 11.\n\n- point one\n- point two", "date": "2026-10-02"}
+{"contract": "CODE/Support", "title": "Imported note 12", "body": "Back-filled history, item 12.\n\n- point one\n- point two", "date": "2026-10-03"}
+{"contract": "CODE/Research", "title": "Imported note 13", "body": "Back-filled history, item 13.\n\n- point one\n- point two"}
+{"contract": "CODE/Support", "title": "Imported note 14", "body": "Back-filled history, item 14.\n\n- point one\n- point two"}
+{"contract": "CODE/Research", "title": "Imported note 15", "body": "Back-filled history, item 15.\n\n- point one\n- point two"}
+{"contract": "CODE/Support", "title": "Imported note 16", "body": "Back-filled history, item 16.\n\n- point one\n- point two"}
+{"contract": "CODE/Research", "title": "Imported note 17", "body": "Back-filled history, item 17.\n\n- point one\n- point two"}
+{"contract": "CODE/Support", "title": "Imported note 18", "body": "Back-filled history, item 18.\n\n- point one\n- point two"}
+{"contract": "CODE/Research", "title": "Imported note 19", "body": "Back-filled history, item 19.\n\n- point one\n- point two"}
+{"contract": "CODE/Support", "title": "Imported note 20", "body": "Back-filled history, item 20.\n\n- point one\n- point two"}
+{"contract": "CODE/Research", "title": "Imported note 21", "body": "Back-filled history, item 21.\n\n- point one\n- point two"}
+{"contract": "CODE/Support", "title": "Imported note 22", "body": "Back-filled history, item 22.\n\n- point one\n- point two"}
+{"contract": "CODE/Research", "title": "Imported note 23", "body": "Back-filled history, item 23.\n\n- point one\n- point two"}
+{"contract": "CODE/Support", "title": "Imported note 24", "body": "Back-filled history, item 24.\n\n- point one\n- point two"}
+{"contract": "CODE/Research", "title": "Imported note 25", "body": "Back-filled history, item 25.\n\n- point one\n- point two"}
+{"contract": "CODE/Support", "title": "Imported note 26", "body": "Back-filled history, item 26.\n\n- point one\n- point two"}
+{"contract": "CODE/Research", "title": "Imported note 27", "body": "Back-filled history, item 27.\n\n- point one\n- point two"}
+{"contract": "CODE/Support", "title": "Imported note 28", "body": "Back-filled history, item 28.\n\n- point one\n- point two"}
+{"contract": "CODE/Research", "title": "Imported note 29", "body": "Back-filled history, item 29.\n\n- point one\n- point two"}
+{"id": "__NOTE_ID__", "append": "Added by the import."}
