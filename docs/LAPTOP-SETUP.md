@@ -98,9 +98,17 @@ Claude the project docs for context. Nothing else from the repo is needed on the
 Put the CLI on the PATH (Node 20 or newer; the script has a shebang and is executable):
 
 ```bash
-ln -s ~/sites/chronolog/cli/chronolog.mjs /usr/local/bin/chronolog   # or any directory on PATH
+mkdir -p ~/.local/bin
+ln -s ~/sites/chronolog/cli/chronolog.mjs ~/.local/bin/chronolog
+grep -q '.local/bin' ~/.zshrc || echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
 chronolog --help
 ```
+
+`/usr/local/bin` is root-owned on macOS (and may not exist on Apple Silicon), so linking there
+needs `sudo`; a user-owned directory on the PATH avoids that. On an Apple Silicon Mac with Homebrew,
+`/opt/homebrew/bin` is user-owned and already on the PATH, so `ln -s … /opt/homebrew/bin/chronolog`
+also works.
 
 ## 6. `chronolog init`
 
