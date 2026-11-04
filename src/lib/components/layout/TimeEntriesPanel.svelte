@@ -2,6 +2,7 @@
 	import { onMount, tick } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import { getDataService } from '$lib/services/context';
+	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
 	import WeekStrip from '$lib/components/weekly/WeekStrip.svelte';
 	import TimeEntryCard from '$lib/components/weekly/TimeEntryCard.svelte';
 	import NewEntryRow from '$lib/components/weekly/NewEntryRow.svelte';
@@ -331,13 +332,12 @@
 	async function handleNoteLinkClick(noteId: string) {
 		try {
 			const note = await dataService.getNoteById(noteId);
-			const contracts = await dataService.getContracts();
-			const owningContract = contracts.find((contract) => contract.id === note.contractId);
-			if (!owningContract) {
-				console.error(`Contract ${note.contractId} for note ${noteId} not found`);
-				return;
-			}
-			navigation.openNote(noteId, owningContract.id, owningContract.clientId, { focusEditor: true });
+			// The sidebar's directory includes archived contracts (033); the selectable list does not
+			const clientId =
+				contractDirectory.labels[note.contractId]?.clientId ??
+				(await dataService.getContracts()).find((contract) => contract.id === note.contractId)?.clientId ??
+				'';
+			navigation.openNote(noteId, note.contractId, clientId, { focusEditor: true });
 		} catch (error) {
 			console.error(`Could not open note ${noteId}:`, error);
 		}
