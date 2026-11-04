@@ -174,14 +174,6 @@ export async function putJson<ResponseType>(
 	});
 }
 
-export async function patchJson<ResponseType>(url: string, body: unknown): Promise<ResponseType> {
-	return fetchJson<ResponseType>(url, {
-		method: 'PATCH',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(body)
-	});
-}
-
 export async function deleteRequest<ResponseType = void>(
 	url: string,
 	body?: unknown

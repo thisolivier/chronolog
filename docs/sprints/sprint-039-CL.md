@@ -1,6 +1,6 @@
 # Sprint 039 — CL: Pinned notes, client view, sidebar collapse and client reorder
 
-**Status:** in progress
+**Status:** ready for review
 **Branch:** `sprint-039-CL/sidebar-client-view` · **Worktree:** `.claude/worktrees/sprint-039-CL` · **Port:** 5217
 **Sources:** owner requests 2026-11-04 in `docs/backlog.md` ("Owner-requested, back of the queue"): pin a note, client view, drag to reorder clients, click a client heading to collapse. Wave rules: `docs/sprints/_wave-rules.md`.
 
@@ -20,4 +20,28 @@ Screenshots: pinned note on top; client view with contract labels; collapsed cli
 
 ## Sign-off
 
-(pending)
+**2026-11-04, implemented on `sprint-039-CL/sidebar-client-view`, rebased onto `main` (`1def320`, after the sprint 041 and 042 merges). Status: ready for review, not merged.**
+
+### What was done
+
+1. **Pin a note.** Migration `drizzle/0010_pinned_notes_client_order.sql` (generated, plus one data line): `notes.pinned_at timestamptz null` and `clients.sort_order integer not null default 0`; notes already `is_pinned` get `pinned_at = updated_at`. The old `is_pinned` column stays and is written in step (dropping it would break the other wave sprints' dev servers on the shared database; a later migration can drop it). Lists order by `pinned_at desc nulls last, updated_at desc` (`noteListOrder`), and the browser's `sortNotes` agrees. **API: a dedicated route, `PUT /api/notes/[noteId]/pin` `{ pinned }`**, not a `PATCH` field: `PATCH` requires `expectedUpdatedAt` and bumps `updatedAt`, so pinning through it would make an open editor's next autosave a 409. Pinning leaves `updatedAt` alone and keeps the first `pinnedAt` when pinned twice (`queries/note-pins.ts`). The control is a pin button on each note list row (`NoteListRow.svelte`, `aria-pressed`, always visible when pinned and serving as the marker, on hover or focus otherwise, faint on touch screens). CLI `note pin|unpin <id>` (`cli/commands/note-pins.mjs`); `notes <contract>` prefixes pinned notes with 📌.
+2. **Client view.** `/notes/client/<clientId>` (new `client` route kind in `navigation-routes.ts`), with `/notes/client/<clientId>/<contractId>/<noteId|new>` for a note or draft opened from it, so the contract stays in the URL and the editor's "note under its own contract" rule needed no editor change. `GET /api/notes?clientId=` lists every contract of the client. The note list shows "All contracts" and the client name, labels each row with its contract, pins first; Back, Forward and reload follow the URL; the sidebar marks the client's name `aria-current`; the page title names the client. A wiki-link to another note of the same client stays in the view, another client's leaves it. New Note: a one-contract client uses it, otherwise a small menu asks which contract (`NoteListNewNoteButton.svelte`).
+3. **Collapse a client.** The heading is a chevron in the dot's old slot (dot moved next to the name) and a name button that opens the client view. Collapsed hides the contracts except the open one (so the selection never disappears). Remembered per browser (`client-collapse-state.ts`, `chronolog:sidebar-collapsed-clients`), never collapsed by default; single-contract rows and the Archived section get no chevron.
+4. **Reorder clients.** Native HTML5 drag and drop on a client's name (or its single row) onto another client, with a drop line above or below; Alt+ArrowUp/Down on the same element, announced in a polite live region, focus kept. No new dependency; drag works in chromium and webkit (Playwright). `ClientReorderController` applies the order at once and saves it through `PATCH /api/clients/reorder` `{ orderedIds }` (listed clients first, the rest after, renumbered 0..n-1 in a locked transaction); a failed save reloads the list. `PATCH /api/clients/[id]` takes `position` (1 = top among active clients), which `chronolog client edit <client> --order N` uses; the answer's `position` says where it landed. `/api/clients`, the admin list and the sidebar groups all sort by `sort_order`, then name; `contracts-by-client` carries `clientSortOrder`.
+5. **Tests.** Unit: `src/routes/api/notes/note-pins.test.ts` (4: pin order and `updatedAt` kept, pinned-later on top, bad body / stranger / trashed 404, client view query scoped to client and user, the migration backfill statement), `src/routes/api/clients/client-order.test.ts` (5: starts in name order, reorder with an archived client, refusals, `position`, new client after a reorder lands last), `client-sidebar-state.test.ts` (6), navigation store (+5) and routes (+2) for the client view, `note-sort` (+1), data service (+3), CLI `note-pins.test.mjs` (5). API e2e `src/e2e/pins-client-order-cli.e2e.test.ts` (4: CLI pin/unpin with the marker and unchanged `updatedAt`, exit 3 for unknown and trashed notes, `?clientId=`, `client edit --order 1` / `999`). Playwright `e2e-playwright/sidebar-client-view.spec.ts` (5, chromium and webkit): pin on top and after reload, client view with Back/Forward/reload and New Note, collapse survives reload, keyboard reorder survives reload, drag reorder.
+
+### Verification
+
+After the rebase onto `1def320`: `npm run check` 0 errors (the 3 existing warnings in `src/routes/+layout.svelte`), `npm run lint` clean, `npm test` **949 passed in 95 files**, API e2e against `http://localhost:5217` (`E2E_USER_PREFIX=qa-039-e2e`) **117 passed in 19 files**, Playwright (`qa-039-pw`) **120 passed, 5 skipped** (the existing chromium-only offline tests under webkit). The new spec alone: 11 passed (10 tests and auth setup).
+
+Screenshots in `docs/review/screenshots/sprint-039/`: `01-pinned-note-on-top.png`, `02-client-view.png` (contract labels, pinned first, client highlighted), `03-collapsed-client.png`, `04-sidebar-after-reorder.png`, `05-client-view-phone.png` (390 px, WebKit; Back from a note opened in it returns to the client list).
+
+### Left, and notes
+
+- **Deviation: no numbering backfill for `clients.sort_order`.** Client names are encrypted at rest, so SQL cannot order them by name. Every client starts at 0 and the order is `sort_order`, then name, which reproduces the current display order exactly; the first reorder (sidebar or CLI) numbers all of the user's clients. A client created before any reorder lands by name, after one it lands last. The "backfill order" unit test checks this.
+- Pin control is on the note list row only, not also in the editor header (the spec asked for one control).
+- `notes.is_pinned` is kept in step with `pinned_at`; drop it in a later migration once nothing reads it.
+- `NoteListPanel.svelte` is 340 lines (337 before): the row, the New Note button and the search state moved out, the client view logic came in. `SidebarClientGroup.svelte` is 198.
+- `AppShell.svelte` (042's) got one line: the phone Back label also fetches a note title for a client-view entry. `navigation-journeys.spec.ts` J8 now finds the list row by `data-testid="note-list-row"` (the row is a wrapper with two buttons now). `fetch-helpers.ts` uses sprint 041's `patchJson` (mine was removed in the rebase).
+- On a tablet the overlay sidebar does not close when a client name is picked while another client view is already open (AppShell closes it on contract or mode changes); outside this sprint's files.
+- Production: the migration runs on container start; nothing else to run. A dev database dump from before the migration is in the session scratchpad (`s039/dev-pre-039.dump`). QA users `qa-039-*` and their clients remain in the shared dev database; the reorder tests renumbered those users' clients only.
