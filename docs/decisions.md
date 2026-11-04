@@ -48,3 +48,9 @@ verified with curl from the laptop. The Cloudflare plan has no WAF rate limiting
 is not applied; the app's own limiters (Better Auth auth-path limit, device-gate lockout, token failure
 limiter) are the protection. Secrets have been moved to the owner's password manager and the secrets
 file removed from the box.
+
+## 2026-11-04 — Go-live complete
+
+First account registered with TOTP 2FA, then `ALLOW_REGISTRATION=false` set in `.env.prod` and the stack
+redeployed at `9a6e5d8` (sprints 029 and 030 included). Pre-change backup taken. Registration is closed;
+reopen only for one account at a time by flipping the flag and redeploying.
