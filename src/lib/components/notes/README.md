@@ -106,7 +106,7 @@ Displays time entries linked to the current note. Fetches from `/api/notes/[note
 
 ### AttachmentList.svelte
 
-Lists the note's attachments.
+Lists the note's attachments: an image or document icon, the filename (a button that opens the file in a new tab through `openAttachment`, sprint 036), the size, and a delete button. Refreshes on the `note-attachments-changed` window event the upload handler fires.
 
 ## Custom Extensions
 

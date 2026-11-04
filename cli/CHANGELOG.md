@@ -1,0 +1,54 @@
+# chronolog CLI changelog
+
+The CLI ships in the repo and takes its version from the root `package.json` (`chronolog --version`;
+`chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
+030, 033 and 035 changed nothing in the CLI and are not listed.
+
+## 1.0.0 (sprint 036-CL, 2026-11-04): attachments, versions
+
+- `note attach <note-id> <file> [--no-insert]`: uploads an image or a PDF (10 MB at most; the server
+  checks the file's bytes, so a PDF renamed `.png` is refused) and appends `![name](chronolog://attachment/<id>)`
+  for an image or `[name](chronolog://attachment/<id>)` for a PDF at the end of the note, through the
+  `note append` path (`--expected-updated-at`, exit 7). Prints the attachment id and the line.
+- `note attachments <note-id>`: id, filename, type, size, created.
+- `attachment get <id> [--out <path>] [--force]`: saves the file under its original name in the
+  current directory (or `--out`, a file or a directory); refuses to overwrite without `--force`.
+- `attachment delete <id> [--yes]`: confirmed like `note delete`; warns when the note still links to
+  it and leaves the link in the text.
+- `--version`; `me` prints `Server <version> at <url>, CLI <version>` (`serverVersion`, `cliVersion`
+  with `--json`).
+
+## Sprint 034-CL: changing and deleting notes
+
+- `note edit <id> [--title] [--contract] [--file | stdin]`: a body replaces the text; `--contract` moves it.
+- `note append <id> [--file | stdin]`: a blank line and the text at the end.
+- Both send the `updatedAt` they read (or `--expected-updated-at`); a note changed in the app since
+  exits **7** and nothing is written.
+- `note delete <id> [--yes]`: confirmed; a copy goes to `~/.config/chronolog/trash/<id>.md`.
+- `note restore [<id>] [--contract X]`: recreates a deleted note (no id: list the trash).
+- `note new … --date D`: backdates a note (its id carries the date).
+
+## Sprint 032-CL: deliverable and work type must match
+
+- `edit <entry-id> [--deliverable X|none] [--work-type X|none]` (`--tag` too); a work type is looked
+  for only under the entry's deliverable, so a mismatch exits 3 with that deliverable's work types.
+- `log --work-type` follows the same rule.
+
+## Sprint 031-CL: setting up clients
+
+- `client add|edit|archive|unarchive|remove`, `contract add|edit|archive|unarchive|remove`.
+- `deliverables`, `deliverable add|edit|remove`, `work-types`, `work-type add|edit|remove` (`tag`/`tags` aliases).
+- `clients --all`, `contracts --all` list archived objects too.
+- `remove` asks `[y/N]` on a terminal and refuses (exit 2) without `--yes` (`-y`) otherwise.
+
+## Sprint 029-CL: corrections
+
+- `edit <entry-id> [--duration] [--description] [--date] [--deliverable]`: changes one entry.
+- `undo`: deletes the last entry this CLI logged (recorded in `last-entry.json`).
+
+## Sprint 028-CL: first release
+
+- `init` (server URL, API token, device key; config mode 600), `me`, `clients`, `contracts [client]`.
+- `week [2026-W45] [--client | --contract]`, `log <contract> <duration> "<desc>" [--date] [--deliverable] [--note ID]`.
+- `note new <contract> "<title>" [--file]`, `note show <id>`, `notes <contract> [--since]`, `search "<q>"`.
+- `status <week> <unsubmitted|draft-ready|submitted>`; `--json` on every command; exit codes 0 to 6.
