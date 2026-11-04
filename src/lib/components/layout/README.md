@@ -58,7 +58,24 @@ Offline banner, rendered by AppShell and by `SettingsShell`. It reads `src/lib/s
 
 ### ContractsSidebar.svelte
 
-Panel 1 sidebar content. Shows app header, navigation items, and contracts grouped under their client headings (`src/lib/utils/group-contracts-by-client.ts`). Each contract displays a colored dot matching its client color. Note counts refresh on `notes-changed` and `note-moved` window events. The contract open in the URL is highlighted (`aria-current`) and its client heading turns blue. On the phone home nothing is highlighted, including Time Entries. Timer widget pinned to bottom.
+Panel 1 sidebar content. Shows Time Entries, the contracts, and the Archived item, then New Contract, Settings and the timer widget pinned to the bottom. It loads the contracts (archived ones included) into the contract directory store, which splits them into the active clients and the Archived section; the sidebar only draws them. Note counts refresh on `notes-changed` and `note-moved` window events, and the list reloads whenever the sidebar mounts again (coming back from Settings).
+
+Hierarchy (sprint 033-CL):
+- A client with two or more active contracts is a heading (colour dot + name) with its contracts indented under it.
+- A client with exactly one active contract is one row at the client's indent: the dot, the contract name, and the client name beneath it in small muted text. Archived contracts do not count towards the one.
+- **Archived**, after the last active client and only when something is archived: a toggle button (`aria-expanded`, count badge of archived contracts), collapsed by default and remembered per browser. It lists archived clients with their contracts and the archived contracts of active clients under their client's name, in the same grammar but muted.
+
+The contract open in the URL is highlighted (`aria-current`, blue) and the heading of the group holding it turns blue. When that contract is archived the Archived item expands (without changing the remembered choice), and a newly selected row is scrolled into view. On the phone home nothing is highlighted, including Time Entries.
+
+Stable test hooks: `[data-testid="sidebar-client-group"]` (aria-label = client name) per active client, `sidebar-client-heading`, `sidebar-single-contract-row`, `sidebar-row-client-name`, `sidebar-note-count`; `data-contract-id` on every contract button; `sidebar-archived-section`, `sidebar-archived-toggle`, `sidebar-archived-count` and `sidebar-archived-client-group`.
+
+### SidebarClientGroup.svelte
+
+One client in the sidebar: the heading plus children, or the single-contract row. `muted` greys it for the Archived section.
+
+### SidebarArchivedSection.svelte
+
+The Archived toggle and its list. The expanded preference is read and written through `archived-section-state.ts` (localStorage, guarded with try/catch, default collapsed).
 
 ### TimeEntriesPanel.svelte
 

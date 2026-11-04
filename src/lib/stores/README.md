@@ -51,7 +51,7 @@ A fresh deep link (a URL opened directly, not by reload or Back) gets `/` put un
 
 `workspaceHref` is the URL of the workspace place. On settings and admin pages the route keeps the last workspace place shown in this tab (sessionStorage), which is where "Back to app" goes.
 
-Persistence: the sidebar-collapsed preference is in localStorage (`chronolog:sidebar-collapsed`). Timesheet scroll positions per week are in sessionStorage (`chronolog:timesheet-scroll`), as is the in-app history (`chronolog:in-app-history`). `showTimeEntryDay(date)` sets the week to show and the day to scroll to; `takeFocusDay()` hands that day out once and then forgets it. `openNote(…, { focusEditor: true })` (a followed wiki-link) marks the note so `takeEditorFocus(noteId)` returns true once; NoteEditorPanel then focuses the editor at the top (not on touch screens).
+Persistence: the sidebar-collapsed preference is in localStorage (`chronolog:sidebar-collapsed`), as is the sidebar's Archived item being expanded (`chronolog:sidebar-archived-expanded`, kept by `ContractsSidebar`, not this store). Timesheet scroll positions per week are in sessionStorage (`chronolog:timesheet-scroll`), as is the in-app history (`chronolog:in-app-history`). `showTimeEntryDay(date)` sets the week to show and the day to scroll to; `takeFocusDay()` hands that day out once and then forgets it. `openNote(…, { focusEditor: true })` (a followed wiki-link) marks the note so `takeEditorFocus(noteId)` returns true once; NoteEditorPanel then focuses the editor at the top (not on touch screens).
 
 Actions: `selectTimeEntries`, `selectContract`, `selectWeek`, `selectNote`, `openNote`, `openDraft`, `clearSelectedNote`, `showTimeEntryDay`, `toggleSidebar`, `navigateMobile`, `goBackMobile`, and the timesheet scroll helpers.
 
@@ -79,7 +79,7 @@ App-wide connectivity. Offline means the browser reports it (`navigator.onLine`)
 
 ### contract-directory.svelte.ts
 
-Names of the visible contracts (contract name, client name and client ID), filled by the sidebar when it loads them. Other parts of the shell read them without another request: the page `<title>`, the phone title bar and the note editor header. `contextLabel(contractId)` returns "Client · Contract", or null while the sidebar has not loaded that contract. The navigation store takes `selectedClientId` from the client ID here.
+The user's contracts, archived ones included, filled by the sidebar when it loads them (`GET /api/contracts-by-client?includeArchived=true`). `labels` holds each contract's name, client name and client ID; other parts of the shell read them without another request: the page `<title>`, the phone title bar, the note list and editor headers, and the timesheet's card links (so a note on an archived contract still opens under it). `contextLabel(contractId)` returns "Client · Contract", or null while the sidebar has not loaded that contract. The navigation store takes `selectedClientId` from the client ID here. The store decides what is active (sprint 033-CL): `sections` (from `$lib/utils/sidebar-sections.ts`) splits the list into the active client groups and the Archived section, and `isArchived(contractId)` answers for one contract.
 
 ### timer-state.svelte.ts
 

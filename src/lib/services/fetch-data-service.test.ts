@@ -100,7 +100,7 @@ describe('FetchDataService', () => {
 	// ── Contracts ─────────────────────────────────────────────
 
 	describe('getContractsByClient', () => {
-		it('calls GET /api/contracts-by-client and unwraps .contracts', async () => {
+		it('calls GET /api/contracts-by-client with archived ones and unwraps .contracts', async () => {
 			const contracts: ContractsByClientResult[] = [
 				{
 					id: 'c1',
@@ -119,7 +119,7 @@ describe('FetchDataService', () => {
 			const result = await service.getContractsByClient();
 
 			const [url, options] = getLastFetchCall(mockFetch);
-			expect(url).toBe('/api/contracts-by-client');
+			expect(url).toBe('/api/contracts-by-client?includeArchived=true');
 			expect(options?.method).toBeUndefined(); // GET is the default
 			expect(result).toEqual(contracts);
 		});

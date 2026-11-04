@@ -1,23 +1,58 @@
 /**
- * Names of the visible contracts, filled by the sidebar when it loads them, so other parts of the
- * shell (the page `<title>`) can name the selected contract without another request.
+ * The user's contracts as the sidebar loaded them (`GET /api/contracts-by-client?includeArchived=true`),
+ * archived ones included. Other parts of the shell (page `<title>`, panel headers, phone labels) name
+ * the selected contract from `labels` without another request, archived contracts too.
+ *
+ * The store decides what is active (sprint 033-CL): `sections` splits the list into the active
+ * clients and the Archived section (`$lib/utils/sidebar-sections.ts`).
  */
+import type { ContractsByClientResult } from '$lib/services/types';
+import { buildSidebarSections } from '$lib/utils/sidebar-sections';
+
 export interface ContractLabel {
 	name: string;
 	clientName: string;
 	clientId: string;
 }
 
-class ContractDirectory {
-	labels = $state<Record<string, ContractLabel>>({});
+/** What `replaceAll` needs at least; the rest defaults (tests pass only names) */
+export type DirectoryContractInput = Pick<ContractsByClientResult, 'id' | 'name' | 'clientName' | 'clientId'> &
+	Partial<ContractsByClientResult>;
 
-	replaceAll(contracts: Array<{ id: string; name: string; clientName: string; clientId: string }>): void {
-		this.labels = Object.fromEntries(
-			contracts.map((contract) => [
+function withDefaults(contract: DirectoryContractInput): ContractsByClientResult {
+	return {
+		isActive: true,
+		clientShortCode: '',
+		clientEmoji: null,
+		clientColorIndex: 0,
+		noteCount: 0,
+		archived: false,
+		clientArchived: false,
+		...contract
+	};
+}
+
+class ContractDirectory {
+	contracts = $state<ContractsByClientResult[]>([]);
+
+	labels = $derived<Record<string, ContractLabel>>(
+		Object.fromEntries(
+			this.contracts.map((contract) => [
 				contract.id,
 				{ name: contract.name, clientName: contract.clientName, clientId: contract.clientId }
 			])
-		);
+		)
+	);
+
+	/** Active clients and the Archived section, as the sidebar draws them */
+	sections = $derived(buildSidebarSections(this.contracts));
+
+	replaceAll(contracts: DirectoryContractInput[]): void {
+		this.contracts = contracts.map(withDefaults);
+	}
+
+	isArchived(contractId: string | null): boolean {
+		return contractId !== null && this.sections.archivedContractIds.has(contractId);
 	}
 
 	/** "Acme Corp · Rocket Build", or null while the sidebar has not loaded that contract */
