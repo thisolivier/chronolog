@@ -31,7 +31,7 @@ const USAGE = `Usage: chronolog <command> [arguments] [--json]
   log <contract> <duration> "<desc>" [--date D] [--deliverable X [--work-type Y]] [--note ID]
   edit <entry-id> [--duration D] [--description "..."] [--date D] [--deliverable X|none] [--work-type X|none]
   undo                                   delete the last entry this CLI logged
-  note new <contract> "<title>" [--file body.md]   body from --file or stdin
+  note new <contract> "<title>" [--file body.md] [--date D]   body from --file or stdin; --date backdates
   note show <note-id>
   note edit <note-id> [--title "..."] [--contract X] [--file body.md]   a body replaces the text
   note append <note-id> [--file text.md]         adds a blank line and the text (or stdin)

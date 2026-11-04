@@ -49,13 +49,21 @@ export async function noteNew({ api, print, positionals, flags, stdin = process.
 	const [contractReference, ...titleWords] = positionals;
 	const title = titleWords.join(' ').trim();
 	if (!contractReference || !title) {
-		throw new UsageError('Usage: chronolog note new <contract> "<title>" [--file body.md]  (or pipe the body on stdin)');
+		throw new UsageError('Usage: chronolog note new <contract> "<title>" [--file body.md] [--date D]  (or pipe the body on stdin)');
 	}
 	const contract = resolveContract(contractReference, await fetchContracts(api));
 	const markdownBody = readBody(flags, stdin).trim();
 	const content = `# ${title}\n\n${markdownBody}`.trimEnd() + '\n';
 
-	const { note } = await api.post('/api/notes', { contractId: contract.id, title, content });
+	const body = { contractId: contract.id, title, content };
+	if (flags.date) {
+		// A backdated note: its id carries that day (it can never be changed afterwards)
+		const { today } = await api.get('/api/me');
+		body.createdAt = resolveDateWord(flags.date, today);
+		if (!body.createdAt) throw new UsageError(`--date must be YYYY-MM-DD, today, yesterday or a weekday name, not “${flags.date}”.`);
+	}
+
+	const { note } = await api.post('/api/notes', body);
 	print(`Created note ${note.id} in ${contract.clientShortCode}/${contract.name}: ${title}`, note);
 }
 

@@ -1,13 +1,15 @@
 /**
  * Sprint 034-CL: `PUT` with markdown only clears the stale TipTap JSON, `PATCH` needs
  * `expectedUpdatedAt` and answers 409 on a stale copy, moves check contract ownership, and
- * `DELETE` returns what it deleted. Handlers are called directly against the dev database.
+ * `DELETE` returns what it deleted; `POST /api/notes` with `createdAt` backdates a note (task 6). Handlers are called directly against the dev database.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 import { database, clients, contracts, notes, users } from '$lib/server/db';
 import { createNoteForUser, getNoteForUser } from '$lib/server/db/queries/notes';
 import * as noteRoute from './+server';
+import * as notesRoute from '../+server';
+import { localDateString } from '$lib/utils/local-calendar';
 
 type AnyHandler = (event: never) => Response | Promise<Response>;
 
@@ -23,11 +25,11 @@ const browserJson = JSON.stringify({
 	content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Typed in the browser' }] }]
 });
 
-async function call(handler: AnyHandler, options: { userId: string; method: string; noteId: string; body?: unknown }) {
+async function call(handler: AnyHandler, options: { userId: string; method: string; noteId: string; body?: unknown; timezone?: string }) {
 	const url = new URL(`http://localhost/api/notes/${options.noteId}`);
 	const request = new Request(url, {
 		method: options.method,
-		headers: { 'Content-Type': 'application/json' },
+		headers: { 'Content-Type': 'application/json', ...(options.timezone ? { 'X-Timezone': options.timezone } : {}) },
 		body: options.body === undefined ? undefined : JSON.stringify(options.body)
 	});
 	const event = { locals: { user: { id: options.userId }, session: null }, request, url, params: { noteId: options.noteId } };
@@ -194,5 +196,40 @@ describe('DELETE /api/notes/[noteId]', () => {
 		const response = await call(noteRoute.DELETE, { userId: strangerId, method: 'DELETE', noteId: note.id });
 		expect(response.status).toBe(404);
 		expect(await getNoteForUser(note.id, ownerId)).not.toBeNull();
+	});
+});
+
+describe('POST /api/notes with createdAt (backdated note)', () => {
+	const create = (createdAt: unknown, timezone = 'America/Los_Angeles') =>
+		call(notesRoute.POST, { userId: ownerId, method: 'POST', noteId: '', timezone, body: { contractId: ownerContractId, title: 'Backdated', createdAt } });
+
+	it('uses the date for the ID prefix and noon of that day in the caller’s timezone for created_at', async () => {
+		const before = Date.now();
+		const response = await create('2026-01-15');
+		expect(response.status).toBe(201);
+		const { note } = await response.json();
+		expect(note.id).toMatch(new RegExp(`^QN${suffix}\\.20260115\\.\\d{3}$`));
+		expect(new Date(note.createdAt).toISOString()).toBe('2026-01-15T20:00:00.000Z');
+		expect(new Date(note.updatedAt).getTime()).toBeGreaterThanOrEqual(before - 5_000);
+
+		const london = await (await create('2026-07-01', 'Europe/London')).json();
+		expect(london.note.id).toContain('.20260701.');
+		expect(new Date(london.note.createdAt).toISOString()).toBe('2026-07-01T11:00:00.000Z');
+	});
+
+	it('today is the same as no date', async () => {
+		const today = localDateString(new Date(), 'America/Los_Angeles');
+		const { note } = await (await create(today)).json();
+		expect(note.id).toContain(`.${today.replace(/-/g, '')}.`);
+		expect(Math.abs(new Date(note.createdAt).getTime() - Date.now())).toBeLessThan(60_000);
+	});
+
+	it('refuses a future day and anything that is not a calendar date with 400 invalid_date', async () => {
+		const tomorrow = localDateString(new Date(Date.now() + 36 * 3600_000), 'Pacific/Kiritimati');
+		for (const bad of [tomorrow, '2026-02-30', 'yesterday', 20260115]) {
+			const response = await create(bad, 'Pacific/Kiritimati');
+			expect(response.status, String(bad)).toBe(400);
+			expect((await response.json()).code).toBe('invalid_date');
+		}
 	});
 });

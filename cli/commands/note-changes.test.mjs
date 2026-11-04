@@ -8,6 +8,7 @@ import { UsageError } from '../lib/args.mjs';
 import { ReferenceError_ } from '../lib/resolve.mjs';
 import { appendedContent, countWords, editedContent } from '../lib/note-body.mjs';
 import { readTrash } from '../lib/trash.mjs';
+import { noteNew } from './write.mjs';
 
 const NOTE_ID = 'ACME.20261104.001';
 const CONTRACT = { id: '22222222-2222-4222-8222-222222222222', name: 'Website', clientShortCode: 'ACME', clientName: 'Acme Ltd' };
@@ -159,3 +160,25 @@ function writeTemp(text) {
 	writeFileSync(path, text);
 	return path;
 }
+
+describe('chronolog note new --date', () => {
+	const api = () =>
+		fakeApi({
+			'GET /api/contracts-by-client': { contracts: [CONTRACT] },
+			'GET /api/me': { today: '2026-11-04' },
+			'POST /api/notes': (body) => ({ note: { ...body, id: `ACME.${body.createdAt?.replace(/-/g, '') ?? '20261104'}.001` } })
+		});
+
+	it('sends the resolved day as createdAt', async () => {
+		const client = api();
+		await noteNew({ api: client, print: () => {}, positionals: ['ACME/Website', 'Kickoff'], flags: { date: 'yesterday' }, stdin: aTerminal });
+		expect(client.calls.find((call) => call.method === 'POST').body).toEqual({ contractId: CONTRACT.id, title: 'Kickoff', content: '# Kickoff\n', createdAt: '2026-11-03' });
+	});
+
+	it('sends no createdAt without --date and refuses a word it cannot read', async () => {
+		const client = api();
+		await noteNew({ api: client, print: () => {}, positionals: ['ACME/Website', 'Kickoff'], flags: {}, stdin: aTerminal });
+		expect(client.calls.find((call) => call.method === 'POST').body.createdAt).toBeUndefined();
+		await expect(noteNew({ api: api(), print: () => {}, positionals: ['ACME/Website', 'Kickoff'], flags: { date: 'last week' }, stdin: aTerminal })).rejects.toBeInstanceOf(UsageError);
+	});
+});

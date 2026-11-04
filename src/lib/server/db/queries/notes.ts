@@ -65,7 +65,7 @@ type QueryExecutor = typeof database | Transaction;
 
 /** When and where a note is created: its ID carries the creator's local date (sprint 029-CL). */
 export interface NoteClock {
-	/** The instant of creation; defaults to now. */
+	/** The instant of creation, stored as `created_at` when given; defaults to now. */
 	now?: Date;
 	/** IANA zone the date is read in (`X-Timezone` / `?tz=`, as for `GET /api/me`); defaults to the server's. */
 	timezone?: string;
@@ -149,7 +149,10 @@ export async function createNoteForUser(
 				title: encryptNullable(title ?? null),
 				content: encryptNullable(content ?? null),
 				contentJson: encryptNullable(contentJson ?? null),
-				wordCount
+				wordCount,
+				// A caller-given instant (a backdated note, sprint 034-CL) is also its created_at;
+				// updated_at stays the database's now
+				...(clock.now ? { createdAt: clock.now } : {})
 			})
 			.returning();
 		return decryptNote(results[0]);
