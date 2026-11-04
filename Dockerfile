@@ -28,9 +28,12 @@ RUN npm ci --omit=dev --omit=optional --ignore-scripts && npm cache clean --forc
 # ---- Runtime ----
 FROM node:22.23.4-alpine3.24
 
+# BODY_SIZE_LIMIT: adapter-node refuses bodies over 512 KB by default; attachments go up to
+# 10 MB (the route returns its own 400 above that), so allow a little over for multipart framing.
 ENV NODE_ENV=production \
     PORT=3000 \
-    HOST=0.0.0.0
+    HOST=0.0.0.0 \
+    BODY_SIZE_LIMIT=11M
 
 WORKDIR /app
 
