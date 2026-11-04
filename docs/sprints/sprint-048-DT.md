@@ -1,6 +1,6 @@
 # Sprint 048 — DT: iOS build and TestFlight lane
 
-**Status:** ready for review
+**Status:** merged
 **Branch:** `sprint-048-DT/ios-build` · **Worktree:** `.claude/worktrees/sprint-048-DT`
 **Sources:** owner request 2026-11-04: an iOS build, with the release tooling from the adjacent `~/sites/timeConvertor` project. Decision in `docs/decisions.md` (2026-11-04, iOS build). Runs in parallel with 047-QA (which owns app UI/CSS); this sprint owns `src-tauri/` (iOS parts), `scripts/ios/`, `docs/IOS-RELEASE.md`, and a project skill. Wave rules apply.
 

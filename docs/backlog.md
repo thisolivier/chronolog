@@ -32,6 +32,7 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 - **046-CL** Search results as one interleaved list with type icons; one-line meta on phones.
 - **043-CL** Trash view `/notes/trash`, link text in previews and titles, deleted-attachment styling, `NoteEditorPanel` split, reactive toolbar disabled states, phone Undo/linked entries/landscape.
 - **044-CL** Playwright 2FA login test, version drift notice (`serverCommit` on `/api/me`), desktop sign-out clears the tray timer, distinct client colours, root navigation context, `undo --last-import` trashes imported notes, 0 svelte-check warnings, skill split into SKILL.md + reference.md, deterministic WebKit tests, screenshots only with `UPDATE_SPRINT_SCREENSHOTS=1`. CLI 1.3.0.
+- **048-DT** Tauri iOS shell (`dev.thisolivier.chronolog`, loads production, portrait on iPhone), `scripts/ios/ship-ios.sh` TestFlight lane and `testflight-setup` skill from timeConvertor, `docs/IOS-RELEASE.md`, simulator UI-test driver in `scripts/ios/ui-check/`. Proven in the simulator up to the missing provisioning profile.
 - **047-QA** iPhone UI pass (SE, 15, 15 Pro Max, WebKit): 16 px inputs, `dvh` + safe areas, 44 pt touch targets, Move menu and wiki-link list on screen, stacked Settings rows, phone Find button. Deferred: touch path to reorder clients, crowded title bar while a timer runs, small contract arrows, raw `[[ID]]` when editing an entry, sideways-scrolling note toolbar has no visible hint (`docs/review/2026-11-04-iphone-ui.md`).
 - **045-CL** Offline outbox: per-user IndexedDB read cache, service worker for offline reload (not in Tauri), localStorage outbox with per-field conflict hold, `clientRequestId` idempotent creates (migration 0011), account-safe replay. Not queued offline: note move/pin/trash, attachments, week status, stopping a server timer.
 - **Offline banner and read cache** (`fix/offline-banner-and-cache`): the banner shows when the server is unreachable, and the read cache is write-through.
@@ -43,7 +44,7 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 3. **Airtable hours logging skill.** Deferred by the owner until the MCP details are in hand.
 4. **End-client status and hours API skill.** Deferred until the owner has API access.
 5. **Invoice generation from existing templates.** Deferred until 3 and 4 are sorted.
-6. **iOS build (owner request 2026-11-04).** UI pass at iPhone sizes (047-QA), then a Tauri iOS shell with the timeConvertor TestFlight lane (048-DT); owner does the Apple portal steps.
+6. **iOS build: owner steps left.** 047 and 048 done. Owner: App ID `dev.thisolivier.chronolog`, App Store Connect record, "Chronolog App Store" profile, then `scripts/ios/ship-ios.sh 1` (the `testflight-setup` skill walks it; `docs/IOS-RELEASE.md`). Follow-ups: attachments open with `window.open`, which the iOS shell does not support (web-side fix); iPhone landscape locked because the shell reports stale safe-area insets after rotation; signed-in flows against production untried in the app until the first TestFlight install.
 7. **Key rotation (IF-4) and per-device keys (IF-5).** Discuss with the owner before starting. An `enc2:` envelope with a key id and a re-encrypt walker; several device keys so one lost device can be revoked alone.
 
 ## Owner-requested, back of the queue (2026-11-04)
