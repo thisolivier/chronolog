@@ -19,6 +19,7 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 - **Docs sweep**: SPEC storage and deployment passages current, obsolete PowerSync docs removed or marked historical.
 - **031-CL** Clients, contracts, deliverables and work types through the API and the CLI (add, edit, archive, remove with safe deletion).
 - **032-CL** One validation for contract, deliverable and work type on every entry write path; `chronolog edit --deliverable/--work-type`; `scripts/check-entry-references.mjs`.
+- **033-CL** Archived group in the sidebar, single-contract clients as one row, archived-contract journeys fixed.
 - **Offline banner and read cache** (`fix/offline-banner-and-cache`): the banner shows when the server is unreachable, and the read cache is write-through.
 
 ## Next (owner-decided, in this order)
@@ -54,6 +55,10 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 - `TimeEntryDisplay.clientId`, `deliverableId` and `workTypeId` are still optional (019 sign-off).
 
 ### Admin / shell
+
+- New Note still works on an archived contract (the API never refused it); decide whether archived contracts should be read-only (033 sign-off).
+- Two clients can share the same palette colour (Internal and Acme both pink in test data); more visible now that single-contract rows show the dot alone (033 sign-off).
+- The checklist driver README still describes the pre-033 sidebar grouping (033 sign-off).
 
 - The deliverable sort-order number field and drag-to-reorder are not built; contracts have up and down arrows only (026 sign-off, friction #30).
 - Admin reads as a separate app rather than the same shell (journeys P-03).

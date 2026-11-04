@@ -1,6 +1,6 @@
 # Sprint 033 — CL: Archived clients in the sidebar; single-contract clients collapse
 
-**Status:** ready for review
+**Status:** merged
 **Branch:** `sprint-033-CL/sidebar-archive-and-collapse` · **Worktree:** `.claude/worktrees/sprint-033-CL` · **Port:** 5211
 **Sources:** owner request 2026-11-04; `docs/review/2026-11-03-ux-journeys.md` (sidebar hierarchy rules); sprint 026 (archive), 027 (navigation state and context labels), 031 (archive through the API).
 
