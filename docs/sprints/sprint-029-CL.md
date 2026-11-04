@@ -1,6 +1,6 @@
 # Sprint 029 — CL: API hardening and quick wins
 
-**Status:** in progress
+**Status:** ready for review (not merged)
 **Branch:** `sprint-029-CL/api-hardening-quick-wins` · **Worktree:** `.claude/worktrees/sprint-029-CL` · **Port:** 5207
 **Sources:** `docs/backlog.md` (API / CLI, Admin / shell, Housekeeping), origin branches `fix/json-parse-error-handling`, `fix/time-entry-search-input-validation`, `fix/weekly-status-input-validation` (one commit each, do not merge; they conflict with main).
 
@@ -32,3 +32,25 @@ Owns `src/routes/api/**`, `src/lib/server/db/queries/notes.ts`, `queries/work-ty
 ## Verification
 
 Unit tests for tasks 1–4; an e2e run in `src/e2e/` for the eight parallel creates and for edit/undo; screenshots in `docs/review/screenshots/sprint-029/` of the first-run empty state and of a CLI edit showing in the UI. Write the sign-off at the bottom of this file with what was done, what was left, and the test counts. Do not merge; leave the branch for review.
+
+## Sign-off
+
+**2026-11-03, implemented on `sprint-029-CL/api-hardening-quick-wins`, rebased onto `main` after the sprint 030 merge (not merged).**
+
+1. **JSON bodies.** I added `src/lib/server/api-request.ts`. `readJsonObject` turns a malformed, empty or non-object body into `400 invalid_json` in the shared shape. It is used by the six named routes and by two more that were also unguarded: `PUT /api/notes/[noteId]` and `PUT /api/time-entries/[id]`. `POST /api/time-entries` now uses it too. From `origin/fix/weekly-status-input-validation` I ported, by hand, into `weekly-statuses/week-input.ts`: year 2000–2100, week 1–53, and a non-empty known status (trimmed). The GET `weeks` keys are validated the same way, with at most 60 per request. From `origin/fix/time-entry-search-input-validation`, main lacked only the 200-character cap on `GET /api/notes/search` (`400 query_too_long`). Main's `validateDurationMinutes` already covered its duration checks.
+2. **Note ID date.** `getNextNoteId` and `createNoteForUser` take a clock (`now`, `timezone`). `POST /api/notes` reads the zone the same way `GET /api/me` does (`?tz=` or `X-Timezone`, falling back to the server's zone; both now go through `readRequestTimezone`). The CLI already sent `X-Timezone`. The browser's `postJson` now sends it too, so UI-created notes get the local date. Tested at 23:30 Europe/London in BST and GMT, at 00:30 BST (UTC is still the day before) and at 23:30 Los Angeles.
+3. **Collisions.** The ID is allocated and inserted in one transaction holding `pg_advisory_xact_lock(hashtext('note-id:<SHORTCODE>.<YYYYMMDD>'))`. The retry loop is gone. The key is the ID prefix rather than the contract, because two contracts of the same client share an ID space. Eight parallel creates pass in the unit test and over HTTP (e2e). With the lock commented out, the unit test fails. Sequences are compared as numbers, so `.1000` follows `.999`.
+4. **Ownership.** `contractBelongsToUser` is in `queries/contracts.ts`. `POST /api/notes`, `POST /api/time-entries`, `PUT`/`PATCH /api/time-entries/[id]` (when the contract or deliverable changes), `POST /api/timer/start` and `POST /api/timer/save` all answer `403 contract_forbidden`. A deliverable must belong to the entry's contract (`400 invalid_deliverable`). One extra fix: `POST /api/notes/[noteId]/time-entries` used to link any entry id. It now returns 404 for an entry that is not the caller's.
+5. **CLI.** `PATCH` and `GET /api/time-entries/[id]` were added (`PUT` stays for the UI). `DELETE` already existed and now answers 404 on a non-UUID id instead of a 500. `PATCH` takes `date` and `duration` text: a range sets start and end, and a plain duration clears an old range. `chronolog edit <id> [--duration] [--description] [--date] [--deliverable X|none]`. `chronolog log` records the new entry in `last-entry.json` next to the config file. `chronolog undo` deletes that entry once, then forgets it. It refuses with exit 2 when nothing is recorded or the record is for another server. The CLI readme and the secretary skill (126 lines) are updated.
+6. **Dead code.** `deleteWorkType` is removed.
+7. **First-run notice.** `src/lib/components/onboarding/FirstRunNotice.svelte` is shown while the only client is the seeded Internal (`INTL`) one. It links to `/admin/clients` (Settings → Clients and contracts). It re-checks when the sidebar reloads contracts, so it goes away once a client exists. Page change: `src/routes/(workspace)/+layout.svelte` has one import plus one `<FirstRunNotice />` line above `TimeEntriesPanel` and one above `NoteListPanel`. No timesheet components were touched. Three Playwright locators (`getByText('Contracts')` twice and `getByRole('link', { name: 'Settings' })`) are now `exact`, because the notice's link text matched them for fresh test users.
+8. **Housekeeping.** I deleted `fix/json-parse-error-handling`, `fix/time-entry-search-input-validation` and `fix/weekly-status-input-validation` on origin after task 1 was done and tested.
+
+**Verification.** After the rebase: `npm run check` gives 0 errors (the 3 existing warnings in `src/routes/+layout.svelte`), `npm run lint` is clean, and `npm test` passes 679 tests in 64 files. New tests: `api-request`, `week-input`, `note-id-allocation`, `routes/api/api-hardening`, `cli/commands/correct`, `onboarding/first-run`. The API e2e suite passes 75/75 against port 5207, including the new `api-hardening-cli.e2e.test.ts`. Playwright chromium passes 37/37. Screenshots and the CLI transcript are in `docs/review/screenshots/sprint-029/`. They were taken just before the rebase onto sprint 030's timesheet changes.
+
+**Test harness.** `src/e2e/{setup,helpers}.ts` and `e2e-playwright/auth.setup.ts` take `E2E_USER_PREFIX`, so this sprint's users are `qa-029-*`. Run command: `E2E_USER_PREFIX=qa-029-e2e E2E_BASE_URL=http://localhost:5207 BETTER_AUTH_URL=http://localhost:5207 npm run test:e2e`. Vite listens on `localhost`, not `127.0.0.1`.
+
+**Left / follow-ups.**
+- Only entries created by `chronolog log` can be undone. Edits are not undoable, and there is no history beyond the last entry.
+- The first-run rule is name-based (client `Internal` with short code `INTL`). If someone renames the starter client, the notice disappears, which is acceptable.
+- QA users `qa-029-*` (unit-test users are cleaned up; registered UI and e2e users and their data remain) are in the shared dev database.
