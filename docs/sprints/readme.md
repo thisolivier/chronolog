@@ -10,6 +10,7 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 034-CL | Client/Server | CLI edits, appends, deletes, restores and backdates notes | merged |
 | 033-CL | Client | Archived clients in the sidebar; single-contract collapse | merged |
 | 032-CL | Client/Server | Work type must match the deliverable; CLI edit of work type | merged |
 | 031-CL | Client/Server | Admin objects through the API and CLI | merged |

@@ -20,6 +20,7 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 - **031-CL** Clients, contracts, deliverables and work types through the API and the CLI (add, edit, archive, remove with safe deletion).
 - **032-CL** One validation for contract, deliverable and work type on every entry write path; `chronolog edit --deliverable/--work-type`; `scripts/check-entry-references.mjs`.
 - **033-CL** Archived group in the sidebar, single-contract clients as one row, archived-contract journeys fixed.
+- **034-CL** `note edit/append/delete/restore`, `note new --date`, PATCH notes with conflict detection, markdown-only saves clear stale TipTap JSON.
 - **Offline banner and read cache** (`fix/offline-banner-and-cache`): the banner shows when the server is unreachable, and the read cache is write-through.
 
 ## Next (owner-decided, in this order)
@@ -34,6 +35,9 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 ## Carried-over follow-ups
 
 ### Notes / editor
+
+- A restored note gets a new ID, so `[[old-id]]` links elsewhere dangle unless it was the newest of its day (034 sign-off).
+- A note created by the CLI stores word count 0 until its first edit or browser save (034 sign-off).
 
 - Toolbar `disabled` states evaluate once; only the active highlights are reactive (020 sign-off).
 - A keepalive save at unload can reach the server after the reloaded page has loaded the note; the next edit gets the conflict message, no text lost (024 sign-off).

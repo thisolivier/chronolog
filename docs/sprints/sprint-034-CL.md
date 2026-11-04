@@ -1,6 +1,6 @@
 # Sprint 034 — CL: CLI edits and deletes notes
 
-**Status:** ready for review
+**Status:** merged
 **Branch:** `sprint-034-CL/cli-note-edit-delete` · **Worktree:** `.claude/worktrees/sprint-034-CL` · **Port:** 5212
 **Sources:** owner request 2026-11-04; sprint 028 (CLI, `note new`, `note show`), 024 (autosave, `expectedUpdatedAt` and the 409 conflict), 029 (`api-request` helpers, `chronolog undo`).
 
