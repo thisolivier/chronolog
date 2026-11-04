@@ -1,6 +1,6 @@
 ---
 name: chronolog-secretary
-description: Log consulting time, write client notes and summarise a client's week in Chronolog through the `chronolog` CLI. Use when the user says they worked on something ("log 2h on the Acme work"), asks to write up or file a note for a client, asks what was done this week or for a client, or asks to mark a week ready or submitted.
+description: Log consulting time, write client notes, summarise a client's week and set up clients in Chronolog through the `chronolog` CLI. Use when the user says they worked on something ("log 2h on the Acme work"), asks to write up or file a note for a client, asks what was done this week or for a client, asks to mark a week ready or submitted, or asks to add, rename, archive or remove a client, contract, deliverable or work type (tag).
 allowed-tools: Bash(chronolog:*), Bash(node cli/chronolog.mjs:*), Read, Write
 ---
 
@@ -107,6 +107,36 @@ one (`chronolog week`).
 **Week status**: `chronolog status 2026-W45 draft-ready` (or `unsubmitted`, `submitted`;
 `current` for this week). Only set `submitted` when the owner says it was sent to the client.
 
+## Setting up a client
+
+The hierarchy is **client** (short code, e.g. `ACME`) → **contract** → **deliverable** → **work
+type** (the owner may say "tag"; `tag` works as an alias). Time is logged to a contract, optionally
+with a deliverable and one of its work types. Create top-down, each step using the last one's path:
+
+```bash
+chronolog client add "Acme Ltd" --code ACME --emoji 🚀 --json
+chronolog contract add ACME "Website" --description "Rebuild of acme.com" --json
+chronolog deliverable add ACME/Website "Phase 1" --json
+chronolog work-type add "ACME/Website/Phase 1" "Design" --json
+chronolog log ACME/Website 1h "Wireframes" --deliverable "Phase 1" --work-type Design --json
+```
+
+- **Short codes are the owner's choice.** Never invent or abbreviate one; ask "What short code
+  for Acme?" It prefixes note ids and cannot clash: a code in use exits **5** `duplicate`.
+- References are paths (`ACME`, `ACME/Website`, `ACME/Website/Phase 1`, `…/Design`) or ids, with
+  the never-guess rule: exit 3 lists candidates, ask. Lists: `chronolog deliverables ACME/Website`,
+  `chronolog work-types "ACME/Website/Phase 1"`, `clients --all` / `contracts --all` for archived.
+- Edit: `client edit ACME --name "Acme Limited"` (`--code`, `--emoji X|none`), `contract edit
+  ACME/Website --inactive` (`--name`, `--description`, `--active`), `deliverable|work-type edit
+  <path> --name "…"`.
+- **Prefer archive over remove.** "We're done with Acme" means `chronolog client archive ACME`
+  (or `contract archive ACME/Website`): hidden from the sidebar and selects, everything kept,
+  `unarchive` restores it.
+- **`remove` is confirmed with the owner every time.** Run it once without `--yes`: it exits 2
+  and prints what would move ("3 time entries (4h30m) and 1 note"). Tell the owner exactly that
+  and that entries go to Deleted Client / Deleted Contract (deliverable or work type: entries
+  keep a "Formerly:" line). Only after a clear yes, rerun with `--yes`, then report the message.
+
 ## When a call fails
 
 The CLI prints the server's `{ error, code }`; with `--json` it is on stderr with `status`.
@@ -118,6 +148,8 @@ The CLI prints the server's `{ error, code }`; with `--json` it is on stderr wit
 | 4 | 401 `invalid_token` / `unauthorized` | The token is wrong. Owner creates a new one in Settings → API tokens, then `chronolog init`. |
 | 4 | 403 `token_revoked` | This laptop's token was revoked. Same fix; do not retry. |
 | 5 | 409 `conflict` | Someone changed the item in the app. Re-read it (`note show`), tell the owner, do not overwrite. |
+| 5 | 409 `duplicate` | That short code is taken. Ask the owner for another; never pick one yourself. |
+| 2 | `remove` without `--yes` | Expected: show the owner what would move, rerun with `--yes` only on their yes. |
 | 6 | 429 `rate_limited` | Too many failed attempts. Wait a minute; do not loop. |
 | 1 | 400 (e.g. `invalid_duration`) | Fix the input from the message, or ask the owner. |
 | 1 | network / 5xx | Say the server is unreachable; do not retry more than once. |
