@@ -28,7 +28,7 @@ Fetch mode only: there is no sync service. Offline support is a later cache + ou
 | File | Purpose |
 |---|---|
 | `docker-compose.prod.yml` | App + Postgres. Project `chronolog-prod`; containers `chronolog-prod-app` / `chronolog-prod-postgres`; volume `chronolog-prod-postgres-data`. None of these can collide with the dev stack (project `chronolog`). |
-| `Dockerfile` | Multi-stage build on `node:22.23.4-alpine3.24`: `npm ci` + `vite build`, then a runtime stage with `build/`, `drizzle/`, `scripts/migrate.mjs` and production dependencies only, running as `node`. |
+| `Dockerfile` | Multi-stage build on `node:22.23.4-alpine3.24`: `npm ci` + `vite build`, then a runtime stage with `build/`, `drizzle/`, `scripts/migrate.mjs` and production dependencies only, running as `node`. Build argument `BUILD_COMMIT` becomes `CHRONOLOG_BUILD_COMMIT` (see Updating). |
 | `scripts/migrate.mjs` | Applies pending Drizzle migrations on every container start (idempotent), before `node build`. |
 | `.env.prod.example` | Template for `.env.prod` (gitignored, excluded from the build context). |
 | `scripts/deploy-prod.sh` | Validate, build, start, wait for health, print the URL and first-account steps. |
@@ -115,6 +115,16 @@ scripts/deploy-prod.sh
 
 Migrations run automatically on start. Run a single app replica only, because migrations are not
 coordinated between replicas.
+
+**Build commit.** `scripts/deploy-prod.sh` passes `git rev-parse HEAD` as the `BUILD_COMMIT` build
+argument; the image keeps it as `CHRONOLOG_BUILD_COMMIT` and `GET /api/me` reports it as
+`serverCommit` (044-CL). The laptop CLI compares it with its own checkout once a day and says
+`run git pull` when they differ. `.git` is not in the build context, so a plain
+`docker compose ... up --build` without the script reports `dev`, and the CLI then says nothing.
+The script warns when the checkout has uncommitted changes (the image then reports a commit it
+does not exactly match). Check it with
+`curl -s -H 'X-Device-Key: …' -H 'Authorization: Bearer …' https://chronolog.throb.online/api/me` or
+`chronolog me` (both commits in brackets).
 
 **Rollback:** `git checkout <previous commit> && scripts/deploy-prod.sh`. If the update included a
 migration, restore the pre-update dump as well (see Restore). Drizzle migrations only go forward.

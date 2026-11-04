@@ -27,6 +27,7 @@ import { todos } from './commands/todos.mjs';
 import { init } from './commands/init.mjs';
 import { Cancelled } from './lib/confirm.mjs';
 import { CLI_VERSION } from './lib/version.mjs';
+import { noticeVersionDrift } from './lib/version-drift.mjs';
 
 const USAGE = `Usage: chronolog <command> [arguments] [--json]      (chronolog --version)
 
@@ -165,6 +166,7 @@ export async function main(argv, environment = process.env) {
 		const config = loadConfig(environment);
 		const api = createApiClient(config);
 		await command({ api, print, positionals: rest, flags, config, environment });
+		await noticeVersionDrift({ api, environment });
 		return 0;
 	} catch (failure) {
 		if (failure instanceof Cancelled) {

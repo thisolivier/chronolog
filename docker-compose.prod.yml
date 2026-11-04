@@ -14,6 +14,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Set by scripts/deploy-prod.sh (git rev-parse HEAD); /api/me reports it as serverCommit.
+        BUILD_COMMIT: ${BUILD_COMMIT:-dev}
     image: chronolog-prod-app:latest
     container_name: chronolog-prod-app
     init: true

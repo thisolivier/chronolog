@@ -49,12 +49,19 @@ elif [[ -n "$port_owner" && "$port_owner" != "$APP_CONTAINER" ]]; then
 	fail "port $APP_PORT is published by container $port_owner (see docs/ports.md)"
 fi
 
+# The commit baked into the image (/api/me serverCommit; the CLI warns when it differs from its own)
+BUILD_COMMIT="$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo dev)"
+if [[ -n "$(git -C "$REPO_ROOT" status --porcelain --untracked-files=no 2>/dev/null)" ]]; then
+	echo "deploy-prod: warning: uncommitted changes; the image reports commit ${BUILD_COMMIT:0:7} anyway" >&2
+fi
+export BUILD_COMMIT
+
 compose() { "$DOCKER" compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" "$@"; }
 
 echo "==> Validating $COMPOSE_FILE"
 compose config --quiet
 
-echo "==> Building image and starting $PROJECT_NAME"
+echo "==> Building image (commit ${BUILD_COMMIT:0:7}) and starting $PROJECT_NAME"
 compose up -d --build --remove-orphans
 
 echo "==> Waiting for $APP_CONTAINER to report healthy (timeout ${HEALTH_TIMEOUT_SECONDS}s)"
