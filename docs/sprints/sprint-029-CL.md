@@ -1,6 +1,6 @@
 # Sprint 029 — CL: API hardening and quick wins
 
-**Status:** ready for review (not merged)
+**Status:** merged
 **Branch:** `sprint-029-CL/api-hardening-quick-wins` · **Worktree:** `.claude/worktrees/sprint-029-CL` · **Port:** 5207
 **Sources:** `docs/backlog.md` (API / CLI, Admin / shell, Housekeeping), origin branches `fix/json-parse-error-handling`, `fix/time-entry-search-input-validation`, `fix/weekly-status-input-validation` (one commit each, do not merge; they conflict with main).
 

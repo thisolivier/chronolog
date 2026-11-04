@@ -14,6 +14,9 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 - **026-CL** Admin, shell and safety: safe deletion with archive, honest offline banner, 768 px breakpoint, page titles.
 - **027-CL** Navigation state: the URL is the state, one `openNote()`, context labels, scroll restore.
 - **028-CL** Personal API tokens, the `chronolog` CLI and the `chronolog-secretary` skill.
+- **029-CL** API hardening and quick wins: JSON body guards, weekly-status validation, note IDs in the user's timezone under an advisory lock, contract ownership on writes, `chronolog edit` and `undo`, first-run notice.
+- **030-CL** Timesheet polish: today's alignment, timer pill and clock, timer past midnight, visible deliverable reset on contract change, Formerly line, keyboard focus after save and wiki-link.
+- **Docs sweep**: SPEC storage and deployment passages current, obsolete PowerSync docs removed or marked historical.
 - **Offline banner and read cache** (`fix/offline-banner-and-cache`): the banner shows when the server is unreachable, and the read cache is write-through.
 
 ## Next (owner-decided, in this order)
@@ -45,36 +48,29 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 
 - Pause was removed in 025; bringing it back needs a `paused_seconds` column (025 sign-off).
 - A timer with no contract lives only in this browser's localStorage, so another device will not see it (025 sign-off).
-- `calculateElapsedFromStartTime` ignores the date, so a timer running past midnight under-reports its display (025 sign-off).
 - Bare integers are read as minutes (`8` is 8 minutes); revisit if users type hours (025 sign-off).
-- Time cards collapse the newline, so "Formerly: ..." reads inline; give it its own muted line (026 sign-off).
-- Changing an entry's contract silently drops its deliverable (journeys P-05).
-- The timer pill shows the pink Internal colour with no contract, and `0:00:01` against `00:00:01` in the widget (journeys P-02).
-- Today's section is inset 12 px, so its cards do not line up with other days (journeys P-01).
 - `TimeEntryDisplay.clientId`, `deliverableId` and `workTypeId` are still optional (019 sign-off).
 
 ### Admin / shell
 
 - The deliverable sort-order number field and drag-to-reorder are not built; contracts have up and down arrows only (026 sign-off, friction #30).
-- `deleteWorkType` in `queries/work-types.ts` still cascades and nothing calls it; remove it (026 sign-off).
 - Admin reads as a separate app rather than the same shell (journeys P-03).
 - Two contracts with the same name under one client are allowed and look identical in the sidebar (journeys P-08).
-- First run gives an empty week and a hidden "General" contract, and nothing says clients are made under Settings (friction #31).
 
 ### Navigation
 
+- Sidebar is about 25 Tabs away from the editor and there are no keyboard shortcuts (journeys A-11, 030 sign-off).
+- A save made from notes mode switches to the timesheet without focusing the new card; on touch screens a followed wiki-link does not focus the editor on purpose (030 sign-off).
+
 - The root layout creates the navigation context only on initial mount, so a client-side move from an unauthenticated page into `/` throws "Navigation context not found"; `/login` works around it (020 sign-off).
-- Keyboard focus is lost after saving an entry and after following a wiki-link, and lands on `<body>` (027 sign-off, journeys A-11).
 - The in-app history mirror resets when the browser jumps to an entry it did not record, for example after a crash restore (027 sign-off).
 
 ### API / CLI
 
-- `POST /api/notes` retries an ID collision five times, then returns 500; eight parallel creates exhaust it. Fix before any bulk import (027 sign-off).
-- `getNextNoteId` uses the UTC date, so evening notes on the laptop get tomorrow's date (028 sign-off).
 - Opening a CLI note in the editor autosaves it as TipTap JSON, which counts as an edit (028 sign-off).
-- `POST /api/notes` and `POST /api/time-entries` do not check that the contract belongs to the user; harmless with one user per instance (028 sign-off).
+- `chronolog undo` only knows the last entry made by `chronolog log`; edits cannot be undone (029 sign-off).
+- The first-run notice matches the starter client by name and short code `Internal`/`INTL`; renaming it hides the notice (029 sign-off).
 - The failure limiter is in memory and per process (028 sign-off).
-- The CLI cannot edit or delete entries; candidates are `chronolog edit` or `chronolog undo` (028 sign-off).
 
 ### Infrastructure / dev environment
 
@@ -87,6 +83,7 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 
 ## Housekeeping
 
-- Three unmerged API-hardening branches on origin, each with one commit not on `main` (checked 2026-11-03): `fix/json-parse-error-handling` (try/catch around `request.json()`), `fix/time-entry-search-input-validation`, `fix/weekly-status-input-validation`. Re-apply onto `main` by merge or by hand, then delete the branches.
+- The three `fix/*` API-hardening branches were re-applied by hand in sprint 029 and deleted on origin.
+- Shared dev Postgres holds leftover `qa-029-*` and `qa-030-*` users; harmless, delete when convenient.
 - The Sprint 018-QA manual checklist was never run; the live QA reviews in `docs/review/` cover the automatable parts.
 - Pre-prune safety net: `~/sites/chronolog-prune-backup-2026-11-03.bundle` holds every ref that existed before the worktree and branch prune.

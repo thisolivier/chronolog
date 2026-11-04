@@ -4,13 +4,13 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
-| 029-CL | Client/Server | API hardening and quick wins | in progress |
 | 018-QA | QA | Manual testing backlog | superseded by docs/review/2026-11-03-qa-state.md |
 
 ## Completed Sprints
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 029-CL | Client/Server | API hardening and quick wins | merged |
 | 030-CL | Client | Timesheet polish | merged |
 | 027-CL | Client | Navigation state, URLs and context | merged |
 | 028-CL | Client/Server | API tokens, CLI and the laptop skill | merged |
