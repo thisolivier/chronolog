@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { NoteChanged, noteAppend, noteDelete, noteEdit, noteRestore } from './note-changes.mjs';
@@ -7,7 +7,6 @@ import { ApiError } from '../lib/api.mjs';
 import { UsageError } from '../lib/args.mjs';
 import { ReferenceError_ } from '../lib/resolve.mjs';
 import { appendedContent, countWords, editedContent } from '../lib/note-body.mjs';
-import { readTrash } from '../lib/trash.mjs';
 import { noteNew } from './write.mjs';
 
 const NOTE_ID = 'ACME.20261104.001';
@@ -44,7 +43,6 @@ const noteApi = (extra = {}) =>
 		...extra
 	});
 
-const tempEnvironment = () => ({ CHRONOLOG_CONFIG: join(mkdtempSync(join(tmpdir(), 'chronolog-034-')), 'config.json') });
 
 describe('note markdown helpers', () => {
 	it('a new body keeps the title heading unless it brings its own; --title replaces it', () => {
@@ -106,52 +104,46 @@ describe('chronolog note append', () => {
 	});
 });
 
-describe('chronolog note delete and restore', () => {
+describe('chronolog note delete and restore (server trash, sprint 037-CL)', () => {
+	const DELETED = { success: true, id: NOTE_ID, title: STORED.title, contractId: CONTRACT.id, deletedAt: '2026-11-04T12:00:00.000Z', purgeAt: '2026-12-04T12:00:00.000Z' };
+
 	it('refuses without a terminal and without --yes, deleting nothing', async () => {
 		const api = noteApi();
-		const environment = tempEnvironment();
-		const refusal = noteDelete({ api, print: () => {}, positionals: [NOTE_ID], flags: {}, environment, stdin: notATerminal });
+		const refusal = noteDelete({ api, print: () => {}, positionals: [NOTE_ID], flags: {}, stdin: notATerminal });
 		await expect(refusal).rejects.toThrow(/Note ACME.20261104.001 “Status: checkout” in ACME\/Website, 6 words\.\nNot deleted/);
 		expect(api.calls.some((call) => call.method === 'DELETE')).toBe(false);
-		expect(readTrash(NOTE_ID, environment)).toBeNull();
 	});
 
-	it('writes the trash file (mode 600) before deleting, and restore recreates the note', async () => {
-		const environment = tempEnvironment();
-		const api = noteApi({
-			[`DELETE /api/notes/${NOTE_ID}`]: () => {
-				expect(readTrash(NOTE_ID, environment)).not.toBeNull();
-				return { success: true, id: NOTE_ID, title: STORED.title, contractId: CONTRACT.id };
-			},
-			'POST /api/notes': (body) => ({ note: { ...body, id: 'ACME.20261105.001' } })
-		});
-		const printedJson = [];
-		await noteDelete({ api, print: (text, value) => printedJson.push(value), positionals: [NOTE_ID], flags: { yes: true }, environment, stdin: notATerminal });
-		const { trashPath } = printedJson[0];
-		expect(printedJson[0].deleted).toEqual({ id: NOTE_ID, title: STORED.title, contractId: CONTRACT.id });
-		expect(statSync(trashPath).mode & 0o777).toBe(0o600);
-		const fileText = readFileSync(trashPath, 'utf8');
-		expect(fileText).toContain(`id: ${NOTE_ID}\ntitle: Status: checkout\ncontractId: ${CONTRACT.id}\ncontract: ACME/Website\nupdatedAt: ${STORED.updatedAt}`);
-		expect(fileText.endsWith(STORED.content)).toBe(true);
-
-		const restored = [];
-		await noteRestore({ api, print: (text) => restored.push(text), positionals: [NOTE_ID], flags: {}, environment });
-		expect(api.calls.find((call) => call.method === 'POST').body).toEqual({ contractId: CONTRACT.id, title: STORED.title, content: STORED.content });
-		expect(restored[0]).toBe(`Restored ${NOTE_ID} as new note ACME.20261105.001 in ACME/Website: Status: checkout`);
-		expect(existsSync(trashPath)).toBe(false);
+	it('deletes through the API and prints the id and the 30-day restore line', async () => {
+		const api = noteApi({ [`DELETE /api/notes/${NOTE_ID}`]: DELETED });
+		const printed = [];
+		await noteDelete({ api, print: (text, value) => printed.push({ text, value }), positionals: [NOTE_ID], flags: { yes: true }, stdin: notATerminal });
+		expect(printed[0].text).toBe(`Deleted note ${NOTE_ID} “Status: checkout” from ACME/Website.\nRestore with \`chronolog note restore ${NOTE_ID}\` within 30 days.`);
+		expect(printed[0].value.deleted).toEqual({ id: NOTE_ID, title: STORED.title, contractId: CONTRACT.id, deletedAt: DELETED.deletedAt, purgeAt: DELETED.purgeAt });
 	});
 
-	it('removes the trash file again when the server refuses the delete', async () => {
-		const environment = tempEnvironment();
-		const api = noteApi({ [`DELETE /api/notes/${NOTE_ID}`]: new ApiError(500, 'boom', 'internal_error') });
-		await expect(noteDelete({ api, print: () => {}, positionals: [NOTE_ID], flags: { yes: true }, environment })).rejects.toThrow('boom');
-		expect(readTrash(NOTE_ID, environment)).toBeNull();
+	it('restore <id> posts to the restore route and names the contract, flagging an archived one', async () => {
+		const contract = { id: CONTRACT.id, name: 'Website', clientShortCode: 'ACME', archived: true, isSystem: false };
+		const api = fakeApi({ [`POST /api/notes/${NOTE_ID}/restore`]: { note: STORED, contract } });
+		const printed = [];
+		await noteRestore({ api, print: (text, value) => printed.push({ text, value }), positionals: [NOTE_ID], flags: {} });
+		expect(api.calls).toEqual([{ method: 'POST', path: `/api/notes/${NOTE_ID}/restore`, body: {} }]);
+		expect(printed[0].text).toBe(`Restored note ${NOTE_ID} “Status: checkout” to ACME/Website (that contract is archived; \`chronolog note edit ${NOTE_ID} --contract X\` moves it).`);
+		expect(printed[0].value).toMatchObject({ id: NOTE_ID, contract });
 	});
 
-	it('restore without a trash file is an unknown reference; a path-like id is refused', async () => {
-		const environment = tempEnvironment();
-		await expect(noteRestore({ api: fakeApi(), print: () => {}, positionals: [NOTE_ID], flags: {}, environment })).rejects.toBeInstanceOf(ReferenceError_);
-		await expect(noteRestore({ api: fakeApi(), print: () => {}, positionals: ['../config'], flags: {}, environment })).rejects.toBeInstanceOf(UsageError);
+	it('restore of a note not in the trash is an unknown reference (exit 3)', async () => {
+		const api = fakeApi({ [`POST /api/notes/${NOTE_ID}/restore`]: new ApiError(404, 'not in your trash', 'not_in_trash') });
+		await expect(noteRestore({ api, print: () => {}, positionals: [NOTE_ID], flags: {} })).rejects.toBeInstanceOf(ReferenceError_);
+	});
+
+	it('restore with no id lists the server trash', async () => {
+		const trashed = [{ id: NOTE_ID, title: 'Status: checkout', contractId: CONTRACT.id, contract: 'ACME/Website', deletedAt: DELETED.deletedAt, purgeAt: DELETED.purgeAt }];
+		const api = fakeApi({ 'GET /api/notes/trash': { notes: trashed } });
+		const printed = [];
+		await noteRestore({ api, print: (text, value) => printed.push({ text, value }), positionals: [], flags: {} });
+		expect(printed[0].text).toBe(`Notes in the trash (restorable for 30 days): 1\n${NOTE_ID}  deleted 2026-11-04  purged 2026-12-04  ACME/Website  Status: checkout`);
+		expect(printed[0].value).toEqual(trashed);
 	});
 });
 

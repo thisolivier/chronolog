@@ -40,8 +40,8 @@ const USAGE = `Usage: chronolog <command> [arguments] [--json]      (chronolog -
   note edit <note-id> [--title "..."] [--contract X] [--file body.md]   a body replaces the text
   note append <note-id> [--file text.md]         adds a blank line and the text (or stdin)
                                  edit/append: --expected-updated-at T refuses (exit 7) if changed since T
-  note delete <note-id> [--yes]                  keeps a copy in ~/.config/chronolog/trash/
-  note restore [<note-id>] [--contract X]        recreates it as a new note (no id: list the trash)
+  note delete <note-id> [--yes]                  moves it to the trash (restorable for 30 days)
+  note restore [<note-id>]                       brings it back with its id and links (no id: list the trash)
   note attach <note-id> <file> [--no-insert]     image or PDF (10 MB); appends ![name]/[name](chronolog://…)
   note attachments <note-id>                     id, filename, type, size, created
   attachment get <id> [--out <path>] [--force]   saves under the original name here by default

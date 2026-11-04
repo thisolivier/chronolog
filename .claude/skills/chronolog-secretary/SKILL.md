@@ -113,8 +113,8 @@ chronolog note edit ACME.20261103.001 --title "Status: checkout" --contract ACME
   end. `edit` with a body (stdin or `--file`) replaces the whole text: only when asked to rewrite.
 - **Never delete a note unless the owner asked for it in this conversation.** `note delete <id>`
   without `--yes` exits 2 and prints title, contract and word count: tell the owner, then rerun with
-  `--yes` on their yes. A copy goes to `~/.config/chronolog/trash/<id>.md` (path printed);
-  `chronolog note restore <id>` recreates it on the same contract (`note restore` lists the trash).
+  `--yes` on their yes. It goes to the server trash with its id and links for 30 days, then is
+  purged: `chronolog note restore <id>` brings it back exactly (`note restore` lists the trash).
 
 ## Filing a document
 
