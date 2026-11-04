@@ -55,10 +55,11 @@ E2E_USER_PREFIX=qa-029-e2e E2E_BASE_URL=http://localhost:5207 BETTER_AUTH_URL=ht
 | `notes.e2e.test.ts` | POST/GET/PUT/DELETE /api/notes, backlinks, attachments, time-entries sub-resources |
 | `time-entries.e2e.test.ts` | POST/PUT/DELETE /api/time-entries, weekly, weekly-statuses, weeks |
 | `timer.e2e.test.ts` | GET/POST timer status, start, stop, save, discard |
-| `reference-data.e2e.test.ts` | GET /api/deliverables, GET /api/work-types |
+| `reference-data.e2e.test.ts` | GET /api/deliverables, GET /api/work-types (a deliverable that is not the caller's is 404) |
 | `search.e2e.test.ts` | GET /api/notes/search |
 | `attachments-offline.e2e.test.ts` | Attachment upload, metadata listing, download and delete |
 | `api-tokens-cli.e2e.test.ts` | /api/tokens, bearer auth, /api/me, error shape, GET /api/time-entries range, the `chronolog` CLI as a child process, revoked token 403 |
+| `admin-objects-cli.e2e.test.ts` | Sprint 031-CL: the CLI builds client → contract → deliverable → work type, logs against the work type, archives and unarchives, refuses `remove` without `--yes`, then removes the client and checks the entry was reassigned |
 | `api-hardening-cli.e2e.test.ts` | Malformed JSON bodies are 400 `invalid_json`, eight parallel note creates, note ID date in `X-Timezone`, `chronolog edit` and `chronolog undo` |
 
 ## Configuration
