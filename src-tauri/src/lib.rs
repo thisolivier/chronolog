@@ -1,18 +1,23 @@
-//! Chronolog desktop shell: the production site in one window, kept alive in the menu bar.
+//! Chronolog shell: the production site in one window. On macOS it is kept alive in the menu bar;
+//! on iOS it is a plain full-screen WKWebView.
 //!
-//! - `window`: the main window (external production URL, desktop user-agent suffix)
-//! - `tray`: the menu-bar item, its menu, and the 1 s title ticker
-//! - `timer`: the timer snapshot the page pushes, and the title formatting
+//! - `window`: the main window (external production URL; desktop user-agent suffix; iOS link guard)
+//! - `tray` (desktop): the menu-bar item, its menu, and the 1 s title ticker
+//! - `timer` (desktop): the timer snapshot the page pushes, and the title formatting
 
+#[cfg(desktop)]
 mod timer;
+#[cfg(desktop)]
 mod tray;
 mod window;
 
-use timer::{TimerSnapshot, TimerStore};
+#[cfg(desktop)]
 use tauri::{Manager, RunEvent, WindowEvent};
 
 /// Called by the page (through `window.__TAURI__.core.invoke`) on every timer change and once
-/// a minute. The only command the remote origin is granted (capabilities/remote-timer.json).
+/// a minute. The only command the remote origin is granted (capabilities/remote-timer.json,
+/// macOS only). Not registered on iOS, where there is no menu bar to show it.
+#[cfg(desktop)]
 #[tauri::command]
 fn set_timer_state(
     app: tauri::AppHandle,
@@ -20,7 +25,7 @@ fn set_timer_state(
     started_at: Option<i64>,
     contract_short_code: Option<String>,
 ) {
-    let running_changed = app.state::<TimerStore>().replace(TimerSnapshot {
+    let running_changed = app.state::<timer::TimerStore>().replace(timer::TimerSnapshot {
         running,
         started_at_milliseconds: started_at,
         contract_short_code,
@@ -31,10 +36,10 @@ fn set_timer_state(
     }
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
+#[cfg(desktop)]
 pub fn run() {
     let app = tauri::Builder::default()
-        .manage(TimerStore::default())
+        .manage(timer::TimerStore::default())
         .invoke_handler(tauri::generate_handler![set_timer_state])
         .setup(|app| {
             window::create_main_window(app.handle())?;
@@ -63,4 +68,19 @@ pub fn run() {
         #[cfg(not(target_os = "macos"))]
         let _ = (app_handle, event);
     });
+}
+
+/// iOS: one full-screen webview on the production site. No commands, no tray. The opener plugin
+/// lets the Rust side hand off-site links to Safari; no capability grants it to the page.
+#[cfg(mobile)]
+#[tauri::mobile_entry_point]
+pub fn run() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .setup(|app| {
+            window::create_main_window(app.handle())?;
+            Ok(())
+        })
+        .run(tauri::generate_context!())
+        .expect("error while running Chronolog");
 }

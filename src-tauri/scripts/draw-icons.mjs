@@ -8,6 +8,10 @@
  * Outputs, in src-tauri/icons/:
  *   app-icon.png       1024 px source for `tauri icon`: white clock on a blue rounded square
  *   tray-template.png  44 px monochrome menu-bar template (black on transparent, 22 pt @2x)
+ *   app-icon-ios.png   1024 px iOS source: the same clock, full bleed and opaque (iOS masks the
+ *                      corners itself and App Store validation rejects alpha). Regenerate the
+ *                      iOS set with `npx tauri icon src-tauri/icons/app-icon-ios.png -o <tmp>`
+ *                      and copy `<tmp>/ios/*` into gen/apple/Assets.xcassets/AppIcon.appiconset/
  */
 import { writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
@@ -150,7 +154,14 @@ const appIcon = render(1024, [
 ]);
 writeFileSync(join(iconsDirectory, 'app-icon.png'), appIcon);
 
+// iOS: full-bleed opaque square (every pixel covered by the background layer, so alpha is 255)
+const iosAppIcon = render(1024, [
+	{ shapes: [() => true], colour: [37, 99, 235] },
+	{ shapes: clockShapes(0.32, 0.06), colour: [255, 255, 255] }
+]);
+writeFileSync(join(iconsDirectory, 'app-icon-ios.png'), iosAppIcon);
+
 const trayTemplate = render(44, [{ shapes: clockShapes(0.44, 0.1), colour: [0, 0, 0] }]);
 writeFileSync(join(iconsDirectory, 'tray-template.png'), trayTemplate);
 
-console.log(`Wrote app-icon.png and tray-template.png to ${iconsDirectory}`);
+console.log(`Wrote app-icon.png, app-icon-ios.png and tray-template.png to ${iconsDirectory}`);

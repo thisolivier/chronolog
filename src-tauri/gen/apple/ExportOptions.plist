@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>destination</key>
+	<string>export</string>
+	<key>generateAppStoreInformation</key>
+	<false/>
+	<key>manageAppVersionAndBuildNumber</key>
+	<false/>
+	<!-- "app-store-connect" is Xcode 15.3+'s spelling of "app-store": App Store and TestFlight. -->
+	<key>method</key>
+	<string>app-store-connect</string>
+	<!-- One entry per bundle in the archive. Chronolog embeds no extensions. The profile is
+	     created in the portal by the owner (docs/IOS-RELEASE.md, one-time steps). -->
+	<key>provisioningProfiles</key>
+	<dict>
+		<key>dev.thisolivier.chronolog</key>
+		<string>Chronolog App Store</string>
+	</dict>
+	<key>signingCertificate</key>
+	<string>Apple Distribution</string>
+	<key>signingStyle</key>
+	<string>manual</string>
+	<key>stripSwiftSymbols</key>
+	<true/>
+	<key>teamID</key>
+	<string>CNHB9B5GX6</string>
+	<key>testFlightInternalTestingOnly</key>
+	<false/>
+	<key>uploadSymbols</key>
+	<true/>
+</dict>
+</plist>

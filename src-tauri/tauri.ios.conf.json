@@ -1,0 +1,11 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "identifier": "dev.thisolivier.chronolog",
+  "bundle": {
+    "iOS": {
+      "developmentTeam": "CNHB9B5GX6",
+      "minimumSystemVersion": "16.0",
+      "bundleVersion": "0"
+    }
+  }
+}
