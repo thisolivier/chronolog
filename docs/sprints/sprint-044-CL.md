@@ -15,7 +15,8 @@
 5. **Navigation context.** The root layout creates the navigation context so a client-side move from an unauthenticated page into `/` no longer throws "Navigation context not found"; remove the `/login` workaround if it becomes dead code.
 6. **`undo --last-import` covers notes**: imported notes go to the trash (037) on undo, with the same confirmation; entries as today.
 7. **Housekeeping.** Fix the 12 `svelte-check` warnings where the fix is safe; split the secretary skill (`.claude/skills/chronolog-secretary/SKILL.md`, over 200 lines) into SKILL.md plus a reference file, without changing what it tells the laptop Claude to do; update the checklist driver README to the post-033 sidebar; delete the leftover `qa-029-*`/`qa-030-*` dev users and their data (dev DB only).
-8. **Tests.** Unit for the drift check and colour picking; the Playwright 2FA test; API e2e for undo of an imported note batch.
+8. **Test hygiene.** Two WebKit Playwright tests are flaky (passed on retry after the 039–042 merge): `sidebar-client-view.spec.ts` "reorder clients by dragging" and `navigation-journeys.spec.ts` J2. Make them deterministic (wait on state, not time). Full Playwright runs also overwrite every sprint's committed screenshots in `docs/review/screenshots/`; write them only when an env var such as `UPDATE_SPRINT_SCREENSHOTS=1` is set (else to `test-results/`).
+9. **Tests.** Unit for the drift check and colour picking; the Playwright 2FA test; API e2e for undo of an imported note batch.
 
 ## Verification
 
