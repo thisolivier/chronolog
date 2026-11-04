@@ -6,7 +6,7 @@
 
 export class UsageError extends Error {}
 
-export const BOOLEAN_FLAGS = ['json', 'help', 'yes', 'all', 'active', 'inactive'];
+export const BOOLEAN_FLAGS = ['json', 'help', 'yes', 'all', 'active', 'inactive', 'version', 'force', 'noInsert'];
 
 export function parseArguments(argv, booleanFlags = BOOLEAN_FLAGS) {
 	const positionals = [];
@@ -41,8 +41,8 @@ export function parseArguments(argv, booleanFlags = BOOLEAN_FLAGS) {
 	return { positionals, flags };
 }
 
-/** Commands written as two words (`note new`, `client add`); `tag`/`tags` are the owner's word for work types. */
-const COMMAND_GROUPS = new Set(['note', 'client', 'contract', 'deliverable', 'work-type']);
+/** Commands written as two words (`note new`, `client add`, `attachment get`); `tag`/`tags` are the owner's word for work types. */
+const COMMAND_GROUPS = new Set(['note', 'client', 'contract', 'deliverable', 'work-type', 'attachment']);
 const ALIASES = { tag: 'work-type', tags: 'work-types', 'work-type-list': 'work-types', worktype: 'work-type', worktypes: 'work-types' };
 
 export function commandFromPositionals(positionals) {

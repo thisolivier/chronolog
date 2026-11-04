@@ -43,6 +43,8 @@ export const GET: RequestHandler = async ({ locals, params }) => {
 			'Content-Disposition': contentDisposition(attachment.filename),
 			'Content-Length': attachment.sizeBytes.toString(),
 			'X-Content-Type-Options': 'nosniff',
+			// The CLI reads this (HEAD) to warn when the note still links to an attachment it deletes
+			'X-Note-Id': attachment.noteId,
 			// private: decrypted bytes must never sit in a shared cache (Cloudflare) in front of the gate
 			'Cache-Control': 'private, max-age=31536000, immutable'
 		}

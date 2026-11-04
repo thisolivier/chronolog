@@ -16,12 +16,14 @@ import * as read from './commands/read.mjs';
 import * as write from './commands/write.mjs';
 import * as correct from './commands/correct.mjs';
 import * as noteChanges from './commands/note-changes.mjs';
+import * as attachments from './commands/attachments.mjs';
 import * as manageClients from './commands/manage-clients.mjs';
 import * as manageStructure from './commands/manage-structure.mjs';
 import { init } from './commands/init.mjs';
 import { Cancelled } from './lib/confirm.mjs';
+import { CLI_VERSION } from './lib/version.mjs';
 
-const USAGE = `Usage: chronolog <command> [arguments] [--json]
+const USAGE = `Usage: chronolog <command> [arguments] [--json]      (chronolog --version)
 
   init                                   save server URL, API token, device key
   me                                     who you are, today, current ISO week
@@ -38,6 +40,10 @@ const USAGE = `Usage: chronolog <command> [arguments] [--json]
                                  edit/append: --expected-updated-at T refuses (exit 7) if changed since T
   note delete <note-id> [--yes]                  keeps a copy in ~/.config/chronolog/trash/
   note restore [<note-id>] [--contract X]        recreates it as a new note (no id: list the trash)
+  note attach <note-id> <file> [--no-insert]     image or PDF (10 MB); appends ![name]/[name](chronolog://…)
+  note attachments <note-id>                     id, filename, type, size, created
+  attachment get <id> [--out <path>] [--force]   saves under the original name here by default
+  attachment delete <id> [--yes]                 warns if the note still links to it
   notes <contract> [--since YYYY-MM-DD]
   search "<words or note id>" [--limit N]
   status <2026-W45|current> <unsubmitted|draft-ready|submitted>
@@ -76,6 +82,10 @@ const COMMANDS = {
 	'note append': noteChanges.noteAppend,
 	'note delete': noteChanges.noteDelete,
 	'note restore': noteChanges.noteRestore,
+	'note attach': attachments.noteAttach,
+	'note attachments': attachments.noteAttachments,
+	'attachment get': attachments.attachmentGet,
+	'attachment delete': attachments.attachmentDelete,
 	'client add': manageClients.clientAdd,
 	'client edit': manageClients.clientEdit,
 	'client archive': manageClients.clientArchive,
@@ -119,6 +129,10 @@ export async function main(argv, environment = process.env) {
 	const { commandName, rest } = commandFromPositionals(positionals);
 
 	try {
+		if (flags.version || commandName === 'version') {
+			print(`chronolog ${CLI_VERSION}`, { version: CLI_VERSION });
+			return 0;
+		}
 		if (!commandName || flags.help || commandName === 'help') {
 			process.stdout.write(USAGE + '\n');
 			return commandName || flags.help ? 0 : 2;
@@ -135,7 +149,7 @@ export async function main(argv, environment = process.env) {
 		return 0;
 	} catch (failure) {
 		if (failure instanceof Cancelled) {
-			print(commandName === 'note delete' ? 'Nothing deleted.' : 'Nothing removed.', { removed: false });
+			print(commandName.endsWith(' delete') ? 'Nothing deleted.' : 'Nothing removed.', { removed: false });
 			return 0;
 		}
 		const exitCode = exitCodeFor(failure);
