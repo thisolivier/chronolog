@@ -4,7 +4,7 @@ import { updateTimeEntry } from '$lib/server/db/queries/time-entries';
 import { validateDurationMinutes } from '$lib/utils/duration';
 import { readLocalTime } from '../local-clock';
 import { readJsonObject } from '$lib/server/api-request';
-import { checkContractAccess } from '../../time-entries/entry-input';
+import { entryReferenceProblem } from '../../time-entries/entry-input';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
 	const currentUser = locals.user;
@@ -26,8 +26,13 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			throw error(400, `${fieldName} must be text`);
 		}
 	}
-	const accessProblem = await checkContractAccess(currentUser.id, contractId, (deliverableId as string | null) || null);
-	if (accessProblem) return accessProblem;
+	const referenceProblem = await entryReferenceProblem({
+		userId: currentUser.id,
+		contractId,
+		deliverableId: (deliverableId as string | null) || null,
+		workTypeId: (workTypeId as string | null) || null
+	});
+	if (referenceProblem) return referenceProblem;
 
 	// Optional adjustment from the completion form: a new duration, with or without a range
 	const adjustedTime: { durationMinutes?: number; startTime?: string | null; endTime?: string | null } = {};

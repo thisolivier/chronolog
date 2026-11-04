@@ -1,12 +1,16 @@
 /**
  * Input checks shared by `POST /api/time-entries` and `PUT`/`PATCH /api/time-entries/[id]`
- * (sprint 029-CL): date and UUID formats, the `duration` text the UI's fields accept, and the
- * rule that an entry's contract belongs to the caller and its deliverable to that contract.
+ * (sprint 029-CL): date and UUID formats, the `duration` text the UI's fields accept, and (sprint
+ * 032-CL) the one reference rule: contract is the caller's, deliverable on that contract, work type
+ * under that deliverable (`$lib/server/db/queries/entry-references.ts`).
  */
 
 import { apiError } from '$lib/server/api-errors';
-import { contractBelongsToUser } from '$lib/server/db/queries/contracts';
-import { getDeliverable } from '$lib/server/db/queries/deliverables';
+import {
+	assertEntryReferences,
+	EntryReferenceError,
+	type EntryReferences
+} from '$lib/server/db/queries/entry-references';
 import { parseDuration, validateDurationMinutes } from '$lib/utils/duration';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -39,19 +43,17 @@ export function readDurationFields(body: Record<string, unknown>): DurationField
 	return { durationMinutes: parsed.durationMinutes };
 }
 
-/** 403 when the contract is not the caller's; 400 when the deliverable is not on that contract. */
-export async function checkContractAccess(
-	userId: string,
-	contractId: string,
-	deliverableId?: string | null
-): Promise<Response | null> {
-	if (!UUID_PATTERN.test(contractId)) return apiError(400, 'contractId must be a UUID', 'invalid_contract');
-	if (!(await contractBelongsToUser(contractId, userId))) {
-		return apiError(403, 'That contract does not belong to you', 'contract_forbidden');
+/**
+ * `assertEntryReferences` as a Response: 400 `invalid_contract`, 403 `contract_forbidden`, 400
+ * `deliverable_mismatch` or 400 `work_type_mismatch` with a message naming both objects; null when
+ * the contract, deliverable and work type agree. Every entry write path calls this.
+ */
+export async function entryReferenceProblem(references: EntryReferences): Promise<Response | null> {
+	try {
+		await assertEntryReferences(references);
+		return null;
+	} catch (failure) {
+		if (failure instanceof EntryReferenceError) return apiError(failure.status, failure.message, failure.code);
+		throw failure;
 	}
-	if (deliverableId) {
-		const deliverable = UUID_PATTERN.test(deliverableId) ? await getDeliverable(deliverableId, contractId) : null;
-		if (!deliverable) return apiError(400, 'That deliverable is not on this contract', 'invalid_deliverable');
-	}
-	return null;
 }

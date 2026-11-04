@@ -40,7 +40,7 @@ Environment variables win over the file:
 - `note new <contract> "<title>" [--file body.md]` (body from `--file` or stdin), `note show <note-id>`
 - `notes <contract> [--since YYYY-MM-DD]`, `search "<words or note id>" [--limit N]`
 - `status <2026-W45|current> <unsubmitted|draft-ready|submitted>`
-- `edit <entry-id> [--duration D] [--description "..."] [--date D] [--deliverable X|none]`: change one entry (`PATCH /api/time-entries/<id>`); only the flags given change. A plain duration clears an old start/end range; a range sets a new one.
+- `edit <entry-id> [--duration D] [--description "..."] [--date D] [--deliverable X|none] [--work-type X|none]`: change one entry (`PATCH /api/time-entries/<id>`); only the flags given change. A plain duration clears an old start/end range; a range sets a new one. A work type is resolved under the new deliverable if given, else the entry's current one (`--tag` works too). `--deliverable none` clears both; a new deliverable without `--work-type` clears the old deliverable's work type.
 - `undo`: delete the last entry this CLI logged. `log` records it in `last-entry.json` next to the config file; `undo` deletes it once and forgets it. It refuses (exit 2) when nothing is recorded or the record is for another server. Entries made in the app or edited are not undoable this way.
 
 ### Setting up clients (sprint 031-CL)
@@ -59,6 +59,10 @@ These call the same `/api/*` routes, and so the same rules, as Settings → Clie
 A short code already in use is 409 `duplicate` (exit 5) with the same message the admin page shows.
 
 Add `--json` for machine-readable stdout. Errors then go to stderr as `{"error","code","status","candidates"}`.
+
+### Deliverable and work type must match (sprint 032-CL)
+
+The server refuses an entry whose deliverable is not on its contract (400 `deliverable_mismatch`) or whose work type is not under its deliverable (400 `work_type_mismatch`), with a message naming both, e.g. `Work type "Interviews" belongs to deliverable "Discovery", not "Recommendations"`. `log` and `edit` only look for a work type under the entry's deliverable (`lib/entry-references.mjs`), so a work type from elsewhere exits 3 with that deliverable's work types as candidates before anything is sent; a 400 that still comes back prints the server's message (exit 1).
 
 ## Exit codes
 
@@ -87,6 +91,7 @@ cli/lib/config.mjs        config path, environment overrides, mode 600 writes
 cli/lib/api.mjs           HTTP client: bearer token, device key, X-Timezone, ApiError
 cli/lib/resolve.mjs       reference matching for contracts, clients, deliverables, work types; path splitting
 cli/lib/object-refs.mjs   fetch + resolve one client/contract/deliverable/work type from an id or path
+cli/lib/entry-references.mjs  an entry's deliverable and work type (work type only under that deliverable)
 cli/lib/confirm.mjs       remove confirmation: --yes, [y/N] on a terminal, refuse otherwise
 cli/lib/dates.mjs         ISO weeks, --date words, duration formatting
 cli/lib/history.mjs       last-entry.json: the entry `undo` deletes

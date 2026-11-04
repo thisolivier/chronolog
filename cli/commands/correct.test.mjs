@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { edit, undo } from './correct.mjs';
 import { readLastEntry, recordLastEntry } from '../lib/history.mjs';
 import { UsageError } from '../lib/args.mjs';
+import { ReferenceError_ } from '../lib/resolve.mjs';
 
 const ENTRY_ID = '11111111-2222-3333-4444-555555555555';
 const CONTRACT_ID = '99999999-2222-3333-4444-555555555555';
@@ -53,7 +54,7 @@ describe('chronolog edit', () => {
 	it('clears the deliverable with --deliverable none', async () => {
 		const api = fakeApi({ [`GET /api/time-entries/${ENTRY_ID}`]: { entry: storedEntry } });
 		await edit({ api, print: () => {}, positionals: [ENTRY_ID], flags: { deliverable: 'none' } });
-		expect(api.calls.find((call) => call.method === 'PATCH').body).toEqual({ deliverableId: null });
+		expect(api.calls.find((call) => call.method === 'PATCH').body).toEqual({ deliverableId: null, workTypeId: null });
 	});
 
 	it('refuses a missing id, a non-UUID id and an empty change', async () => {
@@ -62,6 +63,98 @@ describe('chronolog edit', () => {
 		await expect(edit({ api, print: () => {}, positionals: ['42'], flags: { duration: '1h' } })).rejects.toThrow(UsageError);
 		await expect(edit({ api, print: () => {}, positionals: [ENTRY_ID], flags: {} })).rejects.toThrow('Nothing to change');
 		expect(api.calls).toHaveLength(0);
+	});
+});
+
+describe('chronolog edit --deliverable / --work-type (sprint 032-CL)', () => {
+	const entryWithWorkType = {
+		...storedEntry,
+		deliverableId: 'd-discovery',
+		deliverableName: 'Discovery',
+		workTypeId: 'w-interviews',
+		workTypeName: 'Interviews'
+	};
+	const deliverables = [
+		{ id: 'd-discovery', name: 'Discovery' },
+		{ id: 'd-recommendations', name: 'Recommendations' }
+	];
+	const workTypesByDeliverable = {
+		'd-discovery': [{ id: 'w-interviews', name: 'Interviews' }, { id: 'w-survey', name: 'Survey' }],
+		'd-recommendations': [{ id: 'w-drafting', name: 'Drafting' }]
+	};
+
+	function apiFor(entry) {
+		const api = fakeApi({
+			[`GET /api/time-entries/${ENTRY_ID}`]: { entry },
+			'GET /api/deliverables': deliverables,
+			[`PATCH /api/time-entries/${ENTRY_ID}`]: { success: true }
+		});
+		const plainGet = api.get;
+		api.get = async (path) => {
+			const match = path.match(/^\/api\/work-types\?deliverableId=(.+)$/);
+			if (match) {
+				api.calls.push({ method: 'GET', path });
+				return workTypesByDeliverable[match[1]] ?? [];
+			}
+			return plainGet(path);
+		};
+		return api;
+	}
+	const patchBody = (api) => api.calls.find((call) => call.method === 'PATCH')?.body;
+
+	it('resolves --work-type under the entry’s current deliverable', async () => {
+		const api = apiFor(entryWithWorkType);
+		await edit({ api, print: () => {}, positionals: [ENTRY_ID], flags: { workType: 'survey' } });
+		expect(patchBody(api)).toEqual({ workTypeId: 'w-survey' });
+	});
+
+	it('resolves --work-type under a new --deliverable', async () => {
+		const api = apiFor(entryWithWorkType);
+		await edit({ api, print: () => {}, positionals: [ENTRY_ID], flags: { deliverable: 'recommendations', tag: 'drafting' } });
+		expect(patchBody(api)).toEqual({ deliverableId: 'd-recommendations', workTypeId: 'w-drafting' });
+	});
+
+	it('a work type from another deliverable is an unknown reference listing this deliverable’s work types', async () => {
+		const api = apiFor(entryWithWorkType);
+		const failure = await edit({ api, print: () => {}, positionals: [ENTRY_ID], flags: { workType: 'drafting' } }).catch(
+			(caught) => caught
+		);
+		expect(failure).toBeInstanceOf(ReferenceError_);
+		expect(failure.message).toBe('No work type matches “drafting” under deliverable “Discovery”.');
+		expect(failure.candidates.join('\n')).toContain('Interviews');
+		expect(patchBody(api)).toBeUndefined();
+	});
+
+	it('a new deliverable without --work-type clears the old deliverable’s work type', async () => {
+		const api = apiFor(entryWithWorkType);
+		await edit({ api, print: () => {}, positionals: [ENTRY_ID], flags: { deliverable: 'recommendations' } });
+		expect(patchBody(api)).toEqual({ deliverableId: 'd-recommendations', workTypeId: null });
+	});
+
+	it('--work-type none clears only the work type', async () => {
+		const api = apiFor(entryWithWorkType);
+		await edit({ api, print: () => {}, positionals: [ENTRY_ID], flags: { workType: 'none' } });
+		expect(patchBody(api)).toEqual({ workTypeId: null });
+	});
+
+	it('refuses a work type on an entry with no deliverable, and with --deliverable none', async () => {
+		const noDeliverable = apiFor(storedEntry);
+		await expect(
+			edit({ api: noDeliverable, print: () => {}, positionals: [ENTRY_ID], flags: { workType: 'survey' } })
+		).rejects.toThrow(UsageError);
+		const clearing = apiFor(entryWithWorkType);
+		await expect(
+			edit({ api: clearing, print: () => {}, positionals: [ENTRY_ID], flags: { deliverable: 'none', workType: 'survey' } })
+		).rejects.toThrow(UsageError);
+		expect(patchBody(noDeliverable)).toBeUndefined();
+		expect(patchBody(clearing)).toBeUndefined();
+	});
+
+	it('prints the deliverable and work type of the updated entry', async () => {
+		const api = apiFor(entryWithWorkType);
+		const printed = [];
+		await edit({ api, print: (text) => printed.push(text), positionals: [ENTRY_ID], flags: { workType: 'interviews' } });
+		expect(printed[0]).toContain('[Discovery > Interviews]');
 	});
 });
 

@@ -50,7 +50,8 @@ chronolog log ACME/Website 45m "Fixed staging deploy" --deliverable "Phase 2" --
   For anything else ("last Thursday week") work out the date with `chronolog me --json` (`today`)
   and pass `YYYY-MM-DD`.
 - **Description**: one short line in the owner's words; past tense, what was done, for whom.
-- **Deliverable** (`--deliverable`): only when the owner names one; same never-guess rule.
+- **Deliverable** (`--deliverable`, then `--work-type`): only when the owner names one; same never-guess
+  rule. A work type is looked for only under that deliverable; exit 3 lists that deliverable's work types.
 - **Referencing a note**: `--note <note-id>` links the entry to that note (the CLI appends
   `[[ID]]` to the description, which is how the app links them). Note ids look like
   `ACME.20261103.001`. Find one with `chronolog search "<words>" --json` or
@@ -63,6 +64,7 @@ chronolog log ACME/Website 45m "Fixed staging deploy" --deliverable "Phase 2" --
 ```bash
 chronolog undo --json                                   # "no, scrap that": deletes the last entry YOU logged
 chronolog edit <entry-id> --duration 2h --json          # also --description "...", --date D, --deliverable X|none
+chronolog edit <entry-id> --work-type Survey --json     # --deliverable X|none, --work-type X|none (none clears)
 ```
 
 - `undo` deletes only the last entry this CLI logged, once. It exits 2 "Nothing to undo" when
@@ -151,6 +153,7 @@ The CLI prints the server's `{ error, code }`; with `--json` it is on stderr wit
 | 5 | 409 `duplicate` | That short code is taken. Ask the owner for another; never pick one yourself. |
 | 2 | `remove` without `--yes` | Expected: show the owner what would move, rerun with `--yes` only on their yes. |
 | 6 | 429 `rate_limited` | Too many failed attempts. Wait a minute; do not loop. |
+| 1 | 400 `deliverable_mismatch` / `work_type_mismatch` | The pair does not belong together; show the message, ask which is right. |
 | 1 | 400 (e.g. `invalid_duration`) | Fix the input from the message, or ask the owner. |
 | 1 | network / 5xx | Say the server is unreachable; do not retry more than once. |
 

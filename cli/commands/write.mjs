@@ -1,7 +1,8 @@
 /** Commands that change data: log, note new, status. */
 
 import { readFileSync } from 'node:fs';
-import { resolveContract, resolveDeliverable, resolveWorkType } from '../lib/resolve.mjs';
+import { resolveContract } from '../lib/resolve.mjs';
+import { resolveEntryDeliverable, resolveEntryWorkType } from '../lib/entry-references.mjs';
 import { formatMinutes, parseIsoWeek, resolveDateWord } from '../lib/dates.mjs';
 import { UsageError } from '../lib/args.mjs';
 import { fetchContracts } from './read.mjs';
@@ -24,12 +25,9 @@ export async function log({ api, print, positionals, flags, config, environment 
 	const workTypeReference = flags.workType ?? flags.tag;
 	if (workTypeReference && !flags.deliverable) throw new UsageError('--work-type needs --deliverable (work types belong to a deliverable).');
 	if (flags.deliverable) {
-		const deliverables = await api.get(`/api/deliverables?contractId=${contract.id}`);
-		body.deliverableId = resolveDeliverable(flags.deliverable, deliverables).id;
-		if (workTypeReference) {
-			const workTypes = await api.get(`/api/work-types?deliverableId=${body.deliverableId}`);
-			body.workTypeId = resolveWorkType(workTypeReference, workTypes).id;
-		}
+		const deliverable = await resolveEntryDeliverable(api, contract.id, flags.deliverable);
+		body.deliverableId = deliverable.id;
+		if (workTypeReference) body.workTypeId = (await resolveEntryWorkType(api, deliverable, workTypeReference)).id;
 	}
 	if (flags.note) body.noteId = flags.note;
 
