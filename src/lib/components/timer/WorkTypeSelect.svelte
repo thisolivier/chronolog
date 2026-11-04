@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { getDataService } from '$lib/services/context';
 	import type { WorkTypeOption } from '$lib/services/types';
 
@@ -43,8 +44,19 @@
 		}
 	}
 
+	// The deliverable the current selection was made under. A work type belongs to one
+	// deliverable, so a new deliverable clears the selection at once (sprint 032-CL), not only
+	// after the new list loads: a form submitted in between must never send a stale pair.
+	let selectionDeliverableId = untrack(() => deliverableId);
+
 	// Reload work types when the deliverable changes
 	$effect(() => {
+		if (deliverableId !== selectionDeliverableId) {
+			selectionDeliverableId = deliverableId;
+			untrack(() => {
+				if (selectedWorkTypeId) selectedWorkTypeId = '';
+			});
+		}
 		if (deliverableId !== lastLoadedDeliverableId) {
 			loadWorkTypes(deliverableId);
 		}

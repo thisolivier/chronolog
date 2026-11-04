@@ -3,7 +3,7 @@ import type { RequestHandler } from './$types';
 import { startTimer, getRunningTimer } from '$lib/server/db/queries/time-entries';
 import { readLocalDate, readLocalTime } from '../local-clock';
 import { readJsonObject } from '$lib/server/api-request';
-import { checkContractAccess } from '../../time-entries/entry-input';
+import { entryReferenceProblem } from '../../time-entries/entry-input';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
 	const currentUser = locals.user;
@@ -23,8 +23,8 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 	if (!contractId || typeof contractId !== 'string') {
 		throw error(400, 'contractId is required to start a timer');
 	}
-	const accessProblem = await checkContractAccess(currentUser.id, contractId);
-	if (accessProblem) return accessProblem;
+	const referenceProblem = await entryReferenceProblem({ userId: currentUser.id, contractId });
+	if (referenceProblem) return referenceProblem;
 
 	const timerEntry = await startTimer(currentUser.id, contractId, {
 		date: readLocalDate(body.date),

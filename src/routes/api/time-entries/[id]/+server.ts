@@ -6,7 +6,7 @@ import { linkTimeEntryToNote, unlinkTimeEntryFromNote } from '$lib/server/db/que
 import { extractDescriptionLinks, reconcileLinks } from '$lib/utils/reconcile-description-links';
 import { apiError } from '$lib/server/api-errors';
 import { readJsonObject } from '$lib/server/api-request';
-import { checkContractAccess, isValidDate, readDurationFields, UUID_PATTERN } from '../entry-input';
+import { entryReferenceProblem, isValidDate, readDurationFields, UUID_PATTERN } from '../entry-input';
 import type { RequestHandler } from './$types';
 
 type EntryUpdate = Parameters<typeof updateTimeEntry>[2];
@@ -25,9 +25,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 /**
  * PUT or PATCH: partial update of a time entry. Body (all optional): `contractId`,
  * `deliverableId` / `workTypeId` (null clears), `date`, `durationMinutes` or `duration` text,
- * `description`, `startTime`, `endTime`. A contract that is not the caller's is a 403; a
- * deliverable must belong to the entry's (new or current) contract. `[[note-id]]` references in
- * a new description are re-linked.
+ * `description`, `startTime`, `endTime`. When the body names a contract, deliverable or work
+ * type, the merged entry (current values plus the changes) must hold together: a contract that is
+ * not the caller's is a 403, a deliverable off the contract a 400 `deliverable_mismatch`, a work
+ * type not under the deliverable a 400 `work_type_mismatch`. `[[note-id]]` references in a new
+ * description are re-linked.
  */
 const updateEntry: RequestHandler = async ({ params, request, locals }) => {
 	const currentUser = locals.user;
@@ -77,15 +79,20 @@ const updateEntry: RequestHandler = async ({ params, request, locals }) => {
 
 	if (Object.keys(updateData).length === 0) return apiError(400, 'No fields to update');
 
-	if (updateData.contractId !== undefined || updateData.deliverableId) {
+	// Validate the merged result whenever a reference is in the body, so a new deliverable with
+	// the entry's stale work type is rejected rather than silently kept
+	const touchesReferences =
+		updateData.contractId !== undefined || updateData.deliverableId !== undefined || updateData.workTypeId !== undefined;
+	if (touchesReferences) {
 		const existing = await getTimeEntryForUser(id, currentUser.id);
 		if (!existing) return apiError(404, 'Entry not found or unauthorized', 'not_found');
-		const accessProblem = await checkContractAccess(
-			currentUser.id,
-			updateData.contractId ?? existing.contractId,
-			updateData.deliverableId
-		);
-		if (accessProblem) return accessProblem;
+		const referenceProblem = await entryReferenceProblem({
+			userId: currentUser.id,
+			contractId: updateData.contractId ?? existing.contractId,
+			deliverableId: updateData.deliverableId !== undefined ? updateData.deliverableId : existing.deliverableId,
+			workTypeId: updateData.workTypeId !== undefined ? updateData.workTypeId : existing.workTypeId
+		});
+		if (referenceProblem) return referenceProblem;
 	}
 
 	const updated = await updateTimeEntry(id, currentUser.id, updateData);

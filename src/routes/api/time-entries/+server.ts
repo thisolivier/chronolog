@@ -4,7 +4,7 @@ import { getNoteForUser, linkTimeEntryToNote } from '$lib/server/db/queries/note
 import { extractDescriptionLinks } from '$lib/utils/reconcile-description-links';
 import { apiError } from '$lib/server/api-errors';
 import { readJsonObject } from '$lib/server/api-request';
-import { checkContractAccess, isValidDate, readDurationFields, UUID_PATTERN } from './entry-input';
+import { entryReferenceProblem, isValidDate, readDurationFields, UUID_PATTERN } from './entry-input';
 import type { RequestHandler } from './$types';
 
 const MAX_RANGE_DAYS = 366;
@@ -46,7 +46,9 @@ export const GET: RequestHandler = async ({ url, locals }) => {
  * (`1h30m`, `1.5`, `1:30`, `90m`, `9:00-10:30`; a range also sets start and end times).
  * `noteId` links the entry to a note by appending `[[noteId]]` to the description, which is how
  * the UI records entry–note links; an unknown note is a 404 and nothing is created.
- * A contract that is not the caller's is a 403 `contract_forbidden`.
+ * A contract that is not the caller's is a 403 `contract_forbidden`; a deliverable not on that
+ * contract is a 400 `deliverable_mismatch`, a work type not under that deliverable (or given
+ * without one) a 400 `work_type_mismatch`.
  */
 export const POST: RequestHandler = async ({ request, locals }) => {
 	const currentUser = locals.user;
@@ -68,8 +70,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 	if (!isValidDate(date)) return apiError(400, 'date must be YYYY-MM-DD', 'invalid_date');
 	if (typeof contractId !== 'string') return apiError(400, 'contractId must be a UUID', 'invalid_contract');
-	const accessProblem = await checkContractAccess(currentUser.id, contractId, deliverableId);
-	if (accessProblem) return accessProblem;
+	const referenceProblem = await entryReferenceProblem({ userId: currentUser.id, contractId, deliverableId, workTypeId });
+	if (referenceProblem) return referenceProblem;
 
 	if (noteId !== undefined && noteId !== null && noteId !== '') {
 		const note = await getNoteForUser(String(noteId), currentUser.id);
