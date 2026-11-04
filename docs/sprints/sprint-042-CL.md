@@ -1,6 +1,6 @@
 # Sprint 042 — CL: Global search and find in page
 
-**Status:** in progress
+**Status:** ready for review
 **Branch:** `sprint-042-CL/search` · **Worktree:** `.claude/worktrees/sprint-042-CL` · **Port:** 5220
 **Sources:** owner requests 2026-11-04 in `docs/backlog.md`: global search, find in page (Cmd+F). Wave rules: `docs/sprints/_wave-rules.md`.
 
@@ -20,4 +20,36 @@ Screenshots: the search bar; a results page; the find bar in a note and on a wee
 
 ## Sign-off
 
-(pending)
+**2026-11-04, implemented on `sprint-042-CL/search`, rebased onto `main` (`433795e`, after the sprint 041 merge). Status: ready for review, not merged.**
+
+### What was done
+
+1. **Search API.** `GET /api/search?q=&limit=` (`src/routes/api/search/+server.ts`) over `queries/global-search.ts` `searchEverythingForUser`: the caller's notes (ID, title or first line, markdown body) and time entries (description) across every client, decrypted and matched in memory like `note-search.ts`. Trashed notes are excluded. Notes reuse `rankNoteMatch` (exact ID, ID prefix, title, ID substring, body; newest first within a rank), so a title hit sorts above a newer body hit; entries are newest first. Response `{ query, minimumQueryLength, notes: { hits, total }, timeEntries: { hits, total } }`; a note hit has id, title, `matchedIn`, `titleMatches`, client/contract (ids, names, short code), `updatedAt` and a `snippet { text, matches: [{start,end}] }`; an entry hit has id, date, start time, duration, client/contract and snippet. Snippets come from `$lib/utils/search-snippet.ts` (markdown stripped to plain text, an excerpt around the first match cut at words with "…", the heading that repeats the title skipped; a match only inside markup such as a link target falls back to the raw text). Minimum query 2 characters (shorter returns empty groups), `limit` per group default 20 / max 50, query over 200 characters 400 `query_too_long`, `total` counts every match.
+2. **Search bar and results page.** `GlobalSearchField.svelte` sits in the shell's top bar next to "Chronolog" (in `AppShell.svelte`, not the sidebar). Enter opens `/search?q=` (`src/routes/search/+page.svelte`, a standalone page with its own header like Settings: the field, Back to app). The URL is the state: Back/Forward and reload show the same search. Results grouped Notes / Time entries (`SearchResults.svelte`), each hit with client code, contract, date (and duration), and the matches in `<mark>` (no `{@html}`). A note hit calls `navigation.openNote()`; an entry hit calls `navigation.showTimeEntryDay(date)` and `revealTimeEntry(id)`, which waits for the card, centres, focuses and outlines it for 2.5 s. **Keyboard:** Cmd+K (Ctrl+K off Apple) focuses the field (chosen over `/`, which would need an editable-focus exception; TipTap binds no Mod-k here); ArrowDown from the field enters the hits, Up/Down move between them, Up from the first returns to the field, Escape blurs. **Phone:** a search icon in the shell header links to `/search`, where the field takes focus. The per-contract "Search all notes" box is unchanged.
+3. **Find in page.** `FindBar.svelte` is mounted as the first child of `NoteEditorPanel.svelte` (`mode="editor"`) and `TimeEntriesPanel.svelte` (`mode="dom"`), one import and one mount line each. Cmd+F / Ctrl+F opens it only while the focused element (or, with nothing focused, the last click) is inside that panel; elsewhere the browser find is untouched. Every match highlighted, "3 of 12", Enter / Shift+Enter and ↑/↓ buttons, Escape or ✕ closes and clears. **Editor:** a ProseMirror plugin (`find/editor-find.ts`) registered on the live editor with `editor.registerPlugin` when the bar opens and unregistered on close, so the editor setup (040's files) is not touched; matches per text block across marks, drawn as `Decoration.inline`; only plugin meta is dispatched, so the document never changes, TipTap fires no `update`, nothing autosaves (the Playwright test checks the save status and the server `updatedAt`). Closing leaves the selection on the current match. **Timesheet:** DOM ranges over visible text, painted with the CSS Custom Highlight API (no DOM mutation); count and stepping work without it. While open the bar follows the page (MutationObserver on the week, editor remount checks in the note).
+   - **Desktop app:** the app sets only a tray menu; Tauri's default macOS app menu (`tauri-2.12.5` `Menu::default`) has Undo/Redo/Cut/Copy/Paste/Select All but no Find, so Cmd+F and Cmd+K reach the page. Checked in the source, not run in the desktop app.
+4. **CLI.** `chronolog search <query> [--limit N] [--json]` moved to `cli/commands/search.mjs` and calls `/api/search`: a `Notes (n)` group (id, client/contract, date, title, then the snippet) and a `Time entries (n)` group (date, duration, client/contract, snippet, entry id), matches marked `»…«`, "(5 of 12)" when cut. `--json` passes the API result through. **This changes the `--json` shape** (was an array of notes); `cli/CHANGELOG.md` (Unreleased) and a short appended paragraph in the secretary skill say so. Under two characters: usage error, exit 2.
+5. **Docs.** New `src/lib/components/find/README.md` and `src/lib/components/search/README.md`; layout, db, utils, cli, API e2e and Playwright readmes updated.
+
+### Tests
+
+- Unit (new 21): `src/lib/utils/search-snippet.test.ts` (5), `src/routes/api/search/search.test.ts` (7, dev DB, `qa-042-search-*` users cleaned up: title above a newer body hit, trash excluded, snippet offsets, heading skipped, entries by description, another user's notes and entries never returned, short query, limit/total, 400 and 401), `src/lib/components/find/find.test.ts` (5, jsdom: matches across marks, decorations without a document change or `update` event or undo step, follows edits and clamps, removal; DOM finder skips the bar, inputs and hidden text; platform shortcuts), `cli/commands/search.test.mjs` (4).
+- API e2e: `src/e2e/search-cli.e2e.test.ts` (3: grouped output with marked snippets and title-first order, `--json` and a trashed note dropping out, exit 2).
+- Playwright: `e2e-playwright/search.spec.ts` (4 tests, chromium and webkit): global search from the shell (Cmd/Ctrl+K, Enter, groups, arrow keys, note hit opens, Back returns to the results, entry hit opens its week with the card focused and in view, reload); Cmd/Ctrl+F in a note (1 of 3, Enter, Shift+Enter, previous button, Escape clears, save status and `updatedAt` unchanged); Cmd/Ctrl+F on a week (not opened from the top bar, 1 of 2, next, CSS highlights set and cleared); phone header link to search and opening a hit.
+
+### Verification
+
+After the rebase onto `433795e`: `npm run check` 0 errors (the 3 existing warnings in `src/routes/+layout.svelte`), `npm run lint` clean, `npm test` **918 passed in 91 files**, API e2e against `http://localhost:5220` (`E2E_USER_PREFIX=qa-042-e2e`) **113 passed in 18 files**, Playwright (`qa-042-pw`, chromium and webkit) **110 passed, 5 skipped** (the existing chromium-only offline tests under webkit).
+
+Screenshots in `docs/review/screenshots/sprint-042/`: `01-search-bar.png` (the field in the shell), `02-results.png`, `03-find-in-note.png`, `04-find-on-week.png`, `05-phone-header.png`, `06-phone-results.png`.
+
+### Left, and notes
+
+- No schema change was needed (no migration).
+- Raw markdown mode in the editor is not searched by the find bar (the textarea cannot show highlights); the rendered view is.
+- In the editor, a wiki-link's rendered label (the target note's title) is an inline atom, so find does not match it (global search sees only the link's note ID in the markdown).
+- On the timesheet, find matches within one text node; a match split across elements (rare: a word broken by a wiki-link chip) is not found.
+- Search is in memory over all the user's decrypted notes and entries per request, like the existing note search; fine at the current size, worth a look if a user reaches tens of thousands of rows.
+- The `--json` shape of `chronolog search` changed (see the changelog); anything scripted against the old array needs `notes.hits`.
+- Merge risk with 039/040: `NoteEditorPanel.svelte` and `TimeEntriesPanel.svelte` each gain an import as the first line of `<script>` and a mount line as the first child of the root element; `AppShell.svelte` gains an import, the search field in the desktop top bar and the phone search link. 039 adds one line to `AppShell.svelte`; if it is in the same top-bar block a trivial conflict is possible. 039's new `/notes/client/<id>` route does not affect `/search` (a standalone route, outside the navigation store's workspace URLs). `cli/CHANGELOG.md`, the skill and `cli/chronolog.mjs` already conflicted with 041 once (resolved by keeping both); 039/040 add to the same places, so expect the same keep-both resolution.
+- QA users `qa-042-pw-*` and `qa-042-e2e-*` and their data remain in the shared dev database.
