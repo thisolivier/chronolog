@@ -37,7 +37,7 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 - **Pin a note.** A pinned note sits at the top of its contract's note list (friction #40 covered this too; `notes.pinned_at` or a boolean, API + CLI `note pin|unpin`).
 - **Client view.** Clicking a client in the sidebar opens a combined note list across all of that client's contracts, pinned notes first, with the contract shown on each row; the URL is the state (`/notes/client/<clientId>`), and the sidebar highlights the client.
 - **Sidebar: drag to reorder clients.** Persisted per user (`clients.sort_order` exists for contracts; add the same for clients), keyboard alternative (move up/down), and the CLI `client edit --order`.
-- **Sidebar: click a client heading to collapse its contracts.** Remembered per browser like the Archived group; collapsed-by-default rule to decide (suggest: never collapsed by default). Interacts with the client view above: a click on the name opens the client view, the chevron collapses.
+- **Sidebar: click a client heading to collapse its contracts.** Remembered per browser like the Archived group; collapsed-by-default rule to decide (suggest: never collapsed by default). Interacts with the client view above: a small disclosure control at the left of the client row (the same chevron the Archived group uses, in the slot where the colour dot sits now, dot moved next to the name) collapses; a click on the name opens the client view.
 
 ## Carried-over follow-ups
 
