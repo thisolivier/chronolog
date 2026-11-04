@@ -52,7 +52,7 @@ describe('attachment links in the editor', () => {
 
 describe('openAttachment', () => {
 	it('opens a tab at once and points it at the blob URL of the fetched file', async () => {
-		const fetchMock = vi.fn().mockResolvedValue(new Response(new Blob(['%PDF-1.4'], { type: 'application/pdf' })));
+		const fetchMock = vi.fn(async () => new Response('%PDF-1.4', { headers: { 'Content-Type': 'application/pdf' } }));
 		vi.stubGlobal('fetch', fetchMock);
 		URL.createObjectURL = vi.fn(() => 'blob:http://localhost/abc');
 		URL.revokeObjectURL = vi.fn();
@@ -63,6 +63,17 @@ describe('openAttachment', () => {
 		expect(opener.open).toHaveBeenCalledWith('about:blank', '_blank');
 		expect(fetchMock).toHaveBeenCalledWith('/api/attachments/550e8400-e29b-41d4-a716-446655440000');
 		expect(newTab.location.href).toBe('blob:http://localhost/abc');
+	});
+
+	it('never opens an SVG as a page (its scripts would run with the app origin)', async () => {
+		vi.stubGlobal('fetch', vi.fn(async () => new Response('<svg/>', { headers: { 'Content-Type': 'image/svg+xml' } })));
+		URL.createObjectURL = vi.fn(() => 'blob:http://localhost/svg');
+		URL.revokeObjectURL = vi.fn();
+		const newTab = { location: { href: 'about:blank' }, close: vi.fn() };
+		const opener = { open: vi.fn().mockReturnValue(newTab) };
+		expect(await openAttachment(ATTACHMENT_URL, opener as unknown as Window)).toBe(false);
+		expect(newTab.close).toHaveBeenCalled();
+		expect(newTab.location.href).toBe('about:blank');
 	});
 
 	it('closes the tab again when the file cannot be fetched', async () => {

@@ -51,7 +51,7 @@ Replaces StarterKit's `text` node. Its markdown serializer escapes `<` only wher
 
 ### attachment-link.ts
 
-A PDF (any non-image attachment) sits in a note as an ordinary link, `[report.pdf](chronolog://attachment/{id})` (sprint 036). The Link mark keeps only hrefs whose scheme it knows, so `NoteEditor` passes `ATTACHMENT_LINK_PROTOCOLS` (`chronolog`) to StarterKit's `link` options; without it the href is dropped on parse. `attachmentHrefFromTarget(target)` finds such a link from a click, and `openAttachment(url)` opens a tab inside the click (so popup blockers allow it), then points it at the resolver's blob URL (closing it if the fetch fails). `AttachmentList` opens files the same way. The editor CSS gives these links a document icon; printing (`note-print.ts`) replaces them with the filename marked "(attached file)".
+A PDF (any non-image attachment) sits in a note as an ordinary link, `[report.pdf](chronolog://attachment/{id})` (sprint 036). The Link mark keeps only hrefs whose scheme it knows, so `NoteEditor` passes `ATTACHMENT_LINK_PROTOCOLS` (`chronolog`) to StarterKit's `link` options; without it the href is dropped on parse. `attachmentHrefFromTarget(target)` finds such a link from a click, and `openAttachment(url)` opens a tab inside the click (so popup blockers allow it), then points it at the resolver's blob URL (closing it if the fetch fails). `AttachmentList` opens files the same way. SVG (and other active content) is never opened as a page, since a blob URL carries the app origin. The editor CSS gives these links a document icon; printing (`note-print.ts`) replaces them with the filename marked "(attached file)".
 
 ### attachment-resolver.ts
 

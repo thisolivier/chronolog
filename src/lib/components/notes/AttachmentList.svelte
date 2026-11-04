@@ -83,14 +83,19 @@
 								<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M8 13h8M8 17h5" />
 							</svg>
 						{/if}
-						<button
-							type="button"
-							onclick={() => openAttachmentFile(attachment.id)}
-							class="text-stone-700 truncate hover:text-blue-600 hover:underline text-left"
-							title="Open {attachment.filename} in a new tab"
-						>
-							{attachment.filename}
-						</button>
+						{#if attachment.mimeType === 'image/svg+xml'}
+							<!-- An SVG is never opened as a page (attachment-link.ts); it shows in the note -->
+							<span class="text-stone-700 truncate">{attachment.filename}</span>
+						{:else}
+							<button
+								type="button"
+								onclick={() => openAttachmentFile(attachment.id)}
+								class="text-stone-700 truncate hover:text-blue-600 hover:underline text-left"
+								title="Open {attachment.filename} in a new tab"
+							>
+								{attachment.filename}
+							</button>
+						{/if}
 						<span class="text-stone-400 whitespace-nowrap" data-testid="attachment-size">{formatFileSize(attachment.sizeBytes)}</span>
 					</div>
 					<button

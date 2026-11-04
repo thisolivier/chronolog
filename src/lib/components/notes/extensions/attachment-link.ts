@@ -8,6 +8,12 @@
 
 import { parseChronologUrl, resolveAttachmentUrl } from './attachment-resolver.js';
 
+/**
+ * Types never opened as a page: a blob URL carries the app's origin, so an SVG (or HTML) opened in
+ * a tab would run its scripts as Chronolog. SVG images still render inside `<img>`, where they cannot.
+ */
+const ACTIVE_CONTENT_TYPES = new Set(['image/svg+xml', 'text/html', 'application/xhtml+xml', 'text/xml', 'application/xml']);
+
 /** Extra schemes for the Link mark (`StarterKit.configure({ link: { protocols } })`). */
 export const ATTACHMENT_LINK_PROTOCOLS = ['chronolog'];
 
@@ -22,16 +28,26 @@ export function attachmentHrefFromTarget(target: EventTarget | null): string | n
 /**
  * Open the attachment behind a `chronolog://attachment/<id>` URL in a new tab. The tab is opened
  * before the fetch, inside the click, so a popup blocker lets it through; it is pointed at the
- * blob URL once the bytes arrive, and closed again if they never do. Resolves false on failure.
+ * blob URL once the bytes arrive, and closed again if they never do or are active content (SVG).
+ * Resolves false on failure.
  */
 export async function openAttachment(chronologUrl: string, opener: Pick<Window, 'open'> = window): Promise<boolean> {
 	const newTab = opener.open('about:blank', '_blank');
 	const blobUrl = await resolveAttachmentUrl(chronologUrl);
-	if (!blobUrl) {
+	const blobType = blobUrl ? await blobContentType(blobUrl) : null;
+	if (!blobUrl || blobType === null || ACTIVE_CONTENT_TYPES.has(blobType)) {
 		newTab?.close();
 		return false;
 	}
 	if (newTab) newTab.location.href = blobUrl;
 	else opener.open(blobUrl, '_blank');
 	return true;
+}
+
+async function blobContentType(blobUrl: string): Promise<string | null> {
+	try {
+		return (await (await fetch(blobUrl)).blob()).type.split(';')[0].trim().toLowerCase();
+	} catch {
+		return null;
+	}
 }
