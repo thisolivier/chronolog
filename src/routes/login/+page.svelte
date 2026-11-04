@@ -43,7 +43,12 @@
 				return;
 			}
 
-			if (signInData?.redirect) {
+			// Better Auth's two-factor plugin answers a password sign-in with
+			// { twoFactorRedirect: true } (no session yet) when 2FA is enabled.
+			const twoFactorPending =
+				(signInData as { twoFactorRedirect?: boolean } | null)?.twoFactorRedirect === true ||
+				(signInData as { redirect?: boolean } | null)?.redirect === true;
+			if (twoFactorPending) {
 				requiresTwoFactor = true;
 				isLoading = false;
 				return;
