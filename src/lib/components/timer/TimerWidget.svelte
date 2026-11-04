@@ -113,7 +113,7 @@
 					elapsedSeconds = data.timer.durationMinutes * 60;
 					timerState = 'stopped';
 				} else {
-					elapsedSeconds = startTime ? calculateElapsedFromStartTime(startTime) : 0;
+					elapsedSeconds = startTime ? calculateElapsedFromStartTime(startTime, timerDate) : 0;
 					timerState = 'running';
 				}
 			} else {
@@ -138,7 +138,7 @@
 			elapsedSeconds = secondsBetweenTimes(pendingTimer.startTime, pendingTimer.endTime);
 			timerState = 'stopped';
 		} else {
-			elapsedSeconds = calculateElapsedFromStartTime(pendingTimer.startTime);
+			elapsedSeconds = calculateElapsedFromStartTime(pendingTimer.startTime, pendingTimer.date);
 			timerState = 'running';
 		}
 	}
@@ -175,11 +175,12 @@
 		checkExistingTimer();
 	});
 
-	// Timer tick -- runs every second while running
+	// Timer tick -- runs every second while running. Recomputed from the start each time, so a
+	// throttled background tab or a sleeping laptop never makes the clock fall behind.
 	$effect(() => {
 		if (timerState !== 'running') return;
 		const intervalId = setInterval(() => {
-			elapsedSeconds += 1;
+			elapsedSeconds = startTime ? calculateElapsedFromStartTime(startTime, timerDate) : elapsedSeconds + 1;
 		}, 1000);
 		return () => clearInterval(intervalId);
 	});

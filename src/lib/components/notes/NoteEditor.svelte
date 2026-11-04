@@ -45,7 +45,8 @@
 		onSaveStatusChange?: (status: SaveStatus) => void;
 		onWikiLinkClick?: (noteId: string, headingAnchor?: string) => void;
 		onFileUpload?: (file: File) => Promise<string | null>;
-		autofocus?: boolean;
+		/** Focus once mounted: true or 'end' puts the caret at the end, 'start' at the top */
+		autofocus?: boolean | 'start' | 'end';
 		readonly?: boolean;
 	}
 
@@ -282,7 +283,7 @@
 			getNoteId();
 
 		if (autofocus && !readonly) {
-			editor.commands.focus('end');
+			editor.commands.focus(autofocus === 'start' ? 'start' : 'end');
 		}
 
 		// Handle wiki-link clicks

@@ -35,7 +35,8 @@
 		contractId: string;
 		initialContent: string;
 		initialJson: string;
-		autofocus: boolean;
+		/** true: caret at the end (a new draft); 'start': top of an opened note (followed link) */
+		autofocus: boolean | 'start';
 		creation: Promise<string> | null;
 		/** `updatedAt` of the server copy this editor is based on (conflict detection) */
 		lastSeenUpdatedAt: string | null;
@@ -168,6 +169,16 @@
 	/** The note being fetched: a second request to open it while it loads is the same request */
 	let loadingNoteId: string | null = null;
 
+	/**
+	 * A note opened by following a link takes keyboard focus at its top (A-11), except on touch
+	 * screens, where focusing would pop up the on-screen keyboard over the note.
+	 */
+	function takeEditorFocus(noteId: string): 'start' | false {
+		if (!navigation.takeEditorFocus(noteId)) return false;
+		const isTouchScreen = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+		return isTouchScreen ? false : 'start';
+	}
+
 	async function openExistingNote(noteId: string) {
 		if (loadingNoteId === noteId) return;
 		loadingNoteId = noteId;
@@ -196,7 +207,7 @@
 				contractId: note.contractId,
 				initialContent: note.content ?? '',
 				initialJson: note.contentJson ?? '',
-				autofocus: false,
+				autofocus: takeEditorFocus(note.id),
 				lastSeenUpdatedAt: note.updatedAt
 			}));
 			void fetchBacklinks(noteId);

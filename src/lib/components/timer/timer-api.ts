@@ -1,13 +1,40 @@
 /** Time calculation helpers for the timer widget. Data access goes through DataService. */
 
-/** Calculate elapsed seconds from a start time string (HH:MM:SS) relative to now */
-export function calculateElapsedFromStartTime(startTimeString: string): number {
-	const timeParts = startTimeString.split(':').map(Number);
-	const now = new Date();
-	const startTotalSeconds = timeParts[0] * 3600 + timeParts[1] * 60 + (timeParts[2] || 0);
-	const nowTotalSeconds =
-		now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-	return Math.max(0, nowTotalSeconds - startTotalSeconds);
+/**
+ * Seconds a timer has been running: from its local start (`date` YYYY-MM-DD plus `HH:MM[:SS]`)
+ * to `now`. The date matters: a timer started at 23:50 yesterday has run 20 minutes at 00:10.
+ * Without a date (old pending timers), the start is taken as the latest such time not after
+ * now, so a start "later" than now counts as yesterday instead of as zero.
+ */
+export function calculateElapsedFromStartTime(
+	startTimeString: string,
+	startDateString?: string,
+	now: Date = new Date()
+): number {
+	const [hours = 0, minutes = 0, seconds = 0] = startTimeString.split(':').map(Number);
+	const dateMatch = startDateString?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+	if (dateMatch) {
+		const startMoment = new Date(
+			Number(dateMatch[1]),
+			Number(dateMatch[2]) - 1,
+			Number(dateMatch[3]),
+			hours,
+			minutes,
+			seconds
+		);
+		return Math.max(0, Math.floor((now.getTime() - startMoment.getTime()) / 1000));
+	}
+	const nowTime = [now.getHours(), now.getMinutes(), now.getSeconds()].join(':');
+	return secondsBetweenTimes(startTimeString, nowTime);
+}
+
+/** Running-timer clock text, `HH:MM:SS`, shared by the timer widget and the top-bar pill */
+export function formatElapsedClock(totalSeconds: number): string {
+	const wholeSeconds = Math.max(0, Math.floor(totalSeconds));
+	const hours = Math.floor(wholeSeconds / 3600);
+	const minutes = Math.floor((wholeSeconds % 3600) / 60);
+	const seconds = wholeSeconds % 60;
+	return [hours, minutes, seconds].map((part) => String(part).padStart(2, '0')).join(':');
 }
 
 /** What the timer completion form hands to TimerWidget when the user saves. */

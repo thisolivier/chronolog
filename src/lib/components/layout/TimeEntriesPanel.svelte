@@ -18,6 +18,7 @@
 	import { formatMinutes } from '$lib/utils/duration';
 	import { SvelteDate } from 'svelte/reactivity';
 	import { TIME_ENTRY_SAVED_EVENT, readTimeEntrySavedDetail } from '$lib/components/weekly/time-entry-events';
+	import { focusSavedEntry } from '$lib/components/weekly/entry-focus';
 	import type { WeekData, TimeEntryDisplay } from '$lib/services/types';
 
 	const navigation = getNavigationContext();
@@ -291,17 +292,38 @@
 		expandedAddEntry[dateKey] = !expandedAddEntry[dateKey];
 	}
 
-	function handleEntryCreated(dateKey: string) {
+	/**
+	 * Focus after a save (A-11): the saved entry's card once the refreshed list renders it,
+	 * otherwise that day's "+". Only when focus was lost (on <body>) or is still inside the
+	 * timesheet, so a save never pulls focus out of a field the user has moved to.
+	 */
+	async function focusAfterSave(entryId: string | null | undefined, date: string) {
+		await tick();
+		const activeElement = document.activeElement;
+		const focusIsFree =
+			!activeElement || activeElement === document.body || Boolean(scrollContainer?.contains(activeElement));
+		if (focusIsFree && scrollContainer) focusSavedEntry(scrollContainer, entryId, date);
+	}
+
+	async function handleEntryCreated(dateKey: string, entryId: string) {
 		expandedAddEntry[dateKey] = false;
-		refreshWeeks();
+		await refreshWeeks();
+		await focusAfterSave(entryId, dateKey);
+	}
+
+	/** The new-entry row was cancelled: focus goes back to the day's "+" that opened it */
+	async function handleAddEntryCancelled(dateKey: string) {
+		toggleAddEntry(dateKey);
+		await focusAfterSave(undefined, dateKey);
 	}
 
 	/** An entry was saved by the timer widget or the Add Entry modal (sidebar) */
 	async function handleTimeEntrySaved(event: Event) {
-		const { date } = readTimeEntrySavedDetail(event);
+		const { entryId, date } = readTimeEntrySavedDetail(event);
 		await refreshWeeks();
 		if (date) {
 			await ensureWeekLoaded(getMondayOfWeek(date));
+			await focusAfterSave(entryId, date);
 		}
 	}
 
@@ -315,7 +337,7 @@
 				console.error(`Contract ${note.contractId} for note ${noteId} not found`);
 				return;
 			}
-			navigation.openNote(noteId, owningContract.id, owningContract.clientId);
+			navigation.openNote(noteId, owningContract.id, owningContract.clientId, { focusEditor: true });
 		} catch (error) {
 			console.error(`Could not open note ${noteId}:`, error);
 		}
@@ -372,7 +394,8 @@
 	<div
 		class={[
 			'mb-3 transition-shadow',
-			isToday && 'rounded-lg bg-amber-50/60 p-3',
+			// Today's tint bleeds 12 px into the gutter so its cards keep the same left edge as other days
+			isToday && '-mx-3 rounded-lg bg-amber-50/60 px-3 py-3',
 			highlightedDay === dayDate && 'rounded-lg ring-2 ring-blue-300'
 		]
 			.filter(Boolean)
@@ -391,6 +414,7 @@
 				{#if !expandedAddEntry[dayDate]}
 					<button
 						onclick={() => toggleAddEntry(dayDate)}
+						data-add-entry={dayDate}
 						class="rounded px-1.5 text-sm leading-none text-stone-500 hover:text-blue-500 pointer-coarse:py-1"
 						title="Add entry"
 						aria-label="Add entry for {formatDayHeader(dayDate)}"
@@ -409,8 +433,8 @@
 		{#if expandedAddEntry[dayDate]}
 			<NewEntryRow
 				date={dayDate}
-				onEntryCreated={() => handleEntryCreated(dayDate)}
-				onCancel={() => toggleAddEntry(dayDate)}
+				onEntryCreated={(entryId) => handleEntryCreated(dayDate, entryId)}
+				onCancel={() => handleAddEntryCancelled(dayDate)}
 			/>
 		{/if}
 

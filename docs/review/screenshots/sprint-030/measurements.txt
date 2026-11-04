@@ -1,0 +1,14 @@
+user qa-030-before-mw1ctrgc@chronolog.test
+before desktop card left edges: 2026-11-02=264, 2026-11-03=276
+before desktop widget time "00:00:02"; pill "0:00:02" border oklch(0.712 0.194 13.428)
+before desktop saved after contract change: contract=Rocket Build deliverable=null workType=null
+before phone card left edges: 2026-11-02=16, 2026-11-03=28
+before phone widget time "00:00:02"; pill "0:00:02" border oklch(0.712 0.194 13.428)
+before phone saved after contract change: contract=Rocket Build deliverable=null workType=null
+user qa-030-after-mw1cu31u@chronolog.test
+after desktop card left edges: 2026-11-02=264, 2026-11-03=264
+after desktop widget time "00:00:02"; pill "00:00:02" border oklch(0.869 0.005 56.366)
+after desktop saved after contract change: contract=Rocket Build deliverable=null workType=null
+after phone card left edges: 2026-11-02=16, 2026-11-03=16
+after phone widget time "00:00:02"; pill "00:00:02" border oklch(0.869 0.005 56.366)
+after phone saved after contract change: contract=Rocket Build deliverable=null workType=null
