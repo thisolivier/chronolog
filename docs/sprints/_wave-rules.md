@@ -1,6 +1,6 @@
-# Parallel wave rules (sprints 039–042, 2026-11-04)
+# Parallel wave rules (sprints 039–044, 2026-11-04)
 
-Four sprints run at once from the same `main`. These rules keep the merges clean.
+Sprints in a wave run at once from the same `main` (039–042, then 043–044). These rules keep the merges clean.
 
 - **Worktree only** (`.claude/worktrees/<sprint>`), with a `.claude-session.lock` file while working. Do not merge; rebase onto `main` before sign-off.
 - **Dev server** on the sprint's port with `BETTER_AUTH_URL=http://localhost:<port>` and `ALLOW_REGISTRATION=true`; shared dev Postgres 127.0.0.1:5432; users `qa-<sprint number>-*`; no reset, no seed. Another sprint may add a migration to the shared DB meanwhile; that is fine.
