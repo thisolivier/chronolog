@@ -8,7 +8,8 @@
  * drops the note's TipTap JSON so the editor reloads from the new markdown.
  *
  * Delete keeps a local copy in `trash/<id>.md` (lib/trash.mjs) first; restore recreates the note
- * from it under a new id (ids carry the creation date).
+ * from it with a newly allocated id for today (ids carry the creation date; the old id comes back
+ * only when it was the day's last).
  */
 
 import { ApiError } from '../lib/api.mjs';
@@ -36,9 +37,14 @@ async function fetchNote(api, noteId) {
 	return (await api.get(notePath(noteId))).note;
 }
 
-async function patchNote(api, note, changes) {
+/**
+ * `--expected-updated-at` pins the copy the caller showed the owner (the `updatedAt` from an
+ * earlier `note show`); without it, the copy this command just read.
+ */
+async function patchNote(api, note, changes, flags) {
+	const expectedUpdatedAt = typeof flags.expectedUpdatedAt === 'string' ? flags.expectedUpdatedAt : note.updatedAt;
 	try {
-		return (await api.patch(notePath(note.id), { ...changes, expectedUpdatedAt: note.updatedAt })).note;
+		return (await api.patch(notePath(note.id), { ...changes, expectedUpdatedAt })).note;
 	} catch (failure) {
 		if (failure instanceof ApiError && failure.status === 409 && failure.code !== 'duplicate') {
 			throw new NoteChanged(note.id);
@@ -79,10 +85,10 @@ export async function noteEdit({ api, print, positionals, flags, stdin = process
 		}
 	}
 	if (Object.keys(changes).length === 0) {
-		print(`Note ${note.id} is already there; nothing changed.`, note);
+		print(`Note ${note.id} is already on that contract; nothing changed.`, note);
 		return;
 	}
-	const updated = await patchNote(api, note, changes);
+	const updated = await patchNote(api, note, changes, flags);
 	print(`Updated note ${updated.id}: ${updated.title ?? '(untitled)'}${movedTo}`, updated);
 }
 
@@ -91,7 +97,7 @@ export async function noteAppend({ api, print, positionals, flags, stdin = proce
 	const text = readBody(flags, stdin).trim();
 	if (!noteId || !text) throw new UsageError('Usage: chronolog note append <note-id> [--file text.md]  (or pipe the text on stdin)');
 	const note = await fetchNote(api, noteId);
-	const updated = await patchNote(api, note, { content: appendedContent(note.content, text) });
+	const updated = await patchNote(api, note, { content: appendedContent(note.content, text) }, flags);
 	print(`Appended ${countWords(text)} words to note ${updated.id}: ${updated.title ?? '(untitled)'}`, updated);
 }
 
@@ -146,5 +152,6 @@ export async function noteRestore({ api, print, positionals, flags, environment 
 	}
 	const { note } = await api.post('/api/notes', { contractId, title: record.title || headingTitle(record.content) || '', content: record.content });
 	removeTrash(noteId, environment);
-	print(`Restored ${noteId} as new note ${note.id} in ${label}: ${note.title ?? '(untitled)'}`, { ...note, restoredFrom: noteId });
+	const newId = note.id === noteId ? `new note ${note.id} (the same id was free again)` : `new note ${note.id}`;
+	print(`Restored ${noteId} as ${newId} in ${label}: ${note.title ?? '(untitled)'}`, { ...note, restoredFrom: noteId });
 }

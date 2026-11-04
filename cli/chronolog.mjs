@@ -35,6 +35,7 @@ const USAGE = `Usage: chronolog <command> [arguments] [--json]
   note show <note-id>
   note edit <note-id> [--title "..."] [--contract X] [--file body.md]   a body replaces the text
   note append <note-id> [--file text.md]         adds a blank line and the text (or stdin)
+                                 edit/append: --expected-updated-at T refuses (exit 7) if changed since T
   note delete <note-id> [--yes]                  keeps a copy in ~/.config/chronolog/trash/
   note restore [<note-id>] [--contract X]        recreates it as a new note (no id: list the trash)
   notes <contract> [--since YYYY-MM-DD]
