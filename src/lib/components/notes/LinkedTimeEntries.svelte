@@ -83,11 +83,12 @@
 						}}
 					>
 						<div class="flex items-center gap-2">
-							<span class="shrink-0 text-xs font-medium text-blue-600 group-hover:underline">
+							<!-- One line on a phone: the date never wraps into the description or duration (043) -->
+							<span class="shrink-0 whitespace-nowrap text-xs font-medium text-blue-600 group-hover:underline" data-testid="linked-time-entry-date">
 								{formatDate(entry.date)}
 							</span>
 							{#if entry.description}
-								<span class="truncate text-sm text-stone-700">
+								<span class="min-w-0 truncate text-sm text-stone-700">
 									— <WikiLinkRenderer
 										text={entry.description}
 										onNoteLinkClick={(linkedNoteId) => noteNavigation.openNoteById(linkedNoteId)}
@@ -100,7 +101,7 @@
 						</div>
 					</div>
 					<div class="flex shrink-0 items-center gap-2">
-						<span class="text-xs text-stone-400">
+						<span class="whitespace-nowrap text-xs text-stone-400" data-testid="linked-time-entry-duration">
 							{formatDuration(entry.durationMinutes)}
 						</span>
 						<button

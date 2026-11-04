@@ -3,8 +3,12 @@ import { expect, type Page } from '@playwright/test';
 
 export const editor = (page: Page) => page.locator('[data-note-editor-content] .tiptap');
 
+/**
+ * A note list row by its title line (not its preview: since sprint 043 a preview can quote another
+ * note's title through a wiki-link).
+ */
 export const noteListItem = (page: Page, text: string) =>
-	page.locator('button', { hasText: text }).filter({ has: page.locator('span.truncate') }).first();
+	page.locator('button').filter({ has: page.locator('span.truncate', { hasText: text }) }).first();
 
 /** Sidebar contract button (its label starts with the contract name). */
 export const sidebarContract = (page: Page, name: string) =>

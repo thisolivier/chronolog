@@ -14,6 +14,7 @@ import { database, notes, contracts, clients } from '$lib/server/db';
 import { decryptNullable, decryptText } from '$lib/server/crypto/server-cipher';
 import { noteDisplayTitle } from '$lib/utils/note-display-title';
 import { extractMarkdownPreviewLines } from '$lib/utils/markdown-preview-lines';
+import { wikiLinkPreviewOptions } from './wiki-link-titles';
 
 /** Days a trashed note can be restored; keep in sync with `scripts/purge-note-trash.mjs`. */
 export const TRASH_RETENTION_DAYS = 30;
@@ -115,16 +116,21 @@ export async function listTrashedNotesForUser(userId: string) {
 		.innerJoin(clients, eq(contracts.clientId, clients.id))
 		.where(and(eq(notes.userId, userId), isNotNull(notes.deletedAt)))
 		.orderBy(desc(notes.deletedAt));
-	return rows.map((row) => {
+	const decrypted = rows.map((row) => ({
+		row,
+		title: decryptNullable(row.title, 'notes.title'),
+		content: decryptNullable(row.content, 'notes.content'),
+		contentJson: decryptNullable(row.contentJson, 'notes.content_json')
+	}));
+	const previewOptions = await wikiLinkPreviewOptions(userId, decrypted);
+	return decrypted.map(({ row, title, content, contentJson }) => {
 		const deletedAt = row.deletedAt as Date;
 		return {
 			id: row.id,
 			// Stored title, else the first line (TipTap JSON, or the markdown of a CLI note)
 			title:
-				noteDisplayTitle(
-					decryptNullable(row.title, 'notes.title'),
-					decryptNullable(row.contentJson, 'notes.content_json')
-				) ?? (extractMarkdownPreviewLines(decryptNullable(row.content, 'notes.content')).firstLine || null),
+				noteDisplayTitle(title, contentJson, previewOptions) ??
+				(extractMarkdownPreviewLines(content, previewOptions).firstLine || null),
 			contractId: row.contractId,
 			contract: `${row.clientShortCode}/${decryptText(row.contractName, 'contracts.name')}`,
 			deletedAt,

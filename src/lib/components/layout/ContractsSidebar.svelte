@@ -6,6 +6,7 @@
 	import ContractCreateModal from '$lib/components/admin/ContractCreateModal.svelte';
 	import SidebarClientGroup from './SidebarClientGroup.svelte';
 	import SidebarArchivedSection from './SidebarArchivedSection.svelte';
+	import SidebarTrashLink from './SidebarTrashLink.svelte';
 	import type { ClientSummary } from '$lib/services/types';
 	import { NOTES_CHANGED_EVENT } from '$lib/services/notes-changed-event';
 	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
@@ -194,6 +195,7 @@
 					onSelect={handleContractClick}
 				/>
 			{/if}
+			<SidebarTrashLink withDivider={sections.archivedContractCount === 0} />
 		{/if}
 		<p class="sr-only" aria-live="polite" data-testid="sidebar-reorder-announcement">{clientReorder.announcement}</p>
 	</div>

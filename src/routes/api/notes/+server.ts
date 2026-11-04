@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { listNotesForUser, createNoteForUser, extractPreviewLines } from '$lib/server/db/queries/notes';
 import { extractMarkdownPreviewLines } from '$lib/utils/markdown-preview-lines';
 import { noteDisplayTitle } from '$lib/utils/note-display-title';
+import { wikiLinkPreviewOptions } from '$lib/server/db/queries/wiki-link-titles';
 import { apiError } from '$lib/server/api-errors';
 import { readJsonObject, readRequestTimezone } from '$lib/server/api-request';
 import { contractBelongsToUser } from '$lib/server/db/queries/contracts';
@@ -44,17 +45,19 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	}
 
 	const notesList = await listNotesForUser(currentUser.id, { contractId, clientId, updatedSince });
+	// Wiki-links in titles and previews read as their target's title (sprint 043-CL)
+	const previewOptions = await wikiLinkPreviewOptions(currentUser.id, notesList);
 
 	// Return only the fields needed for the list view
 	const notes = notesList.map((note) => {
 		const preview = note.contentJson
-			? extractPreviewLines(note.contentJson)
-			: extractMarkdownPreviewLines(note.content);
+			? extractPreviewLines(note.contentJson, previewOptions)
+			: extractMarkdownPreviewLines(note.content, previewOptions);
 		return {
 			id: note.id,
 			contractId: note.contractId,
 			title: note.title,
-			displayTitle: noteDisplayTitle(note.title, note.contentJson) ?? (preview.firstLine || null),
+			displayTitle: noteDisplayTitle(note.title, note.contentJson, previewOptions) ?? (preview.firstLine || null),
 			isPinned: note.pinnedAt !== null,
 			pinnedAt: note.pinnedAt,
 			createdAt: note.createdAt,

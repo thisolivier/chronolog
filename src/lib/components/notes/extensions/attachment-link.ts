@@ -7,6 +7,7 @@
  */
 
 import { parseChronologUrl, resolveAttachmentUrl } from './attachment-resolver.js';
+import { attachmentStatus, checkAttachment } from './attachment-availability.js';
 
 /**
  * Types never opened as a page: a blob URL carries the app's origin, so an SVG (or HTML) opened in
@@ -29,11 +30,14 @@ export function attachmentHrefFromTarget(target: EventTarget | null): string | n
  * Open the attachment behind a `chronolog://attachment/<id>` URL in a new tab. The tab is opened
  * before the fetch, inside the click, so a popup blocker lets it through; it is pointed at the
  * blob URL once the bytes arrive, and closed again if they never do or are active content (SVG).
- * Resolves false on failure.
+ * A link to an attachment known to be deleted opens nothing (sprint 043-CL). Resolves false on failure.
  */
 export async function openAttachment(chronologUrl: string, opener: Pick<Window, 'open'> = window): Promise<boolean> {
+	if (attachmentStatus(chronologUrl) === 'missing') return false;
 	const newTab = opener.open('about:blank', '_blank');
 	const blobUrl = await resolveAttachmentUrl(chronologUrl);
+	// A failed fetch may mean the file was deleted: find out, so the link shows it
+	if (!blobUrl) void checkAttachment(chronologUrl);
 	const blobType = blobUrl ? await blobContentType(blobUrl) : null;
 	if (!blobUrl || blobType === null || ACTIVE_CONTENT_TYPES.has(blobType)) {
 		newTab?.close();

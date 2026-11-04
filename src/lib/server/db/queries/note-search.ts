@@ -1,8 +1,10 @@
 import { eq, and, desc, inArray, isNull } from 'drizzle-orm';
 import { database, notes, contracts, clients } from '$lib/server/db';
 import { extractPreviewLines } from '$lib/utils/extract-preview-lines';
+import { extractMarkdownPreviewLines } from '$lib/utils/markdown-preview-lines';
 import { noteDisplayTitle } from '$lib/utils/note-display-title';
 import { decryptNullable, decryptText } from '$lib/server/crypto/server-cipher';
+import { wikiLinkPreviewOptions } from './wiki-link-titles';
 
 /**
  * Note search, `[[` autocomplete and title lookup.
@@ -155,12 +157,20 @@ export async function getNoteTitlesForUser(
 	const rows = await selectNotesWithContract().where(
 		options.includeDeleted ? owned : and(owned, isNull(notes.deletedAt))
 	);
-	return rows.map((row) => {
-		const title = decryptNullable(row.title, 'notes.title');
-		const contentJson = decryptNullable(row.contentJson, 'notes.content_json');
+	const decrypted = rows.map((row) => ({
+		row,
+		title: decryptNullable(row.title, 'notes.title'),
+		content: decryptNullable(row.content, 'notes.content'),
+		contentJson: decryptNullable(row.contentJson, 'notes.content_json')
+	}));
+	const previewOptions = await wikiLinkPreviewOptions(userId, decrypted);
+	return decrypted.map(({ row, title, content, contentJson }) => {
 		return {
 			id: row.id,
-			displayTitle: noteDisplayTitle(title, contentJson),
+			// A note created over the API (no JSON yet) is named by its markdown's first line (043)
+			displayTitle:
+				noteDisplayTitle(title, contentJson, previewOptions) ??
+				(contentJson ? null : extractMarkdownPreviewLines(content, previewOptions).firstLine || null),
 			contractId: row.contractId,
 			clientId: row.clientId,
 			...(options.includeDeleted ? { deletedAt: row.deletedAt } : {})

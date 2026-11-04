@@ -64,7 +64,7 @@
 </script>
 
 {#if attachmentItems.length > 0}
-	<div class="border-t border-stone-200 bg-white px-6 py-3">
+	<div class="border-t border-stone-200 bg-white px-6 py-3" data-testid="note-attachments">
 		<h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">
 			Attachments
 		</h4>

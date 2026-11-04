@@ -12,7 +12,7 @@ Saving is handled by `AutosaveController` (`note-autosave.ts`), not by the edito
 
 ### NoteEditor.svelte
 
-Main editor component with toolbar and content area. Notes have no title field: the saved `title` is the first content line, and the list shows that line too.
+Main editor component with toolbar and content area. Notes have no title field: the saved `title` is the first content line (wiki-links read as the target's cached title, sprint 043-CL), and the list shows that line too.
 
 **Features:**
 - Rich text editing with markdown serialization. Wiki-links are saved as `[[id]]` text (see `extensions/README.md`), which is what the server's backlink extraction reads
@@ -67,7 +67,22 @@ Client cache of note display titles. Lookups are batched into one `GET /api/note
 
 ### note-trash.ts
 
-Browser side of the server-side trash (sprint 037-CL). `restoreTrashedNote` calls `DataService.restoreNote`, marks the note live in the title cache and dispatches `note-restored` (the list reloads, sidebar counts refresh). `showRestorePrompt` is the small inline confirm ("“Title” is in the trash. Restore / Cancel") that opens next to a clicked "deleted" wiki-link, in the editor and in time-entry descriptions alike. `NoteEditorPanel` shows a ten-second "Moved to trash. Undo" toast after a delete, which uses the same restore.
+Browser side of the server-side trash (sprint 037-CL). `restoreTrashedNote` calls `DataService.restoreNote`, marks the note live in the title cache and dispatches `note-restored` (the list reloads, sidebar counts refresh). `showRestorePrompt` is the small inline confirm ("“Title” is in the trash. Restore / Cancel") that opens next to a clicked "deleted" wiki-link, in the editor and in time-entry descriptions alike.
+
+### note-trash-toast.svelte.ts, NoteTrashToastHost.svelte (sprint 043-CL)
+
+The ten-second "Moved to trash. Undo" toast after a delete. Its state is module-level (`showTrashToast`, `dismissTrashToast`) and the host is mounted once by the workspace layout, so the toast survives the editor panel unmounting (on a phone the list replaces the editor at once). Undo restores through `restoreTrashedNote` and opens the note.
+
+### Trash page: trash-view.ts, TrashList.svelte (sprint 043-CL)
+
+`/notes/trash` (`src/routes/notes/trash/+page.svelte`, a standalone page like Search) lists `GET /api/notes/trash`: title (or ID), contract, deleted date and days left before the 30-day purge (`purgeLabel`), with a Restore button per row; a restored row offers Open. Reached from "Trash" under the sidebar's Archived item (`layout/SidebarTrashLink.svelte`).
+
+### Editor panel modules (split from `layout/NoteEditorPanel.svelte` in sprint 043-CL)
+
+- **note-editor-session.ts** — `EditorSession` (one mounted editor) and its saving: a draft's note is created on its first save (`ensureNoteExists`), later saves update with conflict detection, and both refresh the title cache and dispatch `note-created` / `note-saved`. Talks to the panel through a small `SessionHost`.
+- **note-panel-state.svelte.ts** — `NotePanelState`: the reactive panel state (session, note, backlinks, loading, save status), loading a note after its in-flight saves, opening drafts, and `showUrlSelection` for whatever the URL names.
+- **note-panel-actions.ts** — upload, move to another contract, delete (then the Undo toast), following a wiki-link (restore prompt for a trashed note) and the Markdown / PDF exports.
+- **NoteLinkedPanels.svelte** — backlinks, linked time entries and attachments under the editor; on a screen under 500 px tall (phone in landscape) they sit in a closed "Links and attachments" disclosure so the editor keeps the screen.
 
 ### note-sort.ts
 
@@ -83,7 +98,7 @@ Markdown export. `exportAsMarkdown` downloads a `.md` file; `buildMarkdownExport
 
 ### EditorToolbar.svelte
 
-Formatting toolbar with active state indicators (bold, italic, headings, lists, task list, links, code blocks). Receives `transactionCount` from `NoteEditor` (bumped on every TipTap transaction) and reads it inside its `isActive()` helper; the `Editor` instance never changes identity, so without that counter Svelte would not re-evaluate the highlights.
+Formatting toolbar with active state indicators (bold, italic, headings, lists, task list, links, code blocks). Receives `transactionCount` from `NoteEditor` (bumped on every TipTap transaction) and reads it inside its `isActive()` and `canRun()` helpers (the disabled states follow the selection too since sprint 043-CL); the `Editor` instance never changes identity, so without that counter Svelte would not re-evaluate the highlights.
 
 ### NoteEditorHeader.svelte
 
@@ -107,7 +122,7 @@ Result list for the note search field in the note list. Each result shows the co
 
 ### LinkedTimeEntries.svelte
 
-Displays time entries linked to the current note. Fetches from `/api/notes/[noteId]/time-entries` and supports unlinking entries. Rows open the entry's day in time mode (`navigation.showTimeEntryDay`), which scrolls the timesheet to it; descriptions render wiki-links through `WikiLinkRenderer`, so they show note titles.
+Displays time entries linked to the current note. The date and duration never wrap (one line on a phone). Fetches from `/api/notes/[noteId]/time-entries` and supports unlinking entries. Rows open the entry's day in time mode (`navigation.showTimeEntryDay`), which scrolls the timesheet to it; descriptions render wiki-links through `WikiLinkRenderer`, so they show note titles.
 
 ### AttachmentList.svelte
 

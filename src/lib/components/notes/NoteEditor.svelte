@@ -19,8 +19,10 @@
 	import { TaskListExtensions } from './extensions/task-list.js';
 	import { revokeAllTrackedUrls } from './extensions/attachment-resolver.js';
 	import { ATTACHMENT_LINK_PROTOCOLS, attachmentHrefFromTarget, openAttachment } from './extensions/attachment-link.js';
+	import { AttachmentLinkStatus } from './extensions/attachment-availability.js';
 	import { AutosaveController, type SaveStatus, type PersistOptions } from './note-autosave';
 	import { extractPreviewLines } from '$lib/utils/extract-preview-lines';
+	import { cachedTitlePreviewOptions } from './note-titles.svelte';
 	import { truncateNoteTitle } from '$lib/utils/note-display-title';
 
 	/** MIME types accepted for file drop/paste */
@@ -98,7 +100,7 @@
 		const contentJson = JSON.stringify(editor.getJSON());
 		return {
 			// The title is the note's first line, so links, search and exports can name it
-			title: truncateNoteTitle(extractPreviewLines(contentJson).firstLine),
+			title: truncateNoteTitle(extractPreviewLines(contentJson, cachedTitlePreviewOptions).firstLine),
 			content: markdown,
 			contentJson
 		};
@@ -270,6 +272,8 @@
 				WikiLink,
 				// `- [ ]` / `- [x]` checkbox items, nestable (sprint 040-CL)
 				...TaskListExtensions,
+				// Links to deleted attachments look missing and do not open (sprint 043-CL)
+				AttachmentLinkStatus,
 			],
 			content,
 			editable: !readonly,
@@ -680,6 +684,24 @@
 		margin-right: 0.2em;
 		vertical-align: -0.1em;
 		background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpath d='M14 2v6h6'/%3E%3C/svg%3E") no-repeat center / contain;
+	}
+
+	/* A link to a deleted attachment (sprint 043-CL): the missing-image placeholder look, no click */
+	:global(.tiptap .attachment-link-missing) {
+		color: #a8a29e;
+		border: 1px dashed #d6d3d1;
+		background: #fafaf9;
+		border-radius: 3px;
+		padding: 0 3px;
+		text-decoration: line-through;
+		cursor: not-allowed;
+	}
+	:global(.tiptap .attachment-link-missing::after) {
+		content: ' (deleted)';
+		font-size: 0.85em;
+		display: inline-block;
+		margin-left: 0.15em;
+		text-decoration: none;
 	}
 
 	:global(.tiptap img.ProseMirror-selectednode) {
