@@ -60,4 +60,13 @@ reopen only for one account at a time by flipping the flag and redeploying.
 
 Archived clients and contracts are not read-only: notes and entries can still be created and edited on
 them (033 follow-up closed). A bare integer duration stays minutes (`8` is 8 minutes; 025 follow-up
-closed). Pause (needs a `paused_seconds` column) is still undecided.
+closed).
+
+## 2026-11-04 — No timer pause; iOS build
+
+The timer will not get pause back (025 follow-up closed). An iOS build is next: a Tauri 2 iOS shell
+loading production like the macOS menu-bar app, shipped to TestFlight with the release lane from
+`~/sites/timeConvertor` (xcodegen, `ExportOptions.plist`, altool upload, shared signing in
+`~/sites/navidromClient/spike/.signing`). iOS bundle id `dev.thisolivier.chronolog` via
+`tauri.ios.conf.json`; the desktop app keeps `com.chronolog.app` so its stored data and device key stay put.
+Preceded by a UI pass at iPhone sizes.

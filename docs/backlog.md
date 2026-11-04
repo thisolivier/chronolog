@@ -42,7 +42,8 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 3. **Airtable hours logging skill.** Deferred by the owner until the MCP details are in hand.
 4. **End-client status and hours API skill.** Deferred until the owner has API access.
 5. **Invoice generation from existing templates.** Deferred until 3 and 4 are sorted.
-6. **Key rotation (IF-4) and per-device keys (IF-5).** Discuss with the owner before starting. An `enc2:` envelope with a key id and a re-encrypt walker; several device keys so one lost device can be revoked alone.
+6. **iOS build (owner request 2026-11-04).** UI pass at iPhone sizes (047-QA), then a Tauri iOS shell with the timeConvertor TestFlight lane (048-DT); owner does the Apple portal steps.
+7. **Key rotation (IF-4) and per-device keys (IF-5).** Discuss with the owner before starting. An `enc2:` envelope with a key id and a re-encrypt walker; several device keys so one lost device can be revoked alone.
 
 ## Owner-requested, back of the queue (2026-11-04)
 
@@ -62,7 +63,6 @@ All done in sprints 039–042 and 046 (2026-11-04). Open from them: global searc
 
 ### Timesheet / timer
 
-- Pause was removed in 025; bringing it back needs a `paused_seconds` column (025 sign-off).
 - A timer with no contract lives only in this browser's localStorage, so another device will not see it (025 sign-off).
 - `TimeEntryDisplay.clientId`, `deliverableId` and `workTypeId` are still optional (019 sign-off).
 
