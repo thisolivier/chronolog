@@ -111,6 +111,17 @@ async function seed(page: Page): Promise<Seeded> {
 	);
 }
 
+/** Sign up a fresh user in this page's context (the server runs with ALLOW_REGISTRATION=true) */
+async function registerUser(page: Page, email: string) {
+	await open(page, '/register');
+	await page.locator('#name').fill('QA 030');
+	await page.locator('#email').fill(email);
+	await page.locator('#password').fill('TestPassword123!');
+	await page.locator('#confirm-password').fill('TestPassword123!');
+	await page.locator('button[type="submit"]').click();
+	await page.waitForURL((url) => url.pathname === '/', { timeout: 15000 });
+}
+
 async function readEntry(page: Page, date: string, entryId: string) {
 	return page.evaluate(
 		async ({ date, entryId }) => {
@@ -213,4 +224,51 @@ test.describe('Sprint 030 timesheet polish', () => {
 		expect(focused.isBody).toBe(false);
 		expect(focused.isContentEditable).toBe(true);
 	});
+});
+
+/**
+ * Task 7: the timer and the week header agree on "today" for a Europe/London browser late in
+ * the evening. Recorded, not changed: both use the browser's local date. The second case is
+ * 00:30 BST, which is still the previous day in UTC, so a UTC "today" anywhere would show.
+ */
+test.describe('Sprint 030 task 7: timer and week header agree on today (Europe/London)', () => {
+	const cases = [
+		{ name: '23:30 GMT (UTC+0)', instant: '2026-11-03T23:30:00Z', localDate: '2026-11-03', localStart: '23:30', isoWeek: '2026-W45' },
+		{ name: '00:30 BST (23:30 UTC the day before)', instant: '2026-07-14T23:30:00Z', localDate: '2026-07-15', localStart: '00:30', isoWeek: '2026-W29' }
+	];
+
+	for (const timezoneCase of cases) {
+		test(`at ${timezoneCase.name}`, async ({ browser }) => {
+			// A user of its own: the timer is per user, and the shared Playwright user's timer is
+			// used by the other browser project at the same time
+			const context = await browser.newContext({ timezoneId: 'Europe/London', storageState: undefined });
+			const page = await context.newPage();
+			await registerUser(page, `qa-030-tz-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}@chronolog.test`);
+			const seeded = await seed(page);
+			await page.clock.setFixedTime(new Date(timezoneCase.instant));
+			await open(page, '/time');
+
+			// Week header: the ISO week in the URL, the highlighted strip day and the "Today" badge
+			await expect(page).toHaveURL(new RegExp(`/time(/${timezoneCase.isoWeek})?$`));
+			await expect(page.getByText(`Week ${Number(timezoneCase.isoWeek.slice(-2))} ·`)).toBeVisible();
+			await expect(page.getByRole('button', { name: `Go to ${timezoneCase.localDate}` })).toHaveClass(/bg-amber-100/);
+			await expect(page.locator(`[data-day="${timezoneCase.localDate}"]`)).toContainText('Today');
+
+			// Timer: started now, on the same local day
+			const widget = page.locator('[data-testid^="timer-widget-"]').first();
+			await widget.getByRole('button', { name: 'Start Timer' }).click();
+			await expect(widget).toContainText(`Started: ${timezoneCase.localStart}`);
+			await widget.locator('#draft-contract').selectOption({ label: seeded.targetLabel });
+			await expect
+				.poll(async () => page.evaluate(async () => (await (await fetch('/api/timer/status')).json()).timer?.date ?? null))
+				.toBe(timezoneCase.localDate);
+			const timer = await page.evaluate(async () => (await (await fetch('/api/timer/status')).json()).timer);
+			expect(timer.startTime.slice(0, 5)).toBe(timezoneCase.localStart);
+
+			await widget.getByRole('button', { name: 'Stop' }).click();
+			await widget.getByRole('button', { name: /Discard/ }).click();
+			await expect(widget.getByRole('button', { name: 'Start Timer' })).toBeVisible();
+			await context.close();
+		});
+	}
 });
