@@ -1,6 +1,6 @@
 # Sprint 047 — QA: The app at iPhone sizes, found and fixed
 
-**Status:** ready for review
+**Status:** merged
 **Branch:** `sprint-047-QA/iphone-ui` · **Worktree:** `.claude/worktrees/sprint-047-QA` · **Port:** 5226
 **Sources:** owner request 2026-11-04: prepare the iOS build by UI testing at iPhone sizes. Runs in parallel with 048-DT (which owns `src-tauri/`, `scripts/ios/`, release docs and skills); wave rules in `docs/sprints/_wave-rules.md` apply (no migration).
 

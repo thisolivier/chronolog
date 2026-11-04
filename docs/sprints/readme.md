@@ -5,12 +5,14 @@
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
 | 018-QA | QA | Manual testing backlog | superseded by docs/review/2026-11-03-qa-state.md |
+| 047-QA | QA | iPhone-size UI pass: 18 issues, 14 fixed; iPhone Playwright projects | merged |
 | 045-CL | Client | Offline outbox: persistent read cache, write outbox, held conflicts, app-shell service worker | ready for review |
 
 ## Completed Sprints
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 047-QA | QA | iPhone-size UI pass: 18 issues, 14 fixed; iPhone Playwright projects | merged |
 | 045-CL | Client/Server | Offline outbox: persistent read cache, write outbox, idempotent creates, service worker | merged |
 | 044-CL | Client/Infra | Platform follow-ups: 2FA test, drift notice, colours, flaky tests | merged |
 | 043-CL | Client | Notes follow-ups: trash view, previews, phone Undo, panel split | merged |
