@@ -14,6 +14,9 @@ export type ContractsByClientResult = {
 	clientEmoji: string | null;
 	clientColorIndex: number;
 	noteCount: number;
+	/** Only with `includeArchived` (sprint 031-CL): the contract, or its client, is archived */
+	archived?: boolean;
+	clientArchived?: boolean;
 };
 
 export type ContractOption = {

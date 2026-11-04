@@ -38,8 +38,9 @@ export class FetchDataService implements DataService {
 	// -- Contracts --
 
 	async getContractsByClient(): Promise<ContractsByClientResult[]> {
+		// Archived ones included: the sidebar folds them under its Archived item (sprint 033-CL)
 		const data = await fetchJson<{ contracts: ContractsByClientResult[] }>(
-			'/api/contracts-by-client'
+			'/api/contracts-by-client?includeArchived=true'
 		);
 		return data.contracts;
 	}

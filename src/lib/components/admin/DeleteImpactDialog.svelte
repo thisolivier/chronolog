@@ -76,8 +76,8 @@
 				</p>
 				{#if offerArchive}
 					<p>
-						<strong class="text-stone-800">Archive</strong> hides it from the sidebar and selects and
-						keeps everything; you can restore it later.
+						<strong class="text-stone-800">Archive</strong> moves it to Archived at the bottom of the
+						sidebar and out of selects, and keeps everything; you can restore it later.
 					</p>
 				{/if}
 				<p>{deleteConsequence}</p>
