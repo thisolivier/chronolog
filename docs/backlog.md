@@ -32,6 +32,13 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 5. **Invoice generation from existing templates.**
 6. **Key rotation (IF-4) and per-device keys (IF-5).** An `enc2:` envelope with a key id and a re-encrypt walker; several device keys so one lost device can be revoked alone.
 
+## Owner-requested, back of the queue (2026-11-04)
+
+- **Pin a note.** A pinned note sits at the top of its contract's note list (friction #40 covered this too; `notes.pinned_at` or a boolean, API + CLI `note pin|unpin`).
+- **Client view.** Clicking a client in the sidebar opens a combined note list across all of that client's contracts, pinned notes first, with the contract shown on each row; the URL is the state (`/notes/client/<clientId>`), and the sidebar highlights the client.
+- **Sidebar: drag to reorder clients.** Persisted per user (`clients.sort_order` exists for contracts; add the same for clients), keyboard alternative (move up/down), and the CLI `client edit --order`.
+- **Sidebar: click a client heading to collapse its contracts.** Remembered per browser like the Archived group; collapsed-by-default rule to decide (suggest: never collapsed by default). Interacts with the client view above: a click on the name opens the client view, the chevron collapses.
+
 ## Carried-over follow-ups
 
 ### Notes / editor
@@ -43,7 +50,6 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 - A keepalive save at unload can reach the server after the reloaded page has loaded the note; the next edit gets the conflict message, no text lost (024 sign-off).
 - PDF export has not been tried in the native macOS print dialog; check on the Mac (024 sign-off, friction #11).
 - No note-side picker to reference a time entry; only the time-entry side links today (friction #21, 024 task 8).
-- Note pinning from the UI spec is not built (friction #40).
 - Wiki-link text drops out of note titles and previews, leaving "Beta note links to" and "See ." (integration-qa-2 O1, journeys P-12).
 - Wiki-links to deleted notes render and do nothing on click (journeys A-10).
 - Note IDs keep the old client code after a client rename or a move (journeys P-07).
