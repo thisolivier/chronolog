@@ -10,6 +10,7 @@
 	import TimeEntriesPanel from '$lib/components/layout/TimeEntriesPanel.svelte';
 	import NoteListPanel from '$lib/components/layout/NoteListPanel.svelte';
 	import NoteEditorPanel from '$lib/components/layout/NoteEditorPanel.svelte';
+	import FirstRunNotice from '$lib/components/onboarding/FirstRunNotice.svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
 	import { getIsoWeekNumber } from '$lib/utils/iso-week';
@@ -40,11 +41,13 @@
 	{/snippet}
 
 	{#snippet panel2()}
+		<FirstRunNotice compact />
 		<NoteListPanel />
 	{/snippet}
 
 	{#snippet panel3()}
 		{#if nav.isTimeEntriesMode}
+			<FirstRunNotice />
 			<TimeEntriesPanel />
 		{:else}
 			<NoteEditorPanel />
