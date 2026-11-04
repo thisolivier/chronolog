@@ -22,6 +22,7 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 - **033-CL** Archived group in the sidebar, single-contract clients as one row, archived-contract journeys fixed.
 - **034-CL** `note edit/append/delete/restore`, `note new --date`, PATCH notes with conflict detection, markdown-only saves clear stale TipTap JSON.
 - **036-CL** PDF attachments, upload type checked by magic bytes, `note attach`/`attachments`, `attachment get/delete`, `chronolog --version` 1.0.0, `BODY_SIZE_LIMIT` fix.
+- **035-DT** macOS menu-bar app: window loads production, close hides, tray shows the running timer, built on the Mac mini (`~/sites/chronolog-desktop/`).
 - **Offline banner and read cache** (`fix/offline-banner-and-cache`): the banner shows when the server is unreachable, and the read cache is write-through.
 
 ## Next (owner-decided, in this order)
@@ -97,6 +98,8 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 - The failure limiter is in memory and per process (028 sign-off).
 
 ### Infrastructure / dev environment
+
+- Desktop app: owner to verify close-to-hide, Dock click, tray menu and Cmd+Q on the laptop and add the three screenshots to `docs/review/screenshots/sprint-035/` (Mac mini screen was locked). Bundle version is still 0.0.1 in `src-tauri/tauri.conf.json`; take it from `package.json`. Signing out while a timer runs leaves the menu bar showing it until the next signed-in page load. No updater yet (035 sign-off).
 
 - `db:seed` writes plaintext; run `scripts/encrypt-existing.mjs` after seeding (023 sign-off).
 - `encrypt-existing.mjs` has no tested route to production Postgres; only a database created before 023 needs it (023 sign-off, `docs/DEPLOYMENT.md`).
