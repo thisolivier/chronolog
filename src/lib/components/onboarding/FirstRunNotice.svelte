@@ -41,7 +41,7 @@
 			<span class="font-medium text-stone-900">No clients yet.</span>
 			Clients and contracts are created under
 			<a href={CLIENTS_SETTINGS_HREF} class="font-medium text-blue-700 underline hover:text-blue-900">Settings → Clients and contracts</a>.
-			{#if !compact}Until then, time and notes can go on Internal · General.{/if}
+			{#if !compact}Until then, time and notes can go on the starter Internal client.{/if}
 		</p>
 	</div>
 {/if}
