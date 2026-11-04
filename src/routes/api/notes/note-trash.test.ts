@@ -227,7 +227,13 @@ describe('reads skip trashed notes', () => {
 		const strangerTitles = await (await call(titlesRoute.GET, { userId: strangerId, path: `/api/notes/titles?ids=${target.id}&includeDeleted=1` })).json();
 		expect(strangerTitles.titles).toEqual([]);
 
-		expect((await call(noteRoute.GET, { userId: ownerId, noteId: target.id })).status).toBe(404);
+		const trashedGet = await call(noteRoute.GET, { userId: ownerId, noteId: target.id });
+		expect(trashedGet.status).toBe(404);
+		expect((await trashedGet.json()).code).toBe('note_in_trash');
+		// Someone else gets the plain 404: the trash is not revealed
+		const strangerGet = await call(noteRoute.GET, { userId: strangerId, noteId: target.id });
+		expect(strangerGet.status).toBe(404);
+		expect((await strangerGet.json()).code).not.toBe('note_in_trash');
 		expect((await call(noteTimeEntriesRoute.GET, { userId: ownerId, noteId: target.id })).status).toBe(404);
 		expect((await call(noteRoute.PUT, { userId: ownerId, method: 'PUT', noteId: target.id, body: { title: 'x' } })).status).toBe(404);
 

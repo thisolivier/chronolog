@@ -3,11 +3,12 @@ import type { RequestHandler } from './$types';
 import { getNoteForUser, deleteNoteForUser } from '$lib/server/db/queries/notes';
 import { trashPurgeDate } from '$lib/server/db/queries/note-trash';
 import { applyNoteChanges } from './note-changes';
+import { apiError } from '$lib/server/api-errors';
 
 /**
  * GET /api/notes/[noteId]
  *
- * Returns the full note including content; 404 for a note in the trash.
+ * Returns the full note including content; 404 `note_in_trash` for the caller's note in the trash.
  */
 export const GET: RequestHandler = async ({ locals, params }) => {
 	const currentUser = locals.user;
@@ -16,6 +17,10 @@ export const GET: RequestHandler = async ({ locals, params }) => {
 	const note = await getNoteForUser(params.noteId, currentUser.id);
 
 	if (!note) {
+		// The owner's note in the trash gets its own code, so the CLI can point at the restore
+		if (await getNoteForUser(params.noteId, currentUser.id, { includeDeleted: true })) {
+			return apiError(404, `Note ${params.noteId} is in the trash`, 'note_in_trash');
+		}
 		throw error(404, 'Note not found');
 	}
 

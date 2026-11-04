@@ -2,6 +2,17 @@
 
 API routes for CRUD operations on notes. All routes require authentication.
 
+## Trash (sprint 037-CL)
+
+`DELETE` moves a note to a server-side trash (`notes.deleted_at`). The row keeps its ID, its
+`note_links` in both directions and its `note_time_entries`, so `POST …/restore` brings everything
+back with one `deleted_at = null`. Every read that lists, searches, titles, previews or resolves notes
+skips trashed rows (`notInTrash` in `queries/notes.ts`; `includeDeleted` where a caller needs them).
+Each delete also hard-deletes the caller's notes trashed more than 30 days ago, in the same
+transaction (`queries/note-trash.ts`; the foreign keys cascade to links, time-entry links and
+attachments). There is no scheduler; `scripts/purge-note-trash.mjs` purges every user's expired
+trash by hand. A trashed note cannot be changed (`PUT`/`PATCH` 404) until it is restored.
+
 ## Note ID Format
 
 Notes use human-readable IDs in the format: `CLIENT_SHORT_CODE.YYYYMMDD.SEQ`
@@ -68,6 +79,7 @@ Creates a new note with an auto-generated ID.
 - `content` (optional): Markdown content
 - `contentJson` (optional): TipTap JSON for rich text rendering
 - `createdAt` (optional, sprint 034-CL): `YYYY-MM-DD` to backdate the note. The ID carries that date and `created_at` is noon of that day in the caller's timezone (`X-Timezone` / `?tz=`); `updatedAt` is now. Today is the same as leaving it out; a future day or a non-calendar value is `400 invalid_date`. The creation date cannot be changed later (the ID would have to change).
+- `wordCount` is counted from `contentJson` when given, else from the markdown `content` (sprint 037-CL; before, a markdown-only note stored 0). The markdown's `[[id]]` wiki-links are indexed for backlinks, as on `PUT`.
 
 **Response:**
 ```json
@@ -88,7 +100,7 @@ Creates a new note with an auto-generated ID.
 
 ### `GET /api/notes/[noteId]`
 
-Retrieves a single note with full content.
+Retrieves a single note with full content. The caller's note in the trash is 404 `note_in_trash` (the CLI points at `note restore`); anything else not found is a plain 404.
 
 **Response:**
 ```json
@@ -119,13 +131,13 @@ Ranked search across all of the user's notes, used by the note list search and t
 
 ### `GET /api/notes/titles?ids=A,B,C`
 
-Display titles for wiki-link rendering. IDs the user does not own are omitted; at most 100 IDs are read.
+Display titles for wiki-link rendering. IDs the user does not own are omitted; at most 100 IDs are read. Trashed notes are omitted unless `includeDeleted=1`, which adds `deletedAt` (null for a live note) to every entry; the browser's title cache always asks for it, so a link to a trashed note renders as "deleted" and offers a restore.
 
-**Response:** `{ "titles": [{ "id", "displayTitle", "contractId", "clientId" }] }`
+**Response:** `{ "titles": [{ "id", "displayTitle", "contractId", "clientId", "deletedAt"? }] }`
 
 ### `GET /api/notes/[noteId]/backlinks`
 
-Notes that link to this note.
+The caller's notes that link to this note; trashed sources are hidden (their link rows stay for a restore).
 
 **Response:** `{ "backlinks": [{ "sourceNoteId", "headingAnchor", "noteTitle", "noteContractId", "noteClientId" }] }`. `noteTitle` is the display title (stored title, else first content line).
 
@@ -173,7 +185,7 @@ Partial change for machine clients (sprint 034-CL): the same fields and rules as
 
 ### `DELETE /api/notes/[noteId]`
 
-Deletes a note and its time entry links (another user's note is 404 and untouched).
+Moves the note to the trash (see above) and purges the caller's trash older than 30 days. Another user's note, or one already in the trash, is 404 and untouched.
 
 **Response:**
 ```json
@@ -181,9 +193,21 @@ Deletes a note and its time entry links (another user's note is 404 and untouche
   "success": true,
   "id": "BIGCH.20260207.001",
   "title": "Meeting Notes",
-  "contractId": "uuid"
+  "contractId": "uuid",
+  "deletedAt": "2026-11-04T12:00:00.000Z",
+  "purgeAt": "2026-12-04T12:00:00.000Z"
 }
 ```
+
+### `POST /api/notes/[noteId]/restore`
+
+Takes the caller's note out of the trash with its ID, links and time-entry links. 404 `not_in_trash` when it is not the caller's or not in the trash. A restore onto an archived contract is allowed; `contract.archived` reports it.
+
+**Response:** `{ "note": { …the full note… }, "contract": { "id", "name", "clientShortCode", "archived", "isSystem" } }`
+
+### `GET /api/notes/trash`
+
+The caller's trash, most recently deleted first: `{ "notes": [{ "id", "title", "contractId", "contract", "deletedAt", "purgeAt" }] }` (`contract` is `SHORTCODE/Contract name`).
 
 ## Attachment Routes
 

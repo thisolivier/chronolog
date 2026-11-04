@@ -8,6 +8,7 @@ import { UsageError } from '../lib/args.mjs';
 import { ReferenceError_ } from '../lib/resolve.mjs';
 import { appendedContent, countWords, editedContent } from '../lib/note-body.mjs';
 import { noteNew } from './write.mjs';
+import { noteShow } from './read.mjs';
 
 const NOTE_ID = 'ACME.20261104.001';
 const CONTRACT = { id: '22222222-2222-4222-8222-222222222222', name: 'Website', clientShortCode: 'ACME', clientName: 'Acme Ltd' };
@@ -135,6 +136,13 @@ describe('chronolog note delete and restore (server trash, sprint 037-CL)', () =
 	it('restore of a note not in the trash is an unknown reference (exit 3)', async () => {
 		const api = fakeApi({ [`POST /api/notes/${NOTE_ID}/restore`]: new ApiError(404, 'not in your trash', 'not_in_trash') });
 		await expect(noteRestore({ api, print: () => {}, positionals: [NOTE_ID], flags: {} })).rejects.toBeInstanceOf(ReferenceError_);
+	});
+
+	it('reading a note in the trash (show, delete; edit and append share the read) is exit 3 with the restore command', async () => {
+		const api = fakeApi({ [`GET /api/notes/${NOTE_ID}`]: new ApiError(404, 'in the trash', 'note_in_trash') });
+		const expected = `${NOTE_ID} is in the trash: \`chronolog note restore ${NOTE_ID}\` brings it back.`;
+		await expect(noteShow({ api, print: () => {}, positionals: [NOTE_ID] })).rejects.toThrow(expected);
+		await expect(noteDelete({ api, print: () => {}, positionals: [NOTE_ID], flags: { yes: true } })).rejects.toBeInstanceOf(ReferenceError_);
 	});
 
 	it('restore with no id lists the server trash', async () => {

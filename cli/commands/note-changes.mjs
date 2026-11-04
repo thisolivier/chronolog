@@ -18,6 +18,9 @@ import { confirmRemoval } from '../lib/confirm.mjs';
 import { ReferenceError_, resolveContract } from '../lib/resolve.mjs';
 import { appendedContent, countWords, editedContent, headingTitle, readBody } from '../lib/note-body.mjs';
 import { fetchContracts } from './read.mjs';
+import { fetchNote, notePath } from '../lib/note-fetch.mjs';
+
+export { fetchNote };
 
 /** The note changed on the server after this command read it (exit 7). */
 export class NoteChanged extends Error {
@@ -28,12 +31,6 @@ export class NoteChanged extends Error {
 		this.noteId = noteId;
 		this.serverUpdatedAt = serverUpdatedAt;
 	}
-}
-
-const notePath = (noteId) => `/api/notes/${encodeURIComponent(noteId)}`;
-
-export async function fetchNote(api, noteId) {
-	return (await api.get(notePath(noteId))).note;
 }
 
 /**
