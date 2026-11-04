@@ -80,6 +80,7 @@ Creates a new note with an auto-generated ID.
 - `content` (optional): Markdown content
 - `contentJson` (optional): TipTap JSON for rich text rendering
 - `createdAt` (optional, sprint 034-CL): `YYYY-MM-DD` to backdate the note. The ID carries that date and `created_at` is noon of that day in the caller's timezone (`X-Timezone` / `?tz=`); `updatedAt` is now. Today is the same as leaving it out; a future day or a non-calendar value is `400 invalid_date`. The creation date cannot be changed later (the ID would have to change).
+- `clientRequestId` (optional, sprint 045-CL): the caller's own ID for the note (1-100 of `A-Z a-z 0-9 . _ : -`, else `400 invalid_client_request_id`). A second create with the same `clientRequestId` answers `200` with the note the first one made, unchanged, instead of a new note (`201`). The browser's offline outbox sends its temp ID; without it (the CLI) every POST creates. Stored in `notes.client_request_id`, unique per user (migration 0011), and returned on the note and in `GET /api/notes` rows when set. `POST /api/time-entries` takes the same field (also returned on week entries).
 - `wordCount` is counted from `contentJson` when given, else from the markdown `content` (sprint 037-CL; before, a markdown-only note stored 0). The markdown's `[[id]]` wiki-links are indexed for backlinks, as on `PUT`.
 
 **Response:**

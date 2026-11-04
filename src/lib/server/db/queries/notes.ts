@@ -3,6 +3,7 @@ import { localDateString } from '$lib/utils/local-calendar';
 import { database, notes, noteTimeEntries, contracts, clients, timeEntries } from "$lib/server/db";
 import { decryptNullable, decryptText, encryptNullable } from '$lib/server/crypto/server-cipher';
 import { calculateWordCountFromJson, calculateWordCountFromMarkdown } from './note-word-count';
+import { isUniqueViolation } from '$lib/server/admin-actions';
 
 type NoteRow = typeof notes.$inferSelect;
 
@@ -145,16 +146,71 @@ export async function createNoteForUser(
 	contentJson?: string,
 	clock: NoteClock = {}
 ) {
+	return (await createNoteOnce(userId, contractId, { title, content, contentJson }, clock)).note;
+}
+
+/** The caller's note made with this client request ID (trash included), if any (sprint 045-CL) */
+export async function findNoteByRequestId(userId: string, clientRequestId: string, executor: QueryExecutor = database) {
+	const results = await executor
+		.select()
+		.from(notes)
+		.where(and(eq(notes.userId, userId), eq(notes.clientRequestId, clientRequestId)))
+		.limit(1);
+	return decryptOptionalNote(results[0]);
+}
+
+/**
+ * Create a note; with `clientRequestId` (the creating client's own ID, e.g. the offline outbox's temp ID)
+ * a second create with the same ID returns the first note and `created: false` (sprint 045-CL).
+ * The check runs under the same advisory lock as the ID allocation; a unique index backs it up.
+ */
+export async function createNoteOnce(
+	userId: string,
+	contractId: string,
+	fields: { title?: string; content?: string; contentJson?: string; clientRequestId?: string },
+	clock: NoteClock = {}
+): Promise<{ note: NoteRow; created: boolean }> {
+	const { title, content, contentJson, clientRequestId } = fields;
 	// From the TipTap JSON when the browser sent it, else from the markdown (the CLI, sprint 037-CL)
 	const wordCount = contentJson
 		? calculateWordCountFromJson(contentJson)
 		: calculateWordCountFromMarkdown(content ?? '');
 	const fixedClock = { ...clock, now: clock.now ?? new Date() };
 
+	if (clientRequestId) {
+		const existing = await findNoteByRequestId(userId, clientRequestId);
+		if (existing) return { note: existing, created: false };
+	}
+
+	try {
+		return await insertNoteOnce(userId, contractId, { title, content, contentJson, clientRequestId }, wordCount, clock, fixedClock);
+	} catch (insertError) {
+		// The same clientRequestId on two contracts at once (different ID locks): the other request made it
+		if (clientRequestId && isUniqueViolation(insertError)) {
+			const existing = await findNoteByRequestId(userId, clientRequestId);
+			if (existing) return { note: existing, created: false };
+		}
+		throw insertError;
+	}
+}
+
+async function insertNoteOnce(
+	userId: string,
+	contractId: string,
+	fields: { title?: string; content?: string; contentJson?: string; clientRequestId?: string },
+	wordCount: number,
+	clock: NoteClock,
+	fixedClock: NoteClock & { now: Date }
+): Promise<{ note: NoteRow; created: boolean }> {
+	const { title, content, contentJson, clientRequestId } = fields;
 	return database.transaction(async (transaction) => {
 		const shortCode = await shortCodeForContract(contractId, transaction);
 		const lockKey = `note-id:${shortCode}.${noteIdDate(fixedClock)}`;
 		await transaction.execute(sql`select pg_advisory_xact_lock(hashtext(${lockKey}))`);
+		if (clientRequestId) {
+			const existing = await findNoteByRequestId(userId, clientRequestId, transaction);
+			if (existing) return { note: existing, created: false };
+		}
 
 		const noteId = await getNextNoteId(contractId, fixedClock, transaction);
 		const results = await transaction
@@ -167,12 +223,13 @@ export async function createNoteForUser(
 				content: encryptNullable(content ?? null),
 				contentJson: encryptNullable(contentJson ?? null),
 				wordCount,
+				clientRequestId: clientRequestId ?? null,
 				// A caller-given instant (a backdated note, sprint 034-CL) is also its created_at;
 				// updated_at stays the database's now
 				...(clock.now ? { createdAt: clock.now } : {})
 			})
 			.returning();
-		return decryptNote(results[0]);
+		return { note: decryptNote(results[0]), created: true };
 	});
 }
 

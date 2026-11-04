@@ -16,6 +16,7 @@
 	import { contractHasDeliverables } from '$lib/components/timer/deliverable-cache';
 	import { describeSaveError } from '$lib/components/timer/save-error';
 	import WikiLinkRenderer from './WikiLinkRenderer.svelte';
+	import OutboxMarker from '$lib/offline/OutboxMarker.svelte';
 	import WikiLinkInput from './WikiLinkInput.svelte';
 	import { splitFormerlyLines } from './formerly-lines';
 	import type { TimeEntryFields } from '$lib/services/types';
@@ -36,6 +37,8 @@
 		deliverableName: string | null;
 		workTypeId?: string | null;
 		workTypeName: string | null;
+		/** The offline outbox's temp ID it was created with, if any (sprint 045-CL) */
+		clientRequestId?: string | null;
 		description: string | null;
 		date: string;
 	};
@@ -334,6 +337,11 @@
 	data-testid="time-entry-card"
 	data-entry-id={entry.id}
 >
+	<!-- Offline outbox state: queued, held or replayed (sprint 045-CL) -->
+	<div class="pointer-events-none absolute right-9 top-2">
+		<OutboxMarker resourceKey="entry:{entry.id}" otherKey={entry.clientRequestId ? `entry:${entry.clientRequestId}` : null} />
+	</div>
+
 	<!-- Delete: on hover, on keyboard focus and always on touch screens -->
 	<div class="absolute right-1.5 top-1.5">
 		{#if isConfirmingDelete}

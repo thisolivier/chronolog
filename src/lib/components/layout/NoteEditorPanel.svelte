@@ -7,7 +7,9 @@
 	 * actions in `notes/note-panel-actions.ts`, and the Undo toast in the workspace-level
 	 * `NoteTrashToastHost` so it survives this panel unmounting (phone).
 	 */
-	import { onDestroy, untrack } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
+	import { OFFLINE_ID_REMAPPED_EVENT } from '$lib/offline/offline-session.svelte';
+	import { OUTBOX_RESOLVED_EVENT } from '$lib/offline/outbox-resolve';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import { getDataService } from '$lib/services/context';
 	import NoteEditor from '$lib/components/notes/NoteEditor.svelte';
@@ -41,6 +43,22 @@
 		noteNavigation,
 		getEditor: () => editorComponent,
 		showMessage: showHeaderMessage
+	});
+
+	// Offline outbox (sprint 045-CL): a note made offline got its real ID; a held change was settled
+	const handleNoteRemapped = (event: Event) => {
+		const { tempId, realId, type } = (event as CustomEvent<{ tempId: string; realId: string; type: string }>).detail;
+		if (type === 'note') panel.handleNoteRemapped(tempId, realId);
+	};
+	const handleOutboxResolved = (event: Event) =>
+		panel.handleOutboxResolved((event as CustomEvent<{ type: string; id: string; choice: string }>).detail);
+	onMount(() => {
+		window.addEventListener(OFFLINE_ID_REMAPPED_EVENT, handleNoteRemapped);
+		window.addEventListener(OUTBOX_RESOLVED_EVENT, handleOutboxResolved);
+		return () => {
+			window.removeEventListener(OFFLINE_ID_REMAPPED_EVENT, handleNoteRemapped);
+			window.removeEventListener(OUTBOX_RESOLVED_EVENT, handleOutboxResolved);
+		};
 	});
 
 	onDestroy(() => {

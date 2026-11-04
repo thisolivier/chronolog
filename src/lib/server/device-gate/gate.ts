@@ -17,7 +17,7 @@ export const DEVICE_KEY_HEADER = 'x-device-key';
 export const DEVICE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 /** Paths reachable without a device key: the unlock page, its assets, the PWA manifest and SW. */
-const exemptExactPaths = new Set(['/unlock', '/manifest.webmanifest', '/sw.js']);
+const exemptExactPaths = new Set(['/unlock', '/manifest.webmanifest', '/sw.js', '/service-worker.js']);
 const exemptPathPrefixes = ['/_app/'];
 
 export function isGateExemptPath(pathname: string): boolean {

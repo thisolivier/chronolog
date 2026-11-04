@@ -182,6 +182,25 @@ export class NotePanelState {
 		}
 	}
 
+	/**
+	 * A note made offline reached the server (sprint 045-CL): the open editor carries on under the
+	 * real ID and the URL follows, without reloading the editor.
+	 */
+	handleNoteRemapped(tempId: string, realId: string) {
+		const session = this.editorSession;
+		if (session?.noteId !== tempId) return;
+		session.noteId = realId;
+		this.activeNoteId = realId;
+		if (this.currentNote?.id === tempId) this.currentNote = { ...this.currentNote, id: realId };
+		if (this.navigation.selectedNoteId === tempId) this.navigation.selectNote(realId, session.contractId);
+	}
+
+	/** "Keep the server's" for the open note: show the server copy instead of this device's */
+	handleOutboxResolved(detail: { type: string; id: string; choice: string }) {
+		if (detail.type !== 'note' || detail.choice !== 'server') return;
+		if (this.editorSession?.noteId === detail.id) void this.openExistingNote(detail.id);
+	}
+
 	/** Leaving the panel (phone Back) ends an open draft; the editor's final save still creates it. */
 	destroy() {
 		this.isDestroyed = true;

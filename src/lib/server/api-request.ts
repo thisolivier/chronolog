@@ -41,3 +41,19 @@ export function readRequestTimezone(url: URL, request: Request): TimezoneResult 
 	}
 	return { ok: true, timezone: requested };
 }
+
+export type ClientRequestIdResult = { ok: true; clientRequestId: string | undefined } | { ok: false; response: Response };
+
+const CLIENT_REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,100}$/;
+
+/**
+ * Optional `clientRequestId` on a create (sprint 045-CL; not `clientId`, which names a customer): the caller's own ID for the new row, so a
+ * create sent twice (a retry after a lost answer) returns the first row instead of a second one.
+ */
+export function readClientRequestId(value: unknown): ClientRequestIdResult {
+	if (value === undefined || value === null || value === '') return { ok: true, clientRequestId: undefined };
+	if (typeof value !== 'string' || !CLIENT_REQUEST_ID_PATTERN.test(value)) {
+		return { ok: false, response: apiError(400, 'clientRequestId must be 1-100 letters, digits, dots, colons, dashes or underscores', 'invalid_client_request_id') };
+	}
+	return { ok: true, clientRequestId: value };
+}

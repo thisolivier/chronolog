@@ -1,6 +1,7 @@
 import { eq, and, between, asc, sql } from 'drizzle-orm';
 import { database, timeEntries, contracts, clients, deliverables, workTypes } from '$lib/server/db';
 import { calculateTimerDurationMinutes } from './timer-duration';
+import { isUniqueViolation } from '$lib/server/admin-actions';
 import { decryptNullable, decryptText, encryptNullable } from '$lib/server/crypto/server-cipher';
 
 type TimeEntryRow = typeof timeEntries.$inferSelect;
@@ -39,6 +40,8 @@ export type TimeEntryWithContext = {
 	isDraft: boolean;
 	createdAt: Date;
 	updatedAt: Date;
+	/** The offline outbox's temp ID when the browser created it that way (sprint 045-CL) */
+	clientRequestId: string | null;
 	contractName: string;
 	clientId: string;
 	clientName: string;
@@ -65,6 +68,7 @@ function timeEntrySelectWithContext() {
 			isDraft: timeEntries.isDraft,
 			createdAt: timeEntries.createdAt,
 			updatedAt: timeEntries.updatedAt,
+			clientRequestId: timeEntries.clientRequestId,
 			contractName: contracts.name,
 			clientId: clients.id,
 			clientName: clients.name,
@@ -136,7 +140,11 @@ export async function getTimeEntryForUser(
 }
 
 /** Create a new time entry */
-export async function createTimeEntry(data: {
+export async function createTimeEntry(data: NewTimeEntry) {
+	return (await createTimeEntryOnce(data)).entry;
+}
+
+type NewTimeEntry = {
 	userId: string;
 	contractId: string;
 	deliverableId?: string | null;
@@ -147,12 +155,40 @@ export async function createTimeEntry(data: {
 	durationMinutes: number;
 	description?: string | null;
 	isDraft?: boolean;
-}) {
-	const results = await database
-		.insert(timeEntries)
-		.values({ ...data, description: encryptNullable(data.description) })
-		.returning();
-	return decryptTimeEntry(results[0]);
+	/** The creating client's own ID (sprint 045-CL); a repeat returns the first entry */
+	clientRequestId?: string | null;
+};
+
+async function findTimeEntryByRequestId(userId: string, clientRequestId: string) {
+	const rows = await database
+		.select()
+		.from(timeEntries)
+		.where(and(eq(timeEntries.userId, userId), eq(timeEntries.clientRequestId, clientRequestId)))
+		.limit(1);
+	return rows[0] ? decryptTimeEntry(rows[0]) : null;
+}
+
+
+/** Create an entry; a second create with the same `clientRequestId` returns the first (`created: false`) */
+export async function createTimeEntryOnce(data: NewTimeEntry): Promise<{ entry: TimeEntryRow; created: boolean }> {
+	if (data.clientRequestId) {
+		const existing = await findTimeEntryByRequestId(data.userId, data.clientRequestId);
+		if (existing) return { entry: existing, created: false };
+	}
+	try {
+		const results = await database
+			.insert(timeEntries)
+			.values({ ...data, clientRequestId: data.clientRequestId ?? null, description: encryptNullable(data.description) })
+			.returning();
+		return { entry: decryptTimeEntry(results[0]), created: true };
+	} catch (insertError) {
+		// The same client ID arrived twice at once: the other request made it
+		if (data.clientRequestId && isUniqueViolation(insertError)) {
+			const existing = await findTimeEntryByRequestId(data.userId, data.clientRequestId);
+			if (existing) return { entry: existing, created: false };
+		}
+		throw insertError;
+	}
 }
 
 /** Update an existing time entry (scoped by userId for security) */

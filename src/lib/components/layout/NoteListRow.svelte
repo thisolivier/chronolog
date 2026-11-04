@@ -7,6 +7,7 @@
 <script lang="ts">
 	import { formatSmartDate } from '$lib/utils/format-date';
 	import type { NoteSummary } from '$lib/services/types';
+	import OutboxMarker from '$lib/offline/OutboxMarker.svelte';
 
 	let {
 		note,
@@ -34,7 +35,10 @@
 			{isSelected ? 'border-l-2 border-blue-600 bg-blue-50' : 'border-l-2 border-transparent'}"
 	>
 		<div class="py-3 pr-9 pl-4">
-			<span class="mb-0.5 block truncate text-sm font-semibold text-stone-900">{title}</span>
+			<span class="mb-0.5 flex items-center gap-1.5">
+				<span class="truncate text-sm font-semibold text-stone-900">{title}</span>
+				<OutboxMarker resourceKey="note:{note.id}" otherKey={note.clientRequestId ? `note:${note.clientRequestId}` : null} />
+			</span>
 			<div class="truncate text-xs text-stone-500">
 				{#if contractName}
 					<span class="mr-1.5 font-medium text-stone-600" data-testid="note-row-contract">{contractName}</span>

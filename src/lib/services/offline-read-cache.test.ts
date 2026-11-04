@@ -1,9 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
 	fetchJson,
+	fetchFreshJson,
+	hydrateReadCache,
 	postJson,
 	putJson,
 	deleteRequest,
+	setReadCacheLoading,
+	setReadCachePersistence,
+	HttpError,
 	_resetLastLoadedResponses
 } from './fetch-helpers';
 import { connectivity } from '$lib/stores/connectivity.svelte';
@@ -32,6 +37,43 @@ describe('offline read cache in fetchJson', () => {
 	it('never pretends a write succeeded offline', async () => {
 		vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
 		await expect(postJson('/api/time-entries', {})).rejects.toThrow('Failed to fetch');
+	});
+
+	it('treats a proxy 502/530 like no answer: cached copy for reads, offline flag', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ clients: [1] }))));
+		await fetchJson('/api/clients');
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('Bad gateway', { status: 530 })));
+		expect(await fetchJson('/api/clients')).toEqual({ clients: [1] });
+		expect(connectivity.isOffline).toBe(true);
+		await expect(postJson('/api/clients', {})).rejects.toBeInstanceOf(HttpError);
+	});
+
+	it('a fresh read never answers from the cache', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ note: 1 }))));
+		await fetchJson('/api/notes/N');
+		vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+		await expect(fetchFreshJson('/api/notes/N')).rejects.toThrow('Failed to fetch');
+	});
+
+	it('a read that fails before the stored copies load waits for them (sprint 045-CL)', async () => {
+		let finishLoading: () => void = () => {};
+		setReadCacheLoading(new Promise<void>((resolve) => (finishLoading = resolve)));
+		vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+		const read = fetchJson('/api/clients');
+		hydrateReadCache([['/api/clients', { clients: ['stored'] }]]);
+		finishLoading();
+		expect(await read).toEqual({ clients: ['stored'] });
+	});
+
+	it('stores reads and drops evicted ones through the persistence', async () => {
+		const persistence = { put: vi.fn(), remove: vi.fn() };
+		setReadCachePersistence(persistence);
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ note: { id: 'N' } }))));
+		await fetchJson('/api/notes/N');
+		expect(persistence.put).toHaveBeenCalledWith('/api/notes/N', { note: { id: 'N' } });
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ success: true }))));
+		await deleteRequest('/api/notes/N');
+		expect(persistence.remove).toHaveBeenCalledWith('/api/notes/N');
 	});
 
 	it('clears the offline flag on the next successful response', async () => {

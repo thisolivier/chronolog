@@ -22,6 +22,8 @@
 	import { TIME_ENTRY_SAVED_EVENT, readTimeEntrySavedDetail } from '$lib/components/weekly/time-entry-events';
 	import { focusSavedEntry } from '$lib/components/weekly/entry-focus';
 	import type { WeekData, TimeEntryDisplay } from '$lib/services/types';
+	import { OUTBOX_REPLAYED_EVENT } from '$lib/offline/offline-session.svelte';
+	import { OUTBOX_RESOLVED_EVENT } from '$lib/offline/outbox-resolve';
 
 	const navigation = getNavigationContext();
 	const dataService = getDataService();
@@ -374,12 +376,19 @@
 		ensureWeekLoaded(weekToLoad);
 	});
 
+	// Offline changes reached the server or a held one was resolved: show the server's weeks
+	const handleOutboxChange = () => void refreshWeeks();
+
 	onMount(() => {
 		window.addEventListener(TIME_ENTRY_SAVED_EVENT, handleTimeEntrySaved);
+		window.addEventListener(OUTBOX_REPLAYED_EVENT, handleOutboxChange);
+		window.addEventListener(OUTBOX_RESOLVED_EVENT, handleOutboxChange);
 		void loadInitialWeeks();
 		return () => {
 			isPanelDestroyed = true;
 			window.removeEventListener(TIME_ENTRY_SAVED_EVENT, handleTimeEntrySaved);
+			window.removeEventListener(OUTBOX_REPLAYED_EVENT, handleOutboxChange);
+			window.removeEventListener(OUTBOX_RESOLVED_EVENT, handleOutboxChange);
 			cancelAnimationFrame(scrollFrame);
 			clearTimeout(highlightTimeout);
 		};

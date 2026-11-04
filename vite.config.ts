@@ -9,7 +9,10 @@ export default defineConfig({
 		tailwindcss(),
 		sveltekit(),
 		SvelteKitPWA({
-			registerType: 'prompt',
+			strategies: 'injectManifest',
+			srcDir: 'src',
+			filename: 'service-worker.ts',
+			injectRegister: false,
 			manifest: {
 				name: 'Chronolog',
 				short_name: 'Chronolog',
@@ -37,46 +40,9 @@ export default defineConfig({
 					}
 				]
 			},
-			workbox: {
-				// Precache app shell assets (HTML, CSS, JS, fonts)
-				globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-				// Runtime caching for API calls and dynamic content
-				runtimeCaching: [
-					{
-						// API data routes — try network first, fall back to cache
-						urlPattern: /^\/api\/.*/i,
-						handler: 'NetworkFirst',
-						options: {
-							cacheName: 'api-cache',
-							expiration: {
-								maxEntries: 100,
-								maxAgeSeconds: 60 * 60 * 24 // 24 hours
-							},
-							cacheableResponse: {
-								statuses: [0, 200]
-							}
-						}
-					},
-					{
-						// Static assets from CDN or same-origin — cache first
-						urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico|woff|woff2|ttf|eot)$/i,
-						handler: 'CacheFirst',
-						options: {
-							cacheName: 'static-assets-cache',
-							expiration: {
-								maxEntries: 100,
-								maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-							},
-							cacheableResponse: {
-								statuses: [0, 200]
-							}
-						}
-					}
-				],
-				// Navigation fallback for offline SPA routing
-				navigateFallback: '/',
-				navigateFallbackAllowlist: [/^(?!\/(api|_app))/]
-			}
+			// SvelteKit builds and registers `src/service-worker.ts` (sprint 045-CL: offline reloads).
+			// The plugin keeps generating the manifest only; it no longer writes or registers a worker.
+			injectManifest: { injectionPoint: undefined }
 		})
 	],
 	server: {
@@ -86,7 +52,14 @@ export default defineConfig({
 			// rewrites tsconfig files there, which would force full reloads of this dev server.
 			// Anchored to this project's root: a bare '**/.claude/**' would also match a worktree's
 			// own files (they sit under .claude/worktrees/) and stop it from seeing its own edits.
-			ignored: [`${resolve(import.meta.dirname, '.claude')}/**`]
+			// Playwright's specs, report and results are not app code; a change there must not reload
+			// the pages under test (WebKit runs saw "navigation interrupted" from it).
+			ignored: [
+				`${resolve(import.meta.dirname, '.claude')}/**`,
+				`${resolve(import.meta.dirname, 'e2e-playwright')}/**`,
+				`${resolve(import.meta.dirname, 'playwright-report')}/**`,
+				`${resolve(import.meta.dirname, 'test-results')}/**`
+			]
 		}
 	},
 	test: {

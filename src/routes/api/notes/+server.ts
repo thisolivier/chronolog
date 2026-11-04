@@ -1,11 +1,11 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { listNotesForUser, createNoteForUser, extractPreviewLines } from '$lib/server/db/queries/notes';
+import { listNotesForUser, createNoteOnce, extractPreviewLines } from '$lib/server/db/queries/notes';
 import { extractMarkdownPreviewLines } from '$lib/utils/markdown-preview-lines';
 import { noteDisplayTitle } from '$lib/utils/note-display-title';
 import { wikiLinkPreviewOptions } from '$lib/server/db/queries/wiki-link-titles';
 import { apiError } from '$lib/server/api-errors';
-import { readJsonObject, readRequestTimezone } from '$lib/server/api-request';
+import { readClientRequestId, readJsonObject, readRequestTimezone } from '$lib/server/api-request';
 import { contractBelongsToUser } from '$lib/server/db/queries/contracts';
 import { updateNoteLinks } from '$lib/server/db/queries/note-links';
 import { isCalendarDate, localDateString, noonInTimezone } from '$lib/utils/local-calendar';
@@ -63,7 +63,10 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 			createdAt: note.createdAt,
 			updatedAt: note.updatedAt,
 			firstLine: preview.firstLine,
-			secondLine: preview.secondLine
+			secondLine: preview.secondLine,
+			// Set when the browser's offline outbox made it (its temp ID), so the browser can tell a
+			// note it still has queued from the copy already on the server (sprint 045-CL)
+			...(note.clientRequestId ? { clientRequestId: note.clientRequestId } : {})
 		};
 	});
 
@@ -82,6 +85,10 @@ export const GET: RequestHandler = async ({ locals, url }) => {
  * the same as leaving it out. A future day or anything not a calendar date is 400 `invalid_date`.
  * The creation date cannot be changed later: the ID would have to change.
  *
+ * `clientRequestId` (optional, sprint 045-CL) is the caller's own ID for the note (the browser's offline
+ * outbox sends its temp ID): a second create with the same `clientRequestId` answers 200 with the note
+ * the first one made, unchanged, instead of making another.
+ *
  * `wordCount` comes from `contentJson` when given, else from the markdown (sprint 037-CL), and the
  * markdown's `[[id]]` wiki-links are indexed for backlinks.
  */
@@ -92,6 +99,8 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
 	const parsedBody = await readJsonObject(request);
 	if (!parsedBody.ok) return parsedBody.response;
 	const { contractId, title, content, contentJson, createdAt } = parsedBody.body;
+	const requestIdResult = readClientRequestId(parsedBody.body.clientRequestId);
+	if (!requestIdResult.ok) return requestIdResult.response;
 
 	if (!contractId) return apiError(400, 'contractId is required');
 	if (typeof contractId !== 'string' || !UUID_PATTERN.test(contractId)) {
@@ -121,14 +130,19 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
 		if (createdAt < today) clock.now = noonInTimezone(createdAt, timezoneResult.timezone);
 	}
 
-	const note = await createNoteForUser(
+	const { note, created } = await createNoteOnce(
 		currentUser.id,
 		contractId,
-		(title as string | null) ?? undefined,
-		(content as string | null) ?? undefined,
-		(contentJson as string | null) ?? undefined,
+		{
+			title: (title as string | null) ?? undefined,
+			content: (content as string | null) ?? undefined,
+			contentJson: (contentJson as string | null) ?? undefined,
+			clientRequestId: requestIdResult.clientRequestId
+		},
 		clock
 	);
+	// The same clientRequestId again (a retried create): the first note, unchanged
+	if (!created) return json({ note }, { status: 200 });
 	// Index `[[id]]` wiki-links in the markdown, as PUT/PATCH do, so a note written over the API
 	// (the CLI) shows up in its targets' backlinks from the start (sprint 037-CL)
 	if (typeof content === 'string' && content) await updateNoteLinks(note.id, content);

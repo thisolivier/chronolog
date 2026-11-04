@@ -1,9 +1,9 @@
 import { json } from '@sveltejs/kit';
-import { createTimeEntry, listTimeEntriesInRange } from '$lib/server/db/queries/time-entries';
+import { createTimeEntryOnce, listTimeEntriesInRange } from '$lib/server/db/queries/time-entries';
 import { getNoteForUser, linkTimeEntryToNote } from '$lib/server/db/queries/notes';
 import { extractDescriptionLinks } from '$lib/utils/reconcile-description-links';
 import { apiError } from '$lib/server/api-errors';
-import { readJsonObject } from '$lib/server/api-request';
+import { readClientRequestId, readJsonObject } from '$lib/server/api-request';
 import { entryReferenceProblem, isValidDate, readDurationFields, UUID_PATTERN } from './entry-input';
 import type { RequestHandler } from './$types';
 
@@ -48,7 +48,8 @@ export const GET: RequestHandler = async ({ url, locals }) => {
  * the UI records entry–note links; an unknown note is a 404 and nothing is created.
  * A contract that is not the caller's is a 403 `contract_forbidden`; a deliverable not on that
  * contract is a 400 `deliverable_mismatch`, a work type not under that deliverable (or given
- * without one) a 400 `work_type_mismatch`.
+ * without one) a 400 `work_type_mismatch`. `clientRequestId` (optional, sprint 045-CL): the caller's own
+ * ID for the entry; a second create with the same one answers 200 with the first entry, unchanged.
  */
 export const POST: RequestHandler = async ({ request, locals }) => {
 	const currentUser = locals.user;
@@ -58,6 +59,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!parsedBody.ok) return parsedBody.response;
 	const body = parsedBody.body;
 	const { date, contractId, noteId } = body;
+	const requestIdResult = readClientRequestId(body.clientRequestId);
+	if (!requestIdResult.ok) return requestIdResult.response;
 	const deliverableId = typeof body.deliverableId === 'string' && body.deliverableId ? body.deliverableId : null;
 	const workTypeId = typeof body.workTypeId === 'string' && body.workTypeId ? body.workTypeId : null;
 	let description = typeof body.description === 'string' ? body.description : '';
@@ -85,7 +88,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const startTime = (typeof body.startTime === 'string' && body.startTime) || durationFields.startTime || null;
 	const endTime = (typeof body.endTime === 'string' && body.endTime) || durationFields.endTime || null;
 
-	const entry = await createTimeEntry({
+	const { entry, created } = await createTimeEntryOnce({
 		userId: currentUser.id,
 		contractId,
 		deliverableId,
@@ -95,8 +98,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		description: description || null,
 		startTime,
 		endTime,
-		isDraft: false
+		isDraft: false,
+		clientRequestId: requestIdResult.clientRequestId
 	});
+	// The same clientRequestId again (a retried create): the first entry, unchanged
+	if (!created) return json({ success: true, entry }, { status: 200 });
 
 	// Reconcile wiki-link references in description
 	for (const link of extractDescriptionLinks(description)) {

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Chronolog is a time-tracking and note-taking app for consulting work, delivered as a **Tauri 2.0 desktop application** (macOS primary) with a **PWA fallback for mobile**. It supports 2-3 users managing time entries and markdown notes across 3-5 active client contracts, with an online-first design (a read cache keeps the last loaded data visible when the server is unreachable, and an offline banner says so), encryption at rest, and TOTP-based 2FA.
+Chronolog is a time-tracking and note-taking app for consulting work, delivered as a **Tauri 2.0 desktop application** (macOS primary) with a **PWA fallback for mobile**. It supports 2-3 users managing time entries and markdown notes across 3-5 active client contracts, with an online-first design (a persistent read cache keeps the last loaded data visible when the server is unreachable, an offline outbox keeps note and time entry changes until the server is back, and an offline banner says so), encryption at rest, and TOTP-based 2FA.
 
 ## Data Model
 
@@ -128,13 +128,16 @@ Tracked via a backlinks index, extracted from `[[wiki-link]]` syntax in markdown
 
 ### Offline Strategy
 
-The app is **online-first**. The server (SvelteKit API routes over PostgreSQL) is the source of truth, and every write goes straight to it. There is no local database and no service-worker data queue.
+The app is **online-first with an offline outbox** (sprint 045-CL). The server (SvelteKit API routes over PostgreSQL) is the source of truth; while it is unreachable the app keeps showing what it last loaded and keeps note and time entry changes on the device until it can send them. Module details: `src/lib/offline/readme.md`.
 
-- **Read cache**: the client keeps the last successful GET response per URL in memory (`src/lib/services/fetch-helpers.ts`). When a read fails because the server is unreachable, the cached copy is returned. The cache lives for the current page session only and is lost on reload.
-- **Write-through**: writes are never cached or queued. A successful write updates or evicts the cached reads of the resource it changed, so an offline read never shows a copy older than the last save.
-- **Offline banner**: each request reports its outcome to the connectivity store. The banner shows when the server is unreachable, and reads served from the cache say so rather than showing an empty state.
-- **Session expiry**: a 401 or a redirect to `/login` raises a session-expired error and sends the user to log in again.
-- **Planned: offline outbox** (`docs/decisions.md`). A later sprint adds a persistent write outbox with last-write-wins per field, a visible "replayed" marker, and a held queue with a prompt when the server copy changed meanwhile. Until it exists, a write made while the server is unreachable fails with an error and is not saved.
+- **Read cache**: the client keeps the last successful GET response per URL (`src/lib/services/fetch-helpers.ts`), persisted per user in IndexedDB, so a reload while offline still shows the notes, lists, sidebar and weeks already visited. A failed read (no answer, or Cloudflare's 502/503/504/52x) returns the cached copy. A successful write updates or evicts the cached reads of the resource it changed.
+- **App shell**: a SvelteKit service worker (`src/service-worker.ts`) precaches the built app and keeps the last copy of each signed-in page, so an offline reload loads. It never touches `/api/*`.
+- **Outbox**: note create and edit and time entry create, edit and delete made while the server is unreachable are queued per user in localStorage (written before the call returns) and replay in order on reconnect. Notes made offline get temp IDs (`offline-…`), created first on replay so their real IDs replace the temp ones everywhere, wiki-links included. Each queued edit carries the server copy it was based on: **last-write-wins per field** when the server did not change that field; when it did, the item is **held** and a prompt shows both versions (keep mine / keep the server's / for notes keep both). A change the server refuses is held with its message. Nothing is dropped without the user choosing it.
+- **Idempotent creates**: `POST /api/notes` and `POST /api/time-entries` take an optional `clientRequestId` (unique per user; not `clientId`, which names a customer); a repeat answers 200 with the first row, and the outbox then sends its current values as an edit of it. The outbox sends its temp ID, so a retry after a lost answer (or Cloudflare 524) never makes a second note or entry. Replay only runs when `GET /api/me` names the queue's own account.
+- **Not queued**: note moves, pins, trash and restore, attachments, timer stop and start adjustments, weekly status. Offline they fail with an error as before. An offline timer start runs as a browser timer; its saved entry is queued.
+- **Offline banner**: shows when the server is unreachable, with the count of changes waiting and a Review button for held ones; rows carry a "queued", "held" or "replayed" marker.
+- **Session expiry**: a 401 or a redirect to `/login` raises a session-expired error and sends the user to log in again; queued changes stay and replay after signing back in as the same user.
+- **Sign-out** asks before discarding unsent changes, then deletes the read cache and the kept pages: nothing cached outlives the session (not encrypted at rest in the browser, by decision).
 
 ## Security
 
@@ -156,7 +159,7 @@ The app is **online-first**. The server (SvelteKit API routes over PostgreSQL) i
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | Desktop shell | Tauri 2.0 | Dock presence, native multi-window, native menus, small binary size (~10 MB); Rust backend avoids Electron's memory overhead |
-| DB architecture | PostgreSQL (server, source of truth); client keeps an in-memory read cache only | Relational model fits linked data (notes ↔ entries); the server owns all data, and the planned offline outbox is the only client-side write state, sized for 2-3 users |
+| DB architecture | PostgreSQL (server, source of truth); client keeps a per-user read cache (IndexedDB) and the offline outbox (localStorage) | Relational model fits linked data (notes ↔ entries); the server owns all data, and the offline outbox is the only client-side write state, sized for 2-3 users |
 | Why not PouchDB/CouchDB | Ruled out | Document model awkward for relational links; smaller modern ecosystem |
 | Why not Turso | Ruled out for now | Browser offline sync is beta with no durability guarantees |
 | Editor | TipTap | Best Svelte 5 support; Suggestion system maps directly to wiki-links; markdown serialisation built-in |
@@ -176,7 +179,7 @@ CLIENT_CODE.YYYYMMDD.SEQ
 - `YYYYMMDD`: Creation date
 - `SEQ`: Zero-padded sequence number for that client+date (001, 002, ...)
 
-Generated automatically by the server (`getNextNoteId`) from the client's short code and the date. Note creation needs the server, so IDs are not allocated offline; the planned offline outbox must handle this.
+Generated automatically by the server (`getNextNoteId`) from the client's short code and the date. IDs are not allocated offline: a note made offline has a temp ID (`offline-…`) until the outbox replays it, and its ID is dated by the day it reached the server.
 
 **Sequence scope (decided in sprint 026-CL, UX finding 42):** the server derives `SEQ` from the
 highest existing `notes.id` with the same `CLIENT_CODE.YYYYMMDD.` prefix across the whole table, not

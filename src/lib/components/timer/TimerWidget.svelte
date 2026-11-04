@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { isOfflineError } from '$lib/offline/replay-transport';
 	import TimerDisplay from './TimerDisplay.svelte';
 	import TimerStartField from './TimerStartField.svelte';
 	import { startChangeResultFromError, type StartChangeResult } from './timer-start-edit';
@@ -166,6 +167,11 @@
 				await dataService.updateTimeEntry(timerEntry.id, { description: draftDescription });
 			}
 		} catch (caughtError) {
+			if (isOfflineError(caughtError)) {
+				// Offline (sprint 045-CL): the timer runs in the browser; saving it queues the entry
+				savePendingTimer();
+				return;
+			}
 			errorMessage =
 				caughtError instanceof Error ? caughtError.message : 'Failed to start timer';
 		} finally {

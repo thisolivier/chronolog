@@ -5,6 +5,7 @@
 <script lang="ts">
 	import { getDataService } from '$lib/services/context';
 	import SaveStatusIndicator from './SaveStatusIndicator.svelte';
+	import OutboxMarker from '$lib/offline/OutboxMarker.svelte';
 	import type { SaveStatus } from './note-autosave';
 	import type { ContractOption } from '$lib/services/types';
 	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
@@ -81,6 +82,7 @@
 		{/if}
 		<span class="truncate font-mono text-xs text-stone-400">{noteId ?? 'New note'}</span>
 		<SaveStatusIndicator status={saveStatus} isDraft={!noteId} />
+		{#if noteId}<OutboxMarker resourceKey="note:{noteId}" />{/if}
 		{#if saveStatus === 'conflict' && onReload}
 			<button
 				type="button"

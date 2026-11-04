@@ -24,9 +24,10 @@ the detail; this file is the index a new session reads first.
 - **Binding:** app listens on `127.0.0.1:3123` only; production Postgres publishes no port; dev
   Postgres binds to `127.0.0.1`. Port 3123 is the first entry in `docs/ports.md`.
 - **Registration:** closed by default (`ALLOW_REGISTRATION=true` to open for first-account setup).
-- **Offline:** PowerSync removed (sprint 021). Later: long-lived read cache + write outbox with
+- **Offline:** PowerSync removed (sprint 021). Long-lived read cache + write outbox with
   last-write-wins per field, a visible "replayed" marker, and a held queue with a prompt when the
-  server copy changed meanwhile.
+  server copy changed meanwhile (built in sprint 045-CL: read cache in IndexedDB, outbox in
+  localStorage, SvelteKit service worker for the app shell; no new dependency).
 - **Laptop Claude access:** plain REST with a long-lived API token, a small CLI and a project skill.
   MCP deferred until a shell-less client (Claude Desktop, phone) needs it.
 - **Backups:** daily `pg_dump -Fc` via launchd to `~/Backups/chronolog`, mirrored to the Rabbit4TB

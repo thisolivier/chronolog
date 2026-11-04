@@ -1,9 +1,17 @@
 <script lang="ts">
 	import { clearDesktopTimer } from '$lib/desktop/bridge';
+	import { clearOfflineDataForSignOut } from '$lib/offline/offline-session.svelte';
 
 	let { data } = $props();
 
 	async function handleSignOut() {
+		// Nothing cached offline outlives the session; unsent offline changes only go if confirmed
+		const cleared = await clearOfflineDataForSignOut((count) =>
+			window.confirm(
+				`${count === 1 ? '1 change' : `${count} changes`} made offline ${count === 1 ? 'has' : 'have'} not reached the server yet. Sign out and discard ${count === 1 ? 'it' : 'them'}?`
+			)
+		);
+		if (!cleared) return;
 		clearDesktopTimer();
 		try {
 			await fetch('/api/auth/sign-out', {

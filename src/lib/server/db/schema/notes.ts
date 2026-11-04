@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { contracts } from "./contracts";
 
@@ -24,7 +24,11 @@ export const notes = pgTable("notes", {
 	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 	// Server-side trash (sprint 037-CL): set on delete, cleared on restore. Trashed notes keep their
 	// ID, links and time-entry links; reads skip them unless asked. Purged after 30 days.
-	deletedAt: timestamp("deleted_at", { withTimezone: true })
+	deletedAt: timestamp("deleted_at", { withTimezone: true }),
+	// The creating client's own ID for the note (sprint 045-CL: the offline outbox's temp ID), so a
+	// create sent twice returns the first note instead of making a second one
+	clientRequestId: text("client_request_id")
 }, (table) => [
-	index("notes_trash_user_id_idx").on(table.userId).where(sql`${table.deletedAt} is not null`)
+	index("notes_trash_user_id_idx").on(table.userId).where(sql`${table.deletedAt} is not null`),
+	uniqueIndex("notes_user_client_request_id_idx").on(table.userId, table.clientRequestId).where(sql`${table.clientRequestId} is not null`)
 ]);

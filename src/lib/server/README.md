@@ -42,7 +42,7 @@ so there is no SQL ILIKE on encrypted columns.
   Resets on restart.
 - `device-gate/gate.ts` -- the check `hooks.server.ts` runs before the session lookup. Accepts the
   `X-Device-Key` header or the `chronolog_device` cookie; exempt paths are `/unlock`, `/_app/*`,
-  the manifest and `sw.js`.
+  the manifest, `service-worker.js` and the old `sw.js`.
 
 ### API tokens and error shape (`auth-tokens/`, `api-errors.ts`)
 
