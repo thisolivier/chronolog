@@ -1,6 +1,6 @@
 # Sprint 032 — CL: Work type must match the deliverable; CLI edit of work type
 
-**Status:** ready for review
+**Status:** merged
 **Branch:** `sprint-032-CL/work-type-consistency` · **Worktree:** `.claude/worktrees/sprint-032-CL` · **Port:** 5210
 **Sources:** sprint 031 sign-off leftovers; owner request 2026-11-04.
 
@@ -31,7 +31,7 @@ Sign-off at the bottom: what was done, what was left, test counts, the dev-DB in
 
 ## Sign-off
 
-**Status:** ready for review. Implemented on 2026-11-04 on `sprint-032-CL/work-type-consistency`. Rebased on `main` (`16af0c1`, which had nothing new) and not merged.
+**Status:** merged
 
 ### Per task
 

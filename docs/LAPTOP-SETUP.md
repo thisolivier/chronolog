@@ -128,9 +128,32 @@ chronolog clients      # short codes and ids; empty until you add clients under 
 Clients, contracts, deliverables and work types can be added in the browser under Settings →
 Clients and contracts, or with the CLI (`chronolog client add …`, see the quick reference below).
 
-## 7. Use it from Claude Code
+## 7. A secretary workspace, separate from the repo
 
-Open Claude Code in `~/sites/chronolog` on the laptop. The `chronolog-secretary` skill triggers on
+The clone exists to provide the CLI and the skill; it is not where the secretary session should
+run. The repo's `CLAUDE.md` is written for development (sub-agents, tests, worktrees) and none of it
+applies to logging hours. Make a small directory of your own and point its skill at the clone:
+
+```bash
+mkdir -p ~/secretary/.claude/skills
+ln -s ~/sites/chronolog/.claude/skills/chronolog-secretary ~/secretary/.claude/skills/chronolog-secretary
+cat > ~/secretary/CLAUDE.md <<'TXT'
+# Secretary
+
+This directory is the owner's assistant workspace. Chronolog (time and client notes) is reached
+through the `chronolog` CLI and the `chronolog-secretary` skill; never edit its database or call
+its API directly. Keep working files here, not in ~/sites/chronolog.
+TXT
+```
+
+Claude Code keeps session history and memory per directory under `~/.claude/projects/`, so
+everything the secretary does stays under `~/secretary`. Later skills (Airtable hours, invoices)
+and their templates live here too. Do not make a branch in the clone for this: it isolates
+nothing and turns every update into a merge.
+
+## 8. Use it from Claude Code
+
+Open Claude Code in `~/secretary` on the laptop. The `chronolog-secretary` skill triggers on
 things like "log 2h on the Acme work", "write up today's call for Acme", or "what did I do this
 week". It will not guess a contract: when two fit it asks. It never asks you to paste the token or
 key into the chat; if it reports "No server configured", run `chronolog init` yourself.
@@ -159,6 +182,13 @@ chronolog client remove ACME        # entries move to Deleted Client; prefer arc
 
 Durations: `1h30m`, `1.5`, `1:30`, `90m`, `9:00-10:30`. Dates: `YYYY-MM-DD`, `today`, `yesterday`,
 `monday`.
+
+## Updating
+
+Server: a sprint merges to `main`, and the Mac mini session runs `scripts/deploy-prod.sh` from the
+production checkout (backup first). Laptop: `git pull` in `~/sites/chronolog`. The `chronolog`
+command is a symlink into the clone and the skill is a file in it, so the next command and the
+next Claude session use the new code. No reinstall, no shell restart.
 
 ## If something fails
 

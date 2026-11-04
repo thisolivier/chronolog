@@ -10,6 +10,7 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 032-CL | Client/Server | Work type must match the deliverable; CLI edit of work type | merged |
 | 031-CL | Client/Server | Admin objects through the API and CLI | merged |
 | 029-CL | Client/Server | API hardening and quick wins | merged |
 | 030-CL | Client | Timesheet polish | merged |
