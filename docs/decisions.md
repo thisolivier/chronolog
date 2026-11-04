@@ -39,3 +39,12 @@ the detail; this file is the index a new session reads first.
 - The Director / Team PM sprint framework is retired. Fable orchestrates directly; Opus agents do
   implementation and review, Haiku agents do mechanical work. Sprint specs remain as plain docs.
 - Stabilise, do not rebuild (three reviews in `docs/review/`).
+
+
+## 2026-11-04 — Cloudflare hostname live; no WAF rate-limit rule
+
+`chronolog.throb.online` → `http://localhost:3123` is published through the dashboard-managed tunnel and
+verified with curl from the laptop. The Cloudflare plan has no WAF rate limiting, so the documented rule
+is not applied; the app's own limiters (Better Auth auth-path limit, device-gate lockout, token failure
+limiter) are the protection. Secrets have been moved to the owner's password manager and the secrets
+file removed from the box.

@@ -32,7 +32,9 @@ Saving it creates a proxied CNAME `chronolog` → `<tunnel-id>.cfargotunnel.com`
 under DNS → Records with the orange cloud on. Do **not** add Cloudflare Access to this hostname: the
 device key and the login are the gate, and a future Tauri build cannot carry Access credentials.
 
-**Rate-limit rule.** Security → WAF → Rate limiting rules → Create rule:
+**Rate-limit rule (optional).** Skipped on 2026-11-04 because the plan has no WAF rate limiting;
+the app's own limiters (Better Auth, the device-gate lockout, the token limiter) cover it. For
+reference, Security → WAF → Rate limiting rules → Create rule:
 
 | Setting | Value |
 |---|---|

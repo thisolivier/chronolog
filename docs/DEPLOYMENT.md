@@ -181,7 +181,12 @@ add that record by hand. For a locally managed tunnel the CLI equivalent is
 Do not enable Cloudflare Access on this hostname: the Tauri app cannot carry Access credentials. The
 gate is the device access key (sprint 023) plus the login.
 
-### Rate-limit rules
+### Rate-limit rules (optional, skipped 2026-11-04)
+
+The owner's Cloudflare plan has no WAF rate limiting, so this rule is not in place. The app's own
+limits cover it: Better Auth's production rate limit on `/api/auth/*`, the device gate's five-wrong-keys
+lockout per IP for 15 minutes, and the API token limiter (60 failures per minute per IP). If the plan
+changes, the rule below is the one to add.
 
 Security → WAF → Rate limiting rules → **Create rule**. Count only `POST`, so page loads and session
 reads are never throttled:
