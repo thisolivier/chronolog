@@ -10,6 +10,7 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 031-CL | Client/Server | Admin objects through the API and CLI | merged |
 | 029-CL | Client/Server | API hardening and quick wins | merged |
 | 030-CL | Client | Timesheet polish | merged |
 | 027-CL | Client | Navigation state, URLs and context | merged |

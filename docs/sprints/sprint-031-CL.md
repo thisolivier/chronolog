@@ -1,6 +1,6 @@
 # Sprint 031 — CL: Admin objects through the API and CLI
 
-**Status:** ready for review (not merged)
+**Status:** merged
 **Branch:** `sprint-031-CL/cli-admin-objects` · **Worktree:** `.claude/worktrees/sprint-031-CL` · **Port:** 5209
 **Sources:** owner request 2026-11-04 ("allow the CLI to create clients, contracts, deliverables, tags, the whole shebang"); `docs/sprints/sprint-028-CL.md` and `sprint-029-CL.md` (API shape, CLI, skill); the admin form actions under `src/routes/admin/**/+page.server.ts` (the rules the UI already enforces).
 

@@ -17,6 +17,7 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 - **029-CL** API hardening and quick wins: JSON body guards, weekly-status validation, note IDs in the user's timezone under an advisory lock, contract ownership on writes, `chronolog edit` and `undo`, first-run notice.
 - **030-CL** Timesheet polish: today's alignment, timer pill and clock, timer past midnight, visible deliverable reset on contract change, Formerly line, keyboard focus after save and wiki-link.
 - **Docs sweep**: SPEC storage and deployment passages current, obsolete PowerSync docs removed or marked historical.
+- **031-CL** Clients, contracts, deliverables and work types through the API and the CLI (add, edit, archive, remove with safe deletion).
 - **Offline banner and read cache** (`fix/offline-banner-and-cache`): the banner shows when the server is unreachable, and the read cache is write-through.
 
 ## Next (owner-decided, in this order)
@@ -68,6 +69,7 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 ### API / CLI
 
 - Opening a CLI note in the editor autosaves it as TipTap JSON, which counts as an edit (028 sign-off).
+- Time-entry routes do not check that a work type belongs to the chosen deliverable; `chronolog edit` cannot change an entry's work type; no bulk reorder route for work types; names containing `/` are reachable by id only (031 sign-off).
 - `chronolog undo` only knows the last entry made by `chronolog log`; edits cannot be undone (029 sign-off).
 - The first-run notice matches the starter client by name and short code `Internal`/`INTL`; renaming it hides the notice (029 sign-off).
 - The failure limiter is in memory and per process (028 sign-off).
