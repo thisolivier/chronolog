@@ -30,7 +30,7 @@ function startsWithAscii(bytes: Uint8Array, text: string, offset = 0): boolean {
 
 /** SVG is text: an optional BOM, XML prolog, comments or doctype, then an `<svg` root element. */
 function looksLikeSvg(bytes: Uint8Array): boolean {
-	const head = new TextDecoder('utf-8', { fatal: false }).decode(bytes.subarray(0, 4096)).replace(/^﻿/, '');
+	const head = new TextDecoder('utf-8', { fatal: false }).decode(bytes.subarray(0, 4096)).replace(/^\uFEFF/, '');
 	const withoutPreamble = head
 		.replace(/^\s*<\?xml[\s\S]*?\?>/, '')
 		.replace(/^(\s*<!--[\s\S]*?-->)*/, '')
