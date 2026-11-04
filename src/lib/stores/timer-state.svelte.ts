@@ -5,8 +5,15 @@
  * TimerIndicator (in the AppShell top bar) reads from it.
  *
  * Uses the same Svelte 5 context pattern as navigation.svelte.ts.
+ *
+ * Inside the desktop app it also pushes the timer to the menu bar ($lib/desktop/bridge).
  */
 import { getContext, setContext } from 'svelte';
+import {
+	createDesktopTimerPusher,
+	isDesktopShell,
+	toDesktopTimerState
+} from '$lib/desktop/bridge';
 
 const TIMER_STATE_KEY = Symbol('timer-state');
 
@@ -16,6 +23,8 @@ export interface TimerDisplayState {
 	description: string;
 	contractName: string;
 	clientColorIndex: number;
+	/** Client short code of the timer's contract, shown in the desktop menu bar */
+	contractShortCode?: string;
 }
 
 export interface TimerStateContext {
@@ -41,8 +50,20 @@ export function createTimerState(): TimerStateContext {
 		elapsedSeconds: 0,
 		description: '',
 		contractName: '',
-		clientColorIndex: 0
+		clientColorIndex: 0,
+		contractShortCode: ''
 	});
+
+	// Desktop app only (src-tauri): mirror the timer into the menu bar. Browsers skip this.
+	if (isDesktopShell()) {
+		const desktopTimerPusher = createDesktopTimerPusher();
+		$effect(() => {
+			desktopTimerPusher.push(
+				toDesktopTimerState(state.status, state.elapsedSeconds, state.contractShortCode ?? '')
+			);
+		});
+		$effect(() => desktopTimerPusher.startHeartbeat());
+	}
 
 	return {
 		get status() {
@@ -71,6 +92,7 @@ export function createTimerState(): TimerStateContext {
 			state.description = '';
 			state.contractName = '';
 			state.clientColorIndex = 0;
+			state.contractShortCode = '';
 		}
 	};
 }
