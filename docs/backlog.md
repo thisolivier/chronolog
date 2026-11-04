@@ -99,6 +99,8 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 
 ### Infrastructure / dev environment
 
+- No automated test logs in with 2FA enabled; the 2FA login path was broken from sprint 003 until 2026-11-04 and nobody noticed. Add a Playwright test that enables TOTP, signs out, signs in with a generated code (HMAC-SHA1 TOTP in the test, no new dependency).
+
 - Desktop app: owner to verify close-to-hide, Dock click, tray menu and Cmd+Q on the laptop and add the three screenshots to `docs/review/screenshots/sprint-035/` (Mac mini screen was locked). Bundle version is still 0.0.1 in `src-tauri/tauri.conf.json`; take it from `package.json`. Signing out while a timer runs leaves the menu bar showing it until the next signed-in page load. No updater yet (035 sign-off).
 
 - `db:seed` writes plaintext; run `scripts/encrypt-existing.mjs` after seeding (023 sign-off).
