@@ -1,6 +1,6 @@
 # Sprint 044 — CL: Platform follow-ups (auth test, version drift, desktop, admin)
 
-**Status:** ready for review
+**Status:** merged
 **Branch:** `sprint-044-CL/platform-followups` · **Worktree:** `.claude/worktrees/sprint-044-CL` · **Port:** 5222
 **Sources:** "Carried-over follow-ups" in `docs/backlog.md` (API/CLI, Infrastructure, Admin/shell, Navigation). Runs in parallel with 043-CL; wave rules in `docs/sprints/_wave-rules.md` apply (no migration in this sprint).
 

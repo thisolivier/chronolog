@@ -4,7 +4,7 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 `chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
 030, 033 and 035 changed nothing in the CLI and are not listed.
 
-## Unreleased
+## 1.3.0 (sprints 043–044-CL, 2026-11-04): version drift notice, undo of imported notes
 
 - Sprint 044-CL: **version drift notice.** `GET /api/me` now returns `serverCommit` (the commit the
   production image was built from; `dev` from a checkout). At most once a day the CLI compares it

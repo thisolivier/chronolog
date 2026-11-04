@@ -10,6 +10,7 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 044-CL | Client/Infra | Platform follow-ups: 2FA test, drift notice, colours, flaky tests | merged |
 | 043-CL | Client | Notes follow-ups: trash view, previews, phone Undo, panel split | merged |
 | 046-CL | Client | Search results interleaved with type icons | merged |
 | 039-CL | Client/Server | Pinned notes, client view, sidebar collapse and client reorder | merged |
