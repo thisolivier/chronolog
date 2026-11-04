@@ -6,13 +6,16 @@ import { listContractsByClientWithNoteCount } from '$lib/server/db/queries/contr
  * GET /api/contracts-by-client
  *
  * Returns a flat list of contracts with client name and note count.
- * Ordered by sortOrder then contract name.
+ * Ordered by sortOrder then contract name. With `?includeArchived=true`, archived contracts and
+ * the contracts of archived clients are included (`archived`, `clientArchived`; sprint 031-CL).
  */
-export const GET: RequestHandler = async ({ locals }) => {
+export const GET: RequestHandler = async ({ locals, url }) => {
 	const currentUser = locals.user;
 	if (!currentUser) throw error(401, 'Unauthorized');
 
-	const contractList = await listContractsByClientWithNoteCount(currentUser.id);
+	const contractList = await listContractsByClientWithNoteCount(currentUser.id, {
+		includeArchived: url.searchParams.get('includeArchived') === 'true'
+	});
 
 	return json({
 		contracts: contractList.map((row) => ({
@@ -25,7 +28,9 @@ export const GET: RequestHandler = async ({ locals }) => {
 			clientShortCode: row.clientShortCode,
 			clientEmoji: row.clientEmoji,
 			clientColorIndex: row.clientColorIndex,
-			noteCount: row.noteCount
+			noteCount: row.noteCount,
+			archived: row.archivedAt !== null,
+			clientArchived: row.clientArchivedAt !== null
 		}))
 	});
 };

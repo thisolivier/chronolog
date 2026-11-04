@@ -42,6 +42,7 @@ npm run test:playwright:ui
 | `crud.spec.ts` | Full note CRUD through the UI (create, read, edit, delete) |
 | `offline-behavior.spec.ts` | Service worker and offline navigation behaviour |
 | `navigation-journeys.spec.ts` | Sprint 027-CL journeys 1, 2, 7, 8 and 10 of `docs/review/2026-11-03-ux-journeys.md`: URL state, reload, Back and the sidebar/list/editor agreeing on client and contract. Its tests run in order in one worker (`test.describe.configure({ mode: 'default' })` opts the file out of `fullyParallel`), because parallel API note creates under one user can collide on note IDs. |
+| `cli-admin-objects.spec.ts` | Sprint 031-CL: the `chronolog` CLI (child process, token created in the page) builds client → contract → deliverable → work type; clicking Settings → Clients → client → contract shows them, and Back to app shows the contract in the sidebar, with no full page reload. |
 | `timesheet-polish.spec.ts` | Sprint 030-CL: a contract change clears deliverable and work type visibly and saves the same (P-05); focus after saving an entry, cancelling the new-entry row and following a card's wiki-link (A-11, asserted on `document.activeElement`); the timer and week header agree on "today" for a Europe/London browser at 23:30 GMT and 00:30 BST (fake clock, a `qa-030-tz-*` user per test because the timer is per user). |
 
 ### Project Configuration

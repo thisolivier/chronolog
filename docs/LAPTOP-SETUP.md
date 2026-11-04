@@ -125,8 +125,8 @@ chronolog me           # who the token belongs to, today, the current ISO week
 chronolog clients      # short codes and ids; empty until you add clients under Settings
 ```
 
-Add clients and contracts in the browser under Settings → Clients and contracts. The CLI never
-creates them.
+Clients, contracts, deliverables and work types can be added in the browser under Settings →
+Clients and contracts, or with the CLI (`chronolog client add …`, see the quick reference below).
 
 ## 7. Use it from Claude Code
 
@@ -144,6 +144,17 @@ chronolog undo                      # deletes the last entry this laptop logged
 chronolog note new ACME/Website "Status 4 Nov" --file body.md
 chronolog week [2026-W45] [--client ACME]
 chronolog status current draft-ready
+
+# Setting up a client (short codes are yours to choose; remove asks first, -y skips it)
+chronolog client add "Acme Ltd" --code ACME [--emoji 🚀]
+chronolog contract add ACME "Website" [--description "..."]
+chronolog deliverable add ACME/Website "Phase 1"
+chronolog work-type add "ACME/Website/Phase 1" "Design"   # alias: tag add
+chronolog log ACME/Website 1h "Wireframes" --deliverable "Phase 1" --work-type Design
+chronolog client archive ACME       # or unarchive; contract archive|unarchive ACME/Website
+chronolog client edit ACME --name "Acme Limited"
+chronolog deliverables ACME/Website; chronolog work-types "ACME/Website/Phase 1"
+chronolog client remove ACME        # entries move to Deleted Client; prefer archive
 ```
 
 Durations: `1h30m`, `1.5`, `1:30`, `90m`, `9:00-10:30`. Dates: `YYYY-MM-DD`, `today`, `yesterday`,

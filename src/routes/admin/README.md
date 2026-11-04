@@ -32,13 +32,32 @@ Reusable UI components live in `src/lib/components/admin/` (see that module's RE
 
 ## Database Queries
 
-Query helpers in `src/lib/server/db/queries/`:
+Query helpers in `src/lib/server/db/queries/`, shared with the `/api/*` routes (sprint 031-CL: the API and the `chronolog` CLI do everything these pages do, through the same functions):
 
-- **clients.ts** — List, get, create, update, archive, delete clients (scoped by user_id); `colorIndex` (0-7, palette in `src/lib/utils/client-colors.ts`) is set from the client row or via `PATCH /api/clients/:id`
-- **contracts.ts** — List, get, create, update, archive (`setContractArchived`), delete, reorder contracts (scoped by client_id); `POST /api/contracts` accepts a `newClient` to create the client in the same request
-- **deliverables.ts** — List, get, create, update, delete deliverables (scoped by contract_id)
-- **work-types.ts** — List, create, update, delete, reorder work types (scoped by deliverable_id)
-- **safe-deletion.ts** — Reassigning deletes for contracts and clients, and annotated deletes for deliverables and work types; usage counts for the confirm dialogs
+- **clients.ts** — List, get, create, update, archive clients (scoped by user_id); `nextClientColorIndex` gives the default colour (`suggestClientColorIndex` in `src/lib/utils/client-colors.ts`, also used by the "New client" form)
+- **contracts.ts** — List, get, create, update, archive (`setContractArchived`), reorder contracts (scoped by client_id); `getContractForUser` checks ownership through the client for the API
+- **deliverables.ts** — List, get, create, update deliverables (scoped by contract_id); `getDeliverableForUser` for the API
+- **work-types.ts** — List, create, update, reorder work types (scoped by deliverable_id); `getWorkTypeForUser` for the API
+- **safe-deletion.ts** — Reassigning deletes for contracts and clients, and annotated deletes for deliverables and work types; usage counts for the confirm dialogs (`getClientUsage`, `getContractUsage`, `getEntryCountsBy`)
+
+Messages shared by the actions and the API (`deletionMessage`, `archiveMessage`, `entriesKeptMessage`, `duplicateShortCodeMessage`) live in `src/lib/server/admin-actions.ts`.
+
+| Form action | Query functions | Same rule in the API |
+|---|---|---|
+| `create` (client) | `createClient`; name + short code required, colour index 0-7, duplicate → “Short code … already used” | `POST /api/clients` (409 `duplicate`) |
+| `update` / `updateClient` | `updateClient` | `PATCH /api/clients/:id` |
+| `archive` / `unarchive` | `setClientArchived` | `PATCH /api/clients/:id {archived}` |
+| `delete` | `getClientUsage`, `deleteClientWithReassignment` | `DELETE /api/clients/:id` |
+| `createContract` | `createContract` (to the end of the order) | `POST /api/contracts` |
+| `updateContract` | `updateContract` | `PATCH /api/contracts/:id` |
+| `archiveContract` / `unarchiveContract` | `setContractArchived` | `PATCH /api/contracts/:id {archived}` |
+| `deleteContract` | `getContractUsage`, `deleteContractWithReassignment` | `DELETE /api/contracts/:id` |
+| contract reorder (drag) | `reorderContractsForUser` | `PATCH /api/contracts/reorder` |
+| `createDeliverable` / `updateDeliverable` | `createDeliverable` / `updateDeliverable` (sort order defaults to 0) | `POST /api/deliverables`, `PATCH /api/deliverables/:id` |
+| `deleteDeliverable` | `deleteDeliverableWithNote` | `DELETE /api/deliverables/:id` |
+| `createWorkType` / `updateWorkType` | `createWorkType` / `updateWorkType` | `POST /api/work-types`, `PATCH /api/work-types/:id` |
+| `deleteWorkType` | `deleteWorkTypeWithNote` | `DELETE /api/work-types/:id` |
+| `reorderWorkTypes` | `reorderWorkTypes` | (PATCH `sortOrder` per work type) |
 
 ## Authorization
 

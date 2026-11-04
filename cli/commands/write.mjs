@@ -1,7 +1,7 @@
 /** Commands that change data: log, note new, status. */
 
 import { readFileSync } from 'node:fs';
-import { resolveContract, resolveDeliverable } from '../lib/resolve.mjs';
+import { resolveContract, resolveDeliverable, resolveWorkType } from '../lib/resolve.mjs';
 import { formatMinutes, parseIsoWeek, resolveDateWord } from '../lib/dates.mjs';
 import { UsageError } from '../lib/args.mjs';
 import { fetchContracts } from './read.mjs';
@@ -12,7 +12,7 @@ const WEEK_STATES = { unsubmitted: 'Unsubmitted', 'draft-ready': 'Draft ready', 
 export async function log({ api, print, positionals, flags, config, environment }) {
 	const [contractReference, duration, ...descriptionWords] = positionals;
 	if (!contractReference || !duration) {
-		throw new UsageError('Usage: chronolog log <contract> <duration> "<description>" [--date] [--deliverable] [--note <id>]');
+		throw new UsageError('Usage: chronolog log <contract> <duration> "<description>" [--date] [--deliverable [--work-type]] [--note <id>]');
 	}
 	const contract = resolveContract(contractReference, await fetchContracts(api));
 
@@ -21,9 +21,15 @@ export async function log({ api, print, positionals, flags, config, environment 
 	if (!date) throw new UsageError(`--date must be YYYY-MM-DD, today, yesterday or a weekday name, not “${flags.date}”.`);
 
 	const body = { contractId: contract.id, date, duration, description: descriptionWords.join(' ') || undefined };
+	const workTypeReference = flags.workType ?? flags.tag;
+	if (workTypeReference && !flags.deliverable) throw new UsageError('--work-type needs --deliverable (work types belong to a deliverable).');
 	if (flags.deliverable) {
 		const deliverables = await api.get(`/api/deliverables?contractId=${contract.id}`);
 		body.deliverableId = resolveDeliverable(flags.deliverable, deliverables).id;
+		if (workTypeReference) {
+			const workTypes = await api.get(`/api/work-types?deliverableId=${body.deliverableId}`);
+			body.workTypeId = resolveWorkType(workTypeReference, workTypes).id;
+		}
 	}
 	if (flags.note) body.noteId = flags.note;
 

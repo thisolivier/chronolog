@@ -55,6 +55,25 @@ export async function getContractForClient(contractId: string, clientId: string)
 	return decryptOptionalContract(results[0]);
 }
 
+/**
+ * One of the user's own non-system contracts (archived or not), found through its client, with
+ * the client's archive state (an archived client hides its contracts too). `null` when the
+ * contract is missing or belongs to someone else, so API routes answer 404 either way.
+ */
+export async function getContractForUser(contractId: string, userId: string) {
+	const results = await database
+		.select({ contract: contracts, clientArchivedAt: clients.archivedAt })
+		.from(contracts)
+		.innerJoin(clients, eq(contracts.clientId, clients.id))
+		.where(
+			and(eq(contracts.id, contractId), eq(clients.userId, userId), eq(contracts.isSystem, false))
+		)
+		.limit(1);
+	const row = results[0];
+	if (!row) return null;
+	return { ...decryptContract(row.contract), clientArchivedAt: row.clientArchivedAt };
+}
+
 /** New contracts go to the end of their client's manual order. */
 export async function createContract(
 	clientId: string,
@@ -231,25 +250,38 @@ export async function listContractsWithClientForUser(userId: string) {
 		);
 }
 
-/** Visible contracts with client info and note count, ordered by sortOrder then name. */
-export async function listContractsByClientWithNoteCount(userId: string) {
+/**
+ * Visible contracts with client info and note count, ordered by sortOrder then name. With
+ * `includeArchived`, archived contracts and the contracts of archived clients are listed too
+ * (never the system contract); `archivedAt` / `clientArchivedAt` tell them apart.
+ */
+export async function listContractsByClientWithNoteCount(
+	userId: string,
+	{ includeArchived = false }: { includeArchived?: boolean } = {}
+) {
 	const rows = await database
 		.select({
 			id: contracts.id,
 			name: contracts.name,
 			isActive: contracts.isActive,
 			sortOrder: contracts.sortOrder,
+			archivedAt: contracts.archivedAt,
 			clientId: clients.id,
 			clientName: clients.name,
 			clientShortCode: clients.shortCode,
 			clientEmoji: clients.emoji,
 			clientColorIndex: clients.colorIndex,
+			clientArchivedAt: clients.archivedAt,
 			noteCount: sql<number>`cast(count(${notes.id}) as int)`
 		})
 		.from(contracts)
 		.innerJoin(clients, eq(contracts.clientId, clients.id))
 		.leftJoin(notes, eq(notes.contractId, contracts.id))
-		.where(visibleContractsForUser(userId))
+		.where(
+			includeArchived
+				? and(eq(clients.userId, userId), eq(clients.isSystem, false), eq(contracts.isSystem, false))
+				: visibleContractsForUser(userId)
+		)
 		.groupBy(contracts.id, clients.id);
 
 	return rows

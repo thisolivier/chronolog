@@ -19,7 +19,7 @@ import {
 	deleteWorkTypeWithNote,
 	getEntryCountsBy
 } from '$lib/server/db/queries/safe-deletion';
-import { readUuidField, requireUser } from '$lib/server/admin-actions';
+import { entriesKeptMessage, readUuidField, requireUser } from '$lib/server/admin-actions';
 
 const NO_ENTRIES = { timeEntryCount: 0, totalMinutes: 0 };
 
@@ -41,12 +41,6 @@ async function readOwnedDeliverable(formData: FormData, contractId: string) {
 
 function parseSortOrder(formData: FormData): number {
 	return parseInt(formData.get('sort_order')?.toString() || '0', 10) || 0;
-}
-
-function entriesKeptMessage(count: number, formerName: string): string {
-	if (count === 0) return '';
-	const entries = count === 1 ? '1 time entry keeps' : `${count} time entries keep`;
-	return ` ${entries} “Formerly: ${formerName}” in the description.`;
 }
 
 export const load: PageServerLoad = async ({ params, locals }) => {

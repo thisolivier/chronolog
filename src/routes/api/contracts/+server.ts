@@ -5,9 +5,10 @@ import {
 	listContractsWithClientForUser,
 	verifyClientOwnership
 } from '$lib/server/db/queries/contracts';
-import { createClient, listClientsForUser } from '$lib/server/db/queries/clients';
+import { createClient, nextClientColorIndex } from '$lib/server/db/queries/clients';
 import { isUniqueViolation } from '$lib/server/admin-actions';
-import { CLIENT_COLORS } from '$lib/utils/client-colors';
+import { duplicateShortCode, notFound } from '../admin-input';
+import { isUuid } from '$lib/utils/uuid';
 
 /** GET /api/contracts — the user's visible contracts (not archived, not system), with client info */
 export const GET: RequestHandler = async ({ locals }) => {
@@ -25,7 +26,8 @@ function isNonEmptyString(value: unknown): value is string {
 /**
  * POST /api/contracts — create a contract. Body: `{ clientId, name, description?, isActive? }`,
  * or `{ newClient: { name, shortCode }, name, … }` to create the client first (sprint 026-CL:
- * the sidebar's New Contract modal can add a client inline).
+ * the sidebar's New Contract modal can add a client inline). A short code already in use is
+ * 409 `duplicate`; a client that is not the caller's is 404 (sprint 031-CL).
  */
 export const POST: RequestHandler = async ({ locals, request }) => {
 	const currentUser = locals.user;
@@ -42,30 +44,31 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		if (!isNonEmptyString(newClient?.name) || !isNonEmptyString(newClient?.shortCode)) {
 			throw error(400, 'Enter both a name and a short code for the new client.');
 		}
-		const existingClients = await listClientsForUser(currentUser.id, { includeArchived: true });
-		const usedColors = new Set(existingClients.map((client) => client.colorIndex % CLIENT_COLORS.length));
-		const freeColor = CLIENT_COLORS.findIndex((_, colorIndex) => !usedColors.has(colorIndex));
 		try {
 			const client = await createClient(
 				currentUser.id,
 				newClient.name.trim(),
 				newClient.shortCode.trim(),
 				null,
-				freeColor === -1 ? existingClients.length % CLIENT_COLORS.length : freeColor
+				await nextClientColorIndex(currentUser.id)
 			);
 			clientId = client.id;
 		} catch (databaseError) {
-			if (isUniqueViolation(databaseError)) {
-				throw error(400, `Short code “${newClient.shortCode.trim()}” is already used by another client.`);
-			}
+			if (isUniqueViolation(databaseError)) return duplicateShortCode(newClient.shortCode.trim());
 			throw databaseError;
 		}
 	} else {
 		if (!isNonEmptyString(clientId)) throw error(400, 'Pick a client for the contract.');
-		const isOwner = await verifyClientOwnership(clientId, currentUser.id);
-		if (!isOwner) throw error(403, 'Client does not belong to this user');
+		// Another user's client is the same 404 as a missing one (sprint 031-CL), never a 403
+		const isOwner = isUuid(clientId) && (await verifyClientOwnership(clientId, currentUser.id));
+		if (!isOwner) return notFound('client');
 	}
 
-	const contract = await createContract(clientId, name.trim(), description ?? null, isActive ?? true);
+	const contract = await createContract(
+		clientId,
+		name.trim(),
+		typeof description === 'string' && description.trim() ? description.trim() : null,
+		isActive ?? true
+	);
 	return json({ contract, id: contract.id, clientId }, { status: 201 });
 };

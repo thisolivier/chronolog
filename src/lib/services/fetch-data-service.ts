@@ -221,16 +221,18 @@ export class FetchDataService implements DataService {
 	}
 
 	// -- Deliverables & Work Types --
+	// `includeArchived=true`: an old entry on an archived contract still shows its deliverable and
+	// work type (sprint 031-CL made the API lists hide archived parents by default).
 
 	async getDeliverables(contractId: string): Promise<DeliverableOption[]> {
 		return fetchJson<DeliverableOption[]>(
-			`/api/deliverables?contractId=${encodeURIComponent(contractId)}`
+			`/api/deliverables?contractId=${encodeURIComponent(contractId)}&includeArchived=true`
 		);
 	}
 
 	async getWorkTypes(deliverableId: string): Promise<WorkTypeOption[]> {
 		return fetchJson<WorkTypeOption[]>(
-			`/api/work-types?deliverableId=${encodeURIComponent(deliverableId)}`
+			`/api/work-types?deliverableId=${encodeURIComponent(deliverableId)}&includeArchived=true`
 		);
 	}
 }

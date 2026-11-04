@@ -46,12 +46,11 @@ describe('Reference Data API', () => {
 		const deliverables = await deliverablesResponse.json();
 
 		if (deliverables.length === 0) {
-			// No deliverables on the seeded contract — a random UUID must still answer 200 with an empty list
+			// No deliverables on the seeded contract — a deliverable that is not the caller's is 404 (sprint 031-CL)
 			const response = await authGet(
 				'/api/work-types?deliverableId=00000000-0000-4000-8000-000000000000'
 			);
-			expect(response.status).toBe(200);
-			expect(await response.json()).toEqual([]);
+			expect(response.status).toBe(404);
 			return;
 		}
 

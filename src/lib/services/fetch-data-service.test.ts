@@ -660,7 +660,7 @@ describe('FetchDataService', () => {
 			const result = await service.getDeliverables('c1');
 
 			const [url] = getLastFetchCall(mockFetch);
-			expect(url).toBe('/api/deliverables?contractId=c1');
+			expect(url).toBe('/api/deliverables?contractId=c1&includeArchived=true');
 			expect(result).toEqual(deliverables);
 		});
 	});
@@ -673,7 +673,7 @@ describe('FetchDataService', () => {
 			const result = await service.getWorkTypes('d1');
 
 			const [url] = getLastFetchCall(mockFetch);
-			expect(url).toBe('/api/work-types?deliverableId=d1');
+			expect(url).toBe('/api/work-types?deliverableId=d1&includeArchived=true');
 			expect(result).toEqual(workTypes);
 		});
 	});
