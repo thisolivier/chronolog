@@ -16,6 +16,7 @@ Operational scripts. Nothing here is imported by the app.
 | `restore-postgres.sh` | Restore a dump into a named database (`--replace` to overwrite) and print row counts. |
 | `launchd/` | User LaunchAgent that runs the backup at 03:30, plus install/uninstall steps. |
 | `reset-password.ts` | `npm run db:reset-password`: reset the account password from the shell. |
+| `ios/` | iOS release lane (`ship-ios.sh`, `lib/version.sh`, `ExportOptions.plist`) and the simulator UI check (`ui-check/`). See [ios/readme.md](ios/readme.md) and [docs/IOS-RELEASE.md](../docs/IOS-RELEASE.md). |
 
 The production image (Dockerfile) carries `migrate.mjs`, `lib/`, `backfill-note-word-counts.mjs`,
 `purge-note-trash.mjs` and `encrypt-existing.mjs`; anything run with `docker exec` must be plain JS

@@ -1,0 +1,52 @@
+# Sprint 048: release lane dry run, 2026-11-04 14:44, branch sprint-048-DT/ios-build
+# Redacted: $HOME shown as ~; the API key id is reported by length only; no secret file is printed.
+
+$ scripts/ios/ship-ios.sh 1 --skip-upload
+
+=== 1/7 Source API key + unlock keychain ===
+Keychain unlocked, API key id loaded (10 characters)
+
+=== 2/7 Preflight: signing identity and profile ===
+OK  Apple Distribution identity for CNHB9B5GX6 in the build keychain
+MISSING  'Chronolog App Store' provisioning profile for CNHB9B5GX6.dev.thisolivier.chronolog
+
+One-time owner steps (docs/IOS-RELEASE.md, 'One-time setup'):
+  1. developer.apple.com → Identifiers → +: App ID, explicit bundle id dev.thisolivier.chronolog
+  2. appstoreconnect.apple.com → Apps → +: new iOS app 'Chronolog', bundle id dev.thisolivier.chronolog
+  3. developer.apple.com → Profiles → +: App Store Connect, App ID dev.thisolivier.chronolog,
+     the Apple Distribution certificate, named exactly 'Chronolog App Store'
+  4. Install it: copy to ~/sites/navidromClient/spike/.signing and to
+     ~/Library/MobileDevice/Provisioning Profiles/<UUID>.mobileprovision
+FAILED at step: preflight (set SKIP_PREFLIGHT=1 to continue to the archive anyway)
+[exit 1]
+
+$ SKIP_PREFLIGHT=1 scripts/ios/ship-ios.sh 1 --skip-upload
+
+=== 1/7 Source API key + unlock keychain ===
+Keychain unlocked, API key id loaded (10 characters)
+
+=== 2/7 Preflight: signing identity and profile ===
+OK  Apple Distribution identity for CNHB9B5GX6 in the build keychain
+MISSING  'Chronolog App Store' provisioning profile for CNHB9B5GX6.dev.thisolivier.chronolog
+
+One-time owner steps (docs/IOS-RELEASE.md, 'One-time setup'):
+  1. developer.apple.com → Identifiers → +: App ID, explicit bundle id dev.thisolivier.chronolog
+  2. appstoreconnect.apple.com → Apps → +: new iOS app 'Chronolog', bundle id dev.thisolivier.chronolog
+  3. developer.apple.com → Profiles → +: App Store Connect, App ID dev.thisolivier.chronolog,
+     the Apple Distribution certificate, named exactly 'Chronolog App Store'
+  4. Install it: copy to ~/sites/navidromClient/spike/.signing and to
+     ~/Library/MobileDevice/Provisioning Profiles/<UUID>.mobileprovision
+SKIP_PREFLIGHT=1 — continuing so Xcode reports what it needs.
+
+=== 3/7 Bump build number ===
+Bumped bundle.iOS.bundleVersion: 0 → 1 (in tauri.ios.conf.json)
+Version 1.3.0 (1)
+
+=== 4/7 Archive + export (tauri ios build) ===
+Full log: <tmp build log>
+~/sites/chronolog/.claude/worktrees/sprint-048-DT/src-tauri/gen/apple/chronolog.xcodeproj: error: No profile for team 'Olivier Butler' matching 'Chronolog App Store' found: Xcode couldn't find any provisioning profiles matching 'CNHB9B5GX6/Chronolog App Store'. Install the profile (by dragging and dropping it onto Xcode's dock item) or select a different one in the Signing & Capabilities tab of the target editor. (in target 'chronolog_iOS' from project 'chronolog')
+** BUILD FAILED **
+       Error failed to build iOS app: failed to build with xcodebuild: command ["xcodebuild"] exited with code 65
+FAILED at step: archive/export (tauri ios build)
+(bundle.iOS.bundleVersion put back to 0)
+[exit 1]

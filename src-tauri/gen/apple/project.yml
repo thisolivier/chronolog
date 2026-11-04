@@ -44,10 +44,11 @@ targets:
         UILaunchStoryboardName: LaunchScreen
         UIRequiredDeviceCapabilities: [arm64, metal]
         ITSAppUsesNonExemptEncryption: false
+        # iPhone: portrait only (sprint 048). In landscape the webview kept reporting the portrait
+        # safe-area insets (top 62, left/right 0), so the sidebar sat under the Dynamic Island.
+        # iPad keeps all four orientations (App Store validation, ITMS-90474).
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown

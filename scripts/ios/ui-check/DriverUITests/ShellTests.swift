@@ -116,4 +116,39 @@ final class ShellTests: XCTestCase {
         XCTAssertTrue(app.webViews.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Week'")).firstMatch.waitForExistence(timeout: 30), "same-origin link stays in the shell")
         XCTAssertNotEqual(safari.state, .runningForeground)
     }
+
+    /// Safe areas: the menu and timesheet in portrait (header below the Dynamic Island, bottom
+    /// bar above the home indicator). The iPhone build is portrait only (gen/apple/project.yml),
+    /// so turning the device to landscape must leave the layout in portrait.
+    func test6_safeAreas() {
+        app.launch()
+        for _ in 0..<3 where !app.webViews.buttons["Time Entries"].exists {
+            let back = app.webViews.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Back to'")).firstMatch
+            if back.waitForExistence(timeout: 3) { back.tap(); sleep(1) }
+        }
+        shot("10-menu-portrait-bottom-bar")
+        app.webViews.buttons["Time Entries"].firstMatch.tap()
+        sleep(3)
+        shot("11-timesheet-portrait")
+        XCUIDevice.shared.orientation = .landscapeLeft
+        sleep(3)
+        XCTAssertLessThan(app.windows.firstMatch.frame.width, app.windows.firstMatch.frame.height, "iPhone stays portrait")
+        shot("12-device-turned-landscape-app-stays-portrait")
+        XCUIDevice.shared.orientation = .portrait
+        sleep(2)
+    }
+
+    /// Production (no URL override): the unlock page, then with the device turned. Needs no account.
+    func test7_productionUnlockSafeAreas() {
+        app.terminate()
+        app.launchEnvironment.removeValue(forKey: "CHRONOLOG_SHELL_URL")
+        app.launch()
+        XCTAssertTrue(field("Paste the key").waitForExistence(timeout: 60), "production unlock page")
+        sleep(2)
+        shot("14-production-unlock-portrait")
+        XCUIDevice.shared.orientation = .landscapeLeft
+        sleep(3)
+        shot("15-production-unlock-device-turned-stays-portrait")
+        XCUIDevice.shared.orientation = .portrait
+    }
 }

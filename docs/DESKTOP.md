@@ -108,7 +108,7 @@ timer start or stop:
 
 ```bash
 /Applications/Chronolog.app/Contents/MacOS/chronolog
-# [chronolog-desktop] loaded https://chronolog.throb.online/unlock
+# [chronolog-shell] loaded https://chronolog.throb.online/unlock
 # [chronolog-desktop] timer running=true
 ```
 
