@@ -150,6 +150,10 @@ describe('parseWorkspacePath', () => {
 	it.each(parseCases)('parses $pathname: $description', ({ pathname, expected }) => {
 		expect(parseWorkspacePath(pathname, FALLBACK_WEEK)).toEqual(expected);
 	});
+
+	it('leaves the trash page (/notes/trash, sprint 043-CL) out of the workspace', () => {
+		expect(parseWorkspacePath('/notes/trash', FALLBACK_WEEK)).toBeNull();
+	});
 });
 
 describe('buildWorkspacePath', () => {

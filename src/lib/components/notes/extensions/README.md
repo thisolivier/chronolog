@@ -63,6 +63,10 @@ Parsing is tiptap-markdown's own task-list spec (markdown-it-task-lists). Tests:
 
 A PDF (any non-image attachment) sits in a note as an ordinary link, `[report.pdf](chronolog://attachment/{id})` (sprint 036). The Link mark keeps only hrefs whose scheme it knows, so `NoteEditor` passes `ATTACHMENT_LINK_PROTOCOLS` (`chronolog`) to StarterKit's `link` options; without it the href is dropped on parse. `attachmentHrefFromTarget(target)` finds such a link from a click, and `openAttachment(url)` opens a tab inside the click (so popup blockers allow it), then points it at the resolver's blob URL (closing it if the fetch fails). `AttachmentList` opens files the same way. SVG (and other active content) is never opened as a page, since a blob URL carries the app origin. The editor CSS gives these links a document icon; printing (`note-print.ts`) replaces them with the filename marked "(attached file)".
 
+### attachment-availability.ts (sprint 043-CL)
+
+Which attachment links point at a deleted file. `checkAttachment(url)` asks `HEAD /api/attachments/<id>` once per attachment (`cache: 'no-store'`; only a 404 counts as missing, so offline leaves it unknown) and remembers the answer; `note-attachments-changed` forgets the answers. The `AttachmentLinkStatus` extension draws an inline decoration (`attachment-link-missing`: dashed, struck through, "(deleted)", like a missing image) over links to a missing file; only plugin meta is dispatched, so the document never changes and nothing autosaves. `openAttachment` returns early for a known-missing file instead of opening a tab that closes again (and checks after a failed open).
+
 ### attachment-resolver.ts
 
 Resolves `chronolog://attachment/{uuid}` URLs to displayable blob URLs. Images and PDFs embedded in notes use this custom URL scheme. The resolver fetches binary data from `/api/attachments/{id}`, creates blob URLs via `URL.createObjectURL()`, and caches results to avoid re-fetching. `AttachmentImage` uses it, and the blob URLs are revoked on teardown.

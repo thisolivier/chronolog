@@ -1,4 +1,5 @@
 import { SvelteMap } from 'svelte/reactivity';
+import type { PreviewTextOptions } from '$lib/utils/wiki-link-text';
 
 /**
  * Client-side cache of note display titles, used wherever a `[[id]]` wiki-link is
@@ -84,6 +85,14 @@ export function wikiLinkDisplayText(noteId: string, label?: string | null): stri
 	if (label && label !== noteId) return label;
 	return getCachedNoteTitle(noteId)?.displayTitle || noteId;
 }
+
+/**
+ * Preview options that read wiki-links as the cached title of their target (sprint 043-CL):
+ * for the title an editor saves and the previews it announces.
+ */
+export const cachedTitlePreviewOptions: PreviewTextOptions = {
+	resolveNoteTitle: (noteId) => getCachedNoteTitle(noteId)?.displayTitle
+};
 
 /** Record a title the client already knows (after a save or create), so links update live. */
 export function rememberNoteTitle(noteId: string, entry: CachedNoteTitle): void {

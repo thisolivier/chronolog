@@ -54,6 +54,8 @@ Deleting a note sets `notes.deleted_at` (partial index `notes_trash_user_id_idx`
 
 ## Global search (sprint 042-CL)
 
+`queries/wiki-link-titles.ts` (sprint 043-CL): `wikiLinkPreviewOptions(userId, notes)` loads, in one query, the titles of every note the given notes link to (trashed targets included), so `GET /api/notes`, `getNoteTitlesForUser` and the trash list read wiki-links as their target's title in titles and previews. `getNoteTitlesForUser` also names a note that only has markdown by its first line.
+
 `queries/global-search.ts` (`searchEverythingForUser`) backs `GET /api/search` and `chronolog search`: the user's notes (ID, title, body; never the trash) and time entries (description), decrypted and matched in memory like `note-search.ts` (the columns are encrypted, so no SQL `ILIKE`). Notes rank with `rankNoteMatch` (exact ID, ID prefix, title, ID substring, body; newest first within a rank); entries are newest first. Each hit carries client, contract, a date and a snippet with match offsets (`$lib/utils/search-snippet.ts`); the limit is per group and `total` counts every match.
 
 ## Pinned notes and client order (sprint 039-CL)

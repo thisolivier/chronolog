@@ -12,6 +12,7 @@
 	import NoteListPanel from '$lib/components/layout/NoteListPanel.svelte';
 	import NoteEditorPanel from '$lib/components/layout/NoteEditorPanel.svelte';
 	import FirstRunNotice from '$lib/components/onboarding/FirstRunNotice.svelte';
+	import NoteTrashToastHost from '$lib/components/notes/NoteTrashToastHost.svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
 	import { getIsoWeekNumber } from '$lib/utils/iso-week';
@@ -57,5 +58,8 @@
 		{/if}
 	{/snippet}
 </AppShell>
+
+<!-- "Moved to trash. Undo" lives here, not in the editor panel, so it survives a phone's panel change -->
+<NoteTrashToastHost />
 
 {@render children()}

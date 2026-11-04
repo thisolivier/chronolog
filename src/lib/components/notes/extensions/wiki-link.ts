@@ -27,44 +27,9 @@ export interface WikiLinkCommandProps {
 
 export const WikiLinkPluginKey = new PluginKey('wikiLink');
 
-/**
- * Parse the interior text of a `[[...]]` wiki-link into its components.
- *
- * Supported forms:
- *   NOTE_ID
- *   NOTE_ID|label
- *   NOTE_ID#heading
- *   NOTE_ID#heading|label
- */
-export function parseWikiLinkText(raw: string): {
-	noteId: string;
-	headingAnchor?: string;
-	label: string;
-} {
-	let noteId = raw;
-	let headingAnchor: string | undefined;
-	let label: string | undefined;
-
-	// Extract label after the pipe
-	const pipeIndex = noteId.indexOf('|');
-	if (pipeIndex !== -1) {
-		label = noteId.slice(pipeIndex + 1);
-		noteId = noteId.slice(0, pipeIndex);
-	}
-
-	// Extract heading anchor after the hash
-	const hashIndex = noteId.indexOf('#');
-	if (hashIndex !== -1) {
-		headingAnchor = noteId.slice(hashIndex + 1);
-		noteId = noteId.slice(0, hashIndex);
-	}
-
-	return {
-		noteId,
-		headingAnchor: headingAnchor || undefined,
-		label: label || noteId,
-	};
-}
+/** Parse the interior text of a `[[...]]` wiki-link (pure; shared with previews and titles). */
+import { parseWikiLinkText } from '$lib/utils/wiki-link-text';
+export { parseWikiLinkText };
 
 /**
  * Build the `[[...]]` text form of a wiki-link from its components.

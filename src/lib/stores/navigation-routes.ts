@@ -9,6 +9,7 @@
  *   /notes/client/<clientId>                        one client's notes, all contracts (039-CL)
  *   /notes/client/<clientId>/<contractId>/<noteId>  a note open with the client view as the list
  *   /notes/client/<clientId>/<contractId>/new       a draft for that contract, client view as the list
+ *   /notes/trash                      not a workspace URL: the trash page (043-CL)
  */
 import { getIsoWeekNumber, getIsoYear, getMondayOfIsoWeek, getMondayOfWeek } from '$lib/utils/iso-week';
 
@@ -21,6 +22,10 @@ export type WorkspaceRoute =
 
 /** Path segment of the client view, `/notes/client/<id>` (contract IDs are UUIDs, never `client`) */
 export const CLIENT_SEGMENT = 'client';
+
+/** Path of the trash page (sprint 043-CL); `trash` is never a contract UUID */
+export const TRASH_SEGMENT = 'trash';
+export const TRASH_PATH = `/notes/${TRASH_SEGMENT}`;
 
 /** Path segment used for a new-note draft (note IDs look like `ACME.20261103.005`, never `new`) */
 export const DRAFT_SEGMENT = 'new';
@@ -61,6 +66,8 @@ export function parseWorkspacePath(pathname: string, fallbackWeek: string): Work
 		const monday = mondayFromWeekParam(segments[1]);
 		return monday ? { kind: 'time', week: monday } : null;
 	}
+	// The trash (`/notes/trash`, sprint 043-CL) is its own page, not a workspace URL
+	if (segments[0] === 'notes' && segments[1] === TRASH_SEGMENT) return null;
 	if (segments[0] === 'notes' && segments[1] === CLIENT_SEGMENT) {
 		if (segments.length === 3) return { kind: 'client', clientId: segments[2], contractId: null, noteId: null, draft: false };
 		if (segments.length !== 5) return null;

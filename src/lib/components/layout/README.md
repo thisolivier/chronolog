@@ -81,6 +81,10 @@ One client in the sidebar: the heading plus children, or the single-contract row
 
 The Archived toggle and its list. The expanded preference is read and written through `archived-section-state.ts` (localStorage, guarded with try/catch, default collapsed).
 
+### SidebarTrashLink.svelte
+
+"Trash" under the Archived item (sprint 043-CL), in the same muted style: a link to the trash page `/notes/trash`. The sidebar was chosen over the foot of the note list because the trash spans every contract and is rarely needed.
+
 ### TimeEntriesPanel.svelte
 
 Main content panel for time entries mode. Integrates WeekStrip as a sticky header for week/day navigation. Shows a single-week view with today emphasis, empty day states with "add entry" prompts, and month dividers between weeks. Each day section contains TimeEntryCard components. Each week keeps its scroll position (the day at the top and the offset into it) in the navigation store, so returning restores it. A day asked for by `navigation.showTimeEntryDay` (after a timer or Add Entry save, or a linked entry opened from a note) scrolls to the top of the list and is highlighted briefly. Its first child is the find bar (`$lib/components/find/FindBar.svelte`, `mode="dom"`, sprint 042-CL).
@@ -97,7 +101,7 @@ It listens for the window events `note-created` and `note-saved` (updates a note
 
 ### NoteEditorPanel.svelte
 
-Panel 3 content in notes mode. Opens whatever the URL names (a note, a `/notes/<contract>/new` draft, or nothing) and binds an editor session to it: the TipTap editor, save status (via `NoteEditorHeader` and `SaveStatusIndicator`), a Reload action on conflict, backlinks, linked time entries, export and "Move to..." actions. Delete lives in the editor header and asks for an inline confirmation. A draft becomes a note on its first save without remounting the editor. Before a move or delete it flushes pending saves and waits for in-flight saves of the note. It dispatches the window events `note-created`, `note-saved`, `note-moved` (detail: `noteId`, `fromContractId`, `toContractId`, `toContractName`, `toClientName`) and `note-deleted`. Move failures are shown in the editor header. The header names the note's client and contract. A note opened under the wrong contract in the URL is re-opened under its own contract with a replace, so the URL, sidebar and list agree. Its first child is the find bar (`mode="editor"`, decorations in the editor, sprint 042-CL).
+Panel 3 content in notes mode. Opens whatever the URL names (a note, a `/notes/<contract>/new` draft, or nothing) and binds an editor session to it: the TipTap editor, save status (via `NoteEditorHeader` and `SaveStatusIndicator`), a Reload action on conflict, backlinks, linked time entries, export and "Move to..." actions. Delete lives in the editor header and asks for an inline confirmation. A draft becomes a note on its first save without remounting the editor. Before a move or delete it flushes pending saves and waits for in-flight saves of the note. It dispatches the window events `note-created`, `note-saved`, `note-moved` (detail: `noteId`, `fromContractId`, `toContractId`, `toContractName`, `toClientName`) and `note-deleted`. Move failures are shown in the editor header. The header names the note's client and contract. A note opened under the wrong contract in the URL is re-opened under its own contract with a replace, so the URL, sidebar and list agree. Its first child is the find bar (`mode="editor"`, decorations in the editor, sprint 042-CL). Since sprint 043-CL the component is the template and wiring only: its state is `NotePanelState`, saving is `note-editor-session.ts`, the header actions are `note-panel-actions.ts` (all in `$lib/components/notes/`), and the "Moved to trash. Undo" toast is `NoteTrashToastHost`, mounted by the workspace layout so it survives this panel unmounting on a phone.
 
 ### navigation-labels.ts
 
