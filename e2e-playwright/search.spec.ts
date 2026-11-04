@@ -1,5 +1,5 @@
 /**
- * Sprint 042-CL: global search from the shell (results grouped, a note hit and an entry hit open
+ * Sprint 042-CL: global search from the shell (one list since 046, a note hit and an entry hit open
  * in the workspace, Back returns to the results) and find in page (Cmd/Ctrl+F) in a note and on a
  * timesheet week: count, next/previous, Escape clears, and the note is not edited by finding.
  */
@@ -73,7 +73,7 @@ test('global search from the shell opens a note hit and an entry hit', async ({ 
 	await expect(noteHits).toHaveCount(1);
 	await expect(entryHits).toHaveCount(2);
 	await expect(noteHits.first().locator('mark').first()).toHaveText(seeded.word);
-	await expect(page.getByTestId('search-group-entries')).toContainText('Wrote the');
+	await expect(page.getByTestId('search-results')).toContainText('Wrote the');
 	if (browserName === 'chromium') await page.screenshot({ path: path.join(SCREENSHOTS, '02-results.png'), fullPage: true });
 
 	// Arrow keys move from the field into the hits

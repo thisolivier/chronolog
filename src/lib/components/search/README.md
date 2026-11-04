@@ -11,14 +11,26 @@ backed by `GET /api/search` (`src/lib/server/db/queries/global-search.ts`). The 
   the visible field from anywhere (capture phase, so the editor never sees it); Escape blurs;
   ArrowDown on /search moves into the results. On a phone the shell header has a search icon
   linking to `/search`, where the field takes focus.
-- **SearchResults.svelte** — the Notes and Time entries groups ("2 of 31" when cut at the limit of
-  50 each). Each hit shows client code, contract, date (and duration for entries) and a snippet with
-  the matches in `<mark>`; Up/Down move between hits. Notes: title hits rank above body hits.
+- **SearchResults.svelte** — one list of notes and time entries, newest first (sprint 046-CL),
+  under a summary line ("3 notes · 7 time entries", "50 of 120 notes" when cut at the limit of 50
+  per type). Up/Down walk the list in order; Up from the first hit returns to the field.
+- **SearchHitRow.svelte** — one hit: type icon, client colour dot and "Client / Contract", date
+  (and duration for entries) at the end of that line, then the title or description and the
+  snippet with the matches in `<mark>`. From 768 px (`md`) the icon has its own left column; on a
+  phone it sits at the start of the client/contract line, the client shows as its short code and
+  the title and snippet run full width below (no sideways scroll at 320 px).
+- **SearchTypeIcon.svelte** — inline SVG note / clock icon, `role="img"` labelled "Note" or
+  "Time entry".
+- **search-interleave.ts** — `interleaveSearchHits()` merges the API's two groups (the response
+  shape is unchanged; the CLI reads it): a note sorts by its last modified time, an entry by its
+  date then start time (none = start of day), compared in local time; ties keep the server order.
+  Also `searchSummary()` and the phone date format.
 - **HighlightedText.svelte** — renders text plus match offsets (from the server) as `<mark>`s
   without `{@html}`.
 - **entry-reveal.ts** — `revealTimeEntry(id)`: after `navigation.showTimeEntryDay(date)` opens the
   entry's week, waits for its card (`data-entry-id`), centres, focuses and briefly outlines it.
-- **search-types.ts** — client shapes of the response and `fetchGlobalSearch()`.
+- **search-types.ts** — client shapes of the response, `fetchGlobalSearch()`, and
+  `fetchClientColorIndexes()` (`GET /api/clients`, once per page, for the colour dots).
 
 A note hit opens through `navigation.openNote()`, like any other note link. The per-contract
 "Search all notes" box in the note list (`/api/notes/search`) is separate and unchanged.

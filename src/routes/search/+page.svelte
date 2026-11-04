@@ -1,7 +1,8 @@
 <!--
 	/search?q=… (sprint 042-CL): global search results. The URL is the state: Back/Forward and
 	reload show the same search. A note hit opens the note in the workspace (openNote); an entry hit
-	opens its week with the entry focused.
+	opens its week with the entry focused. Sprint 046-CL: one interleaved list; client colours come
+	from `GET /api/clients`, fetched once beside the search.
 -->
 <script lang="ts">
 	import { page } from '$app/state';
@@ -10,7 +11,7 @@
 	import GlobalSearchField from '$lib/components/search/GlobalSearchField.svelte';
 	import SearchResults from '$lib/components/search/SearchResults.svelte';
 	import { revealTimeEntry } from '$lib/components/search/entry-reveal';
-	import { fetchGlobalSearch, type GlobalSearchResponse, type NoteHit, type TimeEntryHit } from '$lib/components/search/search-types';
+	import { fetchClientColorIndexes, fetchGlobalSearch, type GlobalSearchResponse, type NoteHit, type TimeEntryHit } from '$lib/components/search/search-types';
 
 	const navigation = getNavigationContext();
 	const MINIMUM_QUERY_LENGTH = 2;
@@ -20,6 +21,13 @@
 	let isSearching = $state(false);
 	let errorMessage = $state<string | null>(null);
 	let resultsComponent: SearchResults | undefined = $state();
+	let clientColorIndexes = $state(new Map<string, number>());
+
+	$effect(() => {
+		const controller = new AbortController();
+		fetchClientColorIndexes(controller.signal).then((indexes) => (clientColorIndexes = indexes));
+		return () => controller.abort();
+	});
 
 	$effect(() => {
 		const currentQuery = query;
@@ -84,7 +92,11 @@
 		{:else if errorMessage}
 			<p class="px-3 text-sm text-red-600" role="alert">{errorMessage}</p>
 		{:else if result}
-			<SearchResults bind:this={resultsComponent} {result} onOpenNote={openNote} onOpenEntry={openEntry} onLeaveTop={focusSearchField} />
+			<SearchResults
+				bind:this={resultsComponent}
+				{result}
+				{clientColorIndexes}
+				onOpenNote={openNote} onOpenEntry={openEntry} onLeaveTop={focusSearchField} />
 		{:else if isSearching}
 			<p class="px-3 text-sm text-stone-500">Searching…</p>
 		{/if}
