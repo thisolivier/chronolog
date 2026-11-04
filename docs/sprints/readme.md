@@ -10,6 +10,7 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 036-CL | Client/Server | Attachments: PDFs, magic-byte checks, CLI attach/get/delete, CLI 1.0.0 | merged |
 | 034-CL | Client/Server | CLI edits, appends, deletes, restores and backdates notes | merged |
 | 033-CL | Client | Archived clients in the sidebar; single-contract collapse | merged |
 | 032-CL | Client/Server | Work type must match the deliverable; CLI edit of work type | merged |

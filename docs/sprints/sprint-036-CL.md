@@ -1,6 +1,6 @@
 # Sprint 036 — CL: Attachments: PDFs, and the CLI
 
-**Status:** ready for review (not merged)
+**Status:** merged
 **Branch:** `sprint-036-CL/attachments-pdf-cli` · **Worktree:** `.claude/worktrees/sprint-036-CL` · **Port:** 5214
 **Sources:** owner request 2026-11-04; sprint 024 task 5 (attachment fix, `chronolog://attachment/<id>`), 028/031/034 (CLI, skill, confirm rule).
 
