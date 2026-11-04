@@ -17,8 +17,10 @@ import { deleteAllReadCaches, openReadCache, type OpenedReadCache } from './read
 export const OUTBOX_REPLAYED_EVENT = 'chronolog:outbox-replayed';
 /** Fired when a note or entry made offline got its real ID: `{ tempId, realId, type }` */
 export const OFFLINE_ID_REMAPPED_EVENT = 'chronolog:offline-id-remapped';
-/** Service-worker caches holding signed-in pages (`src/service-worker.ts`) */
-export const PAGE_CACHE_NAME = 'chronolog-pages';
+/** Service-worker caches that can hold a signed-in user's pages or data (`src/service-worker.ts`) */
+export const USER_CACHE_NAMES = ['chronolog-pages', 'chronolog-runtime'];
+/** The account this browser's offline data last belonged to */
+const LAST_USER_KEY = 'chronolog-offline-last-user';
 
 const RETRY_INTERVAL_MS = 8000;
 const REPLAY_LOCK_NAME = 'chronolog-outbox-replay';
@@ -68,8 +70,11 @@ async function runReplay(): Promise<void> {
 				outbox.replayed.add(`${type}:${id}`);
 				(type === 'note' ? replayedNotes : replayedEntries).push(id);
 			},
-			onNoteUpdated: recordNoteUpdated
+			onNoteUpdated: recordNoteUpdated,
+			ownerUserId: outbox.ownerUserId ?? undefined
 		});
+		// Another account is signed in (an expired session, then someone else): keep the queue unsent
+		outbox.otherAccountSignedIn = result.stoppedBy === 'other-account';
 		if (result.replayed > 0 || result.held > 0) {
 			dispatch(OUTBOX_REPLAYED_EVENT, { notes: replayedNotes, entries: replayedEntries });
 			if (replayedNotes.length > 0) announceNotesChanged();
@@ -113,6 +118,12 @@ function handleOnline(): void {
  */
 export function startOfflineSession(userId: string): void {
 	if (sessionUserId === userId || typeof window === 'undefined') return;
+	// A different account in the same page: close the previous one's session first (review fix 5c)
+	if (sessionUserId) {
+		stopOfflineSession();
+		clearReadCache();
+	}
+	forgetOtherAccountsData(userId);
 	sessionUserId = userId;
 	outbox.open(userId);
 	window.addEventListener('storage', handleStorage);
@@ -130,6 +141,29 @@ export function startOfflineSession(userId: string): void {
 		.catch((cacheError) => console.warn('[offline] read cache unavailable', cacheError))
 		.finally(() => scheduleReplay(0));
 	setReadCacheLoading(loading);
+}
+
+/**
+ * Signed in as someone other than the last account on this browser (a session expired without a
+ * sign-out): that account's kept pages and read caches go. Its unsent queue stays under its own
+ * key and is only sent when it signs in again (review fix 5b).
+ */
+function forgetOtherAccountsData(userId: string): void {
+	let previousUserId: string | null = null;
+	try {
+		previousUserId = localStorage.getItem(LAST_USER_KEY);
+		localStorage.setItem(LAST_USER_KEY, userId);
+	} catch {
+		// No storage: nothing was kept either
+	}
+	if (!previousUserId || previousUserId === userId) return;
+	void deleteAllReadCaches({ except: userId }).catch(() => {});
+	void deleteUserCaches();
+}
+
+async function deleteUserCaches(): Promise<void> {
+	if (typeof caches === 'undefined') return;
+	await Promise.all(USER_CACHE_NAMES.map((name) => caches.delete(name).catch(() => false)));
 }
 
 function stopOfflineSession(): void {
@@ -160,6 +194,6 @@ export async function clearOfflineDataForSignOut(confirmDiscard: (count: number)
 	stopOfflineSession();
 	clearReadCache();
 	await deleteAllReadCaches().catch(() => {});
-	if (typeof caches !== 'undefined') await caches.delete(PAGE_CACHE_NAME).catch(() => false);
+	await deleteUserCaches();
 	return true;
 }

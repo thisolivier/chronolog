@@ -33,7 +33,13 @@ export function newTempId(): string {
 function nextCommon(state: OutboxState, now: string) {
 	const sequence = state.nextSequence;
 	state.nextSequence += 1;
-	return { sequence, queuedAt: now, revision: 1, status: 'pending' as const };
+	return {
+		sequence,
+		queuedAt: now,
+		revision: 1,
+		status: 'pending' as const,
+		...(state.ownerUserId ? { ownerUserId: state.ownerUserId } : {})
+	};
 }
 
 /** The real ID for a temp ID the server has already created, else the ID itself */
@@ -190,7 +196,9 @@ export function queueEntryDelete(
 ): OutboxItem | null {
 	const entryId = resolveId(state, input.entryId);
 	const createIndex = state.items.findIndex((item) => item.kind === 'entry-create' && item.tempId === entryId);
-	if (createIndex !== -1) {
+	// A create not yet sent is simply dropped. One being sent right now may already exist on the
+	// server: the delete is queued after it, under the temp ID the replay then remaps (review fix 2).
+	if (createIndex !== -1 && !state.items[createIndex].inFlight) {
 		state.items.splice(createIndex, 1);
 		return null;
 	}

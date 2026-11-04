@@ -34,6 +34,10 @@ type ItemCommon = {
 	revision: number;
 	status: 'pending' | 'held';
 	hold?: HoldInfo;
+	/** The account the change was made in; it is only ever sent as that account (review fix 5b) */
+	ownerUserId?: string;
+	/** Set while a replay's create request for it is on its way (review fix 2) */
+	inFlight?: boolean;
 };
 
 export type NoteCreateItem = ItemCommon & {
@@ -87,6 +91,8 @@ export type OutboxState = {
 	items: OutboxItem[];
 	nextSequence: number;
 	idMap: Record<string, string>;
+	/** Whose queue this is; new items are tagged with it */
+	ownerUserId?: string;
 };
 
 export const TEMP_ID_PREFIX = 'offline-';

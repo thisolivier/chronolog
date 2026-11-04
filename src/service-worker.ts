@@ -11,7 +11,11 @@
  *   read the URL themselves). Sign-in pages and redirects are never kept. Sign-out deletes them.
  * - `/api/*` is never touched here: the app's own read cache and outbox handle data, and a
  *   failed request is how the app knows it is offline.
- * - Anything else on this origin (Vite's modules in development) is network first with a copy.
+ * - Anything else on this origin (Vite's modules in development) is network first with a copy,
+ *   except SvelteKit's `__data.json` (it carries the signed-in user).
+ * - A new version keeps the kept pages and the previous version's files, so the first offline
+ *   start after a deploy still loads the old page with its old files (review fix 3); older
+ *   versions go.
  *
  * A new version waits until the page's "Update" asks it to take over (`SKIP_WAITING`).
  */
@@ -32,14 +36,23 @@ worker.addEventListener('install', (event) => {
 	event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll([...PRECACHED])));
 });
 
+/** Shell caches by version, newest first (SvelteKit's version is a build timestamp by default) */
+function shellCachesNewestFirst(names: string[]): string[] {
+	return names
+		.filter((name) => name.startsWith('chronolog-shell-'))
+		.sort((first, second) => second.localeCompare(first, undefined, { numeric: true }));
+}
+
 worker.addEventListener('activate', (event) => {
 	event.waitUntil(
 		(async () => {
-			for (const name of await caches.keys()) {
-				const oldShell = name.startsWith('chronolog-shell-') && name !== SHELL_CACHE;
+			const names = await caches.keys();
+			// Keep this version and the one before it: kept pages may still name its files
+			const keptShells = new Set([SHELL_CACHE, ...shellCachesNewestFirst(names).filter((name) => name !== SHELL_CACHE).slice(0, 1)]);
+			for (const name of names) {
+				const oldShell = name.startsWith('chronolog-shell-') && !keptShells.has(name);
 				const legacy = LEGACY_CACHE_PREFIXES.some((prefix) => name.startsWith(prefix));
-				// Kept pages name the old version's files: drop them with it (they refill online)
-				if (oldShell || legacy || (name === PAGE_CACHE && build.length > 0)) await caches.delete(name);
+				if (oldShell || legacy) await caches.delete(name);
 			}
 			await worker.clients.claim();
 		})()
@@ -82,9 +95,14 @@ async function handleAsset(request: Request, url: URL): Promise<Response> {
 		const cached = await caches.match(url.pathname, { cacheName: SHELL_CACHE });
 		if (cached) return cached;
 	}
+	// A previous version's file, named by a kept page: never changes, so any cached copy will do
+	if (url.pathname.startsWith('/_app/immutable/')) {
+		const cached = await caches.match(url.pathname);
+		if (cached) return cached;
+	}
 	try {
 		const response = await fetch(request);
-		if (response.ok && response.type === 'basic') {
+		if (response.ok && response.type === 'basic' && !url.pathname.endsWith('__data.json')) {
 			const cache = await caches.open(RUNTIME_CACHE);
 			await cache.put(request, response.clone());
 		}

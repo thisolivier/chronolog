@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { replayOutbox, type ErrorKind, type OutboxAccess, type ReplayTransport } from './outbox-replay';
-import { queueEntryCreate, queueEntryUpdate, queueNoteCreate, queueNoteUpdate } from './outbox-queue';
+import { queueEntryCreate, queueEntryDelete, queueEntryUpdate, queueNoteCreate, queueNoteUpdate } from './outbox-queue';
 import { emptyOutboxState, type OutboxState } from './outbox-types';
 import type { ServerNote } from './outbox-merge';
 
@@ -40,9 +40,17 @@ function fakeServer() {
 	let noteCounter = 0;
 	let tick = 0;
 	const stamp = () => `server-${++tick}`;
+	const notesByClientId = new Map<string, string>();
+	const entriesByClientId = new Map<string, string>();
+	const signedIn = { userId: 'owner' as string | null };
 	const transport: ReplayTransport = {
-		createNote: vi.fn(async (contractId, fields) => {
+		currentUserId: vi.fn(async () => signedIn.userId),
+		createNote: vi.fn(async (contractId, fields, clientId) => {
+			// Idempotent like the server: a repeat of a clientId returns the first note
+			const existingId = notesByClientId.get(clientId);
+			if (existingId) return { id: existingId, updatedAt: notes.get(existingId)!.updatedAt };
 			const id = `ACME.20261104.00${++noteCounter}`;
+			notesByClientId.set(clientId, id);
 			calls.push(`createNote ${contractId} ${fields.content ?? '(empty)'}`);
 			notes.set(id, { title: fields.title ?? null, content: fields.content ?? null, contentJson: fields.contentJson ?? null, updatedAt: stamp() });
 			return { id, updatedAt: notes.get(id)!.updatedAt };
@@ -57,8 +65,11 @@ function fakeServer() {
 			notes.set(noteId, { ...note, ...fields, updatedAt: stamp() });
 			return { updatedAt: notes.get(noteId)!.updatedAt };
 		}),
-		createEntry: vi.fn(async (input) => {
-			const id = `entry-${entries.size + 1}`;
+		createEntry: vi.fn(async (input, clientId) => {
+			const existingId = entriesByClientId.get(clientId);
+			if (existingId) return { id: existingId };
+			const id = `entry-${entriesByClientId.size + 1}`;
+			entriesByClientId.set(clientId, id);
 			calls.push(`createEntry ${input.description}`);
 			entries.set(id, { ...input });
 			return { id };
@@ -73,7 +84,7 @@ function fakeServer() {
 			entries.delete(entryId);
 		})
 	};
-	return { notes, entries, calls, transport };
+	return { notes, entries, calls, transport, signedIn };
 }
 
 const hooks = { classifyError: classify, now: () => NOW };
@@ -200,5 +211,61 @@ describe('outbox replay', () => {
 		const onNoteUpdated = vi.fn();
 		await replayOutbox(memoryAccess(state), server.transport, { ...hooks, onNoteUpdated });
 		expect(onNoteUpdated).toHaveBeenCalledWith('N.1', ['base'], server.notes.get('N.1')?.updatedAt);
+	});
+
+	it('sends the temp ID as the idempotency key, so a create whose answer was lost is not made twice (review fix 1)', async () => {
+		const server = fakeServer();
+		const originalCreate = server.transport.createEntry;
+		let lostAnswers = 1;
+		server.transport.createEntry = vi.fn(async (input, clientId) => {
+			const created = await originalCreate(input, clientId);
+			// The server made the entry, but the answer never arrived (TypeError, 524)
+			if (lostAnswers-- > 0) throw new TypeError('Failed to fetch');
+			return created;
+		});
+		const state = emptyOutboxState();
+		const tempId = 'offline-00000000000000e1';
+		queueEntryCreate(state, { tempId, input: { date: '2026-11-04', durationMinutes: 30, contractId: 'C', description: 'once' }, display: {} as never, now: NOW });
+		const access = memoryAccess(state);
+		expect((await replayOutbox(access, server.transport, hooks)).stoppedBy).toBe('network');
+		expect(access.state.items[0]).toMatchObject({ kind: 'entry-create' });
+		expect(access.state.items[0].inFlight).toBeUndefined();
+		const second = await replayOutbox(access, server.transport, hooks);
+		expect(second).toMatchObject({ replayed: 1, stoppedBy: null });
+		expect(server.entries.size).toBe(1);
+		expect(server.transport.createEntry).toHaveBeenLastCalledWith(expect.anything(), tempId);
+	});
+
+	it('a delete made while the create was in flight deletes the created entry (review fix 2)', async () => {
+		const server = fakeServer();
+		const tempId = 'offline-00000000000000e2';
+		const state = emptyOutboxState();
+		queueEntryCreate(state, { tempId, input: { date: '2026-11-04', durationMinutes: 30, contractId: 'C' }, display: {} as never, now: NOW });
+		const access = memoryAccess(state);
+		const originalCreate = server.transport.createEntry;
+		server.transport.createEntry = vi.fn(async (input, clientId) => {
+			// The user deletes the entry while its create is on the way
+			access.update((draft) => queueEntryDelete(draft, { entryId: tempId, base: null, date: null, now: NOW }));
+			return originalCreate(input, clientId);
+		});
+		await replayOutbox(access, server.transport, hooks);
+		expect(server.calls).toContain('deleteEntry entry-1');
+		expect(server.entries.size).toBe(0);
+		expect(access.state.items).toEqual([]);
+	});
+
+	it('sends nothing while the server has another account signed in (review fix 5b)', async () => {
+		const server = fakeServer();
+		server.signedIn.userId = 'someone-else';
+		const state = emptyOutboxState();
+		queueEntryUpdate(state, { entryId: 'E1', base: { durationMinutes: 30 }, changes: { durationMinutes: 5 }, now: NOW });
+		const access = memoryAccess(state);
+		const result = await replayOutbox(access, server.transport, { ...hooks, ownerUserId: 'owner' });
+		expect(result.stoppedBy).toBe('other-account');
+		expect(server.transport.getEntry).not.toHaveBeenCalled();
+		expect(access.state.items).toHaveLength(1);
+		server.signedIn.userId = 'owner';
+		server.entries.set('E1', { durationMinutes: 30 });
+		expect((await replayOutbox(access, server.transport, { ...hooks, ownerUserId: 'owner' })).replayed).toBe(1);
 	});
 });

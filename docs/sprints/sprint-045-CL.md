@@ -19,8 +19,8 @@ Screenshots: offline banner with queued count, replayed marker, held-item prompt
 
 ## Sign-off
 
-**Done (2026-11-04).** No new dependency, no migration, no server API change beyond one device-gate
-exemption. Module: `src/lib/offline/` (readme there); `docs/SPEC.md` Offline Strategy rewritten.
+**Done (2026-11-04).** No new dependency. After review: migration 0011 and an optional `clientId`
+on two POST routes (see Review fixes). Module: `src/lib/offline/` (readme there); `docs/SPEC.md` Offline Strategy rewritten.
 
 1. **Read cache.** `fetch-helpers.ts`' per-URL cache is persisted per user in IndexedDB
    (`chronolog-reads-<userId>`, plain IndexedDB, newest 600 copies) and loaded at start; a read
@@ -96,3 +96,59 @@ and `test-results/` (a report write was reloading pages under test).
   silently. Private-mode browsers that refuse storage keep the queue for the page session only.
 - The replay compares and writes time entries in two requests (no server-side check), so an edit
   landing between them is overwritten; notes use `expectedUpdatedAt` and retry.
+
+
+### Review fixes (2026-11-04)
+
+1. **Duplicate creates (HIGH).** Migration `0011_idempotent_client_ids`: nullable `client_id` on
+   `notes` and `time_entries`, unique `(user_id, client_id) where client_id is not null`.
+   `POST /api/notes` and `POST /api/time-entries` take an optional `clientId`; a repeat answers 200
+   with the first row, same shape (notes check under the ID-allocation advisory lock; entries
+   catch the unique violation). The browser uses one temp ID for the online try and, if that
+   fails, the queued create, so a lost answer, a 524 or a tab closing mid-replay never makes a
+   second note or entry. 524 stays "retry": with idempotent creates and compare-before-write
+   edits, a retry of an unknown outcome is safe. CLI unaffected (no `clientId`, every POST creates).
+   Batch routes not changed (the outbox does not use them).
+2. **Delete during an in-flight create.** Replay marks a create `inFlight` while its POST is out;
+   deleting it then queues an `entry-delete` under the temp ID (remapped on success, blocked until
+   the create is done) instead of dropping the create. Note creates fold edits into the item and
+   note deletes are not queued, so notes need nothing more.
+3. **Service worker after a deploy.** Activate no longer deletes the kept pages; it keeps the
+   previous version's shell (older ones go), and `/_app/immutable/*` is served from any cache, so
+   the first cold start offline after a deploy loads the old page with its old files.
+4. **Two tabs.** The queue is stored one key per item; a change writes only the keys it changed
+   and removes only the items it removed, so another tab's items are never overwritten. **Not**
+   Web Locks around `update()`: those are asynchronous, and a save queued during `pagehide` (tab
+   close) would not reach the disk; the synchronous write is what keeps the last keystrokes.
+   Residual: two tabs changing the *same* item at the same instant, last write wins on that item
+   (its revision then makes a running replay keep and rebase it); replay re-applies known ID
+   mappings before it starts.
+5. **Accounts.** (a) `+layout.server.ts` returns only `user { id, name, email }` (no session or
+   token); the worker never caches `__data.json`; sign-out also deletes `chronolog-runtime`.
+   (b) Items carry `ownerUserId`; replay first asks `GET /api/me` and sends nothing while another
+   account is signed in (banner: "Another account is signed in…"; the queue stays as it is rather
+   than being held item by item, so it goes out unchanged once its owner signs in). Signing in as
+   a different account than the browser's last one deletes the kept pages, the runtime cache and
+   the other accounts' read caches; their queues stay under their own keys, unsent.
+   (c) `startOfflineSession` stops the previous user's session first.
+6. **Tauri.** `kit.serviceWorker.register: false`; the root layout registers the worker outside
+   Tauri only. The desktop app loads from the network, so offline reload there is not needed; the
+   outbox and read cache still work in an open desktop window.
+7. **Unreadable queue.** An unreadable item is copied to `chronolog-outbox-unreadable:…`; if that
+   copy does not fit, reading throws `OutboxFullError` and no write happens, so nothing replaces it.
+
+**Tests after the fixes.** `npm run check` 0/0, lint clean, `npm test` 1055 passed (new: idempotent
+replay after a lost answer, delete during an in-flight create, other account signed in, two tabs
+writing from stale reads, unreadable item kept / refused when full, owner tagging); API e2e 22
+files / 129 passed (new `idempotent-creates.e2e.test.ts`: a repeat returns the same note / entry
+and no second row; without `clientId` two POSTs make two entries; a malformed `clientId` is 400);
+full Playwright 156 passed, 5 skipped, 0 flaky. Production build checked (no kit-injected
+registration).
+
+**The two earlier flakes on `main`.** `notes-autosave` + `notes-conflict` with
+`--repeat-each=10` (chromium, alone): `main` 41/41, this branch 41/41. Full suite on `main`: 148
+passed, no flakes; on this branch after the fixes: 156 passed, no flakes. So no evidence the branch
+causes them; they flaked once, under full-suite load, and did not reproduce.
+
+**Deploy note.** Migration 0011 must run before the new app serves (`drizzle-kit migrate`); it
+was applied to the shared dev database.

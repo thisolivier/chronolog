@@ -4,17 +4,11 @@
  * change is on disk before the call returns.
  */
 import { SvelteSet } from 'svelte/reactivity';
-import { loadOutboxState, MemoryStorage, outboxStorageKey, saveOutboxState } from './outbox-storage';
+import { applyOutboxChange, loadOutboxState, MemoryStorage, outboxKeyPrefix, OutboxFullError, removeStoredOutbox } from './outbox-storage';
 import type { OutboxItem, OutboxState } from './outbox-types';
 import { emptyOutboxState, itemResourceKey } from './outbox-types';
 
-/** Thrown when a change could not be stored on this device (storage full) */
-export class OutboxFullError extends Error {
-	constructor() {
-		super('This change could not be kept on this device (browser storage is full). Copy your text somewhere safe.');
-		this.name = 'OutboxFullError';
-	}
-}
+export { OutboxFullError };
 
 function browserStorage(): Storage {
 	try {
@@ -30,14 +24,18 @@ class OutboxStore {
 	items = $state.raw<OutboxItem[]>([]);
 	/** True while a replay is running in this tab */
 	replaying = $state(false);
+	/** Set when the server says another account is signed in: the queue is not sent (review fix 5b) */
+	otherAccountSignedIn = $state(false);
 	/** Resources (`note:<id>`, `entry:<id>`) replayed this session, for the "replayed" marker */
 	readonly replayed = new SvelteSet<string>();
 
-	private storageKey: string | null = null;
+	private keyPrefix: string | null = null;
+	/** The user this queue belongs to; every item is tagged with it */
+	ownerUserId: string | null = null;
 	private storage: Storage = new MemoryStorage();
 
 	get isOpen(): boolean {
-		return this.storageKey !== null;
+		return this.keyPrefix !== null;
 	}
 
 	get pendingCount(): number {
@@ -50,48 +48,58 @@ class OutboxStore {
 
 	open(userId: string, storage: Storage = browserStorage()): void {
 		this.storage = storage;
-		this.storageKey = outboxStorageKey(userId);
+		this.ownerUserId = userId;
+		this.keyPrefix = outboxKeyPrefix(userId);
+		this.otherAccountSignedIn = false;
 		this.refresh();
 	}
 
 	close(): void {
-		this.storageKey = null;
+		this.keyPrefix = null;
+		this.ownerUserId = null;
 		this.items = [];
+		this.otherAccountSignedIn = false;
 		this.replayed.clear();
 	}
 
 	/** Sign-out: forget this user's queue and ID map */
 	discardStored(): void {
-		if (this.storageKey) this.storage.removeItem(this.storageKey);
+		if (this.keyPrefix) removeStoredOutbox(this.storage, this.keyPrefix);
 		this.items = [];
 	}
 
-	/** A fresh copy of the stored queue */
+	/** A fresh copy of the stored queue (throws `OutboxFullError` if part of it cannot be read) */
 	read(): OutboxState {
-		if (!this.storageKey) return emptyOutboxState();
-		return loadOutboxState(this.storage, this.storageKey);
+		if (!this.keyPrefix) return emptyOutboxState();
+		const state = loadOutboxState(this.storage, this.keyPrefix);
+		state.ownerUserId = this.ownerUserId ?? undefined;
+		return state;
 	}
 
-	/** Read, change and store in one step; throws `OutboxFullError` when it does not fit */
+	/**
+	 * Read, change and store in one synchronous step; only what changed is written, so another
+	 * tab's items survive. Throws `OutboxFullError` when it does not fit.
+	 */
 	update(mutate: (state: OutboxState) => void): void {
-		if (!this.storageKey) throw new Error('No signed-in user for the offline outbox');
-		const state = this.read();
-		mutate(state);
-		try {
-			saveOutboxState(this.storage, this.storageKey, state);
-		} catch {
-			throw new OutboxFullError();
-		}
-		this.items = state.items;
+		if (!this.keyPrefix) throw new Error('No signed-in user for the offline outbox');
+		const before = this.read();
+		const after = structuredClone(before);
+		mutate(after);
+		applyOutboxChange(this.storage, this.keyPrefix, before, after);
+		this.items = this.read().items;
 	}
 
 	/** Re-read after another tab changed the queue (`storage` event) */
 	refresh(): void {
-		this.items = this.read().items;
+		try {
+			this.items = this.read().items;
+		} catch (readError) {
+			console.error('[offline] outbox unreadable', readError);
+		}
 	}
 
 	matchesStorageKey(key: string | null): boolean {
-		return key === null || key === this.storageKey;
+		return key === null || (this.keyPrefix !== null && key.startsWith(this.keyPrefix));
 	}
 
 	/** Read from storage, not `items`: another tab may have queued it */

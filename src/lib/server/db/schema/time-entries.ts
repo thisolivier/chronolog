@@ -1,4 +1,5 @@
-import { boolean, date, integer, pgTable, text, time, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { boolean, date, integer, pgTable, text, time, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { users } from './users';
 import { contracts } from './contracts';
 import { deliverables } from './deliverables';
@@ -24,5 +25,10 @@ export const timeEntries = pgTable('time_entries', {
 	description: text('description'),
 	isDraft: boolean('is_draft').notNull().default(false),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
-});
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+	// The creating client's own ID (sprint 045-CL: the offline outbox's temp ID); a create sent
+	// twice returns the first entry
+	clientId: text('client_id')
+}, (table) => [
+	uniqueIndex('time_entries_user_client_id_idx').on(table.userId, table.clientId).where(sql`${table.clientId} is not null`)
+]);

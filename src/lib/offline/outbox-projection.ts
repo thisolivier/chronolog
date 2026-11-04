@@ -118,7 +118,7 @@ export function projectWeeks(weeks: WeekData[], items: OutboxItem[]): WeekData[]
 			.filter((entry) => updatedById.has(entry.id) && !deletedIds.has(entry.id))
 			.map((entry) => ({ ...entry, ...updatedById.get(entry.id), id: entry.id }) as TimeEntryDisplay)
 			.filter((entry) => !serverEntries.some((original) => original.id === entry.id && original.date === entry.date)),
-		...created
+		...created.filter((entry) => !deletedIds.has(entry.id))
 	];
 
 	return weeks.map((week) => {

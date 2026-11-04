@@ -13,12 +13,15 @@ import { applyIdMapping, replaceTempIds, tempIdsIn } from './outbox-queue';
 import type { HoldInfo, NoteFieldValues, OutboxItem, OutboxState } from './outbox-types';
 
 export interface ReplayTransport {
-	createNote(contractId: string, fields: NoteFieldValues): Promise<{ id: string; updatedAt: string }>;
+	/** The signed-in account on the server (`GET /api/me`), or null when signed out */
+	currentUserId(): Promise<string | null>;
+	/** `clientId` makes the create idempotent: a repeat returns the first note */
+	createNote(contractId: string, fields: NoteFieldValues, clientId: string): Promise<{ id: string; updatedAt: string }>;
 	/** null when the note is gone (deleted, in the trash, not found) */
 	getNote(noteId: string): Promise<ServerNote | null>;
 	/** Rejects with a 409 when `expectedUpdatedAt` is stale */
 	putNote(noteId: string, body: NoteFieldValues & { expectedUpdatedAt: string }): Promise<{ updatedAt: string }>;
-	createEntry(input: CreateTimeEntryInput): Promise<{ id: string }>;
+	createEntry(input: CreateTimeEntryInput, clientId: string): Promise<{ id: string }>;
 	getEntry(entryId: string): Promise<ServerEntry | null>;
 	putEntry(entryId: string, body: Partial<TimeEntryFields>): Promise<void>;
 	deleteEntry(entryId: string): Promise<void>;
@@ -34,6 +37,8 @@ export type ErrorKind = 'network' | 'session' | 'conflict' | 'refused';
 
 export interface ReplayHooks {
 	classifyError(error: unknown): ErrorKind;
+	/** The queue's account: nothing is sent while the server has another one signed in */
+	ownerUserId?: string;
 	now(): string;
 	/** A temp ID got its real ID (note or entry) */
 	onRemapped?(tempId: string, realId: string, type: 'note' | 'entry'): void;
@@ -43,10 +48,10 @@ export interface ReplayHooks {
 	onNoteUpdated?(noteId: string, fromUpdatedAt: string[], toUpdatedAt: string): void;
 }
 
-export type ReplayResult = { replayed: number; held: number; stoppedBy: 'network' | 'session' | null };
+export type ReplayResult = { replayed: number; held: number; stoppedBy: 'network' | 'session' | 'other-account' | null };
 
 class StopReplay extends Error {
-	constructor(readonly reason: 'network' | 'session') {
+	constructor(readonly reason: 'network' | 'session' | 'other-account') {
 		super(reason);
 	}
 }
@@ -85,24 +90,58 @@ export async function replayOutbox(access: OutboxAccess, transport: ReplayTransp
 		hooks.onRemapped?.(tempId, realId, type);
 	};
 
-	/** True while a create this item depends on (a linked temp note) has not reached the server */
+	/**
+	 * True while a create this item depends on (a linked temp note, or the entry a queued delete or
+	 * edit names by its temp ID) has not reached the server
+	 */
 	const isBlocked = (item: OutboxItem, state: OutboxState) => {
+		const ownTempId = item.kind === 'note-create' || item.kind === 'entry-create' ? item.tempId : null;
 		const text = JSON.stringify(item.kind === 'note-create' ? item.fields : item);
-		return tempIdsIn(text).some((tempId) => {
-			if (item.kind === 'note-create' && tempId === item.tempId) return false;
-			return !state.idMap[tempId] && state.items.some((other) => other.kind === 'note-create' && other.tempId === tempId);
-		});
+		return tempIdsIn(text).some(
+			(tempId) =>
+				tempId !== ownTempId &&
+				!state.idMap[tempId] &&
+				state.items.some(
+					(other) =>
+						other.sequence !== item.sequence &&
+						(other.kind === 'note-create' || other.kind === 'entry-create') &&
+						other.tempId === tempId
+				)
+		);
 	};
 
+	const setInFlight = (sequence: number, inFlight: boolean) =>
+		access.update((state) => {
+			const item = state.items.find((candidate) => candidate.sequence === sequence);
+			if (item) item.inFlight = inFlight || undefined;
+		});
+
 	try {
+		// Only ever as the account the changes were made in (review fix 5b)
+		if (hooks.ownerUserId) {
+			let signedIn: string | null;
+			try {
+				signedIn = await transport.currentUserId();
+			} catch (error) {
+				const kind = hooks.classifyError(error);
+				throw new StopReplay(kind === 'session' ? 'session' : 'network');
+			}
+			if (signedIn !== hooks.ownerUserId) return { ...result, stoppedBy: 'other-account' };
+		}
+		// Re-apply known ID mappings: another tab may have written an item before seeing one
+		access.update((state) => {
+			for (const [tempId, realId] of Object.entries(state.idMap)) applyIdMapping(state, tempId, realId);
+		});
+
 		// Phase 1: notes created offline get their real IDs
 		for (const item of access.read().items) {
 			if (item.kind !== 'note-create' || item.status !== 'pending' || item.realId) continue;
 			const sentRevision = item.revision;
 			const contentReady = !isBlocked(item, access.read());
 			const fields = contentReady ? withRealIds(item.fields, access.read().idMap) : {};
+			setInFlight(item.sequence, true);
 			try {
-				const created = await transport.createNote(item.contractId, fields);
+				const created = await transport.createNote(item.contractId, fields, item.tempId);
 				access.update((state) => {
 					const current = state.items.find((candidate) => candidate.sequence === item.sequence);
 					if (current?.kind !== 'note-create') return;
@@ -119,8 +158,10 @@ export async function replayOutbox(access: OutboxAccess, transport: ReplayTransp
 					result.replayed += 1;
 				}
 			} catch (error) {
+				setInFlight(item.sequence, false);
 				fail(item.sequence, error);
 			}
+			setInFlight(item.sequence, false);
 		}
 
 		// Phase 2: everything else, in queue order
@@ -135,7 +176,7 @@ export async function replayOutbox(access: OutboxAccess, transport: ReplayTransp
 			);
 			if (!next) break;
 			attempts.set(next.sequence, (attempts.get(next.sequence) ?? 0) + 1);
-			const outcome = await replayItem(next, transport, hooks, access, hold, fail, remap);
+			const outcome = await replayItem(next, transport, hooks, access, hold, fail, remap, setInFlight);
 			if (outcome) result.replayed += 1;
 		}
 	} catch (error) {
@@ -173,9 +214,11 @@ async function replayItem(
 	access: OutboxAccess,
 	hold: (sequence: number, info: Omit<HoldInfo, 'heldAt'>) => void,
 	fail: (sequence: number, error: unknown) => void,
-	remap: (tempId: string, realId: string, type: 'note' | 'entry') => void
+	remap: (tempId: string, realId: string, type: 'note' | 'entry') => void,
+	setInFlight: (sequence: number, inFlight: boolean) => void
 ): Promise<boolean> {
 	const idMap = access.read().idMap;
+	const realId = (id: string) => idMap[id] ?? id;
 	try {
 		switch (item.kind) {
 			case 'note-create': {
@@ -204,7 +247,8 @@ async function replayItem(
 				}
 			}
 			case 'note-update': {
-				const server = await transport.getNote(item.noteId);
+				const noteId = realId(item.noteId);
+				const server = await transport.getNote(noteId);
 				if (!server) {
 					hold(item.sequence, {
 						reason: 'refused',
@@ -226,7 +270,7 @@ async function replayItem(
 				let newUpdatedAt = server.updatedAt;
 				if (plan.action === 'send') {
 					try {
-						newUpdatedAt = (await transport.putNote(item.noteId, plan.body)).updatedAt;
+						newUpdatedAt = (await transport.putNote(noteId, plan.body)).updatedAt;
 					} catch (error) {
 						// Changed again between the read and the write: try the item again
 						if (hooks.classifyError(error) === 'conflict') return false;
@@ -239,14 +283,20 @@ async function replayItem(
 					current.baseUpdatedAt = newUpdatedAt;
 					current.base = sentValues;
 				});
-				hooks.onNoteUpdated?.(item.noteId, item.baseUpdatedAt ? [item.baseUpdatedAt] : [], newUpdatedAt);
-				hooks.onReplayed?.('note', item.noteId);
+				hooks.onNoteUpdated?.(noteId, item.baseUpdatedAt ? [item.baseUpdatedAt] : [], newUpdatedAt);
+				hooks.onReplayed?.('note', noteId);
 				return true;
 			}
 			case 'entry-create': {
 				const input = { ...item.input };
 				if (input.description) input.description = replaceTempIds(input.description, idMap);
-				const created = await transport.createEntry(input);
+				setInFlight(item.sequence, true);
+				let created: { id: string };
+				try {
+					created = await transport.createEntry(input, item.tempId);
+				} finally {
+					setInFlight(item.sequence, false);
+				}
 				finishItem(access, item, (current) => {
 					if (current.kind !== 'entry-create') return;
 					// Edited while the create was in flight: the rest goes as an update
@@ -264,7 +314,8 @@ async function replayItem(
 				return true;
 			}
 			case 'entry-update': {
-				const server = await transport.getEntry(item.entryId);
+				const entryId = realId(item.entryId);
+				const server = await transport.getEntry(entryId);
 				if (!server) {
 					hold(item.sequence, { reason: 'refused', message: 'This time entry was deleted on the server.', server: null });
 					return false;
@@ -281,15 +332,16 @@ async function replayItem(
 					});
 					return false;
 				}
-				if (plan.action === 'send') await transport.putEntry(item.entryId, plan.body);
+				if (plan.action === 'send') await transport.putEntry(entryId, plan.body);
 				finishItem(access, item, (current) => {
 					if (current.kind === 'entry-update') current.base = { ...current.base, ...changes };
 				});
-				hooks.onReplayed?.('entry', item.entryId);
+				hooks.onReplayed?.('entry', entryId);
 				return true;
 			}
 			case 'entry-delete': {
-				const server = await transport.getEntry(item.entryId);
+				const entryId = realId(item.entryId);
+				const server = await transport.getEntry(entryId);
 				const plan = planEntryDelete(item, server);
 				if (plan.action === 'hold') {
 					hold(item.sequence, {
@@ -300,7 +352,7 @@ async function replayItem(
 					});
 					return false;
 				}
-				if (plan.action === 'send') await transport.deleteEntry(item.entryId);
+				if (plan.action === 'send') await transport.deleteEntry(entryId);
 				finishItem(access, item, () => {});
 				return true;
 			}

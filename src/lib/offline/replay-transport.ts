@@ -11,7 +11,12 @@ function isNotFound(error: unknown): boolean {
 	return error instanceof HttpError && error.status === 404;
 }
 
-/** Offline-type failures: no answer at all, or the proxy saying the server is down */
+/**
+ * Offline-type failures: no answer at all, or the proxy saying the server is down. A 524 (the
+ * origin took the request and timed out) means the outcome is unknown; retrying is safe because
+ * creates carry a `clientId` (a repeat returns the first row) and edits compare with the live
+ * copy before writing.
+ */
 export function isOfflineError(error: unknown): boolean {
 	if (error instanceof HttpError) return isGatewayStatus(error.status);
 	if (error instanceof SessionExpiredError) return false;
@@ -28,8 +33,12 @@ export function classifyReplayError(error: unknown): ErrorKind {
 }
 
 export const replayTransport: ReplayTransport = {
-	async createNote(contractId, fields) {
-		const data = await postJson<{ note: { id: string; updatedAt: string } }>('/api/notes', { contractId, ...fields });
+	async currentUserId() {
+		const data = await fetchFreshJson<{ user?: { id?: string } }>('/api/me');
+		return data.user?.id ?? null;
+	},
+	async createNote(contractId, fields, clientId) {
+		const data = await postJson<{ note: { id: string; updatedAt: string } }>('/api/notes', { contractId, ...fields, clientId });
 		return { id: data.note.id, updatedAt: data.note.updatedAt };
 	},
 	async getNote(noteId): Promise<ServerNote | null> {
@@ -45,8 +54,8 @@ export const replayTransport: ReplayTransport = {
 		const data = await putJson<{ note: NoteDetail }>(`/api/notes/${encodeURIComponent(noteId)}`, body);
 		return { updatedAt: data.note.updatedAt };
 	},
-	async createEntry(input: CreateTimeEntryInput) {
-		const data = await postJson<{ entry: { id: string } }>('/api/time-entries', input);
+	async createEntry(input: CreateTimeEntryInput, clientId: string) {
+		const data = await postJson<{ entry: { id: string } }>('/api/time-entries', { ...input, clientId });
 		return { id: data.entry.id };
 	},
 	async getEntry(entryId): Promise<ServerEntry | null> {

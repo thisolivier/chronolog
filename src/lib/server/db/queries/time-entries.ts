@@ -136,7 +136,11 @@ export async function getTimeEntryForUser(
 }
 
 /** Create a new time entry */
-export async function createTimeEntry(data: {
+export async function createTimeEntry(data: NewTimeEntry) {
+	return (await createTimeEntryOnce(data)).entry;
+}
+
+type NewTimeEntry = {
 	userId: string;
 	contractId: string;
 	deliverableId?: string | null;
@@ -147,12 +151,44 @@ export async function createTimeEntry(data: {
 	durationMinutes: number;
 	description?: string | null;
 	isDraft?: boolean;
-}) {
-	const results = await database
-		.insert(timeEntries)
-		.values({ ...data, description: encryptNullable(data.description) })
-		.returning();
-	return decryptTimeEntry(results[0]);
+	/** The creating client's own ID (sprint 045-CL); a repeat returns the first entry */
+	clientId?: string | null;
+};
+
+async function findTimeEntryByClientId(userId: string, clientId: string) {
+	const rows = await database
+		.select()
+		.from(timeEntries)
+		.where(and(eq(timeEntries.userId, userId), eq(timeEntries.clientId, clientId)))
+		.limit(1);
+	return rows[0] ? decryptTimeEntry(rows[0]) : null;
+}
+
+function isUniqueViolation(error: unknown): boolean {
+	const code = (error as { code?: string; cause?: { code?: string } })?.code ?? (error as { cause?: { code?: string } })?.cause?.code;
+	return code === '23505';
+}
+
+/** Create an entry; a second create with the same `clientId` returns the first (`created: false`) */
+export async function createTimeEntryOnce(data: NewTimeEntry): Promise<{ entry: TimeEntryRow; created: boolean }> {
+	if (data.clientId) {
+		const existing = await findTimeEntryByClientId(data.userId, data.clientId);
+		if (existing) return { entry: existing, created: false };
+	}
+	try {
+		const results = await database
+			.insert(timeEntries)
+			.values({ ...data, clientId: data.clientId ?? null, description: encryptNullable(data.description) })
+			.returning();
+		return { entry: decryptTimeEntry(results[0]), created: true };
+	} catch (insertError) {
+		// The same client ID arrived twice at once: the other request made it
+		if (data.clientId && isUniqueViolation(insertError)) {
+			const existing = await findTimeEntryByClientId(data.userId, data.clientId);
+			if (existing) return { entry: existing, created: false };
+		}
+		throw insertError;
+	}
 }
 
 /** Update an existing time entry (scoped by userId for security) */

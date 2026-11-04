@@ -11,7 +11,7 @@ import {
 	tempIdsIn
 } from './outbox-queue';
 import { emptyOutboxState, isTempId, type NoteUpdateItem } from './outbox-types';
-import { loadOutboxState, MemoryStorage, saveOutboxState } from './outbox-storage';
+import { applyOutboxChange, loadOutboxState, MemoryStorage, OutboxFullError } from './outbox-storage';
 import type { TimeEntryDisplay } from '$lib/services/types';
 
 const NOW = '2026-11-04T10:00:00.000Z';
@@ -119,15 +119,64 @@ describe('outbox queue', () => {
 		expect(replaceTempIds(`[[${tempNote}]]`, state.idMap)).toBe('[[ACME.20261104.001]]');
 	});
 
-	it('round-trips through storage and keeps unreadable data aside', () => {
+	it('round-trips through storage, one key per item', () => {
 		const storage = new MemoryStorage();
+		const before = loadOutboxState(storage, 'p:');
+		const after = structuredClone(before);
+		queueNoteUpdate(after, { noteId: 'A', baseUpdatedAt: 't', base: null, changes: { title: 'x' }, now: NOW });
+		after.idMap['offline-00000000000000a1'] = 'REAL.1';
+		applyOutboxChange(storage, 'p:', before, after);
+		const loaded = loadOutboxState(storage, 'p:');
+		expect(loaded.items).toEqual(after.items);
+		expect(loaded.idMap).toEqual({ 'offline-00000000000000a1': 'REAL.1' });
+		expect(storage.length).toBe(2);
+	});
+
+	it('two tabs queueing at once keep both items (review fix 4)', () => {
+		const storage = new MemoryStorage();
+		// Both tabs read the empty queue, then each adds its own item
+		const tabOneBefore = loadOutboxState(storage, 'p:');
+		const tabTwoBefore = loadOutboxState(storage, 'p:');
+		const tabOneAfter = structuredClone(tabOneBefore);
+		queueNoteUpdate(tabOneAfter, { noteId: 'A', baseUpdatedAt: 't', base: null, changes: { title: 'one' }, now: NOW });
+		const tabTwoAfter = structuredClone(tabTwoBefore);
+		tabTwoAfter.nextSequence += 7;
+		queueEntryDelete(tabTwoAfter, { entryId: 'E', base: null, date: null, now: NOW });
+		applyOutboxChange(storage, 'p:', tabOneBefore, tabOneAfter);
+		// Tab two writes from its stale read: tab one's item must survive
+		applyOutboxChange(storage, 'p:', tabTwoBefore, tabTwoAfter);
+		expect(loadOutboxState(storage, 'p:').items.map((item) => item.kind).sort()).toEqual(['entry-delete', 'note-update']);
+	});
+
+	it('keeps an unreadable item aside, and refuses when even that copy does not fit (review fix 7)', () => {
+		const storage = new MemoryStorage();
+		storage.setItem('p:item:5', '{not json');
+		expect(loadOutboxState(storage, 'p:').items).toEqual([]);
+		const asideKey = storage.key(0) as string;
+		expect(asideKey).toMatch(/^chronolog-outbox-unreadable:p:item:5:/);
+		expect(storage.getItem(asideKey)).toBe('{not json');
+
+		const fullStorage = new MemoryStorage();
+		fullStorage.setItem('p:item:6', '{not json');
+		fullStorage.failWrites = true;
+		expect(() => loadOutboxState(fullStorage, 'p:')).toThrow(OutboxFullError);
+		expect(fullStorage.getItem('p:item:6')).toBe('{not json');
+	});
+
+	it('tags new items with the queue owner (review fix 5b)', () => {
+		const state = { ...emptyOutboxState(), ownerUserId: 'user-a' };
+		queueEntryDelete(state, { entryId: 'E', base: null, date: null, now: NOW });
+		expect(state.items[0].ownerUserId).toBe('user-a');
+	});
+
+	it('a delete of an entry whose create is being sent is queued after it, not dropped (review fix 2)', () => {
 		const state = emptyOutboxState();
-		queueNoteUpdate(state, { noteId: 'A', baseUpdatedAt: 't', base: null, changes: { title: 'x' }, now: NOW });
-		saveOutboxState(storage, 'k', state);
-		expect(loadOutboxState(storage, 'k')).toEqual(state);
-		storage.setItem('k', '{not json');
-		expect(loadOutboxState(storage, 'k').items).toEqual([]);
-		expect(storage.key(0)).toMatch(/^k:unreadable:/);
-		expect(storage.getItem(storage.key(0) as string)).toBe('{not json');
+		const tempId = 'offline-00000000000000e3';
+		queueEntryCreate(state, { tempId, input: { date: '2026-11-04', durationMinutes: 30, contractId: 'C' }, display: display(tempId), now: NOW });
+		state.items[0].inFlight = true;
+		queueEntryDelete(state, { entryId: tempId, base: null, date: null, now: NOW });
+		expect(state.items.map((item) => item.kind)).toEqual(['entry-create', 'entry-delete']);
+		applyIdMapping(state, tempId, 'real-entry');
+		expect(state.items[1]).toMatchObject({ kind: 'entry-delete', entryId: 'real-entry' });
 	});
 });

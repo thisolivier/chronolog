@@ -115,19 +115,22 @@ export class OfflineDataService extends FetchDataService {
 
 	async createNote(contractId: string, initial?: CreateNoteInput): Promise<NoteSummary> {
 		const fields = pickNoteFields(initial ?? {}, this.idMap());
-		if (this.mustQueue(null, JSON.stringify(fields))) return this.queueCreatedNote(contractId, fields);
+		// One ID for the online try and, if it fails, the queued create: the server makes the note
+		// once even if the first request got there and only its answer was lost (review fix 1)
+		const tempId = initial?.clientId ?? newTempId();
+		if (this.mustQueue(null, JSON.stringify(fields))) return this.queueCreatedNote(contractId, fields, tempId);
 		try {
-			return await super.createNote(contractId, { ...initial, ...fields });
+			return await super.createNote(contractId, { ...initial, ...fields, clientId: tempId });
 		} catch (error) {
-			if (this.canQueueAfter(error)) return this.queueCreatedNote(contractId, fields);
+			if (this.canQueueAfter(error)) return this.queueCreatedNote(contractId, fields, tempId);
 			throw error;
 		}
 	}
 
-	private queueCreatedNote(contractId: string, fields: NoteFieldValues): NoteSummary {
+	private queueCreatedNote(contractId: string, fields: NoteFieldValues, tempId: string): NoteSummary {
 		let created: NoteCreateItem | null = null;
 		outbox.update((state) => {
-			created = queueNoteCreate(state, { tempId: newTempId(), contractId, fields, now: now() });
+			created = queueNoteCreate(state, { tempId, contractId, fields, now: now() });
 		});
 		scheduleReplay();
 		const item = created as unknown as NoteCreateItem;
@@ -303,18 +306,20 @@ export class OfflineDataService extends FetchDataService {
 	}
 
 	async createTimeEntry(data: CreateTimeEntryInput): Promise<{ id: string }> {
-		const outgoing = { ...data, ...(data.description ? { description: replaceTempIds(data.description, this.idMap()) } : {}) };
-		if (this.mustQueue(null, outgoing.description)) return this.queueCreatedEntry(outgoing);
+		const { clientId, ...fields } = data;
+		const outgoing = { ...fields, ...(fields.description ? { description: replaceTempIds(fields.description, this.idMap()) } : {}) };
+		// Same ID online and in the queue: never a second entry for one save (review fix 1)
+		const tempId = clientId ?? newTempId();
+		if (this.mustQueue(null, outgoing.description)) return this.queueCreatedEntry(outgoing, tempId);
 		try {
-			return await super.createTimeEntry(outgoing);
+			return await super.createTimeEntry({ ...outgoing, clientId: tempId });
 		} catch (error) {
-			if (this.canQueueAfter(error)) return this.queueCreatedEntry(outgoing);
+			if (this.canQueueAfter(error)) return this.queueCreatedEntry(outgoing, tempId);
 			throw error;
 		}
 	}
 
-	private queueCreatedEntry(input: CreateTimeEntryInput): { id: string } {
-		const tempId = newTempId();
+	private queueCreatedEntry(input: CreateTimeEntryInput, tempId: string): { id: string } {
 		const display: TimeEntryDisplay = {
 			id: tempId,
 			startTime: input.startTime ?? null,

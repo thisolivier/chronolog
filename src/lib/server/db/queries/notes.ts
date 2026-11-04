@@ -145,16 +145,50 @@ export async function createNoteForUser(
 	contentJson?: string,
 	clock: NoteClock = {}
 ) {
+	return (await createNoteOnce(userId, contractId, { title, content, contentJson }, clock)).note;
+}
+
+/** The caller's note made with this client ID (trash included), if any (sprint 045-CL) */
+export async function findNoteByClientId(userId: string, clientId: string, executor: QueryExecutor = database) {
+	const results = await executor
+		.select()
+		.from(notes)
+		.where(and(eq(notes.userId, userId), eq(notes.clientId, clientId)))
+		.limit(1);
+	return decryptOptionalNote(results[0]);
+}
+
+/**
+ * Create a note; with `clientId` (the creating client's own ID, e.g. the offline outbox's temp ID)
+ * a second create with the same ID returns the first note and `created: false` (sprint 045-CL).
+ * The check runs under the same advisory lock as the ID allocation; a unique index backs it up.
+ */
+export async function createNoteOnce(
+	userId: string,
+	contractId: string,
+	fields: { title?: string; content?: string; contentJson?: string; clientId?: string },
+	clock: NoteClock = {}
+): Promise<{ note: NoteRow; created: boolean }> {
+	const { title, content, contentJson, clientId } = fields;
 	// From the TipTap JSON when the browser sent it, else from the markdown (the CLI, sprint 037-CL)
 	const wordCount = contentJson
 		? calculateWordCountFromJson(contentJson)
 		: calculateWordCountFromMarkdown(content ?? '');
 	const fixedClock = { ...clock, now: clock.now ?? new Date() };
 
+	if (clientId) {
+		const existing = await findNoteByClientId(userId, clientId);
+		if (existing) return { note: existing, created: false };
+	}
+
 	return database.transaction(async (transaction) => {
 		const shortCode = await shortCodeForContract(contractId, transaction);
 		const lockKey = `note-id:${shortCode}.${noteIdDate(fixedClock)}`;
 		await transaction.execute(sql`select pg_advisory_xact_lock(hashtext(${lockKey}))`);
+		if (clientId) {
+			const existing = await findNoteByClientId(userId, clientId, transaction);
+			if (existing) return { note: existing, created: false };
+		}
 
 		const noteId = await getNextNoteId(contractId, fixedClock, transaction);
 		const results = await transaction
@@ -167,12 +201,13 @@ export async function createNoteForUser(
 				content: encryptNullable(content ?? null),
 				contentJson: encryptNullable(contentJson ?? null),
 				wordCount,
+				clientId: clientId ?? null,
 				// A caller-given instant (a backdated note, sprint 034-CL) is also its created_at;
 				// updated_at stays the database's now
 				...(clock.now ? { createdAt: clock.now } : {})
 			})
 			.returning();
-		return decryptNote(results[0]);
+		return { note: decryptNote(results[0]), created: true };
 	});
 }
 

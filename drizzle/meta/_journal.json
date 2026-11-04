@@ -78,6 +78,13 @@
       "when": 1793816640679,
       "tag": "0010_pinned_notes_client_order",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793823112229,
+      "tag": "0011_idempotent_client_ids",
+      "breakpoints": true
     }
   ]
 }

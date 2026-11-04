@@ -16,12 +16,17 @@ reaches the server, waits in the queue, or is held until the user decides.
    Note moves, pins, trash, attachments and timer stop/adjust are not queued (they fail offline as
    before); an offline timer start runs as a browser timer and its saved entry is queued.
 3. **Queue.** One item per resource, in order of first edit (`outbox-queue.ts`), stored in
-   localStorage per user (`outbox-storage.ts`) so it is on disk before the call returns. Temp IDs
-   are `offline-<16 hex>`.
-4. **Replay** (`outbox-replay.ts`): phase 1 creates the notes made offline (temp IDs remapped
+   localStorage per user, one key per item (`outbox-storage.ts`): on disk before the call returns,
+   and two tabs queueing at once never overwrite each other. Items are tagged with their account.
+   Temp IDs are `offline-<16 hex>`; they double as the `clientId` of the create, online or
+   replayed, so the server makes the row once even when an answer was lost (`POST /api/notes`,
+   `POST /api/time-entries`, unique per user, migration 0011).
+4. **Replay** (`outbox-replay.ts`) first checks `GET /api/me`: if another account is signed in,
+   nothing is sent (the banner says so). Then phase 1 creates the notes made offline (temp IDs remapped
    everywhere, wiki-links included), phase 2 sends the rest in order against the live server copy
    with per-field last-write-wins (`outbox-merge.ts`). Same field changed on the server: the item is
-   **held**. Refused by the server: held with its message. Network failure: stop, retry later.
+   **held**. A create being sent is marked `inFlight`; deleting it then queues a delete under its
+   temp ID instead of dropping the create. Refused by the server: held with its message. Network failure: stop, retry later.
 5. **Screen.** Reads lay the queue over the server copy (`outbox-projection.ts`), online too.
    `ConnectionStatus` shows the queued count and a Review button for held items
    (`OutboxHeldPanel.svelte`: keep mine / keep the server's / keep both); `OutboxMarker.svelte`
@@ -52,6 +57,13 @@ reaches the server, waits in the queue, or is held until the user decides.
 `chronolog:outbox-replayed` (lists and weeks reload), `chronolog:offline-id-remapped` (the open
 editor and URL follow the real note ID), `chronolog:outbox-resolved` (a "keep the server's" note
 reloads in the editor).
+
+## Service worker
+
+Registered by the root layout, never in the Tauri desktop app (`kit.serviceWorker.register` is
+off). A new version keeps the kept pages and the previous version's files; `__data.json` is never
+cached. Signing in as a different account than the browser's last one deletes the kept pages, the
+runtime cache and the other accounts' read caches (their unsent queues stay, unsent).
 
 ## Sign-out
 

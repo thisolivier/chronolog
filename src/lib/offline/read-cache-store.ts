@@ -67,11 +67,14 @@ export async function openReadCache(userId: string): Promise<OpenedReadCache | n
 	};
 }
 
-/** Delete every user's read cache in this browser (sign-out). */
-export async function deleteAllReadCaches(): Promise<void> {
+/** Delete every user's read cache in this browser (sign-out), or every one but `except`'s. */
+export async function deleteAllReadCaches(options: { except?: string } = {}): Promise<void> {
 	if (typeof indexedDB === 'undefined') return;
+	const kept = options.except ? `${DATABASE_PREFIX}${options.except}` : null;
 	const names = typeof indexedDB.databases === 'function'
-		? (await indexedDB.databases()).map((info) => info.name ?? '').filter((name) => name.startsWith(DATABASE_PREFIX))
+		? (await indexedDB.databases())
+				.map((info) => info.name ?? '')
+				.filter((name) => name.startsWith(DATABASE_PREFIX) && name !== kept)
 		: [];
 	await Promise.all(
 		names.map(

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import '../app.css';
-	import { browser } from '$app/environment';
+	import { browser, dev } from '$app/environment';
 	import { untrack } from 'svelte';
 	import { afterNavigate, goto, preloadCode } from '$app/navigation';
 	import { page } from '$app/state';
@@ -10,7 +10,7 @@
 	import { DelegatingDataService } from '$lib/services/delegating-data-service';
 	import { OfflineDataService } from '$lib/offline/offline-data-service';
 	import { startOfflineSession } from '$lib/offline/offline-session.svelte';
-	import { watchServiceWorkerUpdates } from '$lib/offline/service-worker-updates';
+	import { registerServiceWorker, watchServiceWorkerUpdates } from '$lib/offline/service-worker-updates';
 
 	let { children, data } = $props();
 
@@ -81,6 +81,7 @@
 	$effect(() => {
 		const isTauri = '__TAURI__' in window || '__TAURI_INTERNALS__' in window;
 		if (isTauri) return;
+		registerServiceWorker(dev);
 		return watchServiceWorkerUpdates((activate) => {
 			activateUpdate = activate;
 			showUpdatePrompt = true;

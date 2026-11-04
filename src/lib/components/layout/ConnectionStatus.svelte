@@ -37,6 +37,11 @@
 </script>
 
 {#snippet outboxSummary()}
+	{#if outbox.otherAccountSignedIn}
+		<span class="rounded bg-white/70 px-1.5 py-px" data-testid="outbox-other-account">
+			Another account is signed in on the server; these changes are only sent once their own account signs in again.
+		</span>
+	{/if}
 	{#if queuedCount > 0}
 		<span class="rounded bg-white/70 px-1.5 py-px" data-testid="outbox-queued-count">{changes(queuedCount)} waiting</span>
 	{/if}

@@ -104,6 +104,8 @@ export type Backlink = {
 };
 
 export type CreateNoteInput = {
+	/** The client's own ID for the note: a repeated create returns the first note (sprint 045-CL) */
+	clientId?: string;
 	title?: string;
 	content?: string;
 	contentJson?: string;
@@ -194,6 +196,8 @@ export type TimeEntryFields = {
 };
 
 export type CreateTimeEntryInput = {
+	/** The client's own ID for the entry: a repeated create returns the first entry (sprint 045-CL) */
+	clientId?: string;
 	date: string;
 	durationMinutes: number;
 	contractId: string;
