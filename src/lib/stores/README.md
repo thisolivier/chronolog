@@ -51,7 +51,7 @@ A fresh deep link (a URL opened directly, not by reload or Back) gets `/` put un
 
 `workspaceHref` is the URL of the workspace place. On settings and admin pages the route keeps the last workspace place shown in this tab (sessionStorage), which is where "Back to app" goes.
 
-Persistence: the sidebar-collapsed preference is in localStorage (`chronolog:sidebar-collapsed`). Timesheet scroll positions per week are in sessionStorage (`chronolog:timesheet-scroll`), as is the in-app history (`chronolog:in-app-history`). `showTimeEntryDay(date)` sets the week to show and the day to scroll to; `takeFocusDay()` hands that day out once and then forgets it.
+Persistence: the sidebar-collapsed preference is in localStorage (`chronolog:sidebar-collapsed`). Timesheet scroll positions per week are in sessionStorage (`chronolog:timesheet-scroll`), as is the in-app history (`chronolog:in-app-history`). `showTimeEntryDay(date)` sets the week to show and the day to scroll to; `takeFocusDay()` hands that day out once and then forgets it. `openNote(…, { focusEditor: true })` (a followed wiki-link) marks the note so `takeEditorFocus(noteId)` returns true once; NoteEditorPanel then focuses the editor at the top (not on touch screens).
 
 Actions: `selectTimeEntries`, `selectContract`, `selectWeek`, `selectNote`, `openNote`, `openDraft`, `clearSelectedNote`, `showTimeEntryDay`, `toggleSidebar`, `navigateMobile`, `goBackMobile`, and the timesheet scroll helpers.
 
