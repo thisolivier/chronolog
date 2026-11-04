@@ -44,7 +44,8 @@
 		/** Persist a snapshot; reject on failure so the autosave retries. */
 		onSave?: (data: NoteSaveData, options: PersistOptions) => Promise<void>;
 		onSaveStatusChange?: (status: SaveStatus) => void;
-		onWikiLinkClick?: (noteId: string, headingAnchor?: string) => void;
+		/** `element` is the clicked link (anchors the restore prompt for a trashed note) */
+		onWikiLinkClick?: (noteId: string, headingAnchor: string | undefined, element: HTMLElement) => void;
 		onFileUpload?: (file: File) => Promise<string | null>;
 		/** Focus once mounted: true or 'end' puts the caret at the end, 'start' at the top */
 		autofocus?: boolean | 'start' | 'end';
@@ -305,7 +306,7 @@
 				const noteId = wikiLinkElement.getAttribute('data-note-id');
 				const headingAnchor = wikiLinkElement.getAttribute('data-heading-anchor');
 				if (noteId) {
-					onWikiLinkClick(noteId, headingAnchor ?? undefined);
+					onWikiLinkClick(noteId, headingAnchor ?? undefined, wikiLinkElement);
 				}
 			}
 		});
@@ -578,6 +579,22 @@
 	:global(.tiptap .wiki-link:hover) {
 		background: #e0e7ff;
 		color: #4f46e5;
+	}
+
+	/* A link to a note in the trash (sprint 037-CL): muted and struck through; click offers a restore */
+	:global(.tiptap .wiki-link.wiki-link-deleted) {
+		color: #a8a29e;
+		background: #f5f5f4;
+		text-decoration: line-through;
+		font-weight: 400;
+	}
+
+	:global(.tiptap .wiki-link.wiki-link-deleted::after) {
+		content: ' (deleted)';
+		font-size: 0.85em;
+		text-decoration: none;
+		display: inline-block;
+		margin-left: 0.15em;
 	}
 
 	/* Inline images */

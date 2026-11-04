@@ -21,6 +21,7 @@ import type { TimerLocalStart,
 	NoteSearchOptions,
 	NoteSearchResult,
 	NoteTitleInfo,
+	RestoredNote,
 	Backlink,
 	AttachmentSummary,
 	LinkedTimeEntryDisplay,
@@ -100,6 +101,12 @@ export class DelegatingDataService implements DataService {
 	async deleteNote(noteId: string): Promise<void> {
 		await this.delegate.deleteNote(noteId);
 		announceNotesChanged();
+	}
+
+	async restoreNote(noteId: string): Promise<RestoredNote> {
+		const restored = await this.delegate.restoreNote(noteId);
+		announceNotesChanged();
+		return restored;
 	}
 
 	getNoteBacklinks(noteId: string): Promise<Backlink[]> {

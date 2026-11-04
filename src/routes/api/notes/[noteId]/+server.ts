@@ -1,12 +1,13 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getNoteForUser, deleteNoteForUser } from '$lib/server/db/queries/notes';
+import { trashPurgeDate } from '$lib/server/db/queries/note-trash';
 import { applyNoteChanges } from './note-changes';
 
 /**
  * GET /api/notes/[noteId]
  *
- * Returns the full note including content.
+ * Returns the full note including content; 404 for a note in the trash.
  */
 export const GET: RequestHandler = async ({ locals, params }) => {
 	const currentUser = locals.user;
@@ -53,8 +54,10 @@ export const PATCH: RequestHandler = async ({ locals, params, request }) => {
 /**
  * DELETE /api/notes/[noteId]
  *
- * Hard-deletes a note and its time-entry links. Returns `{ success, id, title, contractId }` of the
- * deleted note.
+ * Moves the note to the trash (sprint 037-CL): it keeps its ID, links and time-entry links and can be
+ * restored with `POST /api/notes/[noteId]/restore` for 30 days. The same call purges the caller's
+ * notes trashed longer ago. Returns `{ success, id, title, contractId, deletedAt, purgeAt }`; 404 for
+ * a note that is not the caller's or is already in the trash.
  */
 export const DELETE: RequestHandler = async ({ locals, params }) => {
 	const currentUser = locals.user;
@@ -66,5 +69,12 @@ export const DELETE: RequestHandler = async ({ locals, params }) => {
 		throw error(404, 'Note not found');
 	}
 
-	return json({ success: true, id: deletedNote.id, title: deletedNote.title, contractId: deletedNote.contractId });
+	return json({
+		success: true,
+		id: deletedNote.id,
+		title: deletedNote.title,
+		contractId: deletedNote.contractId,
+		deletedAt: deletedNote.deletedAt,
+		purgeAt: trashPurgeDate(deletedNote.deletedAt)
+	});
 };

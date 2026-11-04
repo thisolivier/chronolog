@@ -1,6 +1,26 @@
 <script lang="ts">
     import { parseWikiLinkText } from '$lib/components/notes/extensions/wiki-link';
-    import { wikiLinkDisplayText } from '$lib/components/notes/note-titles.svelte';
+    import { isNoteInTrash, wikiLinkDisplayText } from '$lib/components/notes/note-titles.svelte';
+    import { restoreTrashedNote, showRestorePrompt } from '$lib/components/notes/note-trash';
+    import { getDataService } from '$lib/services/context';
+
+    const dataService = getDataService();
+
+    /** A link to a note in the trash offers a restore, then opens it (sprint 037-CL) */
+    function handleLinkClick(event: MouseEvent, noteId: string, label: string) {
+        event.stopPropagation();
+        if (!isNoteInTrash(noteId)) {
+            onNoteLinkClick?.(noteId);
+            return;
+        }
+        showRestorePrompt(event.currentTarget as HTMLElement, {
+            title: wikiLinkDisplayText(noteId, label),
+            onRestore: async () => {
+                await restoreTrashedNote(dataService, noteId);
+                onNoteLinkClick?.(noteId);
+            }
+        });
+    }
 
     interface Props {
         text: string;
@@ -56,18 +76,19 @@
         {#if segment.type === 'text'}
             {segment.content}
         {:else}
+            {@const trashed = isNoteInTrash(segment.noteId)}
             <button
                 type="button"
-                class="inline text-indigo-600 hover:text-indigo-800 underline decoration-indigo-300 hover:decoration-indigo-500 cursor-pointer font-medium"
-                onclick={(event) => {
-                    event.stopPropagation();
-                    onNoteLinkClick?.(segment.noteId);
-                }}
-                title={segment.noteId}
+                class={trashed
+                    ? 'inline cursor-pointer text-stone-400 line-through decoration-stone-300'
+                    : 'inline text-indigo-600 hover:text-indigo-800 underline decoration-indigo-300 hover:decoration-indigo-500 cursor-pointer font-medium'}
+                data-deleted={trashed ? '' : undefined}
+                onclick={(event) => handleLinkClick(event, segment.noteId, segment.label)}
+                title={trashed ? `${segment.noteId} (deleted: click to restore)` : segment.noteId}
             >
                 <!-- The linked note's title (fetched and cached), the ID until it arrives -->
                 {wikiLinkDisplayText(segment.noteId, segment.label)}
-            </button>
+            </button>{#if trashed}<span class="text-xs text-stone-400"> (deleted)</span>{/if}
         {/if}
     {/each}
 </span>

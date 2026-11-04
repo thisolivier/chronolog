@@ -1,4 +1,4 @@
-import { eq, and, desc, gt, like, sql } from "drizzle-orm";
+import { eq, and, desc, gt, isNull, like, sql } from "drizzle-orm";
 import { localDateString } from '$lib/utils/local-calendar';
 import { database, notes, noteTimeEntries, contracts, clients, timeEntries } from "$lib/server/db";
 import { decryptNullable, decryptText, encryptNullable } from '$lib/server/crypto/server-cipher';
@@ -23,11 +23,14 @@ function decryptOptionalNote(row: NoteRow | undefined): NoteRow | null {
 	return row ? decryptNote(row) : null;
 }
 
+/** Rows not in the trash (sprint 037-CL). Every list, search and lookup applies it by default. */
+export const notInTrash = isNull(notes.deletedAt);
+
 export async function listNotesForContract(userId: string, contractId: string) {
 	const results = await database
 		.select()
 		.from(notes)
-		.where(and(eq(notes.userId, userId), eq(notes.contractId, contractId)))
+		.where(and(eq(notes.userId, userId), eq(notes.contractId, contractId), notInTrash))
 		.orderBy(desc(notes.isPinned), desc(notes.updatedAt));
 	return results.map(decryptNote);
 }
@@ -40,7 +43,7 @@ export async function listNotesForUser(
 	userId: string,
 	filters: { contractId?: string; updatedSince?: Date } = {}
 ) {
-	const conditions = [eq(notes.userId, userId)];
+	const conditions = [eq(notes.userId, userId), notInTrash];
 	if (filters.contractId) conditions.push(eq(notes.contractId, filters.contractId));
 	if (filters.updatedSince) conditions.push(gt(notes.updatedAt, filters.updatedSince));
 	const results = await database
@@ -51,11 +54,13 @@ export async function listNotesForUser(
 	return results.map(decryptNote);
 }
 
-export async function getNoteForUser(noteId: string, userId: string) {
+/** The user's note, decrypted; null when not theirs or in the trash (unless `includeDeleted`). */
+export async function getNoteForUser(noteId: string, userId: string, options: { includeDeleted?: boolean } = {}) {
+	const owned = and(eq(notes.id, noteId), eq(notes.userId, userId));
 	const results = await database
 		.select()
 		.from(notes)
-		.where(and(eq(notes.id, noteId), eq(notes.userId, userId)))
+		.where(options.includeDeleted ? owned : and(owned, notInTrash))
 		.limit(1);
 	return decryptOptionalNote(results[0]);
 }
@@ -131,7 +136,10 @@ export async function createNoteForUser(
 	contentJson?: string,
 	clock: NoteClock = {}
 ) {
-	const wordCount = contentJson ? calculateWordCountFromJson(contentJson) : 0;
+	// From the TipTap JSON when the browser sent it, else from the markdown (the CLI, sprint 037-CL)
+	const wordCount = contentJson
+		? calculateWordCountFromJson(contentJson)
+		: calculateWordCountFromMarkdown(content ?? '');
 	const fixedClock = { ...clock, now: clock.now ?? new Date() };
 
 	return database.transaction(async (transaction) => {
@@ -222,7 +230,8 @@ export async function updateNoteForUser(
 		updateData.contractId = contractId;
 	}
 
-	const ownedNote = and(eq(notes.id, noteId), eq(notes.userId, userId));
+	// A trashed note cannot be changed (404) until it is restored
+	const ownedNote = and(eq(notes.id, noteId), eq(notes.userId, userId), notInTrash);
 
 	// Optimistic concurrency: with `expectedUpdatedAt`, the row is locked, compared and
 	// only then updated, so a save based on an outdated copy (another tab) is refused.
@@ -243,27 +252,8 @@ export async function updateNoteForUser(
 	return decryptOptionalNote(results[0]);
 }
 
-/**
- * Hard-deletes the user's note and its time-entry links in one transaction; returns the deleted
- * row (decrypted) or null when the note is not the user's. Links of someone else's note with the
- * same ID are never touched.
- */
-export async function deleteNoteForUser(userId: string, noteId: string) {
-	return database.transaction(async (transaction) => {
-		const owned = await transaction
-			.select({ id: notes.id })
-			.from(notes)
-			.where(and(eq(notes.id, noteId), eq(notes.userId, userId)))
-			.limit(1);
-		if (owned.length === 0) return null;
-		await transaction.delete(noteTimeEntries).where(eq(noteTimeEntries.noteId, noteId));
-		const results = await transaction
-			.delete(notes)
-			.where(and(eq(notes.id, noteId), eq(notes.userId, userId)))
-			.returning();
-		return decryptOptionalNote(results[0]);
-	});
-}
+// Delete is a move to the trash; trash, restore and purge live in note-trash.ts (sprint 037-CL)
+export { deleteNoteForUser, restoreNoteForUser, listTrashedNotesForUser } from './note-trash';
 
 export async function linkTimeEntryToNote(noteId: string, timeEntryId: string, headingAnchor?: string) {
 	const results = await database

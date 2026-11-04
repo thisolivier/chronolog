@@ -276,7 +276,8 @@ export async function listContractsByClientWithNoteCount(
 		})
 		.from(contracts)
 		.innerJoin(clients, eq(contracts.clientId, clients.id))
-		.leftJoin(notes, eq(notes.contractId, contracts.id))
+		// Trashed notes are not counted (sprint 037-CL)
+		.leftJoin(notes, and(eq(notes.contractId, contracts.id), isNull(notes.deletedAt)))
 		.where(
 			includeArchived
 				? and(eq(clients.userId, userId), eq(clients.isSystem, false), eq(contracts.isSystem, false))

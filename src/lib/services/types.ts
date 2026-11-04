@@ -127,6 +127,14 @@ export type NoteTitleInfo = {
 	displayTitle: string | null;
 	contractId: string;
 	clientId: string;
+	/** Only with `includeDeleted`: set while the note is in the trash */
+	deletedAt?: string | null;
+};
+
+/** `POST /api/notes/[noteId]/restore` (sprint 037-CL); the contract may be archived */
+export type RestoredNote = {
+	note: NoteDetail;
+	contract: { id: string; name: string; clientShortCode: string; archived: boolean; isSystem: boolean } | null;
 };
 
 // -- Attachments --

@@ -4,7 +4,7 @@ import { PluginKey } from '@tiptap/pm/state';
 import { Suggestion, type SuggestionOptions } from '@tiptap/suggestion';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { SuggestionDropdown } from './SuggestionDropdown.js';
-import { subscribeToNoteTitles, wikiLinkDisplayText } from '../note-titles.svelte.js';
+import { isNoteInTrash, subscribeToNoteTitles, wikiLinkDisplayText } from '../note-titles.svelte.js';
 
 /**
  * Result item returned from the note search API endpoint.
@@ -414,7 +414,13 @@ export const WikiLink = Node.create<{
 				else element.removeAttribute('data-heading-anchor');
 				const text = wikiLinkDisplayText(noteId, label) + (headingAnchor ? ` › ${headingAnchor}` : '');
 				if (element.textContent !== text) element.textContent = text;
-				element.title = headingAnchor ? `${noteId}#${headingAnchor}` : noteId;
+				const target = headingAnchor ? `${noteId}#${headingAnchor}` : noteId;
+				// A link to a note in the trash is muted; clicking it offers a restore (sprint 037-CL)
+				const trashed = Boolean(noteId) && isNoteInTrash(noteId);
+				element.classList.toggle('wiki-link-deleted', trashed);
+				if (trashed) element.setAttribute('data-deleted', '');
+				else element.removeAttribute('data-deleted');
+				element.title = trashed ? `${target} (deleted: click to restore)` : target;
 			};
 
 			render();

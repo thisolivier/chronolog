@@ -12,6 +12,7 @@ import type {
 	NoteSearchOptions,
 	NoteSearchResult,
 	NoteTitleInfo,
+	RestoredNote,
 	Backlink,
 	AttachmentSummary,
 	LinkedTimeEntryDisplay,
@@ -41,7 +42,9 @@ export interface DataService {
 	updateNote(noteId: string, data: UpdateNoteInput, options?: UpdateNoteOptions): Promise<NoteDetail>;
 	searchNotes(query: string, options?: NoteSearchOptions): Promise<NoteSearchResult[]>;
 	getNoteTitles(noteIds: string[]): Promise<NoteTitleInfo[]>;
+	/** Moves the note to the server-side trash (sprint 037-CL) */
 	deleteNote(noteId: string): Promise<void>;
+	restoreNote(noteId: string): Promise<RestoredNote>;
 	getNoteBacklinks(noteId: string): Promise<Backlink[]>;
 
 	// Attachments
