@@ -2,23 +2,17 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getNoteForUser } from '$lib/server/db/queries/notes';
 import { createAttachment, listAttachmentsForNote } from '$lib/server/db/queries/attachments';
+import { checkAttachmentType } from './file-type';
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
-
-const ALLOWED_MIME_TYPES = new Set([
-	'image/jpeg',
-	'image/png',
-	'image/gif',
-	'image/webp',
-	'image/svg+xml',
-	'application/pdf'
-]);
 
 /**
  * POST /api/notes/[noteId]/attachments
  *
  * Upload a file attachment to a note.
- * Accepts multipart/form-data with a "file" field.
+ * Accepts multipart/form-data with a "file" field: an image (JPEG, PNG, GIF, WebP, SVG) or a PDF,
+ * at most 10 MB. The type is read from the file's first bytes (`file-type.ts`) and must agree with
+ * the declared type; the stored `mimeType` is the sniffed one.
  */
 export const POST: RequestHandler = async ({ locals, params, request }) => {
 	const currentUser = locals.user;
@@ -35,25 +29,18 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
 		throw error(400, 'Missing file field in form data');
 	}
 
-	// Validate MIME type
-	if (!ALLOWED_MIME_TYPES.has(file.type)) {
-		throw error(
-			400,
-			`File type "${file.type}" is not allowed. Allowed types: ${[...ALLOWED_MIME_TYPES].join(', ')}`
-		);
-	}
-
-	// Validate file size
 	if (file.size > MAX_FILE_SIZE_BYTES) {
 		throw error(400, `File exceeds maximum size of 10 MB`);
 	}
 
 	const fileBuffer = Buffer.from(await file.arrayBuffer());
+	const typeCheck = checkAttachmentType(file.type, fileBuffer);
+	if (!typeCheck.ok) throw error(400, typeCheck.message);
 
 	const attachment = await createAttachment(
 		params.noteId,
-		file.name,
-		file.type,
+		file.name || 'attachment',
+		typeCheck.mimeType,
 		file.size,
 		fileBuffer
 	);

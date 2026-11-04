@@ -191,8 +191,14 @@ Deletes a note and its time entry links (another user's note is 404 and untouche
 
 Uploads a file attachment to a note. Accepts `multipart/form-data` with a `file` field.
 
-- Max file size: 10 MB
-- Allowed MIME types: image/jpeg, image/png, image/gif, image/webp, image/svg+xml, application/pdf
+- Max file size: 10 MB (400 `File exceeds maximum size of 10 MB`)
+- Allowed types: image/jpeg, image/png, image/gif, image/webp, image/svg+xml, application/pdf
+- The type is read from the file's first bytes (`attachments/file-type.ts`, sprint 036): it must be one of the
+  allowed types and agree with the declared one (an empty or `application/octet-stream` declaration takes the
+  sniffed type). A `.txt`, or a PDF renamed `.png`, is a 400 `File type "…" is not allowed…`. The stored
+  `mimeType` is the sniffed one.
+- In production, adapter-node's `BODY_SIZE_LIMIT` is set to `11M` in the Dockerfile (the default 512 KB
+  would refuse most PDFs before the route sees them).
 
 **Response:**
 ```json
@@ -213,7 +219,9 @@ Lists all attachments for a note (metadata only, no binary data).
 
 ### `GET /api/attachments/[attachmentId]`
 
-Serves the attachment binary data with correct `Content-Type` header. Responses are `Cache-Control: private, max-age=31536000, immutable`, so decrypted bytes are never stored in a shared cache. A non-UUID ID returns `404`.
+Serves the attachment binary data with correct `Content-Type` header, `inline` with an ASCII
+`filename` and the RFC 5987 `filename*` (so a PDF opens in the browser's viewer), `X-Content-Type-Options:
+nosniff`, and `X-Note-Id` (the note it belongs to; the CLI reads it with `HEAD` before a delete). Responses are `Cache-Control: private, max-age=31536000, immutable`, so decrypted bytes are never stored in a shared cache. A non-UUID ID returns `404`.
 
 ### `DELETE /api/attachments/[attachmentId]`
 

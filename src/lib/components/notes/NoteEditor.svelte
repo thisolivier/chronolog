@@ -17,6 +17,7 @@
 	import { AttachmentImage } from './extensions/attachment-image.js';
 	import { MarkdownText } from './extensions/markdown-text.js';
 	import { revokeAllTrackedUrls } from './extensions/attachment-resolver.js';
+	import { ATTACHMENT_LINK_PROTOCOLS, attachmentHrefFromTarget, openAttachment } from './extensions/attachment-link.js';
 	import { AutosaveController, type SaveStatus, type PersistOptions } from './note-autosave';
 	import { extractPreviewLines } from '$lib/utils/extract-preview-lines';
 	import { truncateNoteTitle } from '$lib/utils/note-display-title';
@@ -190,13 +191,15 @@
 						.run();
 				}
 			} else if (file.type === ALLOWED_PDF_MIME_TYPE) {
-				// Insert a link for PDFs
+				// A PDF is a link, [name.pdf](chronolog://attachment/<id>); the trailing space is
+				// unlinked so typing after it does not extend the link
 				const linkContent = [
 					{
 						type: 'text',
 						marks: [{ type: 'link', attrs: { href: chronologUrl } }],
 						text: file.name || 'Attached PDF',
 					},
+					{ type: 'text', text: ' ' },
 				];
 
 				if (insertPosition !== undefined) {
@@ -244,7 +247,8 @@
 					heading: false,
 					codeBlock: false,
 					text: false,
-					link: { openOnClick: false },
+					// chronolog:// so attachment links (PDFs) survive parsing; they open on click below
+					link: { openOnClick: false, protocols: ATTACHMENT_LINK_PROTOCOLS },
 				}),
 				MarkdownText,
 				CodeBlockLowlight.configure({ lowlight: createLowlight(common) }),
@@ -286,8 +290,14 @@
 			editor.commands.focus(autofocus === 'start' ? 'start' : 'end');
 		}
 
-		// Handle wiki-link clicks
+		// Attachment links (PDFs) open the decrypted file in a new tab; wiki-links navigate
 		mountElement.addEventListener('click', (event) => {
+			const attachmentHref = attachmentHrefFromTarget(event.target);
+			if (attachmentHref) {
+				event.preventDefault();
+				void openAttachment(attachmentHref);
+				return;
+			}
 			const target = event.target as HTMLElement;
 			const wikiLinkElement = target.closest('[data-wiki-link]') as HTMLElement;
 			if (wikiLinkElement && onWikiLinkClick) {
@@ -585,6 +595,21 @@
 		min-height: 2rem;
 		border: 1px dashed #d6d3d1;
 		background: #fafaf9;
+	}
+
+	/* An attached file (PDF): a link with a document icon; clicking opens it in a new tab */
+	:global(.tiptap a[href^='chronolog://attachment/']) {
+		cursor: pointer;
+		white-space: nowrap;
+	}
+	:global(.tiptap a[href^='chronolog://attachment/']::before) {
+		content: '';
+		display: inline-block;
+		width: 0.9em;
+		height: 0.9em;
+		margin-right: 0.2em;
+		vertical-align: -0.1em;
+		background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpath d='M14 2v6h6'/%3E%3C/svg%3E") no-repeat center / contain;
 	}
 
 	:global(.tiptap img.ProseMirror-selectednode) {

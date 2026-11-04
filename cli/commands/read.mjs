@@ -3,17 +3,19 @@
 import { describeClient, describeContract, resolveClient, resolveContract } from '../lib/resolve.mjs';
 import { formatMinutes, isoWeekRange, parseIsoWeek, weekdayName } from '../lib/dates.mjs';
 import { UsageError } from '../lib/args.mjs';
+import { CLI_VERSION } from '../lib/version.mjs';
 
 export async function fetchContracts(api) {
 	return (await api.get('/api/contracts-by-client')).contracts;
 }
 
-export async function me({ api, print }) {
+export async function me({ api, print, config }) {
 	const result = await api.get('/api/me');
 	print(
 		`${result.user.name} <${result.user.email}> via ${result.authenticatedBy}\n` +
-			`Today ${result.today} (${result.timezone}), week ${result.isoWeek}: ${result.weekStart} to ${result.weekEnd}`,
-		result
+			`Today ${result.today} (${result.timezone}), week ${result.isoWeek}: ${result.weekStart} to ${result.weekEnd}\n` +
+			`Server ${result.serverVersion ?? 'unknown (older than 1.0.0)'} at ${config?.baseUrl ?? '?'}, CLI ${CLI_VERSION}`,
+		{ ...result, cliVersion: CLI_VERSION }
 	);
 }
 

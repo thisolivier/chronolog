@@ -1,7 +1,8 @@
 /**
  * HTTP client for the Chronolog REST API: bearer token, device key header, the laptop's
  * timezone, JSON in and out. Non-2xx answers throw `ApiError` with the server's
- * `{ error, code }` and the HTTP status.
+ * `{ error, code }` (or SvelteKit's `{ message }`) and the HTTP status.
+ * `upload` posts multipart form data; `download` and `head` return bytes and headers (036-CL).
  */
 
 export class ApiError extends Error {
@@ -12,45 +13,50 @@ export class ApiError extends Error {
 	}
 }
 
+function parseJson(text) {
+	try {
+		return text ? JSON.parse(text) : null;
+	} catch {
+		return null;
+	}
+}
+
 export function createApiClient(config, fetchImplementation = globalThis.fetch) {
 	if (!config.baseUrl) throw new ApiError(0, 'No server configured. Run `chronolog init`.', 'not_configured');
 	if (!config.apiToken) throw new ApiError(0, 'No API token configured. Run `chronolog init`.', 'not_configured');
 
 	const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-	async function request(method, path, body) {
+	/** Send one request; returns the Response when 2xx, else throws ApiError. */
+	async function send(method, path, { body, contentType, accept = 'application/json' } = {}) {
 		const headers = {
-			Accept: 'application/json',
+			Accept: accept,
 			Authorization: `Bearer ${config.apiToken}`,
 			'X-Timezone': timezone
 		};
 		if (config.deviceKey) headers['X-Device-Key'] = config.deviceKey;
-		if (body !== undefined) headers['Content-Type'] = 'application/json';
+		if (contentType) headers['Content-Type'] = contentType;
 
 		let response;
 		try {
-			response = await fetchImplementation(`${config.baseUrl}${path}`, {
-				method,
-				headers,
-				body: body === undefined ? undefined : JSON.stringify(body),
-				redirect: 'manual'
-			});
+			response = await fetchImplementation(`${config.baseUrl}${path}`, { method, headers, body, redirect: 'manual' });
 		} catch (networkError) {
 			throw new ApiError(0, `Cannot reach ${config.baseUrl}: ${networkError.cause?.code ?? networkError.message}`, 'network');
 		}
-
-		const text = await response.text();
-		let parsed = null;
-		try {
-			parsed = text ? JSON.parse(text) : null;
-		} catch {
-			parsed = null;
-		}
 		if (!response.ok) {
+			const parsed = parseJson(await response.text());
 			const message = parsed?.error ?? parsed?.message ?? `HTTP ${response.status}`;
 			throw new ApiError(response.status, message, parsed?.code ?? `http_${response.status}`);
 		}
-		return parsed;
+		return response;
+	}
+
+	async function request(method, path, body) {
+		const response = await send(method, path, {
+			body: body === undefined ? undefined : JSON.stringify(body),
+			contentType: body === undefined ? undefined : 'application/json'
+		});
+		return parseJson(await response.text());
 	}
 
 	return {
@@ -58,6 +64,15 @@ export function createApiClient(config, fetchImplementation = globalThis.fetch) 
 		post: (path, body) => request('POST', path, body ?? {}),
 		put: (path, body) => request('PUT', path, body ?? {}),
 		patch: (path, body) => request('PATCH', path, body ?? {}),
-		delete: (path) => request('DELETE', path)
+		delete: (path) => request('DELETE', path),
+		/** POST a `FormData` (fetch sets the multipart boundary); returns the JSON answer. */
+		upload: async (path, formData) => parseJson(await (await send('POST', path, { body: formData })).text()),
+		/** GET raw bytes: `{ bytes: Buffer, headers: Headers }`. */
+		download: async (path) => {
+			const response = await send('GET', path, { accept: '*/*' });
+			return { bytes: Buffer.from(await response.arrayBuffer()), headers: response.headers };
+		},
+		/** HEAD: the headers only. */
+		head: async (path) => (await send('HEAD', path, { accept: '*/*' })).headers
 	};
 }

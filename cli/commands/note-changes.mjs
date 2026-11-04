@@ -33,7 +33,7 @@ export class NoteChanged extends Error {
 
 const notePath = (noteId) => `/api/notes/${encodeURIComponent(noteId)}`;
 
-async function fetchNote(api, noteId) {
+export async function fetchNote(api, noteId) {
 	return (await api.get(notePath(noteId))).note;
 }
 
@@ -41,7 +41,7 @@ async function fetchNote(api, noteId) {
  * `--expected-updated-at` pins the copy the caller showed the owner (the `updatedAt` from an
  * earlier `note show`); without it, the copy this command just read.
  */
-async function patchNote(api, note, changes, flags) {
+export async function patchNote(api, note, changes, flags) {
 	const expectedUpdatedAt = typeof flags.expectedUpdatedAt === 'string' ? flags.expectedUpdatedAt : note.updatedAt;
 	try {
 		return (await api.patch(notePath(note.id), { ...changes, expectedUpdatedAt })).note;

@@ -51,6 +51,17 @@ Environment variables win over the file:
 - `note delete <id> [--yes]`: prints title, contract and word count, asks `[y/N]` on a terminal, refuses (exit 2) without `--yes` otherwise. Before deleting it writes `trash/<id>.md` next to the config file (`~/.config/chronolog/trash/`, mode 600): a `---` header (id, title, contractId, contract, updatedAt, deletedAt) then the markdown.
 - `note restore [<id>] [--contract X]`: recreates the note from the trash file on the same contract (or `--contract`) with a newly allocated id for today, then removes the file. Without an id it lists the trash.
 
+### Attachments (sprint 036-CL)
+
+- `note attach <note-id> <file> [--no-insert]`: uploads the file as multipart form data (Node's own `FormData` and `Blob`) to `POST /api/notes/<id>/attachments`. Images (PNG, JPEG, GIF, WebP, SVG) and PDFs up to 10 MB; the type sent comes from the extension, and the server checks the file's first bytes (a PDF renamed `.png`, a `.txt`, or anything over 10 MB is a 400, exit 1). By default it then appends the reference line at the end of the note through the `note append` path (same `updatedAt` check, exit 7): `![name](chronolog://attachment/<id>)` for an image (shown inline) or `[name](chronolog://attachment/<id>)` for a PDF (a link that opens it). `--no-insert` uploads only. Prints the id and the line (`attachment`, `reference`, `inserted` with `--json`). After an exit 7 the file is attached but not linked; the message carries the line.
+- `note attachments <note-id>`: id, filename, type, size, created.
+- `attachment get <id> [--out <path>] [--force]`: saves the bytes under the original filename (from `Content-Disposition`, reduced to a bare name) in the current directory, or at `--out` (a file, or a directory to save into). An existing file is never overwritten without `--force` (exit 2).
+- `attachment delete <id> [--yes]`: reads the attachment's headers (`HEAD`, which carries `X-Note-Id`) and the note, prints filename, type, size and note, and is confirmed like `note delete`. When the note's text still links to it, it warns and leaves the link alone (the editor shows it as missing). An unknown id exits 3.
+
+### Version
+
+`chronolog --version` prints the CLI version, the root `package.json` version (1.0.0 since sprint 036). `chronolog me` adds the server's (`serverVersion` from `GET /api/me`). Changes per sprint are in [CHANGELOG.md](CHANGELOG.md).
+
 ### Setting up clients (sprint 031-CL)
 
 These call the same `/api/*` routes, and so the same rules, as Settings → Clients and contracts.
@@ -78,8 +89,8 @@ The server refuses an entry whose deliverable is not on its contract (400 `deliv
 |------|---------|
 | 0 | OK |
 | 1 | Other error (server, network, bad config) |
-| 2 | Usage error |
-| 3 | Unknown or ambiguous reference, or any 404 (note, entry, object not found): ask the person |
+| 2 | Usage error, a `remove`/`delete` without `--yes` and no terminal, `attachment get` onto an existing file |
+| 3 | Unknown or ambiguous reference, or any 404 (note, entry, object, attachment not found): ask the person |
 | 4 | Auth failure (401/403): token or device key |
 | 5 | Conflict (409), including a duplicate short code |
 | 6 | Rate limited (429) |
@@ -106,10 +117,13 @@ cli/lib/dates.mjs         ISO weeks, --date words, duration formatting
 cli/lib/history.mjs       last-entry.json: the entry `undo` deletes
 cli/lib/note-body.mjs     note markdown: body input, title heading, edit/append text, word count
 cli/lib/trash.mjs         trash/<id>.md copies of deleted notes
+cli/lib/attachment-files.mjs  attachment type from extension, reference lines, sizes, Content-Disposition filename
+cli/lib/version.mjs       CLI_VERSION from the root package.json
 cli/commands/read.mjs     me, clients, contracts, week, notes, note show, search
 cli/commands/write.mjs    log, note new, status
 cli/commands/correct.mjs  edit, undo
 cli/commands/note-changes.mjs  note edit, append, delete, restore
+cli/commands/attachments.mjs   note attach, note attachments, attachment get, attachment delete
 cli/commands/manage-clients.mjs    client and contract add/edit/archive/unarchive/remove
 cli/commands/manage-structure.mjs  deliverable and work type add/edit/remove and lists
 cli/commands/init.mjs     setup: prompts (hidden input) or piped lines, then GET /api/me

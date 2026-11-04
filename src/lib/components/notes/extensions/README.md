@@ -49,6 +49,10 @@ Replaces StarterKit's `text` node. Its markdown serializer escapes `<` only wher
 
 `AttachmentImage` extends the Image node. The document keeps the `chronolog://attachment/{id}` src (so saved markdown and JSON never contain blob URLs), while a node view shows a blob URL resolved by `attachment-resolver.ts`.
 
+### attachment-link.ts
+
+A PDF (any non-image attachment) sits in a note as an ordinary link, `[report.pdf](chronolog://attachment/{id})` (sprint 036). The Link mark keeps only hrefs whose scheme it knows, so `NoteEditor` passes `ATTACHMENT_LINK_PROTOCOLS` (`chronolog`) to StarterKit's `link` options; without it the href is dropped on parse. `attachmentHrefFromTarget(target)` finds such a link from a click, and `openAttachment(url)` opens a tab inside the click (so popup blockers allow it), then points it at the resolver's blob URL (closing it if the fetch fails). `AttachmentList` opens files the same way. SVG (and other active content) is never opened as a page, since a blob URL carries the app origin. The editor CSS gives these links a document icon; printing (`note-print.ts`) replaces them with the filename marked "(attached file)".
+
 ### attachment-resolver.ts
 
 Resolves `chronolog://attachment/{uuid}` URLs to displayable blob URLs. Images and PDFs embedded in notes use this custom URL scheme. The resolver fetches binary data from `/api/attachments/{id}`, creates blob URLs via `URL.createObjectURL()`, and caches results to avoid re-fetching. `AttachmentImage` uses it, and the blob URLs are revoked on teardown.

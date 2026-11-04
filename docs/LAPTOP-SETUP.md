@@ -167,6 +167,9 @@ chronolog undo                      # deletes the last entry this laptop logged
 chronolog note new ACME/Website "Status 4 Nov" --file body.md [--date yesterday]
 chronolog note append <note-id> --file update.md   # or note edit <id> [--title] [--contract]; exit 7 = changed in the app
 chronolog note delete <note-id>    # asks first; copy kept in ~/.config/chronolog/trash/, note restore <id>
+chronolog note attach <note-id> ~/Downloads/SOW.pdf   # PDF or image ≤ 10 MB; appends a link to the note
+chronolog note attachments <note-id>; chronolog attachment get <id> [--out DIR]; attachment delete <id>
+chronolog --version                 # CLI version; `chronolog me` also shows the server's
 chronolog week [2026-W45] [--client ACME]
 chronolog status current draft-ready
 

@@ -44,6 +44,8 @@ const PRINT_STYLES = `
 	a { color: black; text-decoration: underline; }
 	a[href^="http"]::after { content: ' (' attr(href) ')'; font-size: 0.8em; color: #666; }
 	.wiki-link { color: black; font-weight: 600; }
+	.attachment-name { font-style: italic; }
+	.attachment-name::after { content: ' (attached file)'; font-size: 0.8em; color: #666; font-style: normal; }
 	hr { border: none; border-top: 1px solid #ccc; margin: 1.5em 0; }
 	.hljs-comment { color: #6a737d; font-style: italic; }
 	.hljs-keyword, .hljs-type { color: #d73a49; }
@@ -69,9 +71,23 @@ export function buildPrintDocument(options: { title: string; noteId: string; bod
 </html>`;
 }
 
+/**
+ * An attached file (`chronolog://attachment/<id>` link, e.g. a PDF) cannot be opened from a printed
+ * page, so it prints as its filename marked "attached" instead of a dead link.
+ */
+export function printAttachmentLinksAsNames(root: ParentNode): void {
+	root.querySelectorAll('a[href^="chronolog://attachment/"]').forEach((anchor) => {
+		const label = anchor.ownerDocument.createElement('span');
+		label.className = 'attachment-name';
+		label.textContent = anchor.textContent ?? '';
+		anchor.replaceWith(label);
+	});
+}
+
 /** Strip editor-only attributes from a copy of the editor DOM. */
-function cleanEditorHtml(editorRoot: HTMLElement): string {
+export function cleanEditorHtml(editorRoot: HTMLElement): string {
 	const copy = editorRoot.cloneNode(true) as HTMLElement;
+	printAttachmentLinksAsNames(copy);
 	copy.querySelectorAll('[contenteditable]').forEach((element) => element.removeAttribute('contenteditable'));
 	copy.querySelectorAll('.ProseMirror-trailingBreak, .ProseMirror-separator').forEach((element) => element.remove());
 	copy.querySelectorAll('p.is-editor-empty').forEach((element) => element.remove());

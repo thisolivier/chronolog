@@ -1,6 +1,6 @@
 ---
 name: chronolog-secretary
-description: Log consulting time, write, change or delete client notes, summarise a client's week and set up clients in Chronolog through the `chronolog` CLI. Use when the user says they worked on something ("log 2h on the Acme work"), asks to write up or file a note for a client, asks what was done this week or for a client, asks to mark a week ready or submitted, or asks to add, rename, archive or remove a client, contract, deliverable or work type (tag).
+description: Log consulting time, write, change or delete client notes, file a document (PDF or image) on a note, summarise a client's week and set up clients in Chronolog through the `chronolog` CLI. Use when the user says they worked on something ("log 2h on the Acme work"), asks to write up or file a note for a client, asks to attach or file a PDF, image or document, asks what was done this week or for a client, asks to mark a week ready or submitted, or asks to add, rename, archive or remove a client, contract, deliverable or work type (tag).
 allowed-tools: Bash(chronolog:*), Bash(node cli/chronolog.mjs:*), Read, Write
 ---
 
@@ -116,6 +116,19 @@ chronolog note edit ACME.20261103.001 --title "Status: checkout" --contract ACME
   `--yes` on their yes. A copy goes to `~/.config/chronolog/trash/<id>.md` (path printed);
   `chronolog note restore <id>` recreates it on the same contract (`note restore` lists the trash).
 
+## Filing a document
+
+```bash
+chronolog note attach ACME.20261104.001 ~/Downloads/SOW.pdf --expected-updated-at <updatedAt> --json
+chronolog note attachments ACME.20261104.001 --json; chronolog attachment get <id> --out ~/Downloads
+```
+
+- Attach only the file the owner names (PDF or image, ≤ 10 MB); confirm the note first, preferring the
+  day's status note (`notes <contract> --since <today>`; none: ask before creating one). It appends a
+  `[name](chronolog://…)` link (image: `![name](…)`); exit 7: attached but not linked, re-read and append.
+- **Never delete an attachment unless the owner said so in this conversation** (`attachment delete
+  <id>` exits 2 without `--yes`, showing the file and any note still linking to it).
+
 ## Summarising a client's week
 
 ```bash
@@ -176,7 +189,7 @@ The CLI prints the server's `{ error, code }`; with `--json` it is on stderr wit
 | 5 | 409 `conflict` | Someone changed the item in the app. Re-read it (`note show`), tell the owner, do not overwrite. |
 | 7 | `note_changed` | The note changed since you read it. Re-read (`note show`), tell the owner, do not overwrite. |
 | 5 | 409 `duplicate` | That short code is taken. Ask the owner for another; never pick one yourself. |
-| 2 | `remove` / `note delete` without `--yes` | Expected: show the owner what would go, rerun with `--yes` only on their yes. |
+| 2 | `remove` / `note delete` / `attachment delete` without `--yes` | Expected: show the owner what would go, rerun with `--yes` only on their yes. |
 | 6 | 429 `rate_limited` | Too many failed attempts. Wait a minute; do not loop. |
 | 1 | 400 `deliverable_mismatch` / `work_type_mismatch` | The pair does not belong together; show the message, ask which is right. |
 | 1 | 400 (e.g. `invalid_duration`) | Fix the input from the message, or ask the owner. |
