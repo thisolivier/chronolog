@@ -1,0 +1,8 @@
+// Six entries for the import tests (sprint 038-CL); line 7 names a deliverable the contract does not have
+{"contract": "ACME/Website", "date": "2026-10-01", "duration": "1h30m", "description": "Kickoff", "deliverable": "Discovery", "workType": "Interviews"}
+{"contract": "acme website", "date": "yesterday", "duration": "9:00-10:15", "description": "Standup"}
+{"contract": "ACME/Website", "date": "monday", "startTime": "14:00", "endTime": "15:00", "deliverable": "Discovery"}
+
+{"contract": "BETA/Retainer", "date": "2026-10-02", "duration": 2, "note": "BETA.20261002.001"}
+{"contract": "ACME/Website", "date": "2026-10-03", "duration": "45m", "deliverable": "Phase 9"}
+{"contract": "BETA/Retainer", "date": "2026-10-13", "duration": "1h", "description": "Review"}

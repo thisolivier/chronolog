@@ -4,6 +4,18 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 `chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
 030, 033 and 035 changed nothing in the CLI and are not listed.
 
+## 1.1.0 (sprint 038-CL, 2026-11-04): importing history
+
+- `import notes <file>` and `import entries <file>`: JSON Lines or a JSON array using the CLI's
+  references (`contract`, `deliverable`, `workType`, `note`, date words, the usual durations).
+  References are resolved once each; any unknown or ambiguous one refuses the whole file (exit 3,
+  bad lines listed) before anything is sent. Sent in chunks of 100 notes / 200 entries to the new
+  `POST /api/notes/batch` and `POST /api/time-entries/batch`. `--dry-run`, `--atomic`, `--json`.
+  One `ok`/`fail` line per item and a summary; exit 1 if any item failed.
+- Note items create (`contract`, `title`, `body` or `content`, `date` to backdate) or change by
+  `id` (`title`, `content`, `append`, optional `expectedUpdatedAt`).
+- `undo --last-import [--yes]`: deletes every entry the last entries import created (confirmed).
+
 ## 1.0.0 (sprint 036-CL, 2026-11-04): attachments, versions
 
 - `note attach <note-id> <file> [--no-insert]`: uploads an image or a PDF (10 MB at most; the server

@@ -19,6 +19,7 @@ import * as noteChanges from './commands/note-changes.mjs';
 import * as attachments from './commands/attachments.mjs';
 import * as manageClients from './commands/manage-clients.mjs';
 import * as manageStructure from './commands/manage-structure.mjs';
+import * as imports from './commands/import.mjs';
 import { init } from './commands/init.mjs';
 import { Cancelled } from './lib/confirm.mjs';
 import { CLI_VERSION } from './lib/version.mjs';
@@ -32,7 +33,8 @@ const USAGE = `Usage: chronolog <command> [arguments] [--json]      (chronolog -
   week [2026-W45] [--client X | --contract X]   entries and totals for a week (default: current)
   log <contract> <duration> "<desc>" [--date D] [--deliverable X [--work-type Y]] [--note ID]
   edit <entry-id> [--duration D] [--description "..."] [--date D] [--deliverable X|none] [--work-type X|none]
-  undo                                   delete the last entry this CLI logged
+  undo [--last-import] [--yes]           delete the last entry this CLI logged (or every entry of the last import)
+  import notes|entries <file> [--dry-run] [--atomic]   JSON Lines or a JSON array; see cli/readme.md
   note new <contract> "<title>" [--file body.md] [--date D]   body from --file or stdin; --date backdates
   note show <note-id>
   note edit <note-id> [--title "..."] [--contract X] [--file body.md]   a body replaces the text
@@ -75,7 +77,8 @@ const COMMANDS = {
 	log: write.log,
 	status: write.status,
 	edit: correct.edit,
-	undo: correct.undo,
+	undo: imports.undo,
+	import: imports.importFile,
 	'note new': write.noteNew,
 	'note show': read.noteShow,
 	'note edit': noteChanges.noteEdit,

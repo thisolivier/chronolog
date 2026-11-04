@@ -2,7 +2,7 @@
 
 Command-line client for the Chronolog REST API. The laptop Claude secretary uses it to read and write time entries and notes for one signed-in user, and (sprint 031-CL) to set up clients, contracts, deliverables and work types. It authenticates with a personal API token (see `src/lib/server/auth-tokens/README.md`).
 
-Node 20+, no dependencies. It talks only to `/api/*`; the only local state is the config file, `last-entry.json` beside it (the entry `undo` would delete) and `trash/` (copies of notes `note delete` removed).
+Node 20+, no dependencies. It talks only to `/api/*`; the only local state is the config file, `last-entry.json` beside it (the entry `undo` would delete), `last-import.json` (the entries `undo --last-import` would delete) and `trash/` (copies of notes `note delete` removed).
 
 ## Install
 
@@ -58,9 +58,27 @@ Environment variables win over the file:
 - `attachment get <id> [--out <path>] [--force]`: saves the bytes under the original filename (from `Content-Disposition`, reduced to a bare name) in the current directory, or at `--out` (a file, or a directory to save into). An existing file is never overwritten without `--force` (exit 2).
 - `attachment delete <id> [--yes]`: reads the attachment's headers (`HEAD`, which carries `X-Note-Id`) and the note, prints filename, type, size and note, and is confirmed like `note delete`. When the note's text still links to it, it warns and leaves the link alone (the editor shows it as missing). An unknown id exits 3.
 
+### Importing history (sprint 038-CL)
+
+`chronolog import notes <file>` and `chronolog import entries <file>` send a whole file in a few requests (`POST /api/notes/batch`, 100 per request; `POST /api/time-entries/batch`, 200 per request). The file is JSON Lines (one object per line; blank lines and `//` lines skipped) or a JSON array. Items use the CLI's references, not ids:
+
+```
+{"contract": "ACME/Website", "title": "Kickoff", "body": "Agenda…", "date": "2026-10-04"}   new note; body gets a "# title" heading (as note new); "content" is used as written; date backdates
+{"id": "ACME.20261004.001", "append": "Follow-up…"}      change a note: title, content (replaces) or append, optional expectedUpdatedAt
+{"contract": "ACME/Website", "date": "2026-10-04", "duration": "1h30m", "description": "Review", "deliverable": "Phase 1", "workType": "Design", "note": "ACME.20261004.001"}
+{"contract": "ACME/Website", "date": "monday", "startTime": "09:00", "endTime": "10:30"}
+```
+
+- Every distinct reference is resolved once (one contracts call, one deliverables call per contract, one work-types call per deliverable). If any line has an unknown or ambiguous reference the whole file is refused before anything is sent: exit 3, listing each bad line with its candidates. A line that is not JSON or has an unknown field is exit 2, also before sending.
+- `--dry-run` prints each item as it would be sent (ids resolved, date words turned into dates) and sends nothing. Show it to the owner first.
+- `--atomic` passes `atomic: true` with each request: within a chunk, one failure saves nothing (the others report `batch_rolled_back`).
+- Output: `ok <line> <id>  <summary>` or `fail <line> <code> <message>` per item, then `Imported N of M …`. `--json` prints `{ created, updated, failed, results: [{ line, index, ok, id?, updatedAt?, error?, code?, unconditional? }] }`. Exit 0 when every item was saved, 1 when any failed (the others are saved; fix and import only the failed lines).
+- A note change without `expectedUpdatedAt` is applied whatever the note's state (`(updated, unconditionally)`).
+- The ids of created entries go to `last-import.json`; `chronolog undo --last-import` deletes them all after confirmation (`--yes` without a terminal, as for `remove`). Notes are not undone this way.
+
 ### Version
 
-`chronolog --version` prints the CLI version, the root `package.json` version (1.0.0 since sprint 036). `chronolog me` adds the server's (`serverVersion` from `GET /api/me`). Changes per sprint are in [CHANGELOG.md](CHANGELOG.md).
+`chronolog --version` prints the CLI version, the root `package.json` version (1.1.0 since sprint 038). `chronolog me` adds the server's (`serverVersion` from `GET /api/me`). Changes per sprint are in [CHANGELOG.md](CHANGELOG.md).
 
 ### Setting up clients (sprint 031-CL)
 
@@ -89,8 +107,8 @@ The server refuses an entry whose deliverable is not on its contract (400 `deliv
 |------|---------|
 | 0 | OK |
 | 1 | Other error (server, network, bad config) |
-| 2 | Usage error, a `remove`/`delete` without `--yes` and no terminal, `attachment get` onto an existing file |
-| 3 | Unknown or ambiguous reference, or any 404 (note, entry, object, attachment not found): ask the person |
+| 2 | Usage error, a `remove`/`delete`/`undo --last-import` without `--yes` and no terminal, `attachment get` onto an existing file, an import line that is not valid |
+| 3 | Unknown or ambiguous reference (for `import`: in any line, nothing sent), or any 404 (note, entry, object, attachment not found): ask the person |
 | 4 | Auth failure (401/403): token or device key |
 | 5 | Conflict (409), including a duplicate short code |
 | 6 | Rate limited (429) |
@@ -115,6 +133,9 @@ cli/lib/entry-references.mjs  an entry's deliverable and work type (work type on
 cli/lib/confirm.mjs       remove confirmation: --yes, [y/N] on a terminal, refuse otherwise
 cli/lib/dates.mjs         ISO weeks, --date words, duration formatting
 cli/lib/history.mjs       last-entry.json: the entry `undo` deletes
+cli/lib/import-file.mjs   import file reading (JSON Lines or array, line numbers), chunking
+cli/lib/import-items.mjs  import items: references resolved once each, into batch API items
+cli/lib/import-history.mjs  last-import.json: the entries `undo --last-import` deletes
 cli/lib/note-body.mjs     note markdown: body input, title heading, edit/append text, word count
 cli/lib/trash.mjs         trash/<id>.md copies of deleted notes
 cli/lib/attachment-files.mjs  attachment type from extension, reference lines, sizes, Content-Disposition filename
@@ -122,6 +143,7 @@ cli/lib/version.mjs       CLI_VERSION from the root package.json
 cli/commands/read.mjs     me, clients, contracts, week, notes, note show, search
 cli/commands/write.mjs    log, note new, status
 cli/commands/correct.mjs  edit, undo
+cli/commands/import.mjs   import notes|entries, undo --last-import (falls back to correct.undo)
 cli/commands/note-changes.mjs  note edit, append, delete, restore
 cli/commands/attachments.mjs   note attach, note attachments, attachment get, attachment delete
 cli/commands/manage-clients.mjs    client and contract add/edit/archive/unarchive/remove

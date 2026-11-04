@@ -6,7 +6,7 @@
 
 export class UsageError extends Error {}
 
-export const BOOLEAN_FLAGS = ['json', 'help', 'yes', 'all', 'active', 'inactive', 'version', 'force', 'noInsert'];
+export const BOOLEAN_FLAGS = ['json', 'help', 'yes', 'all', 'active', 'inactive', 'version', 'force', 'noInsert', 'dryRun', 'atomic', 'lastImport'];
 
 export function parseArguments(argv, booleanFlags = BOOLEAN_FLAGS) {
 	const positionals = [];
