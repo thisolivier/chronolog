@@ -29,6 +29,9 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 - **040-CL** Checkbox task lists in the editor and markdown, PDF boxes, `GET /api/notes/todos`, `chronolog todos`.
 - **041-CL** Editable start on a running timer (`PATCH /api/timer`, `timer start --at`, `timer adjust`, `timer stop`), Today button, Archive / Activate in Settings.
 - **042-CL** Global search (`/search`, `GET /api/search`, notes and entries, Cmd+K) and Cmd+F find in page; `chronolog search` covers entries. CLI 1.2.0.
+- **046-CL** Search results as one interleaved list with type icons; one-line meta on phones.
+- **043-CL** Trash view `/notes/trash`, link text in previews and titles, deleted-attachment styling, `NoteEditorPanel` split, reactive toolbar disabled states, phone Undo/linked entries/landscape.
+- **044-CL** Playwright 2FA login test, version drift notice (`serverCommit` on `/api/me`), desktop sign-out clears the tray timer, distinct client colours, root navigation context, `undo --last-import` trashes imported notes, 0 svelte-check warnings, skill split into SKILL.md + reference.md, deterministic WebKit tests, screenshots only with `UPDATE_SPRINT_SCREENSHOTS=1`. CLI 1.3.0.
 - **Offline banner and read cache** (`fix/offline-banner-and-cache`): the banner shows when the server is unreachable, and the read cache is write-through.
 
 ## Next (owner-decided, in this order)
@@ -42,28 +45,19 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 
 ## Owner-requested, back of the queue (2026-11-04)
 
-All done in sprints 039–042 (2026-11-04). Open from them: the editor header has no pin control (list row only); the tablet overlay sidebar stays open when switching client views; `notes.is_pinned` is still written alongside `pinned_at` (drop later); find in page skips the raw markdown mode and wiki-link titles; `NoteEditor.svelte` is about 690 lines (move its CSS out); a client created after a reorder lands at the bottom.
+All done in sprints 039–042 and 046 (2026-11-04). Open from them: global search does not resolve wiki-links to titles; saved titles keep a linked note's old title after a rename; the editor header has no pin control (list row only); the tablet overlay sidebar stays open when switching client views; `notes.is_pinned` is still written alongside `pinned_at` (drop later); find in page skips the raw markdown mode and wiki-link titles; `NoteEditor.svelte` is about 690 lines (move its CSS out); a client created after a reorder lands at the bottom.
 
 ## Carried-over follow-ups
 
 ### Notes / editor
 
-- No trash view in the browser; reachable only via Undo, a deleted wiki-link or the CLI (037 sign-off).
-- Phone: the Undo toast unmounts with the panel, so Undo is mostly desktop (037 sign-off).
-- `NoteEditorPanel.svelte` is 526 lines and due a split; the secretary skill is 213 lines, over its 200 guideline (037 sign-off).
-
-- Notes list preview shows raw link markdown for attachment links (`[file.pdf](chronolo…`); fix in `extract-preview-lines` (036 sign-off).
-- A link to a deleted attachment opens a tab that closes again, with no "missing" styling unlike images (036 sign-off).
 
 
-- Toolbar `disabled` states evaluate once; only the active highlights are reactive (020 sign-off).
+
 - A keepalive save at unload can reach the server after the reloaded page has loaded the note; the next edit gets the conflict message, no text lost (024 sign-off).
 - PDF export has not been tried in the native macOS print dialog; check on the Mac (024 sign-off, friction #11).
 - No note-side picker to reference a time entry; only the time-entry side links today (friction #21, 024 task 8).
-- Wiki-link text drops out of note titles and previews, leaving "Beta note links to" and "See ." (integration-qa-2 O1, journeys P-12).
 - Note IDs keep the old client code after a client rename or a move (journeys P-07).
-- Phone landscape: the editor is about 80 px tall, with the linked panels taking the rest of the screen (journeys A-09).
-- Phone "Linked time entries": the date wraps into the duration (journeys P-06).
 - The offline backend must implement the DataService methods added in 024 (`searchNotes`, `getNoteTitles`, `createNote`, `updateNote`) (024 sign-off).
 
 ### Timesheet / timer
@@ -74,8 +68,6 @@ All done in sprints 039–042 (2026-11-04). Open from them: the editor header ha
 
 ### Admin / shell
 
-- Two clients can share the same palette colour (Internal and Acme both pink in test data); more visible now that single-contract rows show the dot alone (033 sign-off).
-- The checklist driver README still describes the pre-033 sidebar grouping (033 sign-off).
 
 - The deliverable sort-order number field and drag-to-reorder are not built; contracts have up and down arrows only (026 sign-off, friction #30).
 - Admin reads as a separate app rather than the same shell (journeys P-03).
@@ -86,37 +78,31 @@ All done in sprints 039–042 (2026-11-04). Open from them: the editor header ha
 - Sidebar is about 25 Tabs away from the editor and there are no keyboard shortcuts (journeys A-11, 030 sign-off).
 - A save made from notes mode switches to the timesheet without focusing the new card; on touch screens a followed wiki-link does not focus the editor on purpose (030 sign-off).
 
-- The root layout creates the navigation context only on initial mount, so a client-side move from an unauthenticated page into `/` throws "Navigation context not found"; `/login` works around it (020 sign-off).
 - The in-app history mirror resets when the browser jumps to an entry it did not record, for example after a crash restore (027 sign-off).
 
 ### API / CLI
 
-- `undo --last-import` removes entries only; imported notes are not undoable (038 sign-off).
 
 - Opening a CLI note in the editor autosaves it as TipTap JSON, which counts as an edit (028 sign-off).
 - No bulk reorder route for work types; names containing `/` are reachable by id only (031 sign-off).
 - An entry edit that touches none of contract, deliverable or work type is not re-validated, so a pre-existing inconsistent row stays editable; `scripts/check-entry-references.mjs` reports such rows (032 sign-off).
-- Version drift between laptop CLI and server is invisible; proposal: server reports its build commit on `/api/me`, CLI prints a one-line "run git pull" notice when they differ.
 - `chronolog undo` only knows the last entry made by `chronolog log`; edits cannot be undone (029 sign-off).
 - The first-run notice matches the starter client by name and short code `Internal`/`INTL`; renaming it hides the notice (029 sign-off).
 - The failure limiter is in memory and per process (028 sign-off).
 
 ### Infrastructure / dev environment
 
-- No automated test logs in with 2FA enabled; the 2FA login path was broken from sprint 003 until 2026-11-04 and nobody noticed. Add a Playwright test that enables TOTP, signs out, signs in with a generated code (HMAC-SHA1 TOTP in the test, no new dependency).
 
-- Desktop app: owner to verify close-to-hide, Dock click, tray menu and Cmd+Q on the laptop and add the three screenshots to `docs/review/screenshots/sprint-035/` (Mac mini screen was locked). Bundle version is still 0.0.1 in `src-tauri/tauri.conf.json`; take it from `package.json`. Signing out while a timer runs leaves the menu bar showing it until the next signed-in page load. No updater yet (035 sign-off).
+- Desktop app: rebuild on a Mac to pick up 1.3.0 (`git pull && npm install && CI=true npm run tauri:build`, install the dmg; 044 sign-off). Owner to verify close-to-hide, Dock click, tray menu and Cmd+Q on the laptop and add the three screenshots to `docs/review/screenshots/sprint-035/` (Mac mini screen was locked). The bundle already takes its version from `package.json`. No updater yet (035 sign-off).
 
 - `db:seed` writes plaintext; run `scripts/encrypt-existing.mjs` after seeding (023 sign-off).
 - `encrypt-existing.mjs` has no tested route to production Postgres; only a database created before 023 needs it (023 sign-off, `docs/DEPLOYMENT.md`).
 - Password reset has no tested production path: production Postgres has no host port and the image has no `tsx` (022 sign-off, `docs/DEPLOYMENT.md`).
 - SSH key-only login and Screen Sharing restricted to the Tailscale interface are deferred; do them together with go-live, not unattended (`docs/decisions.md`).
-- `svelte-check` reports 12 pre-existing warnings (026 sign-off).
 
 
 ## Housekeeping
 
 - The three `fix/*` API-hardening branches were re-applied by hand in sprint 029 and deleted on origin.
-- Shared dev Postgres holds leftover `qa-029-*` and `qa-030-*` users; harmless, delete when convenient.
 - The Sprint 018-QA manual checklist was never run; the live QA reviews in `docs/review/` cover the automatable parts.
 - Pre-prune safety net: `~/sites/chronolog-prune-backup-2026-11-03.bundle` holds every ref that existed before the worktree and branch prune.
