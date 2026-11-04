@@ -10,10 +10,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { editor, noteListItem, sidebarContract, createNote } from './notes-helpers';
+import { sprintScreenshotDirectory } from './sprint-screenshots';
 
 const CURRENT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const CLI_PATH = path.join(CURRENT_DIRECTORY, '..', 'cli', 'chronolog.mjs');
-const SCREENSHOTS = path.join(CURRENT_DIRECTORY, '..', 'docs', 'review', 'screenshots', 'sprint-040');
+const SCREENSHOTS = sprintScreenshotDirectory('sprint-040');
 
 function runCli(args: string[], environment: Record<string, string>, stdinText = '') {
 	return new Promise<{ exitCode: number; stdout: string; stderr: string }>((resolve) => {

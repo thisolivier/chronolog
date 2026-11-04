@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { editor, noteListItem, sidebarContract, createNote } from './notes-helpers';
+import { sprintScreenshotDirectory } from './sprint-screenshots';
 
 const CURRENT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const CLI_PATH = path.join(CURRENT_DIRECTORY, '..', 'cli', 'chronolog.mjs');
@@ -61,6 +62,6 @@ test('a note edited by the CLI after the browser opens with the CLI text', async
 	await expect(editor(page)).not.toContainText('typed in the browser');
 	await expect(editor(page).locator('h2')).toHaveText('Done');
 	if (browserName === 'chromium') {
-		await page.screenshot({ path: path.join(CURRENT_DIRECTORY, '..', 'docs', 'review', 'screenshots', 'sprint-034', '01-editor-shows-cli-edit.png') });
+		await page.screenshot({ path: path.join(sprintScreenshotDirectory('sprint-034'), '01-editor-shows-cli-edit.png') });
 	}
 });

@@ -47,18 +47,27 @@ be traced to a driver action.
 `test-results/manual-checklist/screenshots` (set `QA_SHOTS_DIR` to write into
 `docs/review/screenshots`); `OUT` defaults to `test-results/manual-checklist/qa-results.json`.
 
-## Flows the driver assumes (updated for 024/025/026-CL)
+## Flows the driver assumes (updated for 024/025/026-CL; sidebar for 033/039-CL)
 
 Selectors are DOM-based (test ids, roles, labels) rather than URL-based, because 027-CL changes the
 URLs. The admin seam reaches `/admin/clients` through the sidebar "Settings" link and the "Clients
 and contracts" card, and returns with "Back to app"; only the initial setup still uses `page.goto`.
 
-- **Sidebar is grouped by client (026).** Panel 1 is `[data-testid="app-sidebar"]`; each client is a
-  `[data-testid="sidebar-client-group"]` (aria-label = client name) whose heading carries the colour dot;
-  contract buttons carry `data-contract-id` and an optional `[data-testid="sidebar-note-count"]` badge.
-  `A10` asserts distinct client colours and Rocket Build under Acme Corp; `sidebarDots[contract]` is the
-  contract's client colour, compared against card borders and card dots. `expectNoteCount()` polls the
-  badge (refreshed 150 ms after `notes-changed`), asserted after create, second create, move and delete.
+- **Sidebar is grouped by client (026, reshaped by 033 and 039).** Panel 1 is
+  `[data-testid="app-sidebar"]`; each active client is a `[data-testid="sidebar-client-group"]`
+  (aria-label = client name), in the owner's manual order (039). A client with **two or more** active
+  contracts has a heading (collapse chevron, colour dot, client name; the name opens the client view
+  `/notes/client/<id>`) and the contract buttons under it. A client with **one** active contract is a
+  single row, `[data-testid="sidebar-single-contract-row"]`: colour dot, contract name, and the client
+  name beneath it (`[data-testid="sidebar-row-client-name"]`), so its dot is inside the row, not in a
+  heading (033). Either way contract buttons carry `data-contract-id`, their accessible name starts with
+  the contract name, and an optional `[data-testid="sidebar-note-count"]` badge. Archived clients and
+  contracts sit under the collapsed **Archived** toggle at the bottom
+  (`[data-testid="sidebar-archived-section"]`, groups `sidebar-archived-client-group`), never in the
+  active list. `A10` asserts distinct client colours and Rocket Build under Acme Corp;
+  `sidebarDots[contract]` is the contract's client colour (from the heading or the single row), compared
+  against card borders and card dots. `expectNoteCount()` polls the badge (refreshed 150 ms after
+  `notes-changed`), asserted after create, second create, move and delete.
 - **New Note is a draft (024).** The header (`[data-testid="note-editor-header"]`) reads "New note" with a
   Discard button and no `POST /api/notes` is sent until the first keystroke; `waitForSavedNoteId()` then
   waits for the real ID. `currentNoteId()` reads the header, not a global `span.font-mono`.
@@ -112,8 +121,8 @@ and contracts" card, and returns with "Back to app"; only the initial setup stil
 
 ## Known limitations
 
-- Failed requests with `net::ERR_ABORTED` under `[AUTH-register]` (the register page's deliberate full
-  reload via `/login` → `/`), `[AUTH-login-redirect]` (the driver clears cookies and navigates while the
+- Failed requests with `net::ERR_ABORTED` under `[AUTH-register]` (the register page's move via
+  `/login` → `/`, a client-side redirect since 044-CL; it was a full reload before), `[AUTH-login-redirect]` (the driver clears cookies and navigates while the
   app is still loading) or after a `page.reload()` are in-flight loads cancelled by navigation, not app
   errors. Their number varies per run with timing. The `ERR_INTERNET_DISCONNECTED` entries under the two
   `SEAM-offline-*` steps are the driver's own simulated outage.

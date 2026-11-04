@@ -52,6 +52,8 @@ npm run test:playwright:ui
 | `notes-followups.spec.ts` | Sprint 043-CL: the trash page (sidebar Trash link, `/notes/trash`, days left, reload, Restore then Open); previews and titles show attachment-link filenames and wiki-links as the target's title or label, and a browser save keeps that title; a link to a deleted attachment is styled missing and opens no tab; on a phone the Undo toast works after the editor panel has unmounted; linked time entries stay on one line at 320 px and, in landscape 844×390, the linked panels start collapsed with the editor at least half the height; toolbar Bold disables in a code block and re-enables. Screenshots go to `docs/review/screenshots/sprint-043/`. |
 | `search.spec.ts` | Sprint 042-CL: global search from the shell (Cmd/Ctrl+K, Enter to `/search?q=`, one list of hits since 046, arrow keys, a note hit and an entry hit open in the workspace, Back and reload keep the results; the phone header link), and find in page (Cmd/Ctrl+F) in a note (count, Enter/Shift+Enter, Escape clears, note not edited) and on a week (not from the sidebar). Screenshots go to `docs/review/screenshots/sprint-042/`. |
 | `search-results-layout.spec.ts` | Sprint 046-CL: `/search` interleaves notes and time entries newest first, type icons labelled "Note" / "Time entry", client / contract on every hit, arrow keys walk the list; desktop icon column, phone (320 and 390 px) icon on the client/contract line with no sideways scroll; hits open their note or week. Screenshots go to `docs/review/screenshots/sprint-046/`. |
+| `client-colours.spec.ts` | Sprint 044-CL (own user): two active clients sharing a colour show the hint in Settings → Clients; the New client form suggests the first unused colour and the created client has it; the API default is the next unused one; archiving one of the pair removes the hint. Screenshot `sprint-044`. |
+| `two-factor-login.spec.ts` | Sprint 044-CL: a fresh user (own context) registers (the client-side move /register → /login → / must not throw "Navigation context not found"), enables TOTP in Settings with a code computed in the test (RFC 6238, HMAC-SHA1 via `node:crypto`; the helper is checked against the RFC test vector), signs out, signs in with the password, a wrong code is refused, a fresh code lands in the app. Screenshots `sprint-044`. |
 | `work-type-consistency.spec.ts` | Sprint 032-CL: changing the deliverable resets the work type picker to none in the card editor and the add-entry row, and the saved entry matches; an API `work_type_mismatch` message shows in the card's error line. |
 
 ### Project Configuration
@@ -65,6 +67,26 @@ The `playwright.config.ts` defines three projects:
 
 Both chromium and webkit depend on `auth-setup`, so authentication runs once and is
 shared across all browser projects.
+
+### Screenshots for sprint reviews
+
+Specs that take review screenshots get their folder from `sprintScreenshotDirectory('sprint-0NN')`
+(`sprint-screenshots.ts`). By default it is `test-results/sprint-screenshots/sprint-0NN/`, so a full
+run no longer rewrites every sprint's committed images. To refresh a sprint's images in
+`docs/review/screenshots/sprint-0NN/`, run its spec with `UPDATE_SPRINT_SCREENSHOTS=1`:
+
+```bash
+UPDATE_SPRINT_SCREENSHOTS=1 npx playwright test e2e-playwright/two-factor-login.spec.ts --project=chromium
+```
+
+### Tests that need their own user
+
+Every spec shares one user, and chromium and webkit run at the same time. A test that changes
+state the whole user sees (the client order, cards on a given day) can be upset by the same test in
+the other browser. Such a test calls `signInAsFreshUser(page, baseURL, label)` (`fresh-user.ts`)
+first; it signs the context up as a new user (`$E2E_USER_PREFIX-<label>-…`). Used by the two
+client-reorder tests, journey J2 and the client colour test (044-CL), which were flaky in WebKit for this reason and
+because they reloaded while a save was still in flight; they now wait for the server state.
 
 ### Auth Pattern
 

@@ -11,8 +11,9 @@
  * user of their own. Screenshots are taken in chromium only.
  */
 import { test, expect, type Page, type TestInfo } from '@playwright/test';
+import { sprintScreenshotDirectory } from './sprint-screenshots';
 
-const SCREENSHOT_DIRECTORY = 'docs/review/screenshots/sprint-041';
+const SCREENSHOT_DIRECTORY = sprintScreenshotDirectory('sprint-041');
 
 async function open(page: Page, path: string) {
 	await page.goto(path);

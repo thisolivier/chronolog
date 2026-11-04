@@ -5,10 +5,10 @@
  */
 import { test, expect, type Page } from '@playwright/test';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { createContract, editor } from './notes-helpers';
+import { sprintScreenshotDirectory } from './sprint-screenshots';
 
-const SCREENSHOTS = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'review', 'screenshots', 'sprint-042');
+const SCREENSHOTS = sprintScreenshotDirectory('sprint-042');
 const ENTRY_DATE = '2026-10-20';
 const ENTRY_WEEK = '2026-W43';
 
