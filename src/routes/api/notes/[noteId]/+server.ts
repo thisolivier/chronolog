@@ -7,6 +7,8 @@ import {
 	NoteConflictError
 } from '$lib/server/db/queries/notes';
 import { updateNoteLinks } from '$lib/server/db/queries/note-links';
+import { readJsonObject } from '$lib/server/api-request';
+import { apiError } from '$lib/server/api-errors';
 
 /**
  * GET /api/notes/[noteId]
@@ -39,8 +41,21 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 	const currentUser = locals.user;
 	if (!currentUser) throw error(401, 'Unauthorized');
 
-	const body = await request.json();
-	const { title, content, contentJson, contractId, expectedUpdatedAt } = body;
+	const parsedBody = await readJsonObject(request);
+	if (!parsedBody.ok) return parsedBody.response;
+	const body = parsedBody.body;
+	const { title, content, contentJson, contractId, expectedUpdatedAt } = body as {
+		title?: string;
+		content?: string;
+		contentJson?: string;
+		contractId?: string;
+		expectedUpdatedAt?: string;
+	};
+	for (const [fieldName, value] of Object.entries({ title, content, contentJson, contractId, expectedUpdatedAt })) {
+		if (value !== undefined && value !== null && typeof value !== 'string') {
+			return apiError(400, `${fieldName} must be text`, 'bad_request');
+		}
+	}
 
 	let expectedDate: Date | undefined;
 	if (expectedUpdatedAt !== undefined) {

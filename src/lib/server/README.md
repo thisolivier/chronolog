@@ -50,6 +50,8 @@ so there is no SQL ILIKE on encrypted columns.
   hash in `api_tokens`, `Authorization: Bearer` resolved in `hooks.server.ts` after the device gate,
   401 `invalid_token` / 403 `token_revoked` / 429 `rate_limited`. See `auth-tokens/README.md`.
 - `api-errors.ts` -- every `/api/*` error outside `/api/auth` is `{ error, code, message }`.
+- `api-request.ts` -- `readJsonObject` (a bad or non-object body is `400 invalid_json`, used by every
+  route that reads JSON) and `readRequestTimezone` (`?tz=` / `X-Timezone`, used by `/api/me` and note IDs).
 
 ### Database (`db/`)
 

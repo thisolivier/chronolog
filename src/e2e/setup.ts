@@ -20,7 +20,7 @@ const AUTH_ORIGIN = process.env.BETTER_AUTH_URL || 'http://localhost:5173';
 const testRunId = Date.now().toString(36);
 const TEST_USER = {
 	name: 'E2E Test User',
-	email: `e2e-${testRunId}@test.chronolog.dev`,
+	email: `${process.env.E2E_USER_PREFIX ?? 'e2e'}-${testRunId}@test.chronolog.dev`,
 	password: 'TestPassword123!'
 };
 

@@ -133,10 +133,20 @@ export async function fetchJson<ResponseType>(
 	return body;
 }
 
+/** The browser's IANA timezone; the server dates new note IDs with it (sprint 029-CL). */
+function browserTimezone(): string {
+	try {
+		return Intl.DateTimeFormat().resolvedOptions().timeZone;
+	} catch {
+		return '';
+	}
+}
+
 export async function postJson<ResponseType>(url: string, body: unknown): Promise<ResponseType> {
+	const timezone = browserTimezone();
 	return fetchJson<ResponseType>(url, {
 		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
+		headers: { 'Content-Type': 'application/json', ...(timezone ? { 'X-Timezone': timezone } : {}) },
 		body: JSON.stringify(body)
 	});
 }

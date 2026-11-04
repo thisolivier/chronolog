@@ -1,4 +1,5 @@
-import { eq, and, desc, gt, like } from "drizzle-orm";
+import { eq, and, desc, gt, like, sql } from "drizzle-orm";
+import { localDateString } from '$lib/utils/local-calendar';
 import { database, notes, noteTimeEntries, contracts, clients, timeEntries } from "$lib/server/db";
 import { decryptNullable, decryptText, encryptNullable } from '$lib/server/crypto/server-cipher';
 
@@ -58,90 +59,100 @@ export async function getNoteForUser(noteId: string, userId: string) {
 	return decryptOptionalNote(results[0]);
 }
 
-/**
- * Generates the next note ID for a given contract
- * Format: CLIENT_SHORT_CODE.YYYYMMDD.SEQ
- * Example: BIGCH.20260207.001
- */
-export async function getNextNoteId(contractId: string): Promise<string> {
-	// Get the client's short code via the contract
-	const contractData = await database
-		.select({
-			shortCode: clients.shortCode
-		})
+type Transaction = Parameters<Parameters<typeof database.transaction>[0]>[0];
+type QueryExecutor = typeof database | Transaction;
+
+/** When and where a note is created: its ID carries the creator's local date (sprint 029-CL). */
+export interface NoteClock {
+	/** The instant of creation; defaults to now. */
+	now?: Date;
+	/** IANA zone the date is read in (`X-Timezone` / `?tz=`, as for `GET /api/me`); defaults to the server's. */
+	timezone?: string;
+}
+
+/** `YYYYMMDD` for the clock's instant in its timezone. */
+export function noteIdDate(clock: NoteClock = {}): string {
+	const timezone = clock.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+	return localDateString(clock.now ?? new Date(), timezone).replace(/-/g, '');
+}
+
+async function shortCodeForContract(contractId: string, executor: QueryExecutor): Promise<string> {
+	const contractData = await executor
+		.select({ shortCode: clients.shortCode })
 		.from(contracts)
 		.innerJoin(clients, eq(contracts.clientId, clients.id))
 		.where(eq(contracts.id, contractId))
 		.limit(1);
+	if (!contractData.length) throw new Error('Contract not found');
+	return contractData[0].shortCode;
+}
 
-	if (!contractData.length) {
-		throw new Error('Contract not found');
-	}
+/**
+ * Generates the next note ID for a given contract
+ * Format: CLIENT_SHORT_CODE.YYYYMMDD.SEQ, the date in the creator's timezone
+ * Example: BIGCH.20260207.001
+ *
+ * Read-only: two callers can get the same answer. `createNoteForUser` calls it inside a
+ * transaction holding an advisory lock on the ID prefix, so creates never collide.
+ */
+export async function getNextNoteId(
+	contractId: string,
+	clock: NoteClock = {},
+	executor: QueryExecutor = database
+): Promise<string> {
+	const shortCode = await shortCodeForContract(contractId, executor);
+	const prefix = `${shortCode}.${noteIdDate(clock)}.`;
 
-	const shortCode = contractData[0].shortCode;
-	const today = new Date();
-	const dateStr = today.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
-
-	// Find existing notes for this client+date
-	const prefix = `${shortCode}.${dateStr}.`;
-	const existingNotes = await database
+	const existingNotes = await executor
 		.select({ id: notes.id })
 		.from(notes)
-		.where(like(notes.id, `${prefix}%`))
-		.orderBy(desc(notes.id));
+		.where(like(notes.id, `${prefix}%`));
 
-	// Determine next sequence number
-	let nextSeq = 1;
-	if (existingNotes.length > 0) {
-		const lastId = existingNotes[0].id;
-		const lastSeqStr = lastId.split('.')[2];
-		const lastSeq = parseInt(lastSeqStr, 10);
-		nextSeq = lastSeq + 1;
-	}
+	// Highest numeric sequence (not string order: .1000 sorts before .999)
+	const lastSeq = existingNotes.reduce((highest, row) => {
+		const sequence = Number.parseInt(row.id.slice(prefix.length), 10);
+		return Number.isFinite(sequence) && sequence > highest ? sequence : highest;
+	}, 0);
 
-	const seqStr = nextSeq.toString().padStart(3, '0');
-	return `${shortCode}.${dateStr}.${seqStr}`;
+	return `${prefix}${String(lastSeq + 1).padStart(3, '0')}`;
 }
 
-/** Postgres unique_violation, raised when two creates race for the same next note ID */
-function isUniqueViolation(error: unknown): boolean {
-	const candidate = error as { code?: string; cause?: { code?: string } } | null;
-	return candidate?.code === '23505' || candidate?.cause?.code === '23505';
-}
-
-const CREATE_NOTE_ATTEMPTS = 5;
-
+/**
+ * Creates a note with the next ID for its client and the creator's local date. The ID is
+ * allocated and inserted in one transaction holding `pg_advisory_xact_lock` on the ID prefix
+ * (`SHORTCODE.YYYYMMDD.`), so parallel creates queue for a moment instead of colliding.
+ */
 export async function createNoteForUser(
 	userId: string,
 	contractId: string,
 	title?: string,
 	content?: string,
-	contentJson?: string
+	contentJson?: string,
+	clock: NoteClock = {}
 ) {
 	const wordCount = contentJson ? calculateWordCountFromJson(contentJson) : 0;
+	const fixedClock = { ...clock, now: clock.now ?? new Date() };
 
-	// IDs are "next sequence number for client+day": concurrent creates can pick the same
-	// one, so retry with a fresh ID on a unique-key conflict.
-	for (let attempt = 1; ; attempt += 1) {
-		const noteId = await getNextNoteId(contractId);
-		try {
-			const results = await database
-				.insert(notes)
-				.values({
-					id: noteId,
-					userId,
-					contractId,
-					title: encryptNullable(title ?? null),
-					content: encryptNullable(content ?? null),
-					contentJson: encryptNullable(contentJson ?? null),
-					wordCount
-				})
-				.returning();
-			return decryptNote(results[0]);
-		} catch (error) {
-			if (!isUniqueViolation(error) || attempt >= CREATE_NOTE_ATTEMPTS) throw error;
-		}
-	}
+	return database.transaction(async (transaction) => {
+		const shortCode = await shortCodeForContract(contractId, transaction);
+		const lockKey = `note-id:${shortCode}.${noteIdDate(fixedClock)}`;
+		await transaction.execute(sql`select pg_advisory_xact_lock(hashtext(${lockKey}))`);
+
+		const noteId = await getNextNoteId(contractId, fixedClock, transaction);
+		const results = await transaction
+			.insert(notes)
+			.values({
+				id: noteId,
+				userId,
+				contractId,
+				title: encryptNullable(title ?? null),
+				content: encryptNullable(content ?? null),
+				contentJson: encryptNullable(contentJson ?? null),
+				wordCount
+			})
+			.returning();
+		return decryptNote(results[0]);
+	});
 }
 
 /** Thrown by `updateNoteForUser` when `expectedUpdatedAt` no longer matches the row */

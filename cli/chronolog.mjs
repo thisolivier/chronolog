@@ -13,6 +13,7 @@ import { ApiError, createApiClient } from './lib/api.mjs';
 import { ReferenceError_ } from './lib/resolve.mjs';
 import * as read from './commands/read.mjs';
 import * as write from './commands/write.mjs';
+import * as correct from './commands/correct.mjs';
 import { init } from './commands/init.mjs';
 
 const USAGE = `Usage: chronolog <command> [arguments] [--json]
@@ -23,6 +24,8 @@ const USAGE = `Usage: chronolog <command> [arguments] [--json]
   contracts [client]                     list contracts (optionally one client's)
   week [2026-W45] [--client X | --contract X]   entries and totals for a week (default: current)
   log <contract> <duration> "<desc>" [--date D] [--deliverable X] [--note ID]
+  edit <entry-id> [--duration D] [--description "..."] [--date D] [--deliverable X|none]
+  undo                                   delete the last entry this CLI logged
   note new <contract> "<title>" [--file body.md]   body from --file or stdin
   note show <note-id>
   notes <contract> [--since YYYY-MM-DD]
@@ -42,6 +45,8 @@ const COMMANDS = {
 	search: read.search,
 	log: write.log,
 	status: write.status,
+	edit: correct.edit,
+	undo: correct.undo,
 	'note new': write.noteNew,
 	'note show': read.noteShow
 };
@@ -82,8 +87,9 @@ export async function main(argv, environment = process.env) {
 		}
 		const command = COMMANDS[commandName];
 		if (!command) throw new UsageError(`Unknown command “${commandName}”. Run chronolog --help.`);
-		const api = createApiClient(loadConfig(environment));
-		await command({ api, print, positionals: rest, flags });
+		const config = loadConfig(environment);
+		const api = createApiClient(config);
+		await command({ api, print, positionals: rest, flags, config, environment });
 		return 0;
 	} catch (failure) {
 		const exitCode = exitCodeFor(failure);

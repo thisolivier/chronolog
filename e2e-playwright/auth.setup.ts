@@ -17,7 +17,7 @@ const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 
 /** Test user credentials — unique per Playwright run to avoid collisions */
 const TEST_USER_NAME = 'Playwright Tester';
-const TEST_USER_EMAIL = `pw-test-${Date.now()}@chronolog.test`;
+const TEST_USER_EMAIL = `${process.env.E2E_USER_PREFIX ?? 'pw-test'}-${Date.now()}@chronolog.test`;
 const TEST_USER_PASSWORD = 'TestPassword123!';
 
 export const STORAGE_STATE_PATH = path.join(

@@ -9,10 +9,10 @@ Notes use human-readable IDs in the format: `CLIENT_SHORT_CODE.YYYYMMDD.SEQ`
 Example: `BIGCH.20260207.001`
 
 - `CLIENT_SHORT_CODE`: The parent client's short code
-- `YYYYMMDD`: Creation date
+- `YYYYMMDD`: Creation date in the creator's timezone (`X-Timezone` header or `?tz=`, the same source as `GET /api/me`; the browser and the CLI both send the header; default the server's zone)
 - `SEQ`: Zero-padded sequence number (001, 002, etc.)
 
-The ID is auto-generated when creating a note.
+The ID is auto-generated when creating a note. It is allocated and inserted in one transaction holding `pg_advisory_xact_lock` on the `SHORTCODE.YYYYMMDD.` prefix, so parallel creates queue briefly and never collide (sprint 029-CL). Sequences above 999 keep counting (`.1000`).
 
 ## Routes
 
@@ -63,7 +63,7 @@ Creates a new note with an auto-generated ID.
 }
 ```
 
-- `contractId` (required): The contract this note belongs to
+- `contractId` (required): The contract this note belongs to. A contract that is not the caller's is `403 contract_forbidden`; a body that is not a JSON object is `400 invalid_json`.
 - `title` (optional): Note title
 - `content` (optional): Markdown content
 - `contentJson` (optional): TipTap JSON for rich text rendering

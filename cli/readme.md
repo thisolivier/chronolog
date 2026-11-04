@@ -2,7 +2,7 @@
 
 Command-line client for the Chronolog REST API. The laptop Claude secretary uses it to read and write time entries and notes for one signed-in user. It authenticates with a personal API token (see `src/lib/server/auth-tokens/README.md`).
 
-Node 20+, no dependencies. It talks only to `/api/*`; the only local state is the config file.
+Node 20+, no dependencies. It talks only to `/api/*`; the only local state is the config file and `last-entry.json` beside it (the entry `undo` would delete).
 
 ## Install
 
@@ -40,6 +40,8 @@ Environment variables win over the file:
 - `note new <contract> "<title>" [--file body.md]` (body from `--file` or stdin), `note show <note-id>`
 - `notes <contract> [--since YYYY-MM-DD]`, `search "<words or note id>" [--limit N]`
 - `status <2026-W45|current> <unsubmitted|draft-ready|submitted>`
+- `edit <entry-id> [--duration D] [--description "..."] [--date D] [--deliverable X|none]`: change one entry (`PATCH /api/time-entries/<id>`); only the flags given change. A plain duration clears an old start/end range; a range sets a new one.
+- `undo`: delete the last entry this CLI logged. `log` records it in `last-entry.json` next to the config file; `undo` deletes it once and forgets it. It refuses (exit 2) when nothing is recorded or the record is for another server. Entries made in the app or edited are not undoable this way.
 
 Add `--json` for machine-readable stdout. Errors then go to stderr as `{"error","code","status","candidates"}`.
 
@@ -68,7 +70,9 @@ cli/lib/config.mjs        config path, environment overrides, mode 600 writes
 cli/lib/api.mjs           HTTP client: bearer token, device key, X-Timezone, ApiError
 cli/lib/resolve.mjs       reference matching for contracts, clients, deliverables
 cli/lib/dates.mjs         ISO weeks, --date words, duration formatting
+cli/lib/history.mjs       last-entry.json: the entry `undo` deletes
 cli/commands/read.mjs     me, clients, contracts, week, notes, note show, search
 cli/commands/write.mjs    log, note new, status
+cli/commands/correct.mjs  edit, undo
 cli/commands/init.mjs     setup: prompts (hidden input) or piped lines, then GET /api/me
 ```

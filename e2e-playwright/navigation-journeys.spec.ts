@@ -88,7 +88,7 @@ test('J1: settings and back keeps the note; a moved note stays open under its ne
 	await open(page, `/notes/${data.contractA}/${data.noteA}`);
 	await expect(editor(page)).toContainText('Alpha');
 
-	await page.getByRole('link', { name: 'Settings' }).click();
+	await page.getByRole('link', { name: 'Settings', exact: true }).click();
 	await expect(page).toHaveURL(/\/settings/);
 	await page.getByRole('link', { name: 'Back to app' }).click();
 	await expect(page).toHaveURL(`/notes/${data.contractA}/${data.noteA}`);

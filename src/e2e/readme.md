@@ -25,6 +25,12 @@ To override the base URL:
 E2E_BASE_URL=http://127.0.0.1:3000 npm run test:e2e
 ```
 
+Against a sprint worktree's dev server (Vite listens on `localhost`), with the test user named
+after the sprint (`E2E_USER_PREFIX`, default `e2e`):
+```bash
+E2E_USER_PREFIX=qa-029-e2e E2E_BASE_URL=http://localhost:5207 BETTER_AUTH_URL=http://localhost:5207 npm run test:e2e
+```
+
 ## Architecture
 
 ### Setup Flow
@@ -53,6 +59,7 @@ E2E_BASE_URL=http://127.0.0.1:3000 npm run test:e2e
 | `search.e2e.test.ts` | GET /api/notes/search |
 | `attachments-offline.e2e.test.ts` | Attachment upload, metadata listing, download and delete |
 | `api-tokens-cli.e2e.test.ts` | /api/tokens, bearer auth, /api/me, error shape, GET /api/time-entries range, the `chronolog` CLI as a child process, revoked token 403 |
+| `api-hardening-cli.e2e.test.ts` | Malformed JSON bodies are 400 `invalid_json`, eight parallel note creates, note ID date in `X-Timezone`, `chronolog edit` and `chronolog undo` |
 
 ## Configuration
 

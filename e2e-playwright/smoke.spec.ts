@@ -51,7 +51,7 @@ test.describe('Authenticated', () => {
 
 		// The sidebar should show "Time Entries" button and "Contracts" heading
 		await expect(page.getByRole('button', { name: 'Time Entries' })).toBeVisible({ timeout: 10000 });
-		await expect(page.getByText('Contracts')).toBeVisible();
+		await expect(page.getByText('Contracts', { exact: true })).toBeVisible();
 	});
 
 	test('sidebar shows the auto-created "General" contract', async ({ page }) => {

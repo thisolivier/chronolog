@@ -6,6 +6,10 @@ import {
 	linkTimeEntryToNote,
 	unlinkTimeEntryFromNote
 } from '$lib/server/db/queries/notes';
+import { readJsonObject } from '$lib/server/api-request';
+import { getTimeEntryForUser } from '$lib/server/db/queries/time-entries';
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * GET /api/notes/[noteId]/time-entries
@@ -39,11 +43,19 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
 	const note = await getNoteForUser(noteId, currentUser.id);
 	if (!note) throw error(404, 'Note not found');
 
-	const body = await request.json();
+	const parsedBody = await readJsonObject(request);
+	if (!parsedBody.ok) return parsedBody.response;
+	const body = parsedBody.body;
 	const { timeEntryId, headingAnchor } = body;
-	if (!timeEntryId) throw error(400, 'timeEntryId is required');
+	if (!timeEntryId || typeof timeEntryId !== 'string') throw error(400, 'timeEntryId is required');
+	if (headingAnchor !== undefined && headingAnchor !== null && typeof headingAnchor !== 'string') {
+		throw error(400, 'headingAnchor must be text');
+	}
+	if (!UUID_PATTERN.test(timeEntryId) || !(await getTimeEntryForUser(timeEntryId, currentUser.id))) {
+		throw error(404, 'Time entry not found');
+	}
 
-	const link = await linkTimeEntryToNote(noteId, timeEntryId, headingAnchor);
+	const link = await linkTimeEntryToNote(noteId, timeEntryId, headingAnchor ?? undefined);
 	return json({ link });
 };
 
@@ -61,9 +73,11 @@ export const DELETE: RequestHandler = async ({ locals, params, request }) => {
 	const note = await getNoteForUser(noteId, currentUser.id);
 	if (!note) throw error(404, 'Note not found');
 
-	const body = await request.json();
+	const parsedBody = await readJsonObject(request);
+	if (!parsedBody.ok) return parsedBody.response;
+	const body = parsedBody.body;
 	const { timeEntryId } = body;
-	if (!timeEntryId) throw error(400, 'timeEntryId is required');
+	if (!timeEntryId || typeof timeEntryId !== 'string') throw error(400, 'timeEntryId is required');
 
 	await unlinkTimeEntryFromNote(noteId, timeEntryId);
 	return json({ success: true });

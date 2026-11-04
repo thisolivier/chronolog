@@ -3,27 +3,38 @@ import type { RequestHandler } from './$types';
 import { updateTimeEntry } from '$lib/server/db/queries/time-entries';
 import { validateDurationMinutes } from '$lib/utils/duration';
 import { readLocalTime } from '../local-clock';
+import { readJsonObject } from '$lib/server/api-request';
+import { checkContractAccess } from '../../time-entries/entry-input';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
 	const currentUser = locals.user;
 	if (!currentUser) throw error(401, 'Unauthorized');
 
-	const body = await request.json();
+	const parsedBody = await readJsonObject(request);
+	if (!parsedBody.ok) return parsedBody.response;
+	const body = parsedBody.body;
 	const { entryId, contractId, deliverableId, workTypeId, description } = body;
 
-	if (!entryId) {
+	if (!entryId || typeof entryId !== 'string') {
 		throw error(400, 'entryId is required');
 	}
-	if (!contractId) {
+	if (!contractId || typeof contractId !== 'string') {
 		throw error(400, 'contractId is required to save a time entry');
 	}
+	for (const [fieldName, value] of Object.entries({ deliverableId, workTypeId, description })) {
+		if (value !== undefined && value !== null && typeof value !== 'string') {
+			throw error(400, `${fieldName} must be text`);
+		}
+	}
+	const accessProblem = await checkContractAccess(currentUser.id, contractId, (deliverableId as string | null) || null);
+	if (accessProblem) return accessProblem;
 
 	// Optional adjustment from the completion form: a new duration, with or without a range
 	const adjustedTime: { durationMinutes?: number; startTime?: string | null; endTime?: string | null } = {};
 	if (body.durationMinutes !== undefined) {
 		const durationError = validateDurationMinutes(body.durationMinutes);
 		if (durationError) throw error(400, durationError);
-		adjustedTime.durationMinutes = body.durationMinutes;
+		adjustedTime.durationMinutes = body.durationMinutes as number;
 		adjustedTime.startTime = readLocalTime(body.startTime) ?? null;
 		adjustedTime.endTime = readLocalTime(body.endTime) ?? null;
 	}
@@ -31,9 +42,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 	const savedEntry = await updateTimeEntry(entryId, currentUser.id, {
 		...adjustedTime,
 		contractId,
-		deliverableId: deliverableId || null,
-		workTypeId: workTypeId || null,
-		description: description || null,
+		deliverableId: (deliverableId as string | null) || null,
+		workTypeId: (workTypeId as string | null) || null,
+		description: (description as string | null) || null,
 		isDraft: false
 	});
 

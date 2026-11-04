@@ -2,17 +2,12 @@ import { json } from '@sveltejs/kit';
 import { createTimeEntry, listTimeEntriesInRange } from '$lib/server/db/queries/time-entries';
 import { getNoteForUser, linkTimeEntryToNote } from '$lib/server/db/queries/notes';
 import { extractDescriptionLinks } from '$lib/utils/reconcile-description-links';
-import { parseDuration, validateDurationMinutes } from '$lib/utils/duration';
 import { apiError } from '$lib/server/api-errors';
+import { readJsonObject } from '$lib/server/api-request';
+import { checkContractAccess, isValidDate, readDurationFields, UUID_PATTERN } from './entry-input';
 import type { RequestHandler } from './$types';
 
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_RANGE_DAYS = 366;
-
-function isValidDate(value: string | null): value is string {
-	return value !== null && DATE_PATTERN.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
-}
 
 /**
  * GET /api/time-entries?from=YYYY-MM-DD&to=YYYY-MM-DD[&contractId=]
@@ -51,67 +46,62 @@ export const GET: RequestHandler = async ({ url, locals }) => {
  * (`1h30m`, `1.5`, `1:30`, `90m`, `9:00-10:30`; a range also sets start and end times).
  * `noteId` links the entry to a note by appending `[[noteId]]` to the description, which is how
  * the UI records entry–note links; an unknown note is a 404 and nothing is created.
+ * A contract that is not the caller's is a 403 `contract_forbidden`.
  */
 export const POST: RequestHandler = async ({ request, locals }) => {
 	const currentUser = locals.user;
 	if (!currentUser) return apiError(401, 'Unauthorized');
 
-	const body = await request.json().catch(() => null);
-	if (!body || typeof body !== 'object') return apiError(400, 'Invalid JSON body');
-	const { date, contractId, deliverableId, workTypeId, noteId } = body;
-	let { durationMinutes, description, startTime, endTime } = body;
+	const parsedBody = await readJsonObject(request);
+	if (!parsedBody.ok) return parsedBody.response;
+	const body = parsedBody.body;
+	const { date, contractId, noteId } = body;
+	const deliverableId = typeof body.deliverableId === 'string' && body.deliverableId ? body.deliverableId : null;
+	const workTypeId = typeof body.workTypeId === 'string' && body.workTypeId ? body.workTypeId : null;
+	let description = typeof body.description === 'string' ? body.description : '';
 
-	if (typeof body.duration === 'string' && durationMinutes === undefined) {
-		const parsedDuration = parseDuration(body.duration);
-		if (!parsedDuration.ok) return apiError(400, parsedDuration.error, 'invalid_duration');
-		durationMinutes = parsedDuration.durationMinutes;
-		if (parsedDuration.kind === 'range') {
-			startTime = startTime ?? parsedDuration.startTime;
-			endTime = endTime ?? parsedDuration.endTime;
-		}
-	}
+	const durationFields = readDurationFields(body);
+	if (durationFields instanceof Response) return durationFields;
 
-	if (!date || durationMinutes === undefined || !contractId) {
+	if (!date || !durationFields || !contractId) {
 		return apiError(400, 'Missing required fields: date, durationMinutes (or duration), contractId');
 	}
 	if (!isValidDate(date)) return apiError(400, 'date must be YYYY-MM-DD', 'invalid_date');
-	if (!UUID_PATTERN.test(contractId)) return apiError(400, 'contractId must be a UUID', 'invalid_contract');
-
-	const durationError = validateDurationMinutes(Number(durationMinutes));
-	if (durationError) return apiError(400, durationError, 'invalid_duration');
+	if (typeof contractId !== 'string') return apiError(400, 'contractId must be a UUID', 'invalid_contract');
+	const accessProblem = await checkContractAccess(currentUser.id, contractId, deliverableId);
+	if (accessProblem) return accessProblem;
 
 	if (noteId !== undefined && noteId !== null && noteId !== '') {
 		const note = await getNoteForUser(String(noteId), currentUser.id);
 		if (!note) return apiError(404, `Note ${noteId} not found`, 'note_not_found');
 		const reference = `[[${note.id}]]`;
-		if (!String(description ?? '').includes(reference)) {
+		if (!description.includes(reference)) {
 			description = description ? `${description} ${reference}` : reference;
 		}
 	}
 
+	const startTime = (typeof body.startTime === 'string' && body.startTime) || durationFields.startTime || null;
+	const endTime = (typeof body.endTime === 'string' && body.endTime) || durationFields.endTime || null;
+
 	const entry = await createTimeEntry({
 		userId: currentUser.id,
 		contractId,
-		deliverableId: deliverableId || null,
-		workTypeId: workTypeId || null,
+		deliverableId,
+		workTypeId,
 		date,
-		durationMinutes: Number(durationMinutes),
+		durationMinutes: durationFields.durationMinutes,
 		description: description || null,
-		startTime: startTime || null,
-		endTime: endTime || null,
+		startTime,
+		endTime,
 		isDraft: false
 	});
 
 	// Reconcile wiki-link references in description
-	if (description) {
-		const desiredLinks = extractDescriptionLinks(description);
-
-		for (const link of desiredLinks) {
-			try {
-				await linkTimeEntryToNote(link.noteId, entry.id, link.headingAnchor);
-			} catch {
-				// Silently ignore if note doesn't exist
-			}
+	for (const link of extractDescriptionLinks(description)) {
+		try {
+			await linkTimeEntryToNote(link.noteId, entry.id, link.headingAnchor);
+		} catch {
+			// Silently ignore if note doesn't exist
 		}
 	}
 

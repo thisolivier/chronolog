@@ -1,9 +1,12 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { searchNotesForUser } from '$lib/server/db/queries/notes';
+import { apiError } from '$lib/server/api-errors';
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
+/** Longest query accepted (from `fix/time-entry-search-input-validation`, sprint 029-CL). */
+const MAX_QUERY_LENGTH = 200;
 
 /**
  * GET /api/notes/search?q=&exclude=&limit=&recent=1
@@ -20,6 +23,9 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	const wantsRecent = url.searchParams.get('recent') === '1';
 	if (!query && !wantsRecent) {
 		return json({ notes: [] });
+	}
+	if (query.length > MAX_QUERY_LENGTH) {
+		return apiError(400, `Search query must not exceed ${MAX_QUERY_LENGTH} characters`, 'query_too_long');
 	}
 
 	const requestedLimit = Number.parseInt(url.searchParams.get('limit') ?? '', 10);
