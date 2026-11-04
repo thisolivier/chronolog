@@ -54,7 +54,7 @@ Mode-aware layout container. It picks the branch from the breakpoints above. On 
 
 ### ConnectionStatus.svelte
 
-Offline banner, rendered by AppShell and by `SettingsShell`. It reads `src/lib/stores/connectivity.svelte.ts` and takes the current mode, so the message says what does and does not work offline (time entries, notes, or neither). It subscribes to the browser's `online`/`offline` events in `onMount`, not `$effect`: the subscription reads connectivity state, so an effect would re-run on each request failure and reset the banner to "Back online".
+Offline banner, rendered by AppShell and by `SettingsShell`. It reads `src/lib/stores/connectivity.svelte.ts` and takes the current mode, so the message says what works offline (note and time entry changes are kept on the device and sent on reconnect, sprint 045-CL). It shows the offline outbox's queued count, stays up online while changes wait or are held, and its "Review" button opens `$lib/offline/OutboxHeldPanel.svelte`. `NoteListRow`, the note editor header and `TimeEntryCard` carry an `OutboxMarker` (queued / held / replayed). It subscribes to the browser's `online`/`offline` events in `onMount`, not `$effect`: the subscription reads connectivity state, so an effect would re-run on each request failure and reset the banner to "Back online".
 
 ### ContractsSidebar.svelte
 

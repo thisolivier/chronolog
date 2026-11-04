@@ -187,7 +187,9 @@ async function replayItem(
 					finishItem(access, item, (current) => {
 						if (current.kind === 'note-create') current.realUpdatedAt = saved.updatedAt;
 					});
-					hooks.onNoteUpdated?.(noteId, [item.queuedAt], saved.updatedAt);
+					// An editor may hold the queued time or the create's answer as its base
+					const superseded = [item.queuedAt, item.realUpdatedAt].filter((value): value is string => Boolean(value));
+					hooks.onNoteUpdated?.(noteId, superseded, saved.updatedAt);
 					hooks.onReplayed?.('note', noteId);
 					return true;
 				} catch (error) {

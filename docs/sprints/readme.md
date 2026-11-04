@@ -5,6 +5,7 @@
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
 | 018-QA | QA | Manual testing backlog | superseded by docs/review/2026-11-03-qa-state.md |
+| 045-CL | Client | Offline outbox: persistent read cache, write outbox, held conflicts, app-shell service worker | ready for review |
 
 ## Completed Sprints
 

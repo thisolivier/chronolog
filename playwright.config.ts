@@ -19,7 +19,11 @@ export default defineConfig({
 	use: {
 		baseURL: BASE_URL,
 		trace: 'on-first-retry',
-		screenshot: 'only-on-failure'
+		screenshot: 'only-on-failure',
+		// The app's service worker (sprint 045-CL) is off by default: Playwright's request routing
+		// does not see requests a worker answers, and in WebKit the two together fail requests.
+		// offline-outbox.spec.ts turns it on where it is under test.
+		serviceWorkers: 'block'
 	},
 	projects: [
 		// --- Auth setup (runs first, no browser filter) ---

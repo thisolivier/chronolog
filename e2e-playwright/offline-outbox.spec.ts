@@ -243,4 +243,53 @@ test.describe('offline outbox', () => {
 		await expect.poll(async () => (await serverNote(page, realId)).content, { timeout: 10000 }).toContain('and after arriving');
 		await expect(page.getByTestId('save-status')).not.toHaveAttribute('data-status', 'conflict');
 	});
+
+	test("a time entry changed on both sides is held and \"keep the server's\" drops mine", async ({ page, context, browser, baseURL }) => {
+		await signInAsFreshUser(page, baseURL, 'entry');
+		await openHome(page);
+		const seeded = await seed(page);
+		const original = `Original entry ${Date.now().toString(36)}`;
+		const entryId = await page.evaluate(
+			async ({ contractId, date, description }) => {
+				const response = await fetch('/api/time-entries', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ contractId, date, durationMinutes: 30, description })
+				});
+				return (await response.json()).entry.id as string;
+			},
+			{ contractId: seeded.contractId, date: seeded.today, description: original }
+		);
+		await page.goto('/time');
+		const card = page.locator(`[data-entry-id="${entryId}"]`);
+		await expect(card).toContainText(original);
+
+		await goOffline(context, page);
+		await card.getByTitle('Click to edit description').click();
+		await page.keyboard.press('ControlOrMeta+a');
+		await page.keyboard.type('Mine from offline');
+		await page.keyboard.press('Enter');
+		await expect(card).toContainText('Mine from offline');
+		await expect(card.getByTestId('outbox-marker')).toHaveAttribute('data-outbox-status', 'queued');
+
+		const otherDevice = await browser.newContext({ storageState: await context.storageState() });
+		const otherSave = await otherDevice.request.put(`/api/time-entries/${entryId}`, { data: { description: 'Laptop description' } });
+		expect(otherSave.ok()).toBe(true);
+		await otherDevice.close();
+
+		await context.setOffline(false);
+		await expect(card.getByTestId('outbox-marker')).toHaveAttribute('data-outbox-status', 'held', { timeout: 20000 });
+		await page.getByTestId('outbox-review-held').first().click();
+		const panel = page.getByTestId('outbox-held-panel');
+		const row = panel.getByRole('row', { name: /Description/ });
+		await expect(row).toContainText('Laptop description');
+		await expect(row).toContainText('Mine from offline');
+		await panel.getByRole('button', { name: 'Keep the server’s' }).click();
+		await page.keyboard.press('Escape');
+
+		await expect(card).toContainText('Laptop description');
+		await expect(card.getByTestId('outbox-marker')).toHaveCount(0);
+		const server = await page.evaluate(async (id) => (await (await fetch(`/api/time-entries/${id}`)).json()).entry, entryId);
+		expect(server.description).toBe('Laptop description');
+	});
 });
