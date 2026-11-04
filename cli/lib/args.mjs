@@ -42,7 +42,7 @@ export function parseArguments(argv, booleanFlags = BOOLEAN_FLAGS) {
 }
 
 /** Commands written as two words (`note new`, `client add`, `attachment get`); `tag`/`tags` are the owner's word for work types. */
-const COMMAND_GROUPS = new Set(['note', 'client', 'contract', 'deliverable', 'work-type', 'attachment']);
+const COMMAND_GROUPS = new Set(['note', 'client', 'contract', 'deliverable', 'work-type', 'attachment', 'timer']);
 const ALIASES = { tag: 'work-type', tags: 'work-types', 'work-type-list': 'work-types', worktype: 'work-type', worktypes: 'work-types' };
 
 export function commandFromPositionals(positionals) {

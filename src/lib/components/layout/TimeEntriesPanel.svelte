@@ -495,6 +495,7 @@
 			onPrevWeek={navigateToPrevWeek}
 			onNextWeek={navigateToNextWeek}
 			onDayClick={handleDayClick}
+			onToday={() => navigation.showTimeEntryDay(todayString)}
 		/>
 	{:else if !isLoading}
 		<!-- Show WeekStrip shell with zeroed-out data while week is loading -->
@@ -507,6 +508,7 @@
 			onPrevWeek={navigateToPrevWeek}
 			onNextWeek={navigateToNextWeek}
 			onDayClick={handleDayClick}
+			onToday={() => navigation.showTimeEntryDay(todayString)}
 		/>
 	{/if}
 

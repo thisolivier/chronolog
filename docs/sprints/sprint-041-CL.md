@@ -1,6 +1,6 @@
 # Sprint 041 — CL: Editable timer start, Today button, Archive/Activate in Settings
 
-**Status:** in progress
+**Status:** ready for review
 **Branch:** `sprint-041-CL/timer-start-today` · **Worktree:** `.claude/worktrees/sprint-041-CL` · **Port:** 5219
 **Sources:** owner requests 2026-11-04 in `docs/backlog.md`: editable start time on a running timer, Today button, Archive / Activate as direct actions in Settings. Wave rules: `docs/sprints/_wave-rules.md`.
 
@@ -20,4 +20,29 @@ Screenshots: the editable start field; the overlap warning; the Today button; Se
 
 ## Sign-off
 
-(pending)
+**2026-11-04, implemented on `sprint-041-CL/timer-start-today`, rebased onto `main` (`7d9e8f0`). Status: ready for review, not merged.** Dev server on port 5219; QA users `qa-041-*`. No migration, no CLI version bump.
+
+### What was done
+
+1. **Editable timer start.** `timer/TimerStartField.svelte` replaces "Started: 16:04" with a time input labelled "Started", plus a date input when the timer started on another day. Enter (or Save) moves the start, Escape (or Cancel) puts it back. A future start or one over 24 hours ago is refused in place (`timer-start-edit.ts`, same rules as the server); a start before the end of a saved entry shows the server's warning ("This start is before the end of Client / Contract 08:33–09:33 on 2026-11-04. Confirm to keep it.") with **Save anyway** / Cancel. `TimerWidget.handleChangeStart` sends the PATCH for a server draft, or rewrites the pending (no-contract) timer in localStorage; when a contract is then picked, the server draft is created with that start. The elapsed clock, the top-bar pill and the desktop menu bar follow (the bridge derives `startedAt` from the elapsed seconds, so no Rust change was needed). The saved entry measures from the new start.
+2. **API and CLI.** New `PATCH /api/timer` (`src/routes/api/timer/+server.ts`): `{ startTime, date?, confirmed? }`; 400 `invalid_start` / `start_in_future` / `start_too_early`, 404 `no_running_timer`, 409 `timer_stopped`, 409 `start_overlaps_entry` with `overlappingEntry` unless `confirmed`. "Now" is the server clock in the caller's timezone (`X-Timezone`, which the browser's new `patchJson` and the CLI send), with 2 minutes of slack for clock skew. `POST /api/timer/start` applies the same checks to a given start unless `confirmed`; the browser always sends `confirmed: true` (its start is now, or a timer it already holds), so a browser clock ahead of the server never blocks a start. Rules in `timer-start-rules.ts` (pure), applied in `start-guard.ts`, DB in `queries/timer-start.ts`. `DataService.adjustTimerStart` added (fetch + delegating). CLI (`cli/commands/timer.mjs`): `timer` / `timer status`, `timer start <contract> ["desc"] [--at [date] HH:MM]`, `timer adjust --at [date] HH:MM`, `timer stop` (stops and saves). `--at` accepts `9:30`, `"yesterday 23:10"`, `"2026-11-03 23:10"`, `"monday 9:00"` (the existing date-word parser). An overlap prints `Warning: …`, asks `[y/N]` on a terminal and exits 2 without one unless `--yes`.
+3. **Today button.** `WeekStrip.svelte` has a "Today" button next to the next-week arrow (`onToday` prop; disabled on the current week). `TimeEntriesPanel.svelte` passes `onToday={() => navigation.showTimeEntryDay(todayString)}` on its two WeekStrip mounts (two one-line edits): the week goes in the URL (replace, as the arrows do) and today's section is scrolled to and highlighted.
+4. **Archive / Activate in Settings.** `ClientRow.svelte` and `ContractRow.svelte` show a direct **Archive** button on active rows and **Activate** on archived rows (was "Restore"), posting the existing `archive`/`unarchive` and `archiveContract`/`unarchiveContract` actions. The buttons' accessible names include the row's name ("Archive Acme"), so the Delete dialog's own Archive button stays unique; the dialog is unchanged.
+5. **Tests.** Unit: `timer-start-rules.test.ts` (8: future/slack, 24 h, overlap incl. midnight and zero-length entries, timezone wall clock), `timer-adjust.test.ts` (6, handlers against the dev DB: 401/400/404, move + stop measures from the new start, `timer_stopped`, future, too early, overlap 409 then confirmed, POST start checks), `timer-start-edit.test.ts` (5), `cli/commands/timer.test.mjs` (9), `fetch-data-service` `adjustTimerStart`. API e2e `src/e2e/timer-cli.e2e.test.ts` (4: log an entry, `timer start --at` inside it exits 2 with the warning then `--yes`, `timer adjust` later / future exit 1 / overlap exit 2 then `--yes`, `timer` status, `timer stop` saves ~1h40m). Playwright `e2e-playwright/timer-start-today.spec.ts` (4 tests, chromium and webkit): edit start → clock jumps, overlap warning → Save anyway, future refused, Escape restores, stop + save measures from the moved start; a no-contract timer's start survives a reload and goes to the server draft; Today from two weeks back; Archive then Activate a client and a contract.
+   - Existing tests adjusted: `timer.e2e.test.ts` started a timer in 2030 (now refused as future): it uses yesterday 23:40 with `confirmed`. `timesheet-polish.spec.ts` read the "Started: HH:MM" text: it reads the input's value. `sidebar-archive-collapse.spec.ts` clicked "Restore": now "Activate" (two lines).
+
+### Verification
+
+`npm run check` 0 errors (the 3 existing warnings in `src/routes/+layout.svelte`), `npm run lint` clean, `npm test` **896 passed in 87 files**, API e2e against `http://localhost:5219` (`E2E_USER_PREFIX=qa-041-e2e`) **110 passed in 17 files**, Playwright full suite (`qa-041-pw`) **102 passed, 5 skipped** (the existing chromium-only offline tests under webkit).
+
+Screenshots in `docs/review/screenshots/sprint-041/`: `01-editable-start.png`, `02-overlap-warning.png`, `03-saved-entry.png`, `04-today-button.png`, `05-settings-client-activate.png`, `06-settings-contract-activate.png`.
+
+### Left, and notes
+
+- **Addition: 24-hour limit** (`start_too_early`). Durations are computed from times of day (`timer-duration.ts` wraps once at midnight), so a start more than a day back would save a wrong duration; the limit keeps it honest. Making stop date-aware would lift it.
+- The overlap check is server-side, so a timer with no contract yet (browser only) is not warned about overlaps; its start is still checked for future / 24 h in the browser, and the server draft is created `confirmed` when a contract is picked.
+- The date input shows only when the timer already started on another day. Just after midnight, moving today's timer back to yesterday evening needs the CLI (`timer adjust --at "yesterday 23:10"`).
+- "Overlap" means any saved entry with a start and end that the run from the new start to now intersects (not only the previous one); the latest-ending one is named. Entries without times are ignored.
+- The CLI's `timer stop` saves straight away (the app's completion form step is skipped); there is no `timer discard` in the CLI.
+- Merge notes: `TimeEntriesPanel.svelte` has two one-line edits next to the WeekStrip mounts (042 mounts a find bar in the same file); `cli/chronolog.mjs` (import, usage line, command map), `cli/lib/args.mjs` (`timer` in `COMMAND_GROUPS`), `cli/readme.md`, `cli/CHANGELOG.md` (`## Unreleased`, created here) and the skill (one appended paragraph, 7 lines) are the places 039/040 also edit. `fetch-helpers.ts` gains `patchJson`.
+- QA users `qa-041-*` and their data remain in the shared dev database (the unit-test user is cleaned up).

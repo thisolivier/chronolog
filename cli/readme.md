@@ -58,6 +58,15 @@ Environment variables win over the file:
 - `attachment get <id> [--out <path>] [--force]`: saves the bytes under the original filename (from `Content-Disposition`, reduced to a bare name) in the current directory, or at `--out` (a file, or a directory to save into). An existing file is never overwritten without `--force` (exit 2).
 - `attachment delete <id> [--yes]`: reads the attachment's headers (`HEAD`, which carries `X-Note-Id`) and the note, prints filename, type, size and note, and is confirmed like `note delete`. When the note's text still links to it, it warns and leaves the link alone (the editor shows it as missing). An unknown id exits 3.
 
+### The running timer (sprint 041-CL)
+
+- `timer` (or `timer status`): the running timer (start, elapsed, contract, description), a stopped one waiting to be saved, or "No timer running."
+- `timer start <contract> ["description"] [--at [date] HH:MM]`: starts the server timer the app shows (409, exit 5, when one is already running). Without `--at` it starts now.
+- `timer adjust --at [date] HH:MM`: moves the running timer's start (`PATCH /api/timer`); without a date the timer's own day is kept. The app's clock and the menu bar follow on their next refresh.
+- `--at` is `HH:MM`, optionally after a date word: `9:30`, `"yesterday 23:10"`, `"2026-11-03 23:10"`, `"monday 9:00"`. A start in the future is 400 `start_in_future`, more than 24 hours ago 400 `start_too_early` (exit 1).
+- A start before the end of another entry prints `Warning: …` naming that entry, asks `[y/N]` on a terminal, and without a terminal refuses with exit 2 unless `--yes` is given (get the owner's yes first). A "no" prints "Start not changed." (exit 0).
+- `timer stop`: stops the timer and saves it as an entry on its contract (with its description, deliverable and work type), printing the duration and range.
+
 ### Importing history (sprint 038-CL)
 
 `chronolog import notes <file>` and `chronolog import entries <file>` send a whole file in a few requests (`POST /api/notes/batch`, 100 per request; `POST /api/time-entries/batch`, 200 per request). The file is JSON Lines (one object per line; blank lines and `//` lines skipped) or a JSON array. Items use the CLI's references, not ids:
@@ -145,6 +154,7 @@ cli/commands/correct.mjs  edit, undo
 cli/commands/import.mjs   import notes|entries, undo --last-import (falls back to correct.undo)
 cli/commands/note-changes.mjs  note edit, append, delete, restore
 cli/commands/attachments.mjs   note attach, note attachments, attachment get, attachment delete
+cli/commands/timer.mjs    timer (status), timer start/adjust/stop; --at parsing; the overlap confirmation
 cli/commands/manage-clients.mjs    client and contract add/edit/archive/unarchive/remove
 cli/commands/manage-structure.mjs  deliverable and work type add/edit/remove and lists
 cli/commands/init.mjs     setup: prompts (hidden input) or piped lines, then GET /api/me

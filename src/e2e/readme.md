@@ -55,6 +55,7 @@ E2E_USER_PREFIX=qa-029-e2e E2E_BASE_URL=http://localhost:5207 BETTER_AUTH_URL=ht
 | `notes.e2e.test.ts` | POST/GET/PUT/DELETE /api/notes, backlinks, attachments, time-entries sub-resources |
 | `time-entries.e2e.test.ts` | POST/PUT/DELETE /api/time-entries, weekly, weekly-statuses, weeks |
 | `timer.e2e.test.ts` | GET/POST timer status, start, stop, save, discard |
+| `timer-cli.e2e.test.ts` | Sprint 041-CL: `chronolog timer start --at` (an overlap warns and needs `--yes`), `timer adjust` (future refused, overlap needs `--yes`), `timer`, `timer stop` saving from the adjusted start. Clears its user's entries for yesterday and today first (other files log at fixed times). |
 | `reference-data.e2e.test.ts` | GET /api/deliverables, GET /api/work-types (a deliverable that is not the caller's is 404) |
 | `search.e2e.test.ts` | GET /api/notes/search |
 | `attachments-offline.e2e.test.ts` | Attachment upload, metadata listing, download and delete |

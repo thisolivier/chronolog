@@ -26,7 +26,7 @@ import type { TimerLocalStart,
 	DeliverableOption,
 	WorkTypeOption
 } from './types';
-import { fetchJson, postJson, putJson, deleteRequest } from './fetch-helpers';
+import { fetchJson, postJson, putJson, patchJson, deleteRequest } from './fetch-helpers';
 
 /** Stay safely under the browser's 64 KB limit for keepalive request bodies */
 const KEEPALIVE_BODY_LIMIT_BYTES = 60_000;
@@ -210,7 +210,17 @@ export class FetchDataService implements DataService {
 		return postJson<TimerEntry>('/api/timer/start', {
 			contractId,
 			date: localStart?.date ?? localDateString(),
-			startTime: localStart?.startTime ?? localTimeString()
+			startTime: localStart?.startTime ?? localTimeString(),
+			// The start is now, or a timer already running in this page: no overlap question
+			confirmed: true
+		});
+	}
+
+	async adjustTimerStart(start: TimerLocalStart, options: { confirmed?: boolean } = {}): Promise<TimerEntry> {
+		return patchJson<TimerEntry>('/api/timer', {
+			date: start.date,
+			startTime: start.startTime,
+			confirmed: options.confirmed === true
 		});
 	}
 

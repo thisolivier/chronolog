@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getIsoWeekNumber, formatWeekRange } from '$lib/utils/iso-week';
+	import { getIsoWeekNumber, formatWeekRange, getMondayOfWeek } from '$lib/utils/iso-week';
 	import { formatMinutes, formatMinutesCompact } from '$lib/utils/duration';
 	import WeekStatusMenu from './WeekStatusMenu.svelte';
 	import {
@@ -21,7 +21,8 @@
 		onStatusChange,
 		onPrevWeek,
 		onNextWeek,
-		onDayClick
+		onDayClick,
+		onToday
 	}: {
 		weekStart: string;
 		days: DayData[];
@@ -31,6 +32,8 @@
 		onPrevWeek: () => void;
 		onNextWeek: () => void;
 		onDayClick: (date: string) => void;
+		/** Jump to the current week and today's section (sprint 041-CL); no button without it */
+		onToday?: () => void;
 	} = $props();
 
 	const DAY_ABBREVIATIONS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -40,6 +43,7 @@
 	const nextWeekNumber = $derived(weekNumber < 52 ? weekNumber + 1 : 1);
 
 	const todayDateString = $derived(formatTodayDate());
+	const isCurrentWeek = $derived(weekStart === getMondayOfWeek(todayDateString));
 
 	const weeklyTotalHours = $derived(formatMinutes(weeklyTotalMinutes));
 
@@ -74,11 +78,22 @@
 				Week {weekNumber} &middot; {formatWeekRange(weekStart)}
 			</span>
 		</div>
-		<button
-			onclick={onNextWeek}
-			class="rounded px-1.5 py-0.5 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-700"
-			aria-label="Next week"
-		><span class="hidden sm:inline">Week {nextWeekNumber} </span>&#9654;</button>
+		<div class="flex items-center gap-1.5">
+			{#if onToday}
+				<button
+					onclick={onToday}
+					disabled={isCurrentWeek}
+					title={isCurrentWeek ? 'Already on this week' : 'Go to today'}
+					class="rounded border border-stone-300 px-2 py-0.5 text-xs font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-800 disabled:cursor-default disabled:border-stone-200 disabled:text-stone-300 disabled:hover:bg-transparent"
+					data-testid="week-today-button"
+				>Today</button>
+			{/if}
+			<button
+				onclick={onNextWeek}
+				class="rounded px-1.5 py-0.5 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+				aria-label="Next week"
+			><span class="hidden sm:inline">Week {nextWeekNumber} </span>&#9654;</button>
+		</div>
 	</div>
 
 	<!-- Day columns + summary -->

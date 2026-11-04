@@ -96,12 +96,11 @@
 		<td class="px-6 py-3 text-right text-sm">
 			<div class="flex items-center justify-end gap-3">
 				<button onclick={startEditing} class="text-stone-500 hover:text-blue-600">Edit</button>
-				{#if isArchived}
-					<form method="POST" action="/admin/clients?/unarchive" use:enhance class="inline">
-						<input type="hidden" name="client_id" value={client.id} />
-						<button type="submit" class="text-stone-500 hover:text-blue-600">Restore</button>
-					</form>
-				{/if}
+				<!-- Direct Archive / Activate (sprint 041-CL); Delete still offers Archive too -->
+				<form method="POST" action="/admin/clients?/{isArchived ? 'unarchive' : 'archive'}" use:enhance class="inline">
+					<input type="hidden" name="client_id" value={client.id} />
+					<button type="submit" aria-label="{isArchived ? 'Activate' : 'Archive'} {client.name}" class="text-stone-500 hover:text-blue-600">{isArchived ? 'Activate' : 'Archive'}</button>
+				</form>
 				<button onclick={() => (isConfirmingDelete = true)} class="text-red-500 hover:text-red-700">Delete</button>
 			</div>
 			{#if isConfirmingDelete}

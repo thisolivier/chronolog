@@ -257,7 +257,7 @@ test.describe('Sprint 030 task 7: timer and week header agree on today (Europe/L
 			// Timer: started now, on the same local day
 			const widget = page.locator('[data-testid^="timer-widget-"]').first();
 			await widget.getByRole('button', { name: 'Start Timer' }).click();
-			await expect(widget).toContainText(`Started: ${timezoneCase.localStart}`);
+			await expect(widget.getByTestId('timer-start-time')).toHaveValue(timezoneCase.localStart);
 			await widget.locator('#draft-contract').selectOption({ label: seeded.targetLabel });
 			await expect
 				.poll(async () => page.evaluate(async () => (await (await fetch('/api/timer/status')).json()).timer?.date ?? null))

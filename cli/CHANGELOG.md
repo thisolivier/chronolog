@@ -4,6 +4,14 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 `chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
 030, 033 and 035 changed nothing in the CLI and are not listed.
 
+## Unreleased
+
+- Sprint 041-CL: `timer` / `timer status`, `timer start <contract> ["desc"] [--at [date] HH:MM]`,
+  `timer adjust --at [date] HH:MM` and `timer stop` (stops and saves the entry). `--at` takes
+  `9:30` or a date word and a time (`"yesterday 23:10"`). A future start (`start_in_future`) or one
+  over 24 hours ago (`start_too_early`) exits 1; a start before the end of another entry warns and
+  needs a yes on a terminal or `--yes` without one (exit 2 otherwise).
+
 ## Sprint 037-CL, 2026-11-04: server-side note trash (after 1.1.0; version not bumped)
 
 - `note delete <id> [--yes]` moves the note to the server's trash: it keeps its id, its wiki-links,
