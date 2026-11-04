@@ -1,5 +1,7 @@
 <script lang="ts">
 	import TimerDisplay from './TimerDisplay.svelte';
+	import TimerStartField from './TimerStartField.svelte';
+	import { startChangeResultFromError, type StartChangeResult } from './timer-start-edit';
 	import TimerCompletionForm from './TimerCompletionForm.svelte';
 	import ContractSelect from './ContractSelect.svelte';
 	import AddTimeEntryModal from './AddTimeEntryModal.svelte';
@@ -260,6 +262,32 @@
 		}
 	}
 
+	/**
+	 * Move the running timer's start (sprint 041-CL): on the server for a draft, else in the
+	 * browser's pending timer. The clock, the top-bar pill and the menu bar follow `elapsedSeconds`.
+	 */
+	async function handleChangeStart(
+		start: { date: string; startTime: string },
+		confirmed: boolean
+	): Promise<StartChangeResult> {
+		if (!entryId) {
+			startTime = start.startTime;
+			timerDate = start.date;
+			elapsedSeconds = calculateElapsedFromStartTime(startTime, timerDate);
+			savePendingTimer();
+			return { outcome: 'saved' };
+		}
+		try {
+			const movedTimer = await dataService.adjustTimerStart(start, { confirmed });
+			startTime = movedTimer.startTime || start.startTime;
+			timerDate = movedTimer.date ?? start.date;
+			elapsedSeconds = calculateElapsedFromStartTime(startTime, timerDate);
+			return { outcome: 'saved' };
+		} catch (caughtError) {
+			return startChangeResultFromError(caughtError);
+		}
+	}
+
 	async function handleStop() {
 		if (!entryId) {
 			// Still no contract: stop in the browser; the completion form asks for one
@@ -394,9 +422,7 @@
 					Stop
 				</button>
 			</div>
-			<div class="text-xs text-stone-500">
-				Started: {startTime ? startTime.substring(0, 5) : '--:--'}
-			</div>
+			<TimerStartField {startTime} startDate={timerDate} onChangeStart={handleChangeStart} />
 
 			<!-- Draft contract and description while timer is running -->
 			<div class="space-y-2">

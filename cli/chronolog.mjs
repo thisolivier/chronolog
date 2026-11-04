@@ -20,6 +20,7 @@ import * as attachments from './commands/attachments.mjs';
 import * as manageClients from './commands/manage-clients.mjs';
 import * as manageStructure from './commands/manage-structure.mjs';
 import * as imports from './commands/import.mjs';
+import * as timer from './commands/timer.mjs';
 import { init } from './commands/init.mjs';
 import { Cancelled } from './lib/confirm.mjs';
 import { CLI_VERSION } from './lib/version.mjs';
@@ -49,6 +50,8 @@ const USAGE = `Usage: chronolog <command> [arguments] [--json]      (chronolog -
   notes <contract> [--since YYYY-MM-DD]
   search "<words or note id>" [--limit N]
   status <2026-W45|current> <unsubmitted|draft-ready|submitted>
+  timer [status] | timer start <contract> ["desc"] [--at [date] HH:MM] | timer adjust --at [date] HH:MM | timer stop
+                                 a start before another entry's end warns; --yes keeps it (required without a terminal)
 
 Setting up clients (remove asks first; -y/--yes skips the question, required without a terminal):
   client add "<name>" --code SHORT [--emoji X] [--color 0-7]
@@ -106,7 +109,12 @@ const COMMANDS = {
 	'work-types': manageStructure.workTypes,
 	'work-type add': manageStructure.workTypeAdd,
 	'work-type edit': manageStructure.workTypeEdit,
-	'work-type remove': manageStructure.workTypeRemove
+	'work-type remove': manageStructure.workTypeRemove,
+	timer: timer.timerStatus,
+	'timer status': timer.timerStatus,
+	'timer start': timer.catchNotChanged(timer.timerStart),
+	'timer adjust': timer.catchNotChanged(timer.timerAdjust),
+	'timer stop': timer.timerStop
 };
 
 function exitCodeFor(failure) {

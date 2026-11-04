@@ -192,10 +192,10 @@ test('task 2: archiving and restoring in Settings moves the client in the sideba
 
 	// Restore both in Settings: back in the active list
 	await goToClientsSettings(page);
-	await clientRow.getByRole('button', { name: 'Restore' }).click();
+	await clientRow.getByRole('button', { name: 'Activate' }).click();
 	await expect(clientRow.getByText('Archived', { exact: true })).toHaveCount(0);
 	await page.getByRole('link', { name: mixedName }).click();
-	await wrapUpRow.getByRole('button', { name: 'Restore' }).click();
+	await wrapUpRow.getByRole('button', { name: 'Activate' }).click();
 	await expect(wrapUpRow.getByText('Archived', { exact: true })).toHaveCount(0);
 	await backToApp(page);
 	await expect(activeGroup(page, clientName).locator(`[data-contract-id="${discovery}"]`)).toBeVisible();

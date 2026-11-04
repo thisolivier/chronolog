@@ -7,7 +7,7 @@
 	let formattedTime = $derived(formatElapsedClock(elapsedSeconds));
 </script>
 
-<span class="font-mono text-2xl font-bold tabular-nums" class:text-stone-400={isPaused}>
+<span class="font-mono text-2xl font-bold tabular-nums" class:text-stone-400={isPaused} data-testid="timer-elapsed">
 	{formattedTime}
 	{#if isPaused}
 		<span class="text-sm font-normal text-stone-400">(paused)</span>

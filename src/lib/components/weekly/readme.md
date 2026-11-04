@@ -4,7 +4,7 @@ Components for displaying and editing time entries, used by the layout panels.
 
 ## Components
 
-- **WeekStrip.svelte** — Sticky horizontal week strip showing Mon-Sun with day numbers, a compact hours/minutes total per day, a per-client colour bar, today highlight, prev/next week navigation and the weekly status (opens WeekStatusMenu). Tapping a day scrolls TimeEntriesPanel to that day.
+- **WeekStrip.svelte** — Sticky horizontal week strip showing Mon-Sun with day numbers, a compact hours/minutes total per day, a per-client colour bar, today highlight, prev/next week navigation, a Today button (sprint 041-CL: `onToday`, disabled on the current week; the panel calls `navigation.showTimeEntryDay(today)`, so the week goes in the URL and today's section is scrolled to and highlighted) and the weekly status (opens WeekStatusMenu). Tapping a day scrolls TimeEntriesPanel to that day.
 - **WeekStatusMenu.svelte** — Keyboard-accessible menu for the week status: Unsubmitted, Draft ready, Submitted.
 - **week-strip-segments.ts** — Pure helper for WeekStrip's per-day colour bar: aggregates minutes per client into one segment per client (keyed by `clientId`, ordered by first appearance). Unit-tested in `week-strip-segments.test.ts`.
 - **TimerIndicator.svelte** — Compact timer display for the AppShell top bar. Shows elapsed time as `HH:MM:SS` (the same `formatElapsedClock` as the widget) and the active contract; pulses when running. Its left edge is neutral until a contract is picked. When the desktop sidebar is collapsed and its timer is mounted, it shows a "Timer" pill that opens the sidebar. Reads from shared `timer-state` store.

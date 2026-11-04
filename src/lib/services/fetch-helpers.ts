@@ -151,6 +151,16 @@ export async function postJson<ResponseType>(url: string, body: unknown): Promis
 	});
 }
 
+/** PATCH with the browser's timezone, which the timer start check reads as "now" (sprint 041-CL). */
+export async function patchJson<ResponseType>(url: string, body: unknown): Promise<ResponseType> {
+	const timezone = browserTimezone();
+	return fetchJson<ResponseType>(url, {
+		method: 'PATCH',
+		headers: { 'Content-Type': 'application/json', ...(timezone ? { 'X-Timezone': timezone } : {}) },
+		body: JSON.stringify(body)
+	});
+}
+
 export async function putJson<ResponseType>(
 	url: string,
 	body: unknown,

@@ -211,3 +211,10 @@ entries `{"contract","date","duration","description","deliverable?","workType?",
    fix only those lines into a new file and import that, never the whole file again.
 4. Keep the file. A wrong import of entries is undone with `chronolog undo --last-import` (asks
    first; `--yes` only after the owner agrees).
+
+## The running timer
+
+"I started at 9:30" or "I forgot the timer": `chronolog timer` shows it, `timer adjust --at 09:30`
+moves its start (`--at "yesterday 23:10"` across midnight), `timer start <contract> --at 09:30`
+starts one late, `timer stop` saves it. A `Warning:` that the start overlaps another entry (exit 2)
+means ask the owner; rerun with `--yes` only after a yes. Future or over-a-day starts exit 1.

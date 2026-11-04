@@ -602,8 +602,24 @@ describe('FetchDataService', () => {
 			expect(getLastFetchBody(mockFetch)).toEqual({
 				contractId: 'c1',
 				date: '2026-11-03',
-				startTime: '09:05:00'
+				startTime: '09:05:00',
+				confirmed: true
 			});
+		});
+	});
+
+	describe('adjustTimerStart', () => {
+		it('calls PATCH /api/timer with the start, the browser timezone and the confirmation', async () => {
+			mockFetch.mockResolvedValueOnce(
+				mockJsonResponse({ id: 't3', date: '2026-11-03', startTime: '08:30:00', endTime: null, durationMinutes: 0 })
+			);
+			const result = await service.adjustTimerStart({ date: '2026-11-03', startTime: '08:30:00' }, { confirmed: true });
+			const [url, options] = getLastFetchCall(mockFetch);
+			expect(url).toBe('/api/timer');
+			expect(options?.method).toBe('PATCH');
+			expect(new Headers(options?.headers).has('X-Timezone')).toBe(true);
+			expect(getLastFetchBody(mockFetch)).toEqual({ date: '2026-11-03', startTime: '08:30:00', confirmed: true });
+			expect(result.startTime).toBe('08:30:00');
 		});
 	});
 
@@ -945,6 +961,7 @@ describe('DataService interface completeness', () => {
 		'updateWeeklyStatus',
 		'getTimerStatus',
 		'startTimer',
+		'adjustTimerStart',
 		'stopTimer',
 		'saveTimer',
 		'discardTimer',

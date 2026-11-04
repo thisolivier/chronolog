@@ -5,8 +5,8 @@ CRUD components for managing the client/contract/deliverable/work-type hierarchy
 ## Components
 
 - **AdminBreadcrumb.svelte** — Breadcrumb navigation for admin pages (starts at Settings).
-- **ClientRow.svelte** — Inline-editable client row with name, short code, emoji, colour (palette select from `$lib/utils/client-colors`, persisted as `color_index`), archive/restore, and delete via `DeleteImpactDialog`. Shows the client's colour dot in read mode.
-- **ContractRow.svelte** — Inline-editable contract row with name, description, active toggle, link to contract detail, and up/down buttons to reorder within its client.
+- **ClientRow.svelte** — Inline-editable client row with name, short code, emoji, colour (palette select from `$lib/utils/client-colors`, persisted as `color_index`), a direct Archive button (Activate once archived; sprint 041-CL), and delete via `DeleteImpactDialog`. Shows the client's colour dot in read mode.
+- **ContractRow.svelte** — Inline-editable contract row with name, description, active toggle, link to contract detail, a direct Archive / Activate button (same labels as ClientRow; the buttons' accessible names include the row's name), and up/down buttons to reorder within its client.
 - **ContractCreateModal.svelte** — Modal for creating new contracts under a client. Can create the client inline when none is chosen.
 - **DeliverableCard.svelte** — Card displaying a deliverable with inline editing, nested work type list, and add-work-type form.
 - **WorkTypeRow.svelte** — Inline-editable work type row within a deliverable card.

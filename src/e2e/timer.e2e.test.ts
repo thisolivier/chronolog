@@ -108,14 +108,18 @@ describe('Timer API', () => {
 	});
 
 	it('Timer start uses the browser-sent local date and start time', async () => {
+		// Yesterday evening (a future start is refused since sprint 041-CL; `confirmed` skips the overlap check)
+		const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+		const yesterdayDate = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
 		const startResponse = await authPost('/api/timer/start', {
 			contractId,
-			date: '2030-01-02',
-			startTime: '23:40:00'
+			date: yesterdayDate,
+			startTime: '23:40:00',
+			confirmed: true
 		});
 		expect(startResponse.status).toBe(201);
 		const startData = await startResponse.json();
-		expect(startData.date).toBe('2030-01-02');
+		expect(startData.date).toBe(yesterdayDate);
 		expect(startData.startTime).toBe('23:40:00');
 
 		// Stop with a local end time after midnight: midnight-safe 30 minutes

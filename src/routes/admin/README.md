@@ -22,7 +22,7 @@ Database queries are centralized in `src/lib/server/db/queries/` to keep route f
 
 `[clientId=uuid]` and `[contractId=uuid]` use the matcher in `src/params/uuid.ts` (`isUuid` from `$lib/utils/uuid`). A malformed ID returns 404 before it reaches the database.
 
-Actions: `archive` / `unarchive` hide or restore a client or contract without touching its work. `delete` goes through `src/lib/server/db/queries/safe-deletion.ts`, which reassigns entries and notes to the system "Deleted Client / Deleted Contract" in one transaction (see `src/lib/server/db/README.md`).
+Actions: `archive` / `unarchive` hide or restore a client or contract without touching its work (the rows' Archive and Activate buttons post them directly; the Delete dialog still offers Archive). `delete` goes through `src/lib/server/db/queries/safe-deletion.ts`, which reassigns entries and notes to the system "Deleted Client / Deleted Contract" in one transaction (see `src/lib/server/db/README.md`).
 
 Breadcrumbs start at Settings. `src/routes/settings/+layout.svelte` wraps the pages in `SettingsShell`.
 

@@ -4,8 +4,10 @@ Timer widget (start/stop/save) and manual time entry creation, plus the shared t
 
 ## Architecture
 
-- **TimerWidget.svelte** -- Main component, states idle / running / stopped (no pause: the server cannot store paused time). `placement` is `'sidebar'` or `'footer'`; the footer copy is shown on phone only while no sidebar widget is mounted (see `timer-widget-registry.svelte.ts`). Idle shows "Start Timer" and "Add Entry". Running shows the draft contract select and description (auto-saved) and a Stop button. On mount it restores the draft from `GET /api/timer/status`. After a save or modal create it dispatches `time-entry-saved` (`src/lib/components/weekly/time-entry-events.ts`) and calls `navigation.showTimeEntryDay()`, so the timesheet shows the saved day.
+- **TimerWidget.svelte** -- Main component, states idle / running / stopped (no pause: the server cannot store paused time). `placement` is `'sidebar'` or `'footer'`; the footer copy is shown on phone only while no sidebar widget is mounted (see `timer-widget-registry.svelte.ts`). Idle shows "Start Timer" and "Add Entry". Running shows the editable start (TimerStartField), the draft contract select and description (auto-saved) and a Stop button. On mount it restores the draft from `GET /api/timer/status`. After a save or modal create it dispatches `time-entry-saved` (`src/lib/components/weekly/time-entry-events.ts`) and calls `navigation.showTimeEntryDay()`, so the timesheet shows the saved day.
 - **TimerDisplay.svelte** -- Displays elapsed time as HH:MM:SS (`formatElapsedClock`, shared with the top-bar TimerIndicator).
+- **TimerStartField.svelte** -- The running timer's "Started" time as a time input (sprint 041-CL), plus a date input when the timer started on another day. Enter or Save moves the start, Escape puts it back. A future start or one over 24 hours ago is refused in place; a start before the end of a saved entry shows the server's warning with "Save anyway". TimerWidget's `handleChangeStart` sends `PATCH /api/timer` for a server draft or rewrites the pending timer in localStorage; the elapsed clock, the top-bar pill and the desktop menu bar (which derives the start from the elapsed seconds) follow.
+- **timer-start-edit.ts** -- Browser-side start checks (`localTimerStartProblem`) and reading the server's refusal (`startChangeResultFromError`). Tested in `timer-start-edit.test.ts`.
 - **TimerCompletionForm.svelte** -- Shown after stopping. Fields: Description, Contract, Deliverable, Work type, Time. An edited Time adjusts the saved duration. Buttons: Discard, then Save.
 - **AddTimeEntryModal.svelte** -- Modal for manual entries. Fields: Date, Description, Contract, Deliverable, Work type, Time. Buttons: Cancel, then Save. Shows inline errors and reports the created entry's id and date. It preselects the contract being viewed (notes mode) and a day of the viewed week in the timesheet (today when today is in that week).
 - **DurationField.svelte** -- Shared time input (bindable `value`) with a parsed preview, a long-entry warning and an error message.
@@ -41,7 +43,8 @@ While the timer is running, the user can select a contract and type a descriptio
 All calls are made through `DataService` (see `src/lib/services/readme.md`); the underlying routes are:
 
 - `GET /api/timer/status` -- Check for existing running timer
-- `POST /api/timer/start` -- Start new timer
+- `POST /api/timer/start` -- Start new timer (the browser sends `confirmed: true`: its start is now or a timer it already holds)
+- `PATCH /api/timer` -- Move the running timer's start (sprint 041-CL; rules in `src/routes/api/timer/timer-start-rules.ts`)
 - `POST /api/timer/stop` -- Stop running timer (duration computed from full seconds and rounded up to at least 1 minute, see `src/lib/server/db/queries/timer-duration.ts`)
 - `POST /api/timer/save` -- Save completed entry
 - `POST /api/timer/discard` -- Discard draft entry
