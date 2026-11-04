@@ -2,7 +2,7 @@
 
 Command-line client for the Chronolog REST API. The laptop Claude secretary uses it to read and write time entries and notes for one signed-in user, and (sprint 031-CL) to set up clients, contracts, deliverables and work types. It authenticates with a personal API token (see `src/lib/server/auth-tokens/README.md`).
 
-Node 20+, no dependencies. It talks only to `/api/*`; the only local state is the config file, `last-entry.json` beside it (the entry `undo` would delete), `last-import.json` (the entries `undo --last-import` would delete) and `trash/` (copies of notes `note delete` removed).
+Node 20+, no dependencies. It talks only to `/api/*`; the only local state is the config file, `last-entry.json` beside it (the entry `undo` would delete) and `last-import.json` (the entries `undo --last-import` would delete). Deleted notes go to the server's trash (sprint 037-CL); a `trash/` directory beside the config from sprint 034 is no longer read and can be removed (its files are plain markdown).
 
 ## Install
 
@@ -48,8 +48,8 @@ Environment variables win over the file:
 - `note edit <id> [--title "..."] [--contract X] [--file body.md | stdin]`: a body replaces the whole text (the note's `# title` heading is kept unless the body brings its own); `--title` replaces the heading; `--contract` moves the note (its id keeps its prefix).
 - `note append <id> [--file text.md | stdin]`: adds a blank line and the text at the end.
 - Both read the note, then `PATCH /api/notes/<id>` with the `updatedAt` they read (or `--expected-updated-at T`, the copy shown to the owner earlier). If the note changed in the app since, the server answers 409 and the command exits **7** "note changed on the server since it was read; re-run" without retrying. They send markdown only, so the server drops the note's TipTap JSON and the editor reloads from the new markdown.
-- `note delete <id> [--yes]`: prints title, contract and word count, asks `[y/N]` on a terminal, refuses (exit 2) without `--yes` otherwise. Before deleting it writes `trash/<id>.md` next to the config file (`~/.config/chronolog/trash/`, mode 600): a `---` header (id, title, contractId, contract, updatedAt, deletedAt) then the markdown.
-- `note restore [<id>] [--contract X]`: recreates the note from the trash file on the same contract (or `--contract`) with a newly allocated id for today, then removes the file. Without an id it lists the trash.
+- `note delete <id> [--yes]`: prints title, contract and word count, asks `[y/N]` on a terminal, refuses (exit 2) without `--yes` otherwise. Then `DELETE /api/notes/<id>` moves the note to the server's trash, where it keeps its id, links, backlinks and time-entry links; the output names the id and the restore command. Notes are purged 30 days after deletion.
+- `note restore [<id>]`: `POST /api/notes/<id>/restore` brings the note back exactly as it was (same id and links); it notes when the contract is archived. Not in the trash: exit 3. Without an id it lists the trash (`GET /api/notes/trash`: id, deleted, purge date, contract, title).
 
 ### Attachments (sprint 036-CL)
 
@@ -137,7 +137,6 @@ cli/lib/import-file.mjs   import file reading (JSON Lines or array, line numbers
 cli/lib/import-items.mjs  import items: references resolved once each, into batch API items
 cli/lib/import-history.mjs  last-import.json: the entries `undo --last-import` deletes
 cli/lib/note-body.mjs     note markdown: body input, title heading, edit/append text, word count
-cli/lib/trash.mjs         trash/<id>.md copies of deleted notes
 cli/lib/attachment-files.mjs  attachment type from extension, reference lines, sizes, Content-Disposition filename
 cli/lib/version.mjs       CLI_VERSION from the root package.json
 cli/commands/read.mjs     me, clients, contracts, week, notes, note show, search

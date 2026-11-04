@@ -7,9 +7,9 @@
  * retrying, so the browser's text is never overwritten. They send markdown only: the server then
  * drops the note's TipTap JSON so the editor reloads from the new markdown.
  *
- * Delete keeps a local copy in `trash/<id>.md` (lib/trash.mjs) first; restore recreates the note
- * from it with a newly allocated id for today (ids carry the creation date; the old id comes back
- * only when it was the day's last).
+ * Delete moves the note to the server's trash (sprint 037-CL): it keeps its id, links and time-entry
+ * links, and `note restore <id>` brings it back as it was within 30 days. `note restore` with no id
+ * lists the trash. (Sprint 034's local `trash/<id>.md` copies are no longer written or read.)
  */
 
 import { ApiError } from '../lib/api.mjs';
@@ -17,8 +17,10 @@ import { UsageError } from '../lib/args.mjs';
 import { confirmRemoval } from '../lib/confirm.mjs';
 import { ReferenceError_, resolveContract } from '../lib/resolve.mjs';
 import { appendedContent, countWords, editedContent, headingTitle, readBody } from '../lib/note-body.mjs';
-import { listTrash, readTrash, removeTrash, trashPath, writeTrash } from '../lib/trash.mjs';
 import { fetchContracts } from './read.mjs';
+import { fetchNote, notePath } from '../lib/note-fetch.mjs';
+
+export { fetchNote };
 
 /** The note changed on the server after this command read it (exit 7). */
 export class NoteChanged extends Error {
@@ -29,12 +31,6 @@ export class NoteChanged extends Error {
 		this.noteId = noteId;
 		this.serverUpdatedAt = serverUpdatedAt;
 	}
-}
-
-const notePath = (noteId) => `/api/notes/${encodeURIComponent(noteId)}`;
-
-export async function fetchNote(api, noteId) {
-	return (await api.get(notePath(noteId))).note;
 }
 
 /**
@@ -101,57 +97,57 @@ export async function noteAppend({ api, print, positionals, flags, stdin = proce
 	print(`Appended ${countWords(text)} words to note ${updated.id}: ${updated.title ?? '(untitled)'}`, updated);
 }
 
-export async function noteDelete({ api, print, positionals, flags, environment = process.env, stdin = process.stdin, stdout = process.stderr }) {
+export async function noteDelete({ api, print, positionals, flags, stdin = process.stdin, stdout = process.stderr }) {
 	const noteId = positionals[0];
 	if (!noteId) throw new UsageError('Usage: chronolog note delete <note-id> [--yes]');
-	const path = trashPath(noteId, environment);
 	const note = await fetchNote(api, noteId);
 	const contract = await contractLabel(api, note.contractId);
 	const words = countWords(note.content);
 	await confirmRemoval({
 		flags,
 		summary: `Note ${note.id} “${note.title ?? '(untitled)'}” in ${contract}, ${words} words.`,
-		question: 'Delete it?',
+		question: 'Move it to the trash?',
 		refusal: 'Not deleted: confirm with the owner, then run again with --yes.',
 		stdin,
 		stdout
 	});
 
-	writeTrash({ ...note, contract, deletedAt: new Date().toISOString() }, environment);
-	let deleted;
-	try {
-		deleted = await api.delete(notePath(note.id));
-	} catch (failure) {
-		removeTrash(note.id, environment);
-		throw failure;
-	}
+	const deleted = await api.delete(notePath(note.id));
 	print(
-		`Deleted note ${note.id} “${note.title ?? '(untitled)'}” from ${contract}.\nA copy is in ${path}\n(\`chronolog note restore ${note.id}\` brings it back as a new note.)`,
-		{ deleted: { id: deleted.id, title: deleted.title, contractId: deleted.contractId }, trashPath: path }
+		`Deleted note ${note.id} “${note.title ?? '(untitled)'}” from ${contract}.\nRestore with \`chronolog note restore ${note.id}\` within 30 days.`,
+		{
+			deleted: {
+				id: deleted.id,
+				title: deleted.title,
+				contractId: deleted.contractId,
+				deletedAt: deleted.deletedAt,
+				purgeAt: deleted.purgeAt
+			}
+		}
 	);
 }
 
-export async function noteRestore({ api, print, positionals, flags, environment = process.env }) {
+export async function noteRestore({ api, print, positionals }) {
 	const noteId = positionals[0];
 	if (!noteId) {
-		const trashed = listTrash(environment);
-		const lines = trashed.map((record) => `${record.id}  ${record.deletedAt.slice(0, 10)}  ${record.contract}  ${record.title}`);
-		const withoutBodies = trashed.map((record) => Object.fromEntries(Object.entries(record).filter(([key]) => key !== 'content')));
-		print([`Deleted notes that can be restored: ${trashed.length}`, ...lines].join('\n'), withoutBodies);
+		const { notes } = await api.get('/api/notes/trash');
+		const lines = notes.map(
+			(trashed) => `${trashed.id}  deleted ${trashed.deletedAt.slice(0, 10)}  purged ${trashed.purgeAt.slice(0, 10)}  ${trashed.contract}  ${trashed.title ?? '(untitled)'}`
+		);
+		print([`Notes in the trash (restorable for 30 days): ${notes.length}`, ...lines].join('\n'), notes);
 		return;
 	}
-	const record = readTrash(noteId, environment);
-	if (!record) throw new ReferenceError_(`No deleted copy of ${noteId} in ${trashPath(noteId, environment)}.`);
-
-	let contractId = record.contractId;
-	let label = record.contract;
-	if (flags.contract) {
-		const contract = resolveContract(flags.contract, await fetchContracts(api));
-		contractId = contract.id;
-		label = `${contract.clientShortCode}/${contract.name}`;
+	let restored;
+	try {
+		restored = await api.post(`${notePath(noteId)}/restore`, {});
+	} catch (failure) {
+		if (failure instanceof ApiError && failure.status === 404) {
+			throw new ReferenceError_(`${noteId} is not in the trash (\`chronolog note restore\` lists it; notes are purged 30 days after deletion).`);
+		}
+		throw failure;
 	}
-	const { note } = await api.post('/api/notes', { contractId, title: record.title || headingTitle(record.content) || '', content: record.content });
-	removeTrash(noteId, environment);
-	const newId = note.id === noteId ? `new note ${note.id} (the same id was free again)` : `new note ${note.id}`;
-	print(`Restored ${noteId} as ${newId} in ${label}: ${note.title ?? '(untitled)'}`, { ...note, restoredFrom: noteId });
+	const { note, contract } = restored;
+	const label = contract ? `${contract.clientShortCode}/${contract.name}` : note.contractId;
+	const archived = contract?.archived ? ` (that contract is archived; \`chronolog note edit ${note.id} --contract X\` moves it)` : '';
+	print(`Restored note ${note.id} “${note.title ?? '(untitled)'}” to ${label}${archived}.`, { ...note, contract });
 }

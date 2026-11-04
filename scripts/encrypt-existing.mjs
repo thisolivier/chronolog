@@ -7,7 +7,8 @@
 // Walks every encrypted column and encrypts plaintext values in place with ENCRYPTION_KEY.
 // Idempotent: values already carrying the `enc1:` prefix are skipped, so re-running is safe.
 // Take a backup first (scripts/backup-postgres.sh). A fresh database needs nothing.
-// Uses the same envelope module as the app (Node 22.18+ type stripping imports the .ts file).
+// The envelope is scripts/lib/envelope.mjs (a plain-JS copy of the app's field-encryption.ts,
+// tested to agree with it), so this also runs inside the production container.
 import postgres from 'postgres';
 import {
 	decodeEncryptionKey,
@@ -17,7 +18,7 @@ import {
 	encryptBytes,
 	isEncrypted,
 	isEncryptedBytes
-} from '../src/lib/server/crypto/field-encryption.ts';
+} from './lib/envelope.mjs';
 
 /** Every column encrypted at rest. Keep in sync with the query modules. */
 const ENCRYPTED_COLUMNS = [

@@ -3,10 +3,11 @@
  * (sprint 038-CL): the same insert as `createTimeEntry` (time-entries.ts) and the same link rows as
  * `linkTimeEntryToNote` (notes.ts), against the batch's transaction. A link to a note that does
  * not exist is skipped (the single route ignores that failure; inside a transaction a failed
- * insert would abort everything). A non-atomic batch calls the usual functions directly.
+ * insert would abort everything). A non-atomic batch calls the usual functions directly. A note in
+ * the trash (sprint 037-CL) counts as not existing for both the `noteId` check and the links.
  */
 
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { noteTimeEntries, notes, timeEntries } from '$lib/server/db';
 import { decryptNullable, encryptNullable } from '$lib/server/crypto/server-cipher';
 import type { BatchTransaction } from '$lib/server/batch/run-batch';
@@ -31,17 +32,17 @@ export async function createTimeEntryInTransaction(transaction: BatchTransaction
 	return { ...row, description: decryptNullable(row.description, 'time_entries.description') };
 }
 
-/** The user's note id when it exists (the `noteId` check of `POST /api/time-entries`), else null. */
+/** The user's note id when it exists and is not in the trash (the `noteId` check of `POST /api/time-entries`), else null. */
 export async function findUserNoteIdInTransaction(transaction: BatchTransaction, userId: string, noteId: string) {
 	const [row] = await transaction
 		.select({ id: notes.id })
 		.from(notes)
-		.where(and(eq(notes.id, noteId), eq(notes.userId, userId)))
+		.where(and(eq(notes.id, noteId), eq(notes.userId, userId), isNull(notes.deletedAt)))
 		.limit(1);
 	return row?.id ?? null;
 }
 
-/** Links the entry to each existing note of `links`; unknown note ids are left out. */
+/** Links the entry to each existing note of `links`; unknown and trashed note ids are left out. */
 export async function linkTimeEntryToNotesInTransaction(
 	transaction: BatchTransaction,
 	timeEntryId: string,
@@ -51,7 +52,7 @@ export async function linkTimeEntryToNotesInTransaction(
 	const existing = await transaction
 		.select({ id: notes.id })
 		.from(notes)
-		.where(inArray(notes.id, links.map((link) => link.noteId)));
+		.where(and(inArray(notes.id, links.map((link) => link.noteId)), isNull(notes.deletedAt)));
 	const existingIds = new Set(existing.map((row) => row.id));
 	const rows = links
 		.filter((link) => existingIds.has(link.noteId))

@@ -58,11 +58,15 @@ Draft state for "New Note". A draft is the URL `/notes/<contractId>/new` and ope
 
 ### note-events.ts
 
-Typed window events (`note-created`, `note-saved`, `note-moved`, `note-deleted`) that keep the list, sidebar and editor in sync without shared component state. `onNoteEvent` subscribes to one event; `onNoteCountsChanged` subscribes to the three events that change sidebar counts.
+Typed window events (`note-created`, `note-saved`, `note-moved`, `note-deleted`, `note-restored`) that keep the list, sidebar and editor in sync without shared component state. `onNoteEvent` subscribes to one event; `onNoteCountsChanged` subscribes to the four events that change sidebar counts.
 
 ### note-titles.svelte.ts
 
-Client cache of note display titles. Lookups are batched into one `GET /api/notes/titles?ids=` request per tick, and results live in a `SvelteMap`. The wiki-link node view and `WikiLinkRenderer` read from it, so a link shows the target note's current title and the ID as a tooltip.
+Client cache of note display titles. Lookups are batched into one `GET /api/notes/titles?ids=&includeDeleted=1` request per tick, and results live in a `SvelteMap`. The wiki-link node view and `WikiLinkRenderer` read from it, so a link shows the target note's current title and the ID as a tooltip. Each entry carries `deletedAt` while the note is in the trash: `isNoteInTrash` drives the muted, struck-through "deleted" link style, and `setNoteTrashed` flips it on delete and restore.
+
+### note-trash.ts
+
+Browser side of the server-side trash (sprint 037-CL). `restoreTrashedNote` calls `DataService.restoreNote`, marks the note live in the title cache and dispatches `note-restored` (the list reloads, sidebar counts refresh). `showRestorePrompt` is the small inline confirm ("“Title” is in the trash. Restore / Cancel") that opens next to a clicked "deleted" wiki-link, in the editor and in time-entry descriptions alike. `NoteEditorPanel` shows a ten-second "Moved to trash. Undo" toast after a delete, which uses the same restore.
 
 ### note-sort.ts
 
@@ -90,7 +94,7 @@ Small status label for the save state (saved, saving, unsaved, error, conflict, 
 
 ### NoteBacklinks.svelte
 
-"Linked from" list of notes that link to the current note, shown by display title.
+"Linked from" list of notes that link to the current note, shown by display title. The server leaves out trashed sources.
 
 ### NoteSearchResults.svelte
 

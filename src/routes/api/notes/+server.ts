@@ -6,6 +6,7 @@ import { noteDisplayTitle } from '$lib/utils/note-display-title';
 import { apiError } from '$lib/server/api-errors';
 import { readJsonObject, readRequestTimezone } from '$lib/server/api-request';
 import { contractBelongsToUser } from '$lib/server/db/queries/contracts';
+import { updateNoteLinks } from '$lib/server/db/queries/note-links';
 import { isCalendarDate, localDateString, noonInTimezone } from '$lib/utils/local-calendar';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -71,6 +72,9 @@ export const GET: RequestHandler = async ({ locals, url }) => {
  * `created_at` is noon of that day in the caller's timezone (`updated_at` stays now). Today is
  * the same as leaving it out. A future day or anything not a calendar date is 400 `invalid_date`.
  * The creation date cannot be changed later: the ID would have to change.
+ *
+ * `wordCount` comes from `contentJson` when given, else from the markdown (sprint 037-CL), and the
+ * markdown's `[[id]]` wiki-links are indexed for backlinks.
  */
 export const POST: RequestHandler = async ({ locals, request, url }) => {
 	const currentUser = locals.user;
@@ -116,6 +120,9 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
 		(contentJson as string | null) ?? undefined,
 		clock
 	);
+	// Index `[[id]]` wiki-links in the markdown, as PUT/PATCH do, so a note written over the API
+	// (the CLI) shows up in its targets' backlinks from the start (sprint 037-CL)
+	if (typeof content === 'string' && content) await updateNoteLinks(note.id, content);
 
 	return json({ note }, { status: 201 });
 };

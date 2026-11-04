@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { database, notes } from '$lib/server/db';
-import { createNoteForUser, getNoteForUser } from '$lib/server/db/queries/notes';
+import { createNoteForUser, deleteNoteForUser, getNoteForUser } from '$lib/server/db/queries/notes';
 import { callBatch, removeBatchFixture, seedBatchFixture, type BatchFixture } from '$lib/server/batch/batch-test-fixture';
 import { localDateString } from '$lib/utils/local-calendar';
 import * as batchRoute from './+server';
@@ -130,6 +130,37 @@ describe('POST /api/notes/batch: atomic', () => {
 			target.id
 		]);
 		expect((await getNoteForUser(target.id, fixture.ownerId))?.content).toBe('Start\n\nMore\n');
+	});
+
+	it('an append to a note in the trash fails as not found (404) and rolls the batch back (sprint 037-CL)', async () => {
+		const trashed = await createNoteForUser(fixture.ownerId, fixture.retainer.id, 'Trashed target', 'Before the trash');
+		await deleteNoteForUser(fixture.ownerId, trashed.id);
+		const before = (await notesOfOwner()).length;
+		const response = await post({
+			atomic: true,
+			items: [
+				{ contractId: fixture.retainer.id, title: 'T1', content: 'four words right here' },
+				{ id: trashed.id, append: 'Must not land' }
+			]
+		});
+		expect(response.status).toBe(200);
+		expect(response.body).toMatchObject({ created: 0, updated: 0, failed: 2 });
+		expect(response.body.results[1]).toMatchObject({ ok: false, code: 'note_not_found' });
+		expect(response.body.results[0]).toMatchObject({ ok: false, code: 'batch_rolled_back' });
+		expect((await notesOfOwner()).length).toBe(before);
+		const row = await getNoteForUser(trashed.id, fixture.ownerId, { includeDeleted: true });
+		expect(row).toMatchObject({ content: 'Before the trash' });
+		expect(row?.deletedAt).toBeInstanceOf(Date);
+
+		// The same append without atomic is also refused (getNoteForUser / updateNoteForUser skip the trash)
+		const loose = await post({ items: [{ id: trashed.id, append: 'Nor this' }] });
+		expect(loose.body.results[0]).toMatchObject({ ok: false, code: 'note_not_found' });
+	});
+
+	it('an atomic create counts words from the markdown (sprint 037-CL)', async () => {
+		const response = await post({ atomic: true, items: [{ contractId: fixture.retainer.id, title: 'Counted', content: '# Counted\n\nfour words right here' }] });
+		const created = await getNoteForUser(response.body.results[0].id, fixture.ownerId);
+		expect(created?.wordCount).toBe(5);
 	});
 
 	it('rolls back every item on the first failure', async () => {

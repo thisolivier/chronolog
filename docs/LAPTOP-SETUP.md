@@ -168,7 +168,7 @@ chronolog import entries october.jsonl --dry-run   # then without --dry-run; not
 chronolog undo --last-import        # deletes every entry of the last import (asks first)
 chronolog note new ACME/Website "Status 4 Nov" --file body.md [--date yesterday]
 chronolog note append <note-id> --file update.md   # or note edit <id> [--title] [--contract]; exit 7 = changed in the app
-chronolog note delete <note-id>    # asks first; copy kept in ~/.config/chronolog/trash/, note restore <id>
+chronolog note delete <note-id>    # asks first; server trash for 30 days: note restore <id> (no id: list)
 chronolog note attach <note-id> ~/Downloads/SOW.pdf   # PDF or image ≤ 10 MB; appends a link to the note
 chronolog note attachments <note-id>; chronolog attachment get <id> [--out DIR]; attachment delete <id>
 chronolog --version                 # CLI version; `chronolog me` also shows the server's

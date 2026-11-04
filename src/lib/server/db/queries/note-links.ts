@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { database, notes, contracts } from '$lib/server/db';
 import { noteLinks } from '$lib/server/db/schema/note-links';
 import { parseWikiLinks } from './wiki-link-parser';
@@ -8,11 +8,12 @@ import { noteDisplayTitle } from '$lib/utils/note-display-title';
 export { parseWikiLinks } from './wiki-link-parser';
 
 /**
- * Get all notes that link TO a given note (backlinks).
+ * Get the user's notes that link TO a given note (backlinks).
  * `noteTitle` is the source note's display title (stored title, else first line);
  * contract and client IDs let the UI open a source note in another contract.
+ * Trashed sources are hidden; their link rows stay, so a restore brings them back (sprint 037-CL).
  */
-export async function getBacklinksForNote(targetNoteId: string) {
+export async function getBacklinksForNote(targetNoteId: string, userId: string) {
 	const rows = await database
 		.select({
 			sourceNoteId: noteLinks.sourceNoteId,
@@ -25,7 +26,7 @@ export async function getBacklinksForNote(targetNoteId: string) {
 		.from(noteLinks)
 		.innerJoin(notes, eq(noteLinks.sourceNoteId, notes.id))
 		.innerJoin(contracts, eq(notes.contractId, contracts.id))
-		.where(eq(noteLinks.targetNoteId, targetNoteId));
+		.where(and(eq(noteLinks.targetNoteId, targetNoteId), eq(notes.userId, userId), isNull(notes.deletedAt)));
 
 	// notes.title and notes.content_json are encrypted at rest
 	return rows.map(({ noteContentJson, ...row }) => ({
@@ -40,7 +41,8 @@ export async function getBacklinksForNote(targetNoteId: string) {
 /**
  * Parse wiki-links from markdown content and update the note_links table.
  * Deletes all existing outgoing links for the source note, then inserts
- * new links for any valid target note IDs found in the content.
+ * new links for any valid target note IDs found in the content. A trashed target still counts as
+ * existing (it keeps its ID), so a restore finds its backlinks in place.
  */
 export async function updateNoteLinks(sourceNoteId: string, markdownContent: string) {
 	const parsedLinks = parseWikiLinks(sourceNoteId, markdownContent);

@@ -5,9 +5,10 @@
  * - `note-created`  { noteId, contractId, firstLine, secondLine, createdAt, updatedAt }
  * - `note-saved`    { noteId, firstLine, secondLine, updatedAt }
  * - `note-moved`    { noteId, fromContractId, toContractId, toContractName, toClientName }
- * - `note-deleted`  { noteId, contractId }
+ * - `note-deleted`  { noteId, contractId }   (moved to the trash, sprint 037-CL)
+ * - `note-restored` { noteId, contractId }   (back from the trash with the same ID)
  *
- * Sidebar note counts change on `note-created`, `note-moved` and `note-deleted`;
+ * Sidebar note counts change on `note-created`, `note-moved`, `note-deleted` and `note-restored`;
  * `onNoteCountsChanged` subscribes to exactly those.
  */
 
@@ -40,11 +41,17 @@ export type NoteDeletedDetail = {
 	contractId: string | undefined;
 };
 
+export type NoteRestoredDetail = {
+	noteId: string;
+	contractId: string;
+};
+
 type NoteEventMap = {
 	'note-created': NoteCreatedDetail;
 	'note-saved': NoteSavedDetail;
 	'note-moved': NoteMovedDetail;
 	'note-deleted': NoteDeletedDetail;
+	'note-restored': NoteRestoredDetail;
 };
 
 export type NoteEventName = keyof NoteEventMap;
@@ -68,7 +75,7 @@ export function onNoteEvent<Name extends NoteEventName>(
 
 /** Run `handler` whenever per-contract note counts may have changed. */
 export function onNoteCountsChanged(handler: () => void): () => void {
-	const unsubscribers = (['note-created', 'note-moved', 'note-deleted'] as const).map((name) =>
+	const unsubscribers = (['note-created', 'note-moved', 'note-deleted', 'note-restored'] as const).map((name) =>
 		onNoteEvent(name, () => handler())
 	);
 	return () => unsubscribers.forEach((unsubscribe) => unsubscribe());

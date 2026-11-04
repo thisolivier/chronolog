@@ -13,7 +13,8 @@
 	import { trackNoteSave, waitForNoteSaves, type SaveStatus, type PersistOptions } from '$lib/components/notes/note-autosave';
 	import { noteDraft, startNoteDraft, endNoteDraft } from '$lib/components/notes/note-draft.svelte';
 	import { dispatchNoteEvent } from '$lib/components/notes/note-events';
-	import { getCachedNoteTitle, rememberNoteTitle, forgetNoteTitle, requestNoteTitles } from '$lib/components/notes/note-titles.svelte';
+	import { getCachedNoteTitle, rememberNoteTitle, requestNoteTitles, isNoteInTrash, setNoteTrashed, wikiLinkDisplayText } from '$lib/components/notes/note-titles.svelte';
+	import { restoreTrashedNote, showRestorePrompt } from '$lib/components/notes/note-trash';
 	import { useNoteNavigation } from '$lib/components/notes/note-navigation';
 	import '$lib/components/notes/print-styles.css';
 	import { extractPreviewLines } from '$lib/utils/extract-preview-lines';
@@ -54,6 +55,10 @@
 	let saveStatus = $state<SaveStatus>('saved');
 	let headerMessage = $state<string | null>(null);
 	let headerMessageTimeout: ReturnType<typeof setTimeout> | undefined;
+	/** "Moved to trash. Undo" for ten seconds after a delete (sprint 037-CL) */
+	let trashToast = $state<{ noteId: string; contractId: string; clientId: string } | null>(null);
+	let trashToastTimeout: ReturnType<typeof setTimeout> | undefined;
+	const TRASH_TOAST_MILLISECONDS = 10_000;
 	let draftSessionCounter = 0;
 	/** Set on destroy: a create that finishes afterwards must not navigate (phone Back) */
 	let isPanelDestroyed = false;
@@ -325,17 +330,57 @@
 			return;
 		}
 		const noteId = session.noteId;
+		const contractId = currentNote?.contractId ?? session.contractId;
+		const clientId = getCachedNoteTitle(noteId)?.clientId || navigation.selectedClientId || '';
 		try {
 			await waitForNoteSaves(noteId);
 			await dataService.deleteNote(noteId);
 			setEditorSession(null); // unmount first so the editor does not save it again
-			forgetNoteTitle(noteId);
-			dispatchNoteEvent('note-deleted', { noteId, contractId: currentNote?.contractId });
+			setNoteTrashed(noteId, new Date().toISOString());
+			dispatchNoteEvent('note-deleted', { noteId, contractId });
 			navigation.clearSelectedNote();
+			showTrashToast({ noteId, contractId, clientId });
 		} catch (deleteError) {
 			console.error('Error deleting note:', deleteError);
 			showHeaderMessage('Failed to delete note');
 		}
+	}
+
+	function showTrashToast(toast: { noteId: string; contractId: string; clientId: string }) {
+		trashToast = toast;
+		clearTimeout(trashToastTimeout);
+		trashToastTimeout = setTimeout(() => (trashToast = null), TRASH_TOAST_MILLISECONDS);
+	}
+
+	/** Undo: take the note out of the trash and open it again */
+	async function undoDelete() {
+		const toast = trashToast;
+		if (!toast) return;
+		trashToast = null;
+		clearTimeout(trashToastTimeout);
+		try {
+			const restored = await restoreTrashedNote(dataService, toast.noteId);
+			navigation.openNote(toast.noteId, restored.note.contractId, toast.clientId);
+		} catch (restoreError) {
+			console.error('Error restoring note:', restoreError);
+			showHeaderMessage('Could not restore the note');
+		}
+	}
+
+	/** A wiki-link: open the note; a note in the trash offers a restore next to the link first */
+	async function handleWikiLinkClick(noteId: string, element: HTMLElement) {
+		if (!isNoteInTrash(noteId) && (await noteNavigation.openNoteById(noteId))) return;
+		if (!isNoteInTrash(noteId)) {
+			showHeaderMessage('That note no longer exists');
+			return;
+		}
+		showRestorePrompt(element, {
+			title: wikiLinkDisplayText(noteId),
+			onRestore: async () => {
+				await restoreTrashedNote(dataService, noteId);
+				await noteNavigation.openNoteById(noteId);
+			}
+		});
 	}
 
 	async function handleExportMarkdown() {
@@ -363,6 +408,7 @@
 	onDestroy(() => {
 		isPanelDestroyed = true;
 		clearTimeout(headerMessageTimeout);
+		clearTimeout(trashToastTimeout);
 		// Leaving the panel (phone Back) ends an open draft; if something was typed the
 		// editor's final save still creates the note.
 		if (editorSession && !editorSession.noteId) endNoteDraft();
@@ -451,9 +497,7 @@
 					onSave={session.save}
 					onSaveStatusChange={session.onStatus}
 					onFileUpload={handleFileUpload}
-					onWikiLinkClick={async (noteId) => {
-						if (!(await noteNavigation.openNoteById(noteId))) showHeaderMessage('That note no longer exists');
-					}}
+					onWikiLinkClick={(noteId, _headingAnchor, element) => handleWikiLinkClick(noteId, element)}
 				/>
 			{/key}
 		</div>
@@ -466,6 +510,17 @@
 	{:else}
 		<div class="flex flex-1 items-center justify-center">
 			<p class="text-stone-400">Select a note to view</p>
+		</div>
+	{/if}
+
+	{#if trashToast}
+		<div
+			role="status"
+			data-testid="note-trash-toast"
+			class="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-md bg-stone-800 px-4 py-2 text-sm text-white shadow-lg"
+		>
+			<span>Moved to trash.</span>
+			<button type="button" onclick={undoDelete} class="font-semibold text-indigo-300 hover:text-indigo-200">Undo</button>
 		</div>
 	{/if}
 </div>

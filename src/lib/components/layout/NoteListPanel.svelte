@@ -188,6 +188,10 @@
 			}),
 			onNoteEvent('note-deleted', ({ noteId }) => {
 				notesList = notesList.filter((note) => note.id !== noteId);
+			}),
+			// Back from the trash (sprint 037-CL): reload this contract's list to show it in place
+			onNoteEvent('note-restored', ({ contractId }) => {
+				if (contractId === navigationContext.selectedContractId) void fetchNotesForContract(contractId);
 			})
 		];
 		return () => {

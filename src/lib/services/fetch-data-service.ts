@@ -13,6 +13,7 @@ import type { TimerLocalStart,
 	NoteSearchOptions,
 	NoteSearchResult,
 	NoteTitleInfo,
+	RestoredNote,
 	Backlink,
 	AttachmentSummary,
 	LinkedTimeEntryDisplay,
@@ -110,6 +111,10 @@ export class FetchDataService implements DataService {
 
 	async deleteNote(noteId: string): Promise<void> {
 		await deleteRequest(`/api/notes/${noteId}`);
+	}
+
+	async restoreNote(noteId: string): Promise<RestoredNote> {
+		return postJson<RestoredNote>(`/api/notes/${encodeURIComponent(noteId)}/restore`, {});
 	}
 
 	async getNoteBacklinks(noteId: string): Promise<Backlink[]> {

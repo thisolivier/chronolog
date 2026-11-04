@@ -2,12 +2,12 @@
  * Sprint 034-CL: the laptop secretary changes and deletes notes through the `chronolog` CLI
  * (a child process against the live server) without overwriting what the owner typed in the
  * browser: new → append → show → browser save → stale edit refused (exit 7) → fresh edit →
- * delete with a trash copy → restore. Also backdated `note new --date` (task 6).
+ * delete → restore (sprint 037-CL: the server trash, same ID). Also backdated `note new --date` (task 6).
  */
 import './test-init';
 import { describe, it, expect, beforeAll } from 'vitest';
 import { execFile } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { BASE_URL, authGet, authPost, authPut } from './helpers';
@@ -51,7 +51,6 @@ beforeAll(async () => {
 
 describe('changing a note through the CLI', () => {
 	let noteId = '';
-	let restoredId = '';
 
 	it('new → append → show reflects the appended text', async () => {
 		const created = await runJson(['note', 'new', contractReference, 'Status: CLI edits'], '## Done\n- First pass\n');
@@ -88,27 +87,21 @@ describe('changing a note through the CLI', () => {
 		expect(fresh).toMatchObject({ title: 'Status: rewritten', content: '# Status: rewritten\n\nSecretary rewrite\n', contentJson: null, wordCount: 4 });
 	});
 
-	it('delete --yes keeps a trash copy (mode 600); restore brings the note back on the same contract', async () => {
+	it('delete --yes moves it to the server trash (no local copy); restore brings back the same ID', async () => {
 		const refused = await runCli(['note', 'delete', noteId]);
 		expect(refused.exitCode).toBe(2);
 		expect(refused.stderr).toContain('Status: rewritten');
 
 		const deleted = await runJson(['note', 'delete', noteId, '--yes']);
-		expect(deleted.deleted).toEqual({ id: noteId, title: 'Status: rewritten', contractId });
-		expect(deleted.trashPath).toBe(join(CONFIG_DIRECTORY, 'trash', `${noteId}.md`));
-		expect(statSync(deleted.trashPath).mode & 0o777).toBe(0o600);
-		expect(readFileSync(deleted.trashPath, 'utf8')).toContain(`id: ${noteId}\ntitle: Status: rewritten\ncontractId: ${contractId}`);
+		expect(deleted.deleted).toMatchObject({ id: noteId, title: 'Status: rewritten', contractId });
+		expect(existsSync(join(CONFIG_DIRECTORY, 'trash'))).toBe(false);
 		expect((await authGet(`/api/notes/${noteId}`)).status).toBe(404);
 
 		const restored = await runJson(['note', 'restore', noteId]);
-		restoredId = restored.id;
-		// A new allocation: the same ID comes back only when the deleted note was the day's last
-		expect(restoredId).toMatch(/^[A-Z0-9]+\.\d{8}\.\d{3}$/);
-		expect(restored).toMatchObject({ contractId, title: 'Status: rewritten', content: '# Status: rewritten\n\nSecretary rewrite\n', restoredFrom: noteId });
-		expect(existsSync(deleted.trashPath)).toBe(false);
+		expect(restored).toMatchObject({ id: noteId, contractId, title: 'Status: rewritten', content: '# Status: rewritten\n\nSecretary rewrite\n' });
 
 		const { notes } = await (await authGet(`/api/notes?contractId=${contractId}`)).json();
-		expect(notes.map((note: { id: string }) => note.id)).toContain(restoredId);
+		expect(notes.map((note: { id: string }) => note.id)).toContain(noteId);
 	});
 });
 

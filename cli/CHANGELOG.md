@@ -4,6 +4,19 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 `chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
 030, 033 and 035 changed nothing in the CLI and are not listed.
 
+## Sprint 037-CL, 2026-11-04: server-side note trash (after 1.1.0; version not bumped)
+
+- `note delete <id> [--yes]` moves the note to the server's trash: it keeps its id, its wiki-links,
+  its backlinks and its time-entry links. It prints the id and "Restore with `chronolog note restore
+  <id>` within 30 days". Nothing is written to `~/.config/chronolog/trash/` any more.
+- `note restore <id>` brings the note back exactly (same id, links intact) through
+  `POST /api/notes/<id>/restore`; it says so when the note's contract is archived. A note not in the
+  trash exits 3. `--contract` is gone (use `note edit <id> --contract X` after restoring).
+- `note restore` with no id lists the server trash: id, deleted, purge date, contract, title.
+- `note new` without TipTap JSON now stores the right word count (server side).
+- Old `trash/<id>.md` files from sprint 034 are left on disk and no longer read; they are plain
+  markdown and can be re-filed with `note new --file`.
+
 ## 1.1.0 (sprint 038-CL, 2026-11-04): importing history
 
 - `import notes <file>` and `import entries <file>`: JSON Lines or a JSON array using the CLI's

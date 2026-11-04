@@ -64,6 +64,13 @@
       "when": 1793740886570,
       "tag": "0008_api_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793812571885,
+      "tag": "0009_note_trash",
+      "breakpoints": true
     }
   ]
 }

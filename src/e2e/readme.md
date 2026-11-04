@@ -60,9 +60,10 @@ E2E_USER_PREFIX=qa-029-e2e E2E_BASE_URL=http://localhost:5207 BETTER_AUTH_URL=ht
 | `attachments-offline.e2e.test.ts` | Attachment upload, metadata listing, download and delete |
 | `api-tokens-cli.e2e.test.ts` | /api/tokens, bearer auth, /api/me, error shape, GET /api/time-entries range, the `chronolog` CLI as a child process, revoked token 403 |
 | `admin-objects-cli.e2e.test.ts` | Sprint 031-CL: the CLI builds client → contract → deliverable → work type, logs against the work type, archives and unarchives, refuses `remove` without `--yes`, then removes the client and checks the entry was reassigned |
-| `note-changes-cli.e2e.test.ts` | Sprint 034-CL: CLI `note new` → `append` → `show` → browser `PUT` → stale `note edit` exits 7 → fresh edit → `note delete --yes` with a trash copy → `note restore`; `note new --date yesterday` and 400 `invalid_date` |
+| `note-changes-cli.e2e.test.ts` | Sprint 034-CL: CLI `note new` → `append` → `show` → browser `PUT` → stale `note edit` exits 7 → fresh edit → `note delete --yes` (server trash since 037, no local copy) → `note restore` with the same ID; `note new --date yesterday` and 400 `invalid_date` |
 | `entry-references-cli.e2e.test.ts` | Sprint 032-CL: `chronolog edit --work-type` under the entry's deliverable succeeds, one from another deliverable exits 3 with candidates (also `log`), `--deliverable none` clears both; the API answers 400 `work_type_mismatch` to a stale pair |
 | `import-cli.e2e.test.ts` | Sprint 038-CL: `chronolog import` from `fixtures/` (placeholders filled at run time): a dry run sends nothing, 30 notes (12 backdated, one append by id) and 60 entries (a JSON array) are imported and shown by `week`, a file with an unknown reference exits 3 with nothing sent, `undo --last-import --yes` deletes the entries |
+| `note-trash-cli.e2e.test.ts` | Sprint 037-CL: CLI `note new` stores a word count; B links to A and an entry links to A; `note delete` hides A from the note, list, search and titles while `titles?includeDeleted=1` marks it deleted; `note restore` lists it; restore keeps the ID, the backlink and the entry link; a second restore exits 3 |
 | `api-hardening-cli.e2e.test.ts` | Malformed JSON bodies are 400 `invalid_json`, eight parallel note creates, note ID date in `X-Timezone`, `chronolog edit` and `chronolog undo` |
 
 ## Configuration

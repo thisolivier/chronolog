@@ -1,4 +1,4 @@
-import { eq, and, desc, inArray } from 'drizzle-orm';
+import { eq, and, desc, inArray, isNull } from 'drizzle-orm';
 import { database, notes, contracts, clients } from '$lib/server/db';
 import { extractPreviewLines } from '$lib/utils/extract-preview-lines';
 import { noteDisplayTitle } from '$lib/utils/note-display-title';
@@ -68,6 +68,7 @@ function selectNotesWithContract() {
 			contentJson: notes.contentJson,
 			contractId: notes.contractId,
 			updatedAt: notes.updatedAt,
+			deletedAt: notes.deletedAt,
 			contractName: contracts.name,
 			clientId: clients.id,
 			clientName: clients.name,
@@ -112,7 +113,7 @@ export async function searchNotesForUser(
 	const needle = query.trim().toLowerCase();
 
 	const rows = await selectNotesWithContract()
-		.where(eq(notes.userId, userId))
+		.where(and(eq(notes.userId, userId), isNull(notes.deletedAt)))
 		.orderBy(desc(notes.updatedAt));
 
 	const ranked: Array<{ rank: number; order: number; result: NoteSearchResult }> = [];
@@ -140,12 +141,19 @@ export async function searchNotesForUser(
 
 /**
  * Display titles (plus contract and client IDs, for cross-contract navigation) for a set
- * of note IDs owned by the user. Unknown or foreign IDs are simply absent from the result.
+ * of note IDs owned by the user. Unknown or foreign IDs are simply absent from the result, and so
+ * are trashed notes unless `includeDeleted`, which returns them with their `deletedAt` (the
+ * wiki-link renderer shows those as "deleted" links that offer a restore, sprint 037-CL).
  */
-export async function getNoteTitlesForUser(userId: string, noteIds: string[]) {
+export async function getNoteTitlesForUser(
+	userId: string,
+	noteIds: string[],
+	options: { includeDeleted?: boolean } = {}
+) {
 	if (noteIds.length === 0) return [];
+	const owned = and(eq(notes.userId, userId), inArray(notes.id, noteIds));
 	const rows = await selectNotesWithContract().where(
-		and(eq(notes.userId, userId), inArray(notes.id, noteIds))
+		options.includeDeleted ? owned : and(owned, isNull(notes.deletedAt))
 	);
 	return rows.map((row) => {
 		const title = decryptNullable(row.title, 'notes.title');
@@ -154,7 +162,8 @@ export async function getNoteTitlesForUser(userId: string, noteIds: string[]) {
 			id: row.id,
 			displayTitle: noteDisplayTitle(title, contentJson),
 			contractId: row.contractId,
-			clientId: row.clientId
+			clientId: row.clientId,
+			...(options.includeDeleted ? { deletedAt: row.deletedAt } : {})
 		};
 	});
 }

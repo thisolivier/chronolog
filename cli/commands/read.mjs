@@ -4,6 +4,7 @@ import { describeClient, describeContract, resolveClient, resolveContract } from
 import { formatMinutes, isoWeekRange, parseIsoWeek, weekdayName } from '../lib/dates.mjs';
 import { UsageError } from '../lib/args.mjs';
 import { CLI_VERSION } from '../lib/version.mjs';
+import { fetchNote } from '../lib/note-fetch.mjs';
 
 export async function fetchContracts(api) {
 	return (await api.get('/api/contracts-by-client')).contracts;
@@ -95,7 +96,7 @@ export async function notes({ api, print, positionals, flags }) {
 export async function noteShow({ api, print, positionals }) {
 	const noteId = positionals[0];
 	if (!noteId) throw new UsageError('Usage: chronolog note show <note-id>');
-	const { note } = await api.get(`/api/notes/${encodeURIComponent(noteId)}`);
+	const note = await fetchNote(api, noteId);
 	const { timeEntries } = await api.get(`/api/notes/${encodeURIComponent(noteId)}/time-entries`);
 	const linked = timeEntries.map((entry) => `  ${entry.date}  ${formatMinutes(entry.durationMinutes)}  ${entry.description ?? ''}`);
 	const header = `${note.id}  ${note.title ?? '(untitled)'}\nUpdated ${note.updatedAt}`;
