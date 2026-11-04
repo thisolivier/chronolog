@@ -24,6 +24,7 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 - **036-CL** PDF attachments, upload type checked by magic bytes, `note attach`/`attachments`, `attachment get/delete`, `chronolog --version` 1.0.0, `BODY_SIZE_LIMIT` fix.
 - **035-DT** macOS menu-bar app: window loads production, close hides, tray shows the running timer, built on the Mac mini (`~/sites/chronolog-desktop/`).
 - **038-CL** `POST /api/notes/batch`, `POST /api/time-entries/batch`, `chronolog import notes|entries`, `undo --last-import`, CLI 1.1.0.
+- **037-CL** Server-side note trash (`deleted_at`, 30-day purge, restore keeps ID and links), Undo toast, deleted wiki-links with inline restore, word count on create, container-runnable backfill and purge scripts; backlinks user-filter fix.
 - **Offline banner and read cache** (`fix/offline-banner-and-cache`): the banner shows when the server is unreachable, and the read cache is write-through.
 
 ## Next (owner-decided, in this order)
@@ -47,18 +48,19 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 
 ### Notes / editor
 
+- No trash view in the browser; reachable only via Undo, a deleted wiki-link or the CLI (037 sign-off).
+- Phone: the Undo toast unmounts with the panel, so Undo is mostly desktop (037 sign-off).
+- `NoteEditorPanel.svelte` is 526 lines and due a split; the secretary skill is 213 lines, over its 200 guideline (037 sign-off).
+
 - Notes list preview shows raw link markdown for attachment links (`[file.pdf](chronolo…`); fix in `extract-preview-lines` (036 sign-off).
 - A link to a deleted attachment opens a tab that closes again, with no "missing" styling unlike images (036 sign-off).
 
-- A restored note gets a new ID, so `[[old-id]]` links elsewhere dangle unless it was the newest of its day (034 sign-off).
-- A note created by the CLI stores word count 0 until its first edit or browser save (034 sign-off).
 
 - Toolbar `disabled` states evaluate once; only the active highlights are reactive (020 sign-off).
 - A keepalive save at unload can reach the server after the reloaded page has loaded the note; the next edit gets the conflict message, no text lost (024 sign-off).
 - PDF export has not been tried in the native macOS print dialog; check on the Mac (024 sign-off, friction #11).
 - No note-side picker to reference a time entry; only the time-entry side links today (friction #21, 024 task 8).
 - Wiki-link text drops out of note titles and previews, leaving "Beta note links to" and "See ." (integration-qa-2 O1, journeys P-12).
-- Wiki-links to deleted notes render and do nothing on click (journeys A-10).
 - Note IDs keep the old client code after a client rename or a move (journeys P-07).
 - Phone landscape: the editor is about 80 px tall, with the linked panels taking the rest of the screen (journeys A-09).
 - Phone "Linked time entries": the date wraps into the duration (journeys P-06).

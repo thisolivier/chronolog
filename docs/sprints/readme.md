@@ -10,6 +10,7 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 037-CL | Client/Server | Server-side note trash with restore; word count on create | merged |
 | 038-CL | Client/Server | Batch notes and time entries, chronolog import | merged |
 | 035-DT | Desktop | macOS menu-bar app (Tauri 2) wrapping production | merged |
 | 036-CL | Client/Server | Attachments: PDFs, magic-byte checks, CLI attach/get/delete, CLI 1.0.0 | merged |

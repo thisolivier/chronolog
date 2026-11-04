@@ -1,6 +1,6 @@
 # Sprint 037 — CL: Server-side trash for notes; word count on create
 
-**Status:** ready for review (not merged)
+**Status:** merged
 **Branch:** `sprint-037-CL/note-trash` · **Worktree:** `.claude/worktrees/sprint-037-CL` · **Port:** 5215
 **Sources:** owner request 2026-11-04; sprint 034 sign-off (restored notes get a new ID, links dangle; CLI notes store word count 0); backlog journeys A-10 (wiki-links to deleted notes do nothing).
 
