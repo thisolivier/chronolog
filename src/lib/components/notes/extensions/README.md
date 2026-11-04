@@ -45,6 +45,16 @@ Vanilla JS dropdown component for the WikiLink suggestion popup. Each item shows
 
 Replaces StarterKit's `text` node. Its markdown serializer escapes `<` only where it could open a tag, comment or autolink, so `->` stays `->` in saved markdown, raw mode and the Markdown export (the default serializer wrote `-&gt;`). `escapeTagOpeners` is exported for tests.
 
+### task-list.ts, task-list-dom.ts (sprint 040-CL)
+
+Checkbox task lists, `- [ ] open` / `- [x] done`, nestable. `TaskListExtensions` registers:
+
+- `ChronologTaskList`: the official `TaskList` (from `@tiptap/extension-list`, the TipTap version installed) with a `tight` attribute so prosemirror-markdown writes one item per line, and a serializer that uses `*` instead of `-` when a bullet list is a direct neighbour (`taskListMarker`). Otherwise markdown-it would read `- a` then `- [ ] b` back as one list.
+- `ChronologTaskItem`: the official `TaskItem` (`nested: true`). An extra input rule turns a bullet or numbered list item into a task item when `[ ] `, `[] ` or `[x] ` is typed at its start (the list is split around it, and it joins a task list right before or after it); anywhere else the stock rule starts a new task list. A capture-phase `mousedown` listener focuses the editor before a checkbox click: the stock handler's `focus()` otherwise focused the DOM inside its own command chain in Safari and the tick was lost ("Applying a mismatched transaction").
+- `TaskListMarkdownNormaliser`: a markdown parse hook (`splitMixedTaskLists` in `task-list-dom.ts`) that splits a list mixing plain and task items into consecutive bullet and task lists.
+
+Parsing is tiptap-markdown's own task-list spec (markdown-it-task-lists). Tests: `task-list.test.ts` (round-trips: plain, nested, beside bullet lists, mixed, with wiki-links and code blocks; typing the markers) and `../note-print-tasks.test.ts`. Task items in markdown are read on the server by `$lib/utils/task-items.ts`.
+
 ### attachment-image.ts
 
 `AttachmentImage` extends the Image node. The document keeps the `chronolog://attachment/{id}` src (so saved markdown and JSON never contain blob URLs), while a node view shows a blob URL resolved by `attachment-resolver.ts`.

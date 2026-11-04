@@ -1,0 +1,19 @@
+$ chronolog todos
+Todos for all contracts: 4 open in 2 notes
+
+INTL.20261104.769  Budget call (INTL/General)  Send revised estimate
+
+INTL.20261104.768  Kickoff actions (INTL/General)  Draft the proposal for Jane
+INTL.20261104.768  Kickoff actions (INTL/General)    Follow up with legal on clause 4
+INTL.20261104.768  Kickoff actions (INTL/General)  Book the review meeting
+
+$ chronolog todos General --all
+Todos for INTL/General: 4 open, 2 done in 2 notes
+
+INTL.20261104.769  Budget call  [ ] Send revised estimate
+INTL.20261104.769  Budget call  [x] Confirm budget owner
+
+INTL.20261104.768  Kickoff actions  [ ] Draft the proposal for Jane
+INTL.20261104.768  Kickoff actions  [x] Share the deck
+INTL.20261104.768  Kickoff actions    [ ] Follow up with legal on clause 4
+INTL.20261104.768  Kickoff actions  [ ] Book the review meeting

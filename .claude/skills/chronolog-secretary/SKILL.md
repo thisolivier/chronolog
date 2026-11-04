@@ -223,3 +223,9 @@ means ask the owner; rerun with `--yes` only after a yes. Future or over-a-day s
 `{ notes: { hits, total }, timeEntries: { hits, total } }`. Note ids are `notes.hits[].id` (title hits
 first); entry hits carry `id`, `date`, `durationMinutes` and a `snippet.text`. Use it to answer "when
 did I work on X" or to find an entry id before `edit`. At least two characters.
+
+## Task lists
+
+Write action items as `- [ ] text` (`- [x]` when done; indent two spaces to nest): the app shows
+them as checkboxes. `chronolog todos [contract]` lists open items across notes (`--all` adds done
+ones); use it when the owner asks what is outstanding.

@@ -274,3 +274,19 @@ All routes return standard HTTP error codes:
 ## Word Count Calculation
 
 Word count is automatically calculated from the `contentJson` field when a note is created or updated. It counts words in text nodes within the TipTap document structure.
+
+### `GET /api/notes/todos[?contractId=X][&all=1]` (sprint 040-CL)
+
+Checkbox task items (`- [ ]` / `- [x]`, any depth) across the user's notes, read from each note's
+decrypted markdown by `extractTaskItems` (`$lib/utils/task-items.ts`). The markdown is always current:
+the editor saves it together with the TipTap JSON, and the CLI writes markdown only. Open items only
+unless `all=1`; notes without matching items are left out; fenced code and trashed notes never count.
+`contractId` must be a UUID (400 `invalid_contract`). Order as `GET /api/notes` (pinned, then newest).
+
+```json
+{ "notes": [{ "id": "ACME.20261104.001", "contractId": "uuid", "title": "Kickoff", "updatedAt": "…",
+    "items": [{ "text": "Call Jane", "checked": false, "depth": 0, "line": 3 }] }],
+  "openCount": 1, "doneCount": 0 }
+```
+
+`chronolog todos` is its client.

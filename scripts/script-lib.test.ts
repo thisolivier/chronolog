@@ -40,6 +40,7 @@ describe('scripts/lib/envelope.mjs', () => {
 });
 
 const markdownFixtures = [
+	'- [ ] open task\n- [x] done task\n  - [X] nested * [ ] marker',
 	'',
 	'# Status: checkout\n\nSecretary rewrite\n',
 	'## Plan\n\n- one item\n- [ ] a task\n- [x] done task\n1. first\n2) second\n',

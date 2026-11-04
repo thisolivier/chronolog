@@ -136,6 +136,20 @@
 		1.
 	</button>
 
+	<button
+		type="button"
+		onclick={() => editor?.chain().focus().toggleTaskList().run()}
+		disabled={!editor || !editor.can().chain().focus().toggleTaskList().run()}
+		data-toolbar-task-list
+		class="shrink-0 px-3 py-1.5 text-sm rounded transition-colors
+			{isActive('taskList') ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
+			disabled:opacity-50 disabled:cursor-not-allowed"
+		title="Task List (type [ ] at the start of a line)"
+		aria-label="Task List"
+	>
+		☑
+	</button>
+
 	<div class="mx-1 w-px shrink-0 bg-stone-300"></div>
 
 	<button

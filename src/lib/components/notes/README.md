@@ -4,7 +4,7 @@ WYSIWYG markdown editor components using TipTap v3.
 
 ## Architecture
 
-The notes module provides a rich text editing experience with markdown support. The editor uses TipTap core with StarterKit (`heading`, `codeBlock` and `text` disabled; it bundles Link in v3, so its options are passed through `StarterKit.configure({ link: … })`, never registered twice). Those are replaced by AnchoredHeading, CodeBlockLowlight (syntax highlighting via lowlight) and MarkdownText. The editor also uses AttachmentImage, FileHandler, Placeholder, Markdown and WikiLink.
+The notes module provides a rich text editing experience with markdown support. The editor uses TipTap core with StarterKit (`heading`, `codeBlock` and `text` disabled; it bundles Link in v3, so its options are passed through `StarterKit.configure({ link: … })`, never registered twice). Those are replaced by AnchoredHeading, CodeBlockLowlight (syntax highlighting via lowlight) and MarkdownText. The editor also uses AttachmentImage, FileHandler, Placeholder, Markdown, WikiLink and the task-list extensions (`TaskListExtensions`, sprint 040-CL).
 
 Saving is handled by `AutosaveController` (`note-autosave.ts`), not by the editor itself. Panels own the note lifecycle and the editor only reports content and save status.
 
@@ -27,6 +27,7 @@ Main editor component with toolbar and content area. Notes have no title field: 
 - Raw/rendered mode toggle (switch between WYSIWYG and raw markdown textarea). The TipTap mount `<div>` is always in the DOM and only hidden in raw mode — TipTap keeps a reference to the element it was mounted into, so removing it with `{#if}` left an empty editor on toggle back
 - Inline image support via drag-drop, paste, or programmatic insertion
 - File handler for images (jpeg/png/gif/webp/svg) and PDFs
+- Checkbox task lists (`- [ ]` / `- [x]`, nestable with Tab / Shift-Tab): typing `[ ] ` or `[] ` at the start of a list item or line, or the toolbar's ☑ button. A tick is an ordinary edit (autosave, 409 rules unchanged). See `extensions/README.md`
 - `chronolog://attachment/{uuid}` images render through the AttachmentImage node view (the document keeps the `chronolog://` src; the DOM shows a blob URL)
 
 **Props:**
@@ -74,7 +75,7 @@ Sort order for the note list (`modified` or `created`), persisted in localStorag
 
 ### note-print.ts
 
-PDF export. `printNote` copies the rendered note into a standalone document with its own print styles and prints only that, from a hidden iframe. `buildPrintDocument` builds that document and is pure, for tests.
+PDF export. `printNote` copies the rendered note into a standalone document with its own print styles and prints only that, from a hidden iframe. `buildPrintDocument` builds that document and is pure, for tests. Task-list checkboxes print as ☐ / ☑ (`printTaskItemsAsBoxes`: an `<input>`'s checked state does not survive copying the HTML). The Markdown export writes the note's stored markdown, so `- [ ]` / `- [x]` are kept as they are.
 
 ### note-export.ts
 
@@ -82,7 +83,7 @@ Markdown export. `exportAsMarkdown` downloads a `.md` file; `buildMarkdownExport
 
 ### EditorToolbar.svelte
 
-Formatting toolbar with active state indicators (bold, italic, headings, lists, links, code blocks). Receives `transactionCount` from `NoteEditor` (bumped on every TipTap transaction) and reads it inside its `isActive()` helper; the `Editor` instance never changes identity, so without that counter Svelte would not re-evaluate the highlights.
+Formatting toolbar with active state indicators (bold, italic, headings, lists, task list, links, code blocks). Receives `transactionCount` from `NoteEditor` (bumped on every TipTap transaction) and reads it inside its `isActive()` helper; the `Editor` instance never changes identity, so without that counter Svelte would not re-evaluate the highlights.
 
 ### NoteEditorHeader.svelte
 

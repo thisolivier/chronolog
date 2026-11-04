@@ -11,6 +11,10 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
   `9:30` or a date word and a time (`"yesterday 23:10"`). A future start (`start_in_future`) or one
   over 24 hours ago (`start_too_early`) exits 1; a start before the end of another entry warns and
   needs a yes on a terminal or `--yes` without one (exit 2 otherwise).
+- Sprint 040-CL: `todos [contract] [--all] [--json]` lists open checkbox items (`- [ ]`) across
+  the user's notes, one line per item (note id, title, item) grouped by note; `--all` adds done
+  items marked `[x]`. Served by the new `GET /api/notes/todos`. Notes written with `- [ ]` /
+  `- [x]` open in the editor as checkboxes; `note show`, `edit` and `append` keep the syntax.
 
 - Sprint 042-CL: `search "<words>" [--limit N]` now searches time entry descriptions as well as
   notes, through the new `GET /api/search`. It prints a `Notes (n)` group (title hits before body

@@ -46,6 +46,13 @@ const PRINT_STYLES = `
 	.wiki-link { color: black; font-weight: 600; }
 	.attachment-name { font-style: italic; }
 	.attachment-name::after { content: ' (attached file)'; font-size: 0.8em; color: #666; font-style: normal; }
+	ul[data-type="taskList"] { list-style: none; padding-left: 0.2em; }
+	ul[data-type="taskList"] ul[data-type="taskList"] { padding-left: 1.5em; }
+	ul[data-type="taskList"] > li { display: flex; align-items: baseline; gap: 0.4em; }
+	ul[data-type="taskList"] > li > div { flex: 1 1 auto; }
+	ul[data-type="taskList"] > li > div > p { margin: 0.1em 0; }
+	ul[data-type="taskList"] > li > div > ul { margin: 0; }
+	.task-box { font-family: 'Segoe UI Symbol', 'Apple Symbols', system-ui, sans-serif; font-size: 1.2em; line-height: 1; flex: 0 0 auto; }
 	hr { border: none; border-top: 1px solid #ccc; margin: 1.5em 0; }
 	.hljs-comment { color: #6a737d; font-style: italic; }
 	.hljs-keyword, .hljs-type { color: #d73a49; }
@@ -84,10 +91,26 @@ export function printAttachmentLinksAsNames(root: ParentNode): void {
 	});
 }
 
+/**
+ * A task item's checkbox is an `<input>` whose state lives in a DOM property that a copy of the
+ * HTML loses, so each one prints as a box character from the item's `data-checked` (sprint 040-CL).
+ */
+export function printTaskItemsAsBoxes(root: ParentNode): void {
+	root.querySelectorAll('ul[data-type="taskList"] > li').forEach((item) => {
+		const checkboxLabel = Array.from(item.children).find((child) => child.tagName === 'LABEL');
+		const box = item.ownerDocument.createElement('span');
+		box.className = 'task-box';
+		box.textContent = item.getAttribute('data-checked') === 'true' ? '☑' : '☐';
+		if (checkboxLabel) checkboxLabel.replaceWith(box);
+		else item.prepend(box);
+	});
+}
+
 /** Strip editor-only attributes from a copy of the editor DOM. */
 export function cleanEditorHtml(editorRoot: HTMLElement): string {
 	const copy = editorRoot.cloneNode(true) as HTMLElement;
 	printAttachmentLinksAsNames(copy);
+	printTaskItemsAsBoxes(copy);
 	copy.querySelectorAll('[contenteditable]').forEach((element) => element.removeAttribute('contenteditable'));
 	copy.querySelectorAll('.ProseMirror-trailingBreak, .ProseMirror-separator').forEach((element) => element.remove());
 	copy.querySelectorAll('p.is-editor-empty').forEach((element) => element.remove());
