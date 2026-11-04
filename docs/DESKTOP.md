@@ -75,8 +75,9 @@ CI=true npm run tauri:build      # CI=true: SSH sessions cannot script Finder fo
 Then on the laptop:
 
 ```bash
-scp olivier@100.110.206.54:sites/chronolog/src-tauri/target/release/bundle/dmg/Chronolog_0.0.1_aarch64.dmg ~/Downloads/
-open ~/Downloads/Chronolog_0.0.1_aarch64.dmg     # drag Chronolog to Applications
+# The file name carries the version from package.json (1.2.0 at sprint 044; 0.0.1 before)
+scp 'olivier@100.110.206.54:sites/chronolog/src-tauri/target/release/bundle/dmg/Chronolog_*_aarch64.dmg' ~/Downloads/
+open ~/Downloads/Chronolog_1.2.0_aarch64.dmg     # drag Chronolog to Applications
 ```
 
 ## First launch
@@ -111,6 +112,9 @@ timer start or stop:
 # [chronolog-desktop] timer running=true
 ```
 
+- After signing out the menu bar shows only the clock: the sign-out (and the sign-in page) clear the
+  timer title since 044-CL. That is page code, so it works once production is deployed, without
+  rebuilding the app.
 - Menu bar shows only the clock while a timer runs: the page has not reported yet. Show the window
   once (it reports on load and every minute).
 - The menu-bar item is missing: macOS hides items that do not fit beside the notch; quit other

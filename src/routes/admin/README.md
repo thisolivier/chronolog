@@ -34,7 +34,7 @@ Reusable UI components live in `src/lib/components/admin/` (see that module's RE
 
 Query helpers in `src/lib/server/db/queries/`, shared with the `/api/*` routes (sprint 031-CL: the API and the `chronolog` CLI do everything these pages do, through the same functions):
 
-- **clients.ts** — List, get, create, update, archive clients (scoped by user_id); `nextClientColorIndex` gives the default colour (`suggestClientColorIndex` in `src/lib/utils/client-colors.ts`, also used by the "New client" form)
+- **clients.ts** — List, get, create, update, archive clients (scoped by user_id); `nextClientColorIndex` gives the default colour: the first one the user's active clients do not use (`suggestClientColorIndex` in `src/lib/utils/client-colors.ts`, also used by the "New client" form and by the `create` action when no colour is posted). The Clients page shows a hint when two active clients share a colour (044-CL); existing colours are never changed
 - **contracts.ts** — List, get, create, update, archive (`setContractArchived`), reorder contracts (scoped by client_id); `getContractForUser` checks ownership through the client for the API
 - **deliverables.ts** — List, get, create, update deliverables (scoped by contract_id); `getDeliverableForUser` for the API
 - **work-types.ts** — List, create, update, reorder work types (scoped by deliverable_id); `getWorkTypeForUser` for the API

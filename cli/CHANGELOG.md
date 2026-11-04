@@ -4,6 +4,18 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 `chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
 030, 033 and 035 changed nothing in the CLI and are not listed.
 
+## Unreleased
+
+- Sprint 044-CL: **version drift notice.** `GET /api/me` now returns `serverCommit` (the commit the
+  production image was built from; `dev` from a checkout). At most once a day the CLI compares it
+  with its own checkout's commit and, when they differ, prints one line on stderr: `chronolog: server
+  is at <commit>, this CLI at <commit>: run git pull` (never on stdout; `CHRONOLOG_NO_VERSION_CHECK=1`
+  turns it off; state in `version-check.json` beside the config). `chronolog me` shows both commits.
+- Sprint 044-CL: **`undo --last-import` covers notes.** `import notes` now records the notes it
+  created (not the ones it appended to or edited); `undo --last-import` moves them to the trash
+  after the same confirmation (`--json`: `{ trashed, alreadyGone, noteIds, file }`). Entries are
+  undone as before. The last import of either kind is the one undone.
+
 ## 1.2.0 (sprints 039–042-CL, 2026-11-04): timer, todos, search across entries, pins
 
 **Changed output:** `search --json` now returns `{ notes: { hits, total }, timeEntries: { hits, total } }`

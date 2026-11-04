@@ -104,11 +104,11 @@ const currentNoteId = async () => (await noteHeader.locator('span.font-mono').fi
 async function waitForSavedNoteId(timeoutMs = 10000) {
 	const deadline = Date.now() + timeoutMs;
 	let label = await currentNoteId();
-	while (!/^[A-Z]+\.\d{8}\.\d{3}$/.test(label) && Date.now() < deadline) {
+	while (!/^[A-Z]+\.\d{8}\.\d{3,}$/.test(label) && Date.now() < deadline) {
 		await sleep(150);
 		label = await currentNoteId();
 	}
-	if (!/^[A-Z]+\.\d{8}\.\d{3}$/.test(label)) throw new Error('note header still reads ' + label);
+	if (!/^[A-Z]+\.\d{8}\.\d{3,}$/.test(label)) throw new Error('note header still reads ' + label);
 	return label;
 }
 const isNoteCreate = (request) => request.method() === 'POST' && new URL(request.url()).pathname === '/api/notes';

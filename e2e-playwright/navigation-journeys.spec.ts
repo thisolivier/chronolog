@@ -3,8 +3,9 @@
  * regression tests. Every screen state has a URL, reload returns to it, Back walks the real
  * history, and the sidebar, list and editor agree on the note's client and contract.
  */
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 import { editor, openNoteId } from './notes-helpers';
+import { signInAsFreshUser } from './fresh-user';
 
 // In order, in one worker: parallel API note creates under one user race for note IDs
 test.describe.configure({ mode: 'default' });
@@ -33,6 +34,32 @@ type Seeded = {
 
 const sidebarItem = (page: Page, contractId: string) => page.locator(`[data-contract-id="${contractId}"]`).first();
 const pathOf = (page: Page) => new URL(page.url()).pathname;
+
+/** Resolve once the element's scrollTop has not changed for 5 animation frames in a row */
+async function waitForSteadyScroll(scroller: Locator) {
+	await scroller.evaluate(
+		(element) =>
+			new Promise<void>((resolve) => {
+				let last = element.scrollTop;
+				let steadyFrames = 0;
+				const check = () => {
+					steadyFrames = element.scrollTop === last ? steadyFrames + 1 : 0;
+					last = element.scrollTop;
+					if (steadyFrames >= 5) resolve();
+					else requestAnimationFrame(check);
+				};
+				requestAnimationFrame(check);
+			})
+	);
+}
+
+/** The timesheet scroll positions the app has stored for this tab (navigation store) */
+async function rememberedScrollTops(page: Page): Promise<number[]> {
+	return page.evaluate(() => {
+		const stored = JSON.parse(sessionStorage.getItem('chronolog:timesheet-scroll') ?? '{}') as Record<string, { scrollTop: number }>;
+		return Object.values(stored).map((position) => position.scrollTop);
+	});
+}
 
 function isoDate(date: Date): string {
 	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -107,32 +134,45 @@ test('J1: settings and back keeps the note; a moved note stays open under its ne
 	await expect(sidebarItem(page, data.contractB)).toHaveAttribute('aria-current', 'page');
 });
 
-test('J2: timesheet card link, cross-contract link, then Back to the same week and scroll', async ({ page }) => {
+test('J2: timesheet card link, cross-contract link, then Back to the same week and scroll', async ({ page, baseURL }) => {
+	// Its own user (044-CL): the same journey in the other browser seeds cards on the same day for
+	// the shared user, which moved the list between saving and restoring its scroll position
+	await signInAsFreshUser(page, baseURL, 'journey-2');
 	const data = await seed(page);
 	await page.getByRole('button', { name: 'Time Entries' }).click();
 	await expect(page).toHaveURL(/\/time\/\d{4}-W\d{2}$/);
+	const currentWeekPath = pathOf(page);
 	await page.getByRole('button', { name: 'Previous week' }).click();
+	// Read the week path only once the URL has moved (044-CL: it could be read too early)
+	await expect.poll(() => pathOf(page)).not.toBe(currentWeekPath);
 	const weekPath = pathOf(page);
 	await expect(page.getByTitle(data.noteA).first()).toBeVisible();
 	const scroller = page.getByTestId('timesheet-scroll');
-	// Scroll like a user once the panel has placed the new week
-	await page.waitForTimeout(600);
+	// Scroll like a user once the panel has placed the new week (its scroll stops moving)
+	await waitForSteadyScroll(scroller);
 	await scroller.hover();
 	await page.mouse.wheel(0, 250);
 	await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBeGreaterThan(100);
-	// Bring the link into view as the click would, then note where the list is
+	// Bring the link into view as the click would, then wait until the panel has remembered
+	// where the list is (sessionStorage), which is what Back restores; no fixed sleeps (044-CL)
 	const cardLink = page.getByTitle(data.noteA).first();
 	await cardLink.scrollIntoViewIfNeeded();
-	await page.waitForTimeout(400);
+	await waitForSteadyScroll(scroller);
 	const savedScroll = await scroller.evaluate((element) => element.scrollTop);
+	await expect.poll(() => rememberedScrollTops(page)).toContain(savedScroll);
 
 	await cardLink.click();
 	await expect(page).toHaveURL(`/notes/${data.contractA}/${data.noteA}`);
 	await expect(sidebarItem(page, data.contractA)).toHaveAttribute('aria-current', 'page');
 
-	// In-editor link to a note under another contract: everything follows it
-	await editor(page).locator('[data-wiki-link]').first().click();
-	await expect(page).toHaveURL(`/notes/${data.contractB}/${data.noteB}`);
+	// In-editor link to a note under another contract: everything follows it. The editor of A
+	// must be loaded first; a click while it is still (re)rendering its content can be lost
+	// (WebKit, 044-CL), so the click is retried until the URL follows
+	await expect.poll(() => openNoteId(page)).toBe(data.noteA);
+	await expect(async () => {
+		await editor(page).locator('[data-wiki-link]').first().click({ timeout: 2000 });
+		await expect(page).toHaveURL(`/notes/${data.contractB}/${data.noteB}`, { timeout: 2000 });
+	}).toPass();
 	await expect(sidebarItem(page, data.contractB)).toHaveAttribute('aria-current', 'page');
 	await expect(page.getByTestId('note-list-context')).toContainText(data.nameB);
 

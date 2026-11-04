@@ -4,6 +4,7 @@ import { describeClient, describeContract, resolveClient, resolveContract } from
 import { formatMinutes, isoWeekRange, parseIsoWeek, weekdayName } from '../lib/dates.mjs';
 import { UsageError } from '../lib/args.mjs';
 import { CLI_VERSION } from '../lib/version.mjs';
+import { readCliCommit } from '../lib/version-drift.mjs';
 import { fetchNote } from '../lib/note-fetch.mjs';
 import { PIN_MARKER } from './note-pins.mjs';
 
@@ -11,13 +12,16 @@ export async function fetchContracts(api) {
 	return (await api.get('/api/contracts-by-client')).contracts;
 }
 
+const commitLabel = (commit) => (commit ? ` (${commit === 'dev' ? 'dev' : commit.slice(0, 7)})` : '');
+
 export async function me({ api, print, config }) {
 	const result = await api.get('/api/me');
+	const cliCommit = readCliCommit();
 	print(
 		`${result.user.name} <${result.user.email}> via ${result.authenticatedBy}\n` +
 			`Today ${result.today} (${result.timezone}), week ${result.isoWeek}: ${result.weekStart} to ${result.weekEnd}\n` +
-			`Server ${result.serverVersion ?? 'unknown (older than 1.0.0)'} at ${config?.baseUrl ?? '?'}, CLI ${CLI_VERSION}`,
-		{ ...result, cliVersion: CLI_VERSION }
+			`Server ${result.serverVersion ?? 'unknown (older than 1.0.0)'}${commitLabel(result.serverCommit)} at ${config?.baseUrl ?? '?'}, CLI ${CLI_VERSION}${commitLabel(cliCommit)}`,
+		{ ...result, cliVersion: CLI_VERSION, cliCommit }
 	);
 }
 

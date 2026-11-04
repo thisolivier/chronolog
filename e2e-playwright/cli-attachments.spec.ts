@@ -11,10 +11,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { editor, noteListItem, sidebarContract, createNote } from './notes-helpers';
 import { minimalPdf } from '../src/e2e/attachment-fixtures';
+import { sprintScreenshotDirectory } from './sprint-screenshots';
 
 const CURRENT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const CLI_PATH = path.join(CURRENT_DIRECTORY, '..', 'cli', 'chronolog.mjs');
-const SCREENSHOT_DIRECTORY = path.join(CURRENT_DIRECTORY, '..', 'docs', 'review', 'screenshots', 'sprint-036');
+const SCREENSHOT_DIRECTORY = sprintScreenshotDirectory('sprint-036');
 
 function runCli(args: string[], environment: Record<string, string>) {
 	return new Promise<{ exitCode: number; stdout: string; stderr: string }>((resolve) => {

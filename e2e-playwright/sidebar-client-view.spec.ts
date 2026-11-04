@@ -10,12 +10,13 @@
  */
 import { test, expect, type Page } from '@playwright/test';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { editor } from './notes-helpers';
+import { sprintScreenshotDirectory } from './sprint-screenshots';
+import { signInAsFreshUser } from './fresh-user';
 
 test.describe.configure({ mode: 'default' });
 
-const SCREENSHOTS = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'review', 'screenshots', 'sprint-039');
+const SCREENSHOTS = sprintScreenshotDirectory('sprint-039');
 const COLLAPSED_STORAGE_KEY = 'chronolog:sidebar-collapsed-clients';
 
 const sidebar = (page: Page) => page.getByTestId('app-sidebar');
@@ -68,6 +69,23 @@ async function seedClients(page: Page, clients: ClientSpec[]): Promise<Seeded> {
 	);
 }
 
+/** Whether the server has the note pinned (`GET /api/notes?contractId=` lists `isPinned`) */
+async function serverPinned(page: Page, contractId: string, noteId: string): Promise<boolean> {
+	return page.evaluate(
+		async ({ contractId, noteId }) => {
+			const listed = (await (await fetch(`/api/notes?contractId=${contractId}`)).json()).notes as Array<{ id: string; isPinned: boolean }>;
+			return listed.find((note) => note.id === noteId)?.isPinned ?? false;
+		},
+		{ contractId, noteId }
+	);
+}
+
+/** The order the server holds for these clients (`GET /api/clients` lists them in sidebar order) */
+async function serverClientOrder(page: Page, names: string[]): Promise<string[]> {
+	const listed = await page.evaluate(async () => (await (await fetch('/api/clients')).json()).clients as Array<{ name: string }>);
+	return listed.map((client) => client.name).filter((name) => names.includes(name));
+}
+
 async function rowOrder(page: Page): Promise<string[]> {
 	return noteRows(page).evaluateAll((rows) => rows.map((row) => row.getAttribute('data-note-id') ?? ''));
 }
@@ -104,7 +122,9 @@ test('pin a note: it moves to the top with a pin marker and stays there after a 
 	expect(await rowOrder(page)).toEqual([oldest, newest, middle]);
 	await expect(noteRow(page, oldest)).toHaveAttribute('data-pinned', 'true');
 
-	// Server order agrees: reload keeps it on top; pinning does not touch updatedAt
+	// Server order agrees: reload keeps it on top; pinning does not touch updatedAt. Reload only
+	// once the server holds the pin (a reload while it is saving could cancel it; 044-CL)
+	await expect.poll(() => serverPinned(page, seeded.contractIds[0][0], oldest)).toBe(true);
 	await page.reload();
 	await expect(noteRows(page)).toHaveCount(3);
 	expect(await rowOrder(page)).toEqual([oldest, newest, middle]);
@@ -220,7 +240,8 @@ test('collapse a client: the chevron hides its contracts, the choice survives a 
 	await expect(clientGroup(page, pairName).getByTestId('sidebar-client-chevron')).toHaveAttribute('aria-expanded', 'true');
 });
 
-test('reorder clients with Alt+Arrow keys: announced, and the order survives a reload', async ({ page, browserName }) => {
+test('reorder clients with Alt+Arrow keys: announced, and the order survives a reload', async ({ page, browserName, baseURL }) => {
+	await signInAsFreshUser(page, baseURL, 'reorder-keys'); // its own client order (044-CL)
 	const firstName = uniqueName('Order A');
 	const secondName = uniqueName('Order B');
 	await seedClients(page, [
@@ -250,11 +271,12 @@ test('reorder clients with Alt+Arrow keys: announced, and the order survives a r
 		await page.screenshot({ path: path.join(SCREENSHOTS, '04-sidebar-after-reorder.png') });
 	}
 
-	await expect.poll(async () => {
-		await page.reload();
-		await expect(clientGroup(page, upper)).toBeVisible();
-		return clientOrder(page, names);
-	}).toEqual([lower, upper]);
+	// Reload only once the server holds the new order: a reload while the save is in flight could
+	// cancel it (044-CL; this used to poll reloads)
+	await expect.poll(() => serverClientOrder(page, names)).toEqual([lower, upper]);
+	await page.reload();
+	await expect(clientGroup(page, upper)).toBeVisible();
+	expect(await clientOrder(page, names)).toEqual([lower, upper]);
 
 	// And back up with Alt+ArrowUp
 	await clientGroup(page, upper).locator('[data-client-reorder-handle]').focus();
@@ -265,7 +287,8 @@ test('reorder clients with Alt+Arrow keys: announced, and the order survives a r
 	expect(await clientOrder(page, names)).toEqual([upper, lower]);
 });
 
-test('reorder clients by dragging a client heading onto another client', async ({ page }) => {
+test('reorder clients by dragging a client heading onto another client', async ({ page, baseURL }) => {
+	await signInAsFreshUser(page, baseURL, 'reorder-drag'); // its own client order (044-CL)
 	const firstName = uniqueName('Drag A');
 	const secondName = uniqueName('Drag B');
 	await seedClients(page, [
@@ -278,16 +301,26 @@ test('reorder clients by dragging a client heading onto another client', async (
 	const names = [firstName, secondName];
 	const [upper, lower] = await clientOrder(page, names);
 
-	// Drop the upper client on the lower half of the lower one: it lands just after it
+	// Drop the upper client on the lower half of the lower one: it lands just after it.
+	// The drag is dispatched as DOM drag events sharing one DataTransfer (the handlers the browser
+	// would call), not a mouse drag: WebKit's synthesised native drag sometimes never fired `drop`
+	// (044-CL). Then wait until the server holds the order before reloading, instead of polling reloads.
 	const target = clientGroup(page, lower);
 	const box = await target.boundingBox();
-	await clientGroup(page, upper).locator('[data-client-reorder-handle]').dragTo(target, {
-		targetPosition: { x: 40, y: (box?.height ?? 20) - 4 }
-	});
+	if (!box) throw new Error('drop target has no box');
+	const pointer = { clientX: box.x + 40, clientY: box.y + box.height - 4 };
+	const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
+	const handle = clientGroup(page, upper).locator('[data-client-reorder-handle]');
+	await handle.dispatchEvent('dragstart', { dataTransfer });
+	await target.dispatchEvent('dragenter', { dataTransfer, ...pointer });
+	await target.dispatchEvent('dragover', { dataTransfer, ...pointer });
+	await target.dispatchEvent('drop', { dataTransfer, ...pointer });
+	await handle.dispatchEvent('dragend', { dataTransfer });
 	await expect.poll(() => clientOrder(page, names)).toEqual([lower, upper]);
-	await expect.poll(async () => {
-		await page.reload();
-		await expect(clientGroup(page, upper)).toBeVisible();
-		return clientOrder(page, names);
-	}).toEqual([lower, upper]);
+	await expect.poll(() => serverClientOrder(page, names)).toEqual([lower, upper]);
+
+	await page.reload();
+	await expect(clientGroup(page, upper)).toBeVisible();
+	await expect(clientGroup(page, lower)).toBeVisible();
+	expect(await clientOrder(page, names)).toEqual([lower, upper]);
 });

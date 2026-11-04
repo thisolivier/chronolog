@@ -2,7 +2,7 @@
 
 Command-line client for the Chronolog REST API. The laptop Claude secretary uses it to read and write time entries and notes for one signed-in user, and (sprint 031-CL) to set up clients, contracts, deliverables and work types. It authenticates with a personal API token (see `src/lib/server/auth-tokens/README.md`).
 
-Node 20+, no dependencies. It talks only to `/api/*`; the only local state is the config file, `last-entry.json` beside it (the entry `undo` would delete) and `last-import.json` (the entries `undo --last-import` would delete). Deleted notes go to the server's trash (sprint 037-CL); a `trash/` directory beside the config from sprint 034 is no longer read and can be removed (its files are plain markdown).
+Node 20+, no dependencies. It talks only to `/api/*`; the only local state is the config file, `last-entry.json` beside it (the entry `undo` would delete) `last-import.json` (what `undo --last-import` would undo) and `version-check.json` (when the daily version check last ran). Deleted notes go to the server's trash (sprint 037-CL); a `trash/` directory beside the config from sprint 034 is no longer read and can be removed (its files are plain markdown).
 
 ## Install
 
@@ -84,7 +84,7 @@ Environment variables win over the file:
 - `--atomic` passes `atomic: true` with each request: within a chunk, one failure saves nothing (the others report `batch_rolled_back`).
 - Output: `ok <line> <id>  <summary>` or `fail <line> <code> <message>` per item, then `Imported N of M …`. `--json` prints `{ created, updated, failed, results: [{ line, index, ok, id?, updatedAt?, error?, code?, unconditional? }] }`. Exit 0 when every item was saved, 1 when any failed (the others are saved; fix and import only the failed lines).
 - A note change without `expectedUpdatedAt` is applied whatever the note's state (`(updated, unconditionally)`).
-- The ids of created entries go to `last-import.json`; `chronolog undo --last-import` deletes them all after confirmation (`--yes` without a terminal, as for `remove`). Notes are not undone this way.
+- What the import created goes to `last-import.json`: every saved entry, or the notes it created (not the notes it appended to or edited). `chronolog undo --last-import` undoes the last import after one confirmation (`--yes` without a terminal, as for `remove`): entries are deleted, created notes go to the trash (`note restore <id>` within 30 days; since 044-CL). The `--json` result is `{ deleted, alreadyGone, file }` for entries, `{ trashed, alreadyGone, noteIds, file }` for notes.
 
 ### Task lists (sprint 040-CL)
 
@@ -94,7 +94,15 @@ Notes may hold checkbox items, `- [ ] open` and `- [x] done` (nested by two spac
 
 ### Version
 
-`chronolog --version` prints the CLI version, the root `package.json` version (1.2.0 since sprints 039–042). `chronolog me` adds the server's (`serverVersion` from `GET /api/me`). Changes per sprint are in [CHANGELOG.md](CHANGELOG.md).
+`chronolog --version` prints the CLI version, the root `package.json` version (1.2.0 since sprints 039–042). `chronolog me` adds the server's (`serverVersion` from `GET /api/me`) and both commits in brackets (`serverCommit`, `dev` for a server run from a checkout; this checkout's `git rev-parse HEAD`). Changes per sprint are in [CHANGELOG.md](CHANGELOG.md).
+
+**Version drift notice (044-CL).** At most once a day, after a command succeeds, the CLI asks `GET /api/me` for `serverCommit` and compares it with its own commit. When both are known and differ it prints one line on **stderr** (never stdout, so `--json` output is unaffected):
+
+```
+chronolog: server is at 3f9a1c2, this CLI at 8b04d17: run git pull
+```
+
+The time of the last check is kept in `version-check.json` beside the config file. A server reporting `dev`, a CLI outside a git checkout, or any failure of the check means no notice and never a failed command. `CHRONOLOG_NO_VERSION_CHECK=1` turns it off.
 
 ### Setting up clients (sprint 031-CL)
 
@@ -151,15 +159,17 @@ cli/lib/dates.mjs         ISO weeks, --date words, duration formatting
 cli/lib/history.mjs       last-entry.json: the entry `undo` deletes
 cli/lib/import-file.mjs   import file reading (JSON Lines or array, line numbers), chunking
 cli/lib/import-items.mjs  import items: references resolved once each, into batch API items
-cli/lib/import-history.mjs  last-import.json: the entries `undo --last-import` deletes
+cli/lib/import-history.mjs  last-import.json: what the last import created (entries or notes)
 cli/lib/note-body.mjs     note markdown: body input, title heading, edit/append text, word count
 cli/lib/attachment-files.mjs  attachment type from extension, reference lines, sizes, Content-Disposition filename
 cli/lib/version.mjs       CLI_VERSION from the root package.json
+cli/lib/version-drift.mjs the daily server/CLI commit comparison and its stderr notice
 cli/commands/read.mjs     me, clients, contracts, week, notes, note show
 cli/commands/search.mjs   search (GET /api/search)
 cli/commands/write.mjs    log, note new, status
 cli/commands/correct.mjs  edit, undo
-cli/commands/import.mjs   import notes|entries, undo --last-import (falls back to correct.undo)
+cli/commands/import.mjs   import notes|entries; undo (correct.undo, or undo-import.mjs with --last-import)
+cli/commands/undo-import.mjs  undo --last-import: delete the entries or trash the notes, one confirmation
 cli/commands/note-changes.mjs  note edit, append, delete, restore
 cli/commands/todos.mjs    todos: checkbox items across notes (GET /api/notes/todos)
 cli/commands/note-pins.mjs     note pin, note unpin (sprint 039-CL)

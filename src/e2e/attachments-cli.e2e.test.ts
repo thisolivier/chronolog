@@ -62,9 +62,11 @@ describe('versions', () => {
 		expect(plain.stdout.trim()).toBe(`chronolog ${PACKAGE_VERSION}`);
 		expect(PACKAGE_VERSION).toMatch(/^[1-9]\d*\.\d+\.\d+$/);
 		const me = await runJson(['me']);
-		expect(me).toMatchObject({ serverVersion: PACKAGE_VERSION, cliVersion: PACKAGE_VERSION });
+		// serverCommit is `dev` on a dev server; cliCommit is this checkout's (044-CL)
+		expect(me).toMatchObject({ serverVersion: PACKAGE_VERSION, serverCommit: 'dev', cliVersion: PACKAGE_VERSION });
+		expect(me.cliCommit).toMatch(/^[0-9a-f]{40}$/);
 		const meText = await runCli(['me']);
-		expect(meText.stdout).toContain(`Server ${PACKAGE_VERSION} at ${BASE_URL}, CLI ${PACKAGE_VERSION}`);
+		expect(meText.stdout).toContain(`Server ${PACKAGE_VERSION} (dev) at ${BASE_URL}, CLI ${PACKAGE_VERSION} (${me.cliCommit.slice(0, 7)})`);
 	});
 });
 

@@ -49,7 +49,9 @@
 				return;
 			}
 
-			goto('/login');
+			// Better Auth signs the new user in: /login redirects to the app, and invalidateAll
+			// re-runs the root layout's load so its data carries the user
+			goto('/login', { invalidateAll: true });
 		} catch (_error) {
 			errorMessage = 'An unexpected error occurred. Please try again.';
 			isLoading = false;

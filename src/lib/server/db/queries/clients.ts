@@ -105,11 +105,11 @@ export async function updateClient(clientId: string, userId: string, data: Clien
 }
 
 /**
- * The default colour for the user's next client: the first palette colour none of their clients
- * (archived included) uses, as the admin "New client" form suggests.
+ * The default colour for the user's next client: the first palette colour none of their active
+ * clients uses (044-CL), as the admin "New client" form suggests.
  */
 export async function nextClientColorIndex(userId: string): Promise<number> {
-	const existingClients = await listClientsForUser(userId, { includeArchived: true });
+	const existingClients = await listClientsForUser(userId);
 	return suggestClientColorIndex(existingClients.map((client) => client.colorIndex));
 }
 

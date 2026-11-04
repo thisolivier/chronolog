@@ -26,13 +26,18 @@ describe('/login page server load', () => {
 		expect(thrownValue).toMatchObject({ status: 303, location: '/' });
 	});
 
-	it('flags an authenticated client-side navigation instead of redirecting it', async () => {
-		await expect(load(buildLoadEvent(authenticatedUser, true))).resolves.toEqual({
-			alreadyAuthenticated: true
-		});
+	it('redirects an authenticated client-side navigation too (044-CL)', async () => {
+		let thrownValue: unknown;
+		try {
+			await load(buildLoadEvent(authenticatedUser, true));
+		} catch (caught) {
+			thrownValue = caught;
+		}
+		expect(isRedirect(thrownValue)).toBe(true);
+		expect(thrownValue).toMatchObject({ status: 303, location: '/' });
 	});
 
 	it('resolves normally when there is no authenticated user', async () => {
-		await expect(load(buildLoadEvent(null))).resolves.toEqual({ alreadyAuthenticated: false });
+		await expect(load(buildLoadEvent(null))).resolves.toEqual({});
 	});
 });

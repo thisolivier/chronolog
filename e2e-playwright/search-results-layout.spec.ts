@@ -5,10 +5,10 @@
  */
 import { test, expect, type Page } from '@playwright/test';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { editor } from './notes-helpers';
+import { sprintScreenshotDirectory } from './sprint-screenshots';
 
-const SCREENSHOTS = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'review', 'screenshots', 'sprint-046');
+const SCREENSHOTS = sprintScreenshotDirectory('sprint-046');
 
 type Seeded = { word: string; clientName: string; contractName: string; otherClientName: string; noteIds: Record<string, string> };
 

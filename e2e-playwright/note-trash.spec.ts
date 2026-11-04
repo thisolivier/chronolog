@@ -5,10 +5,10 @@
  */
 import { test, expect, type Page } from '@playwright/test';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { createContract, createNote, editor, noteListItem, openNoteId, sidebarContract } from './notes-helpers';
+import { sprintScreenshotDirectory } from './sprint-screenshots';
 
-const SCREENSHOTS = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'review', 'screenshots', 'sprint-037');
+const SCREENSHOTS = sprintScreenshotDirectory('sprint-037');
 
 const sidebarCount = (page: Page, contractName: string) =>
 	sidebarContract(page, contractName).getByTestId('sidebar-note-count');

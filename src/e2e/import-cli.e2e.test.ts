@@ -95,6 +95,24 @@ describe('chronolog import notes', () => {
 		const created = (await (await authGet(`/api/notes/${SHORT_CODE}.20260928.001`)).json()).note;
 		expect(created.content).toBe('# Imported note 01\n\nBack-filled history, item 1.\n\n- point one\n- point two\n');
 	});
+
+	it('undo --last-import needs --yes, then moves the 29 created notes to the trash (044-CL)', async () => {
+		const refused = await runCli(['undo', '--last-import']);
+		expect(refused.exitCode).toBe(2);
+		expect((await authGet(`/api/notes/${SHORT_CODE}.20260928.001`)).status).toBe(200);
+
+		const result = await runJson(['undo', '--last-import', '--yes']);
+		expect(result).toMatchObject({ trashed: 29, alreadyGone: 0 });
+		expect(result.noteIds).toHaveLength(29);
+		expect((await authGet(`/api/notes/${SHORT_CODE}.20260928.001`)).status).toBe(404);
+		const trash = await runJson(['note', 'restore']);
+		const trashedIds = JSON.stringify(trash);
+		for (const noteId of result.noteIds) expect(trashedIds).toContain(noteId);
+
+		// The updated note is not undone; the record is cleared
+		expect((await (await authGet(`/api/notes/${existingNoteId}`)).json()).note.content).toBe('# Running log\n\nAdded by the import.\n');
+		expect((await runCli(['undo', '--last-import', '--yes'])).exitCode).toBe(2);
+	});
 });
 
 describe('chronolog import entries', () => {
