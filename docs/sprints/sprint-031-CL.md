@@ -1,6 +1,6 @@
 # Sprint 031 — CL: Admin objects through the API and CLI
 
-**Status:** in progress
+**Status:** ready for review (not merged)
 **Branch:** `sprint-031-CL/cli-admin-objects` · **Worktree:** `.claude/worktrees/sprint-031-CL` · **Port:** 5209
 **Sources:** owner request 2026-11-04 ("allow the CLI to create clients, contracts, deliverables, tags, the whole shebang"); `docs/sprints/sprint-028-CL.md` and `sprint-029-CL.md` (API shape, CLI, skill); the admin form actions under `src/routes/admin/**/+page.server.ts` (the rules the UI already enforces).
 
@@ -39,3 +39,111 @@ Owns `src/routes/api/**` (except notes, time-entries, timer, tokens, me which on
 ## Verification
 
 A transcript in `docs/review/screenshots/sprint-031/transcript.md` of the CLI building a client end to end and the admin page screenshot showing it. Sign-off at the bottom of this file with the inventory from task 1, what was done, what was left, and test counts. Do not merge.
+
+## Sign-off
+
+**2026-11-04, implemented on `sprint-031-CL/cli-admin-objects` (not merged), rebased on `main` (`bbd2328`).**
+
+### Task 1: inventory
+
+Every admin form action already called a query module; the logic held inline was the colour default
+(computed in `admin/clients/+page.svelte`, and copied in `POST /api/contracts`), the client usage sum
+for the delete message (in the `delete` action) and the "entries keep Formerly" message (in the
+contract page). Those moved to `suggestClientColorIndex` (`$lib/utils/client-colors.ts`, used by the
+page, `nextClientColorIndex` in `clients.ts`, `POST /api/clients` and `POST /api/contracts`),
+`getClientUsage` (`safe-deletion.ts`) and `entriesKeptMessage` (`admin-actions.ts`). The pages behave
+identically (Playwright and the 65-step checklist driver green).
+
+| Action | Query functions | Validation and message | API |
+|---|---|---|---|
+| `create` | `createClient` | name + short code required; colour 0-7; unique violation → `duplicateShortCodeMessage` | `POST /api/clients` (409 `duplicate`) |
+| `update` (list) / `updateClient` (client page) | `updateClient` | name + short code required; emoji blank → null; colour 0-7; duplicate as above | `PATCH /api/clients/:id` |
+| `archive` / `unarchive` | `setClientArchived` | `archiveMessage` | `PATCH /api/clients/:id {archived}` |
+| `delete` | `getClientUsage`, `deleteClientWithReassignment` | `deletionMessage` | `DELETE /api/clients/:id` |
+| `createContract` | `createContract` (appends to the order) | name required; description trimmed, blank → null | `POST /api/contracts` (kept) |
+| `updateContract` (both pages) | `updateContract` | name required | `PATCH /api/contracts/:id` |
+| `archiveContract` / `unarchiveContract` | `setContractArchived` | `archiveMessage` | `PATCH /api/contracts/:id {archived}` |
+| `deleteContract` | `getContractUsage`, `deleteContractWithReassignment` | `deletionMessage` | `DELETE /api/contracts/:id` |
+| contract reorder | `reorderContractsForUser` | every id the user's, once | `PATCH /api/contracts/reorder` (existing) |
+| `createDeliverable` / `updateDeliverable` | `createDeliverable` / `updateDeliverable` | name required; sort order defaults to 0 | `POST /api/deliverables`, `PATCH /api/deliverables/:id` |
+| `deleteDeliverable` | `deleteDeliverableWithNote` | `entriesKeptMessage` | `DELETE /api/deliverables/:id` |
+| `createWorkType` / `updateWorkType` | `createWorkType` / `updateWorkType` | name required; deliverable must be on the contract | `POST /api/work-types`, `PATCH /api/work-types/:id` |
+| `deleteWorkType` | `deleteWorkTypeWithNote` | `entriesKeptMessage` | `DELETE /api/work-types/:id` |
+| `reorderWorkTypes` | `reorderWorkTypes` | | no bulk route; `PATCH /api/work-types/:id {sortOrder}` |
+
+The same map is in `src/routes/admin/README.md`.
+
+### What was done
+
+- **REST (task 2).** New `GET`/`PATCH`/`DELETE` on `/api/{clients,contracts,deliverables,work-types}/[id]`,
+  `POST /api/clients`, `/api/deliverables`, `/api/work-types`. Shared readers and response shapes are in
+  `src/routes/api/admin-input.ts`. Ownership comes from new lookups (`getContractForUser`,
+  `getDeliverableForUser`, `getWorkTypeForUser`, plus the existing `getClientForUser`) that join up to the
+  client's `user_id`, so another user's id gets the same 404 as a missing one. `POST /api/contracts` now
+  answers 404, not 403, for a client that is not the caller's, and 409 `duplicate` for an inline new
+  client's taken code. Deletes return `{ deleted, reassignedTimeEntryCount, movedNoteCount,
+  deletedContractCount, minutesMoved, message }`, or `annotatedTimeEntryCount` for deliverables and work
+  types. The single-object `GET`s include `usage`, which the CLI's remove confirmation prints.
+  `GET /api/clients` and `/api/contracts-by-client` accept `?includeArchived=true` and carry
+  `archived` / `clientArchived`.
+- **Archived deliverables and work types.** These have no archive column. They count as archived when
+  their contract or client is archived: the lists return `[]` for such a parent unless
+  `includeArchived=true`, and each row carries `archived`. So that an old entry on an archived contract
+  still shows its deliverable in the timesheet, `FetchDataService.getDeliverables/getWorkTypes` now asks
+  with `includeArchived=true`. That is a one-line change outside the boundary, made to keep the UI as it
+  was. The lists also now check ownership. The old behaviour (any contract id answered, an unknown
+  deliverable gave `200 []`) is gone, and `reference-data.e2e` was updated to expect 404.
+- **CLI (task 3).** `cli/commands/manage-clients.mjs` and `manage-structure.mjs` add `client
+  add|edit|archive|unarchive|remove`, `contract add|edit|archive|unarchive|remove`, `deliverables`,
+  `deliverable add|edit|remove`, `work-types` and `work-type add|edit|remove`. The UI says "Work type",
+  so that is the primary noun; `tag` and `tags` are aliases. `cli/lib/object-refs.mjs` resolves `SHORT`,
+  `SHORT/Contract`, `…/Deliverable` and `…/WorkType` paths, or an id, one segment at a time with the
+  existing never-guess rule, archived objects included. `remove` prints what would move. On a terminal
+  it asks `[y/N]`. Without a terminal it refuses with exit 2 unless `--yes`/`-y` is given. Also added:
+  `log --work-type` (or `--tag`), `clients --all` and `contracts --all`. Any 404 now exits 3, which used
+  to apply to `note_not_found` only. `chronolog.mjs` is 145 lines.
+- **Skill (task 4).** "Setting up a client" section covering the hierarchy, top-down order, short codes
+  that are the owner's to choose, archive preferred over remove, and remove confirmed every time. The
+  failure table has rows for `duplicate` and remove without `--yes`. The skill is 158 lines;
+  `allowed-tools` is unchanged. The CLI readme and `docs/LAPTOP-SETUP.md` quick reference are updated.
+- **Tests (task 5).** `src/routes/api/admin-objects.test.ts` (13 tests: ownership on every verb,
+  validation, 409 duplicate on create and edit, archive and includeArchived, safe deletion of client,
+  contract, deliverable and work type with the Formerly lines checked in the database).
+  `cli/commands/manage.test.mjs` (11 tests). `suggestClientColorIndex` tests.
+  `src/e2e/admin-objects-cli.e2e.test.ts` (5 tests: the CLI builds client → contract → deliverable →
+  work type, logs against the work type, gets duplicate exit 5 and unknown path exit 3, archives and
+  unarchives, is refused remove without `--yes`, then removes and checks the entry moved to Deleted
+  Contract with `Formerly: Rocket Works / Launch site / Phase 1 / Visual design`).
+  `e2e-playwright/cli-admin-objects.spec.ts`: the CLI creates the objects, then clicking Settings →
+  Clients → client → contract shows them and Back to app shows the contract in the sidebar, with a
+  window marker proving there was no reload (chromium and webkit).
+- **Verification.** `docs/review/screenshots/sprint-031/transcript.md` plus `01-sidebar.png`,
+  `02-admin-clients.png`, `03-admin-client.png` and `04-admin-contract.png`.
+
+### Results
+
+`npm run check` 0 errors (3 existing warnings in `+layout.svelte`). `npm test` 705/705 (66 files). `npm run
+lint` clean. API e2e 80/80 (11 files) against `http://localhost:5209`. Playwright 70 passed, 5 skipped
+(the existing chromium-only offline skips on webkit). `qa-driver.mjs` 65/65 PASS (its console errors are
+the deliberate offline simulations). Users created: `qa-031-*`.
+
+### Outside the listed boundaries (small)
+
+- `src/lib/utils/client-colors.ts` (+ test) and `src/routes/admin/clients/+page.svelte`: the shared
+  colour default, one line in the page.
+- The two admin `+page.server.ts` files: they import the moved helpers, with the same behaviour.
+- `src/lib/server/admin-actions.ts`: `entriesKeptMessage`.
+- `src/lib/services/fetch-data-service.ts` (+ test): `includeArchived=true`.
+- `src/e2e/reference-data.e2e.test.ts`: 404 for a deliverable that is not the caller's.
+- `src/routes/admin/README.md`, `src/e2e/readme.md`, `e2e-playwright/readme.md`.
+
+### Left, and follow-ups
+
+- There is no bulk work-type reorder route. `PATCH /api/work-types/:id {sortOrder}` covers it one item at
+  a time, and the CLI has `--order`.
+- `POST`/`PATCH /api/time-entries` still do not check that `workTypeId` belongs to the deliverable
+  (`entry-input.ts` is outside this sprint's boundary). The CLI only sends work types it resolved under
+  the deliverable.
+- `chronolog edit` cannot change an entry's work type yet; only `log --work-type` can set one.
+- A name containing `/` can only be referenced by id in the path syntax.
+- The human output does not show a client's emoji; `--json` does.
