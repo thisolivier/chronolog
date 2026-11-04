@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createDesktopTimerPusher, isDesktopShell, toDesktopTimerState } from './bridge';
+import { clearDesktopTimer, createDesktopTimerPusher, isDesktopShell, toDesktopTimerState } from './bridge';
 
 type FakeWindow = { __TAURI__?: { core: { invoke: ReturnType<typeof vi.fn> } } };
 
@@ -19,6 +19,10 @@ describe('outside the desktop shell', () => {
 		expect(isDesktopShell()).toBe(false);
 		(globalThis as unknown as { window: FakeWindow }).window = {};
 		expect(isDesktopShell()).toBe(false);
+	});
+
+	it('clearDesktopTimer does nothing and does not throw', () => {
+		expect(() => clearDesktopTimer()).not.toThrow();
 	});
 
 	it('push and heartbeat do nothing and do not throw', () => {
@@ -95,6 +99,13 @@ describe('inside the desktop shell', () => {
 		stopHeartbeat();
 		vi.advanceTimersByTime(60_000 * 3);
 		expect(invoke).toHaveBeenCalledTimes(4);
+	});
+
+	it('clearDesktopTimer sends a stopped state, even right after a running push', () => {
+		const pusher = createDesktopTimerPusher();
+		pusher.push({ running: true, startedAt: 5000, contractShortCode: 'ACME' });
+		clearDesktopTimer();
+		expect(invoke).toHaveBeenLastCalledWith('set_timer_state', { running: false, startedAt: null, contractShortCode: '' });
 	});
 
 	it('swallows a rejected or throwing invoke', async () => {

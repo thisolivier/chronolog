@@ -1,7 +1,10 @@
 <script lang="ts">
+	import { clearDesktopTimer } from '$lib/desktop/bridge';
+
 	let { data } = $props();
 
 	async function handleSignOut() {
+		clearDesktopTimer();
 		try {
 			await fetch('/api/auth/sign-out', {
 				method: 'POST',

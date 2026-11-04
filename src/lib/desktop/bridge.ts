@@ -98,3 +98,20 @@ export function createDesktopTimerPusher() {
 		}
 	};
 }
+
+/**
+ * Clear the menu-bar timer: called on sign-out and when the sign-in page loads (a session that
+ * expired, or a sign-out from another tab), so the menu bar never shows a signed-out user's timer.
+ * A no-op outside the desktop shell.
+ */
+export function clearDesktopTimer(): void {
+	const invoke = findInvoke();
+	if (!invoke) return;
+	try {
+		invoke('set_timer_state', { running: false, startedAt: null, contractShortCode: '' }).catch(() => {
+			// Best effort: the page is about to navigate away
+		});
+	} catch {
+		// Best effort, as above
+	}
+}

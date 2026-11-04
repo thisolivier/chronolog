@@ -15,7 +15,9 @@ menu-bar timer alive when the window is closed. Build and install: [docs/DESKTOP
 - `build.rs`: `AppManifest::commands(["set_timer_state"])` generates `allow-set-timer-state`;
   `capabilities/remote-timer.json` grants only that to the production origin.
 - `tauri.conf.json`: `withGlobalTauri` (the page uses `window.__TAURI__`, no npm package), version
-  from `../package.json`, `placeholder/` as `frontendDist` (nothing is bundled), app + dmg, ad hoc
+  from `../package.json` (the bundle's `CFBundleShortVersionString`; builds before 044-CL say
+  0.0.1 because `package.json` was 0.0.1 at sprint 035; a rebuild picks up the current version,
+  1.2.0 at 044), `placeholder/` as `frontendDist` (nothing is bundled), app + dmg, ad hoc
   signing, macOS 13.0 minimum.
 - `icons/`: `scripts/draw-icons.mjs` draws `app-icon.png` and `tray-template.png`; the bundle icons
   come from `npx tauri icon icons/app-icon.png` (non-macOS outputs deleted).
