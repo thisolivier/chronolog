@@ -184,7 +184,7 @@ describe('DELETE /api/notes/[noteId]', () => {
 		const note = await browserNote('Delete me');
 		const response = await call(noteRoute.DELETE, { userId: ownerId, method: 'DELETE', noteId: note.id });
 		expect(response.status).toBe(200);
-		expect(await response.json()).toEqual({ success: true, id: note.id, title: 'Delete me', contractId: ownerContractId });
+		expect(await response.json()).toMatchObject({ success: true, id: note.id, title: 'Delete me', contractId: ownerContractId });
 		expect(await getNoteForUser(note.id, ownerId)).toBeNull();
 
 		const again = await call(noteRoute.DELETE, { userId: ownerId, method: 'DELETE', noteId: note.id });

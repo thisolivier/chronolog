@@ -332,6 +332,18 @@ describe('FetchDataService', () => {
 		});
 	});
 
+	describe('restoreNote', () => {
+		it('calls POST /api/notes/:id/restore and returns { note, contract }', async () => {
+			const restored = { note: { id: 'n1' }, contract: { id: 'c1', name: 'Work', clientShortCode: 'A', archived: false, isSystem: false } };
+			mockFetch.mockResolvedValueOnce(mockJsonResponse(restored));
+
+			expect(await service.restoreNote('n1')).toEqual(restored);
+			const [url, options] = getLastFetchCall(mockFetch);
+			expect(url).toBe('/api/notes/n1/restore');
+			expect(options?.method).toBe('POST');
+		});
+	});
+
 	describe('getNoteBacklinks', () => {
 		it('calls GET /api/notes/:id/backlinks and unwraps .backlinks', async () => {
 			const backlinks: Backlink[] = [
@@ -916,6 +928,7 @@ describe('DataService interface completeness', () => {
 		'createNote',
 		'updateNote',
 		'deleteNote',
+		'restoreNote',
 		'getNoteBacklinks',
 		'searchNotes',
 		'getNoteTitles',
