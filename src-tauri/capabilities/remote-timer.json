@@ -1,0 +1,11 @@
+{
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "remote-timer-bridge",
+	"description": "The production site may push timer state to the menu bar, and nothing else.",
+	"windows": ["main"],
+	"remote": {
+		"urls": ["https://chronolog.throb.online"]
+	},
+	"platforms": ["macOS"],
+	"permissions": ["allow-set-timer-state"]
+}

@@ -1,35 +1,33 @@
 {
-  "$schema": "https://raw.githubusercontent.com/nicoverbruggen/tauri-v2-schema/main/tauri.conf.json",
+  "$schema": "https://schema.tauri.app/config/2",
   "productName": "Chronolog",
-  "version": "0.0.1",
+  "version": "../package.json",
   "identifier": "com.chronolog.app",
   "build": {
-    "frontendDist": "../build",
-    "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "frontendDist": "placeholder"
   },
   "app": {
-    "windows": [
-      {
-        "title": "Chronolog",
-        "width": 1200,
-        "height": 800
-      }
-    ],
+    "withGlobalTauri": true,
+    "windows": [],
     "security": {
       "csp": null
     }
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["app", "dmg"],
+    "category": "Productivity",
+    "shortDescription": "Time tracking and notes for consulting work",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "macOS": {
+      "signingIdentity": "-",
+      "minimumSystemVersion": "13.0"
+    }
   }
 }
