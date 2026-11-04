@@ -1,6 +1,6 @@
 # Sprint 046 — CL: Search results interleaved, with type icons
 
-**Status:** ready for review
+**Status:** merged
 **Branch:** `sprint-046-CL/search-results-layout` · **Worktree:** `.claude/worktrees/sprint-046-CL` · **Port:** 5225
 **Sources:** owner request 2026-11-04 after 042 shipped: "time entries and notes interleaved with an icon on the left to identify type, and client/contract clearly visible; crunches into one line for mobile (icon into client/contract)." Runs in parallel with 043 and 044; wave rules in `docs/sprints/_wave-rules.md` apply (no migration).
 

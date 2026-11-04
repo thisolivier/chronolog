@@ -10,6 +10,7 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 046-CL | Client | Search results interleaved with type icons | merged |
 | 039-CL | Client/Server | Pinned notes, client view, sidebar collapse and client reorder | merged |
 | 040-CL | Client/Server | Checkbox task lists, `chronolog todos` | merged |
 | 041-CL | Client/Server | Editable timer start, Today button, Archive/Activate in Settings | merged |
