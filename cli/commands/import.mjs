@@ -115,7 +115,10 @@ export async function importFile({ api, print, positionals, flags, config, envir
 		failed,
 		results: outcomes.map(({ label: _label, action: _action, ...result }) => result)
 	});
-	if (failed) throw new ImportFailed(`${failed} of ${outcomes.length} items failed (lines ${outcomes.filter((outcome) => !outcome.ok).map((outcome) => outcome.line).join(', ')}).`);
+	if (failed) {
+		const failedLines = outcomes.filter((outcome) => !outcome.ok).map((outcome) => outcome.line);
+		throw new ImportFailed(`${failed} of ${outcomes.length} items failed (line${failed > 1 ? 's' : ''} ${failedLines.join(', ')}); the others are saved.`);
+	}
 }
 
 /** `undo` deletes the last logged entry; `undo --last-import` the entries of the last import. */

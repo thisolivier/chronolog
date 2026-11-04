@@ -99,7 +99,7 @@ async function noteItem(value, resolvers, today) {
 		for (const fieldName of ['title', 'content', 'append', 'expectedUpdatedAt']) {
 			if (value[fieldName] !== undefined) body[fieldName] = value[fieldName] === null ? null : text(value[fieldName], fieldName);
 		}
-		return { body, label: body.id, action: 'update' };
+		return { body, label: `change: ${Object.keys(body).filter((key) => key !== 'id').join(', ') || 'nothing'}`, action: 'update' };
 	}
 	checkFields(value, NOTE_CREATE_FIELDS, 'a new note');
 	if (!value.contract) throw new ItemProblem('contract is required (or id, to change a note)');
