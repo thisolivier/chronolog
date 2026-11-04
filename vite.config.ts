@@ -90,7 +90,7 @@ export default defineConfig({
 		}
 	},
 	test: {
-		include: ['src/**/*.test.ts', 'cli/**/*.test.mjs'],
+		include: ['src/**/*.test.ts', 'cli/**/*.test.mjs', 'scripts/**/*.test.ts'],
 		exclude: ['src/e2e/**', 'node_modules/**']
 	}
 });

@@ -1,6 +1,7 @@
 # Chronolog production image (adapter-node). Used by docker-compose.prod.yml.
 # Build stage installs everything and runs `vite build`; the final stage carries only
-# build/, the migrations, the migration runner and production dependencies, and runs as `node`.
+# build/, the migrations, the migration runner, the maintenance scripts and production dependencies,
+# and runs as `node`.
 
 # ---- Build stage ----
 FROM node:22.23.4-alpine3.24 AS build
@@ -42,6 +43,10 @@ COPY --from=build --chown=node:node /app/build ./build
 COPY --chown=node:node package.json ./
 COPY --chown=node:node drizzle ./drizzle
 COPY --chown=node:node scripts/migrate.mjs ./scripts/migrate.mjs
+# Maintenance scripts run with `docker exec chronolog-prod-app node scripts/<name>.mjs` (plain JS,
+# production dependencies and scripts/lib/ only; the image has no src/)
+COPY --chown=node:node scripts/lib ./scripts/lib
+COPY --chown=node:node scripts/backfill-note-word-counts.mjs scripts/purge-note-trash.mjs scripts/encrypt-existing.mjs ./scripts/
 
 USER node
 
