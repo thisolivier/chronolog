@@ -68,8 +68,8 @@
 			<span class="text-xs text-stone-400">({workType.sortOrder})</span>
 		</div>
 		<div class="flex items-center gap-2">
-			<button onclick={startEditing} class="text-xs text-stone-500 hover:text-blue-600">Edit</button>
-			<button onclick={() => (isConfirmingDelete = true)} class="text-xs text-red-500 hover:text-red-700">Delete</button>
+			<button onclick={startEditing} class="text-xs text-stone-500 hover:text-blue-600 pointer-coarse:min-h-11">Edit</button>
+			<button onclick={() => (isConfirmingDelete = true)} class="text-xs text-red-500 hover:text-red-700 pointer-coarse:min-h-11">Delete</button>
 		</div>
 	{/if}
 </div>

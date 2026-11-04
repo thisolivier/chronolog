@@ -1,1 +1,68 @@
 @import "tailwindcss";
+
+/*
+ * iPhone (sprint 047-QA). Unlayered on purpose, so these win over Tailwind's text-sm / text-xs
+ * utilities (which live in a cascade layer).
+ *
+ * Safari zooms the page when a field under 16px takes focus, and does not zoom back out. On a
+ * phone-width screen or a touch screen every text field, select and textarea is at least 16px.
+ */
+@media (max-width: 767px), (pointer: coarse) {
+	input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']),
+	select,
+	textarea {
+		font-size: max(16px, 1em);
+	}
+}
+
+/*
+ * Safe areas. The viewport has `viewport-fit=cover` (app.html), so the page runs under the notch,
+ * the home indicator and, in landscape, the rounded corners. A full-height shell pads itself by
+ * the insets (0 everywhere else) so its top and bottom bars stay clear of them.
+ */
+/* Do not combine with Tailwind padding utilities on the same element: these unlayered rules win. */
+.safe-area-shell {
+	padding-top: env(safe-area-inset-top);
+	padding-right: env(safe-area-inset-right);
+	padding-bottom: env(safe-area-inset-bottom);
+	padding-left: env(safe-area-inset-left);
+}
+
+/* A fixed toast or prompt near the bottom edge keeps above the home indicator */
+.safe-area-bottom-offset {
+	bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+/*
+ * Stacked table (Settings → Clients): below 640px each row is a block, the header row is hidden,
+ * and every cell wraps on to the row's lines, so the actions are never behind a sideways scroll.
+ * A cell marked `data-stack-full` takes a whole line.
+ */
+@media (max-width: 639px) {
+	.stack-table,
+	.stack-table tbody {
+		display: block;
+	}
+	.stack-table thead {
+		display: none;
+	}
+	.stack-table tr {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		column-gap: 0.75rem;
+		padding: 0.75rem 1rem;
+	}
+	.stack-table td {
+		display: block;
+		padding: 0.125rem 0;
+		text-align: left;
+	}
+	.stack-table td[data-stack-full] {
+		width: 100%;
+	}
+	.stack-table td[data-stack-full] > .flex,
+	.stack-table td[data-stack-full] > form {
+		justify-content: flex-start;
+	}
+}

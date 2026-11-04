@@ -10,7 +10,7 @@
 	const navigation = getNavigationContext();
 </script>
 
-<div class="min-h-screen bg-stone-50">
+<div class="safe-area-shell min-h-dvh bg-stone-50">
 	<header class="border-b border-stone-200 bg-white shadow-sm">
 		<div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
 			<a href={navigation.workspaceHref} class="text-lg font-bold text-stone-900">Chronolog</a>

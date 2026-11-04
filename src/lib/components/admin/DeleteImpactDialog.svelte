@@ -61,7 +61,7 @@
 	onclick={(event) => event.target === event.currentTarget && onClose()}
 >
 	<div
-		class="w-full max-w-md rounded-lg bg-white p-5 text-left shadow-xl"
+		class="max-h-full w-full max-w-md overflow-y-auto rounded-lg bg-white p-5 text-left shadow-xl"
 		role="alertdialog"
 		aria-modal="true"
 		aria-labelledby="delete-impact-title"

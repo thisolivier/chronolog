@@ -425,7 +425,7 @@
 					<button
 						onclick={() => toggleAddEntry(dayDate)}
 						data-add-entry={dayDate}
-						class="rounded px-1.5 text-sm leading-none text-stone-500 hover:text-blue-500 pointer-coarse:py-1"
+						class="rounded px-1.5 text-sm leading-none text-stone-500 hover:text-blue-500 pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:text-lg"
 						title="Add entry"
 						aria-label="Add entry for {formatDayHeader(dayDate)}"
 					>

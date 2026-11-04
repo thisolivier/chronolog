@@ -29,12 +29,12 @@
 	<div
 		role="status"
 		data-testid="note-trash-toast"
-		class="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-md bg-stone-800 px-4 py-2 text-sm text-white shadow-lg"
+		class="fixed bottom-4 left-1/2 z-40 flex w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3 rounded-md bg-stone-800 px-4 py-2 text-sm text-white shadow-lg"
 		style="margin-bottom: env(safe-area-inset-bottom);"
 	>
 		{#if trashToastState.toast}
 			<span>Moved to trash.</span>
-			<button type="button" onclick={undoDelete} class="font-semibold text-indigo-300 hover:text-indigo-200">Undo</button>
+			<button type="button" onclick={undoDelete} class="font-semibold text-indigo-300 hover:text-indigo-200 pointer-coarse:-my-2 pointer-coarse:min-h-11 pointer-coarse:px-2">Undo</button>
 		{:else}
 			<span>{trashToastState.error}</span>
 		{/if}

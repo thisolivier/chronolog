@@ -101,13 +101,13 @@
 						{contract.isActive ? 'Active' : 'Inactive'}
 					</span>
 				{/if}
-				<button onclick={startEditing} class="text-sm text-stone-500 hover:text-blue-600">Edit</button>
+				<button onclick={startEditing} class="text-sm text-stone-500 hover:text-blue-600 pointer-coarse:min-h-11">Edit</button>
 				<!-- Direct Archive / Activate (sprint 041-CL); Delete still offers Archive too -->
 				<form method="POST" action="{actionBase}?/{isArchived ? 'unarchiveContract' : 'archiveContract'}" use:enhance class="inline">
 					<input type="hidden" name="contract_id" value={contract.id} />
-					<button type="submit" aria-label="{isArchived ? 'Activate' : 'Archive'} {contract.name}" class="text-sm text-stone-500 hover:text-blue-600">{isArchived ? 'Activate' : 'Archive'}</button>
+					<button type="submit" aria-label="{isArchived ? 'Activate' : 'Archive'} {contract.name}" class="text-sm text-stone-500 hover:text-blue-600 pointer-coarse:min-h-11">{isArchived ? 'Activate' : 'Archive'}</button>
 				</form>
-				<button onclick={() => (isConfirmingDelete = true)} class="text-sm text-red-500 hover:text-red-700">Delete</button>
+				<button onclick={() => (isConfirmingDelete = true)} class="text-sm text-red-500 hover:text-red-700 pointer-coarse:min-h-11">Delete</button>
 			</div>
 		</div>
 	{/if}

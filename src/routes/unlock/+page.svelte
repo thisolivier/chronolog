@@ -8,8 +8,8 @@
 	<title>Chronolog · Unlock</title>
 </svelte:head>
 
-<div class="flex min-h-screen items-center justify-center bg-stone-50">
-	<div class="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-md">
+<div class="safe-area-shell flex min-h-dvh items-center justify-center bg-stone-50">
+	<div class="w-[calc(100%-2rem)] max-w-md space-y-8 rounded-lg bg-white p-6 shadow-md sm:p-8">
 		<div class="text-center">
 			<h1 class="text-3xl font-bold text-stone-900">Chronolog</h1>
 			<p class="mt-2 text-stone-600">Enter this server's device access key</p>

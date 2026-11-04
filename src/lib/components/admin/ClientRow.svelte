@@ -44,17 +44,17 @@
 {#if isEditing}
 	<!-- Inputs sit in the same cells as the values they edit; they join the form via `form=`. -->
 	<tr class="bg-blue-50" use:escapeCancels={cancelEditing}>
-		<td class="px-6 py-2">
+		<td class="px-6 py-2" data-stack-full>
 			<!-- svelte-ignore a11y_autofocus -->
 			<input form={editFormId} name="name" type="text" required aria-label="Client name" autofocus bind:value={editName} class={inputClass} />
 		</td>
-		<td class="px-6 py-2">
-			<input form={editFormId} name="short_code" type="text" required aria-label="Short code" bind:value={editShortCode} class="{inputClass} max-w-28 font-mono" />
+		<td class="px-6 py-2" data-stack-full>
+			<input form={editFormId} name="short_code" type="text" required aria-label="Short code" placeholder="Short code" bind:value={editShortCode} class="{inputClass} max-w-28 font-mono" />
 		</td>
-		<td class="px-6 py-2">
-			<input form={editFormId} name="emoji" type="text" aria-label="Emoji" bind:value={editEmoji} class="{inputClass} max-w-16" />
+		<td class="px-6 py-2" data-stack-full>
+			<input form={editFormId} name="emoji" type="text" aria-label="Emoji" placeholder="Emoji" bind:value={editEmoji} class="{inputClass} max-w-16" />
 		</td>
-		<td class="px-6 py-2">
+		<td class="px-6 py-2" data-stack-full>
 			<span class="flex items-center gap-2">
 				<span class="inline-block h-3 w-3 flex-shrink-0 rounded-full {getClientDotClass(editColorIndex)}" aria-hidden="true"></span>
 				<select form={editFormId} name="color_index" bind:value={editColorIndex} aria-label="Client colour" class="{inputClass} bg-white">
@@ -64,7 +64,7 @@
 				</select>
 			</span>
 		</td>
-		<td class="px-6 py-2 text-right">
+		<td class="px-6 py-2 text-right" data-stack-full>
 			<form id={editFormId} method="POST" action="/admin/clients?/update" use:enhance={closeOnSuccess(cancelEditing)} class="flex justify-end gap-2">
 				<input type="hidden" name="client_id" value={client.id} />
 				<button type="button" onclick={cancelEditing} class="rounded-md border border-stone-300 bg-white px-3 py-1 text-sm text-stone-700 hover:bg-stone-50">Cancel</button>
@@ -74,7 +74,7 @@
 	</tr>
 {:else}
 	<tr class="hover:bg-stone-50 {isArchived ? 'text-stone-400' : ''}" data-client-id={client.id}>
-		<td class="px-6 py-3 text-sm font-medium text-stone-900">
+		<td class="px-6 py-3 text-sm font-medium text-stone-900" data-stack-full>
 			<span class="flex items-center gap-2">
 				<span class="inline-block h-2 w-2 flex-shrink-0 rounded-full {getClientDotClass(client.colorIndex ?? 0)}" aria-hidden="true"></span>
 				<a href="/admin/clients/{client.id}" class="text-blue-600 hover:text-blue-800 hover:underline {isArchived ? 'opacity-60' : ''}">{client.name}</a>
@@ -93,15 +93,15 @@
 				{colorName}
 			</span>
 		</td>
-		<td class="px-6 py-3 text-right text-sm">
+		<td class="px-6 py-3 text-right text-sm" data-stack-full>
 			<div class="flex items-center justify-end gap-3">
-				<button onclick={startEditing} class="text-stone-500 hover:text-blue-600">Edit</button>
+				<button onclick={startEditing} class="text-stone-500 hover:text-blue-600 pointer-coarse:min-h-11">Edit</button>
 				<!-- Direct Archive / Activate (sprint 041-CL); Delete still offers Archive too -->
 				<form method="POST" action="/admin/clients?/{isArchived ? 'unarchive' : 'archive'}" use:enhance class="inline">
 					<input type="hidden" name="client_id" value={client.id} />
-					<button type="submit" aria-label="{isArchived ? 'Activate' : 'Archive'} {client.name}" class="text-stone-500 hover:text-blue-600">{isArchived ? 'Activate' : 'Archive'}</button>
+					<button type="submit" aria-label="{isArchived ? 'Activate' : 'Archive'} {client.name}" class="text-stone-500 hover:text-blue-600 pointer-coarse:min-h-11">{isArchived ? 'Activate' : 'Archive'}</button>
 				</form>
-				<button onclick={() => (isConfirmingDelete = true)} class="text-red-500 hover:text-red-700">Delete</button>
+				<button onclick={() => (isConfirmingDelete = true)} class="text-red-500 hover:text-red-700 pointer-coarse:min-h-11">Delete</button>
 			</div>
 			{#if isConfirmingDelete}
 				<DeleteImpactDialog

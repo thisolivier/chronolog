@@ -30,3 +30,13 @@ export function isSearchShortcut(event: ShortcutEvent, applePlatform = isApplePl
 export function shortcutLabel(key: string, applePlatform = isApplePlatform()): string {
 	return applePlatform ? `⌘${key.toUpperCase()}` : `Ctrl+${key.toUpperCase()}`;
 }
+
+/**
+ * Touch route to find in page (sprint 047-QA): a phone has no Cmd+F, so the phone title bar's
+ * Find button sends this window event; the FindBar of the panel on screen opens.
+ */
+export const OPEN_FIND_EVENT = 'chronolog:open-find';
+
+export function requestFindInPage(): void {
+	window.dispatchEvent(new CustomEvent(OPEN_FIND_EVENT));
+}

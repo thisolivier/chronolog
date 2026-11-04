@@ -148,7 +148,7 @@
 		<!-- Time Entries Link -->
 		<button
 			onclick={handleTimeEntriesClick}
-			class="mb-3 w-full rounded-md px-3 py-2 text-left text-sm font-medium transition-colors {isTimeEntriesHighlighted
+			class="mb-3 w-full rounded-md px-3 py-2 text-left text-sm font-medium transition-colors pointer-coarse:py-3 {isTimeEntriesHighlighted
 				? 'bg-blue-50 text-blue-700'
 				: 'text-stone-700 hover:bg-stone-100'}"
 			aria-current={isTimeEntriesHighlighted ? 'page' : undefined}
@@ -204,13 +204,13 @@
 	<div class="flex-shrink-0 border-t border-stone-200 px-3 py-1.5">
 		<button
 			onclick={() => (showCreateModal = true)}
-			class="block w-full px-3 py-1 text-left text-xs text-stone-500 hover:text-stone-700"
+			class="block w-full px-3 py-1 text-left text-xs text-stone-500 hover:text-stone-700 pointer-coarse:py-3.5"
 		>
 			New Contract
 		</button>
 		<a
 			href="/settings"
-			class="block w-full px-3 py-1 text-left text-xs text-stone-500 hover:text-stone-700"
+			class="block w-full px-3 py-1 text-left text-xs text-stone-500 hover:text-stone-700 pointer-coarse:py-3.5"
 		>
 			Settings
 		</a>

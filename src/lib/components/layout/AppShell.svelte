@@ -5,6 +5,7 @@
 	import TimerIndicator from '$lib/components/weekly/TimerIndicator.svelte';
 	import ConnectionStatus from './ConnectionStatus.svelte';
 	import GlobalSearchField from '$lib/components/search/GlobalSearchField.svelte';
+	import { requestFindInPage } from '$lib/components/find/shortcuts';
 	import { labelForPath, titleForRoute } from './navigation-labels';
 	import { requestNoteTitles, subscribeToNoteTitles } from '$lib/components/notes/note-titles.svelte';
 	import { parseWorkspacePath } from '$lib/stores/navigation-routes';
@@ -115,6 +116,11 @@
 		return labelForPath(navigationContext.backTarget.path, navigationContext.selectedWeek ?? '');
 	});
 	const mobileTitle = $derived(titleForRoute(navigationContext.route));
+	// The week or a note is on screen (panel 3): the title bar offers Find, the phone's route to
+	// find in page (sprint 047-QA)
+	const mobileShowsContentPanel = $derived(
+		navigationContext.mobileNavigationLevel >= (navigationContext.isNotesMode ? 2 : 1)
+	);
 
 	function toggleSidebar() {
 		if (sidebarIsOverlay) overlaySidebarOpen = !overlaySidebarOpen;
@@ -131,14 +137,14 @@
 
 {#if isMobile}
 	<!-- Mobile: Single-panel push/pop navigation -->
-	<div class="flex h-screen flex-col overflow-hidden bg-white">
+	<div class="safe-area-shell flex h-dvh flex-col overflow-hidden bg-white">
 		<!-- Mobile top bar: app name at the root, Back button once pushed in -->
 		<div class="flex h-12 items-center justify-between border-b border-stone-200 bg-white px-4">
 			<div class="flex min-w-0 flex-1 items-center gap-3">
 				{#if navigationContext.mobileNavigationLevel > 0}
 					<button
 						onclick={() => navigationContext.goBackMobile()}
-						class="flex-shrink-0 text-sm font-medium text-blue-600 hover:text-blue-800"
+						class="-ml-2 flex min-h-11 flex-shrink-0 items-center px-2 text-sm font-medium text-blue-600 hover:text-blue-800"
 						aria-label="Back to {backLabel}"
 						data-testid="mobile-back"
 					>
@@ -149,10 +155,21 @@
 					<span class="text-sm font-semibold text-stone-700">Chronolog</span>
 				{/if}
 			</div>
+			{#if mobileShowsContentPanel}
+				<button
+					type="button"
+					onclick={requestFindInPage}
+					class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+					aria-label="Find in page"
+					data-testid="mobile-find-button"
+				>
+					<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4" aria-hidden="true"><path d="M4 4h12M4 8h7M4 12h5" stroke-linecap="round" /><circle cx="13.5" cy="13" r="3" /><path d="m15.7 15.2 2.3 2.3" stroke-linecap="round" /></svg>
+				</button>
+			{/if}
 			<!-- Global search (sprint 042-CL): the field gets the whole page on a phone -->
 			<a
 				href="/search"
-				class="ml-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+				class="ml-1 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md text-stone-500 hover:bg-stone-100 hover:text-stone-700"
 				aria-label="Search"
 				data-testid="mobile-search-link"
 			>
@@ -185,7 +202,7 @@
 	</div>
 {:else}
 	<!-- Desktop: Multi-panel layout -->
-	<div class="flex h-screen flex-col overflow-hidden bg-white">
+	<div class="safe-area-shell flex h-dvh flex-col overflow-hidden bg-white">
 		<!-- Top bar -->
 		<div class="flex h-12 items-center justify-between border-b border-stone-200 bg-white px-4">
 			<div class="flex items-center gap-3">

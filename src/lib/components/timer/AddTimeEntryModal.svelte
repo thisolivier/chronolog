@@ -118,7 +118,7 @@
 	role="presentation"
 >
 	<div
-		class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
+		class="max-h-full w-full max-w-md overflow-y-auto rounded-lg bg-white p-6 shadow-xl"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="add-entry-title"

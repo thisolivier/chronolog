@@ -194,8 +194,16 @@ export class SuggestionDropdown {
 			this.containerElement.style.top = `${rect.top + window.scrollY - dropdownHeight - 4}px`;
 		}
 
-		this.containerElement.style.left = `${rect.left + window.scrollX}px`;
-		this.containerElement.style.minWidth = '240px';
-		this.containerElement.style.maxWidth = '400px';
+		// Keep the list on screen: on a phone the caret can sit near the right edge (sprint 047-QA)
+		const viewportWidth = document.documentElement.clientWidth;
+		const margin = 8;
+		const maxWidth = Math.min(400, viewportWidth - margin * 2);
+		const minWidth = Math.min(240, maxWidth);
+		this.containerElement.style.minWidth = `${minWidth}px`;
+		this.containerElement.style.maxWidth = `${maxWidth}px`;
+		const renderedWidth = this.containerElement.offsetWidth;
+		const width = renderedWidth > 0 ? Math.max(minWidth, Math.min(renderedWidth, maxWidth)) : maxWidth;
+		const left = Math.max(margin, Math.min(rect.left, viewportWidth - width - margin));
+		this.containerElement.style.left = `${left + window.scrollX}px`;
 	}
 }

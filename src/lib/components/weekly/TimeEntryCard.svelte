@@ -350,18 +350,18 @@
 				<button
 					onclick={handleDelete}
 					disabled={isDeleting}
-					class="rounded px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
+					class="rounded px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 pointer-coarse:min-h-11 pointer-coarse:px-3"
 				>{isDeleting ? '…' : 'Yes'}</button>
 				<button
 					onclick={() => (isConfirmingDelete = false)}
 					disabled={isDeleting}
-					class="rounded px-1.5 py-0.5 text-xs text-stone-500 hover:bg-stone-100 disabled:opacity-50"
+					class="rounded px-1.5 py-0.5 text-xs text-stone-500 hover:bg-stone-100 disabled:opacity-50 pointer-coarse:min-h-11 pointer-coarse:px-3"
 				>No</button>
 			</div>
 		{:else}
 			<button
 				onclick={() => (isConfirmingDelete = true)}
-				class="flex h-6 w-6 items-center justify-center rounded text-stone-400 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 pointer-coarse:h-8 pointer-coarse:w-8 pointer-coarse:opacity-100"
+				class="flex h-6 w-6 items-center justify-center rounded text-stone-400 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100"
 				title="Delete entry"
 				aria-label="Delete entry"
 			>&times;</button>

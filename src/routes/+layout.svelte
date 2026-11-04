@@ -103,7 +103,7 @@
 
 {#if showUpdatePrompt}
 	<div
-		class="fixed right-4 bottom-4 z-50 flex items-center gap-3 rounded-lg bg-blue-600 px-4 py-3 text-sm text-white shadow-lg"
+		class="safe-area-bottom-offset fixed right-4 bottom-4 z-50 flex items-center gap-3 rounded-lg bg-blue-600 px-4 py-3 text-sm text-white shadow-lg"
 		role="alert"
 		data-testid="pwa-update-prompt"
 	>

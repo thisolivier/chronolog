@@ -62,7 +62,7 @@
 		type="button"
 		onclick={() => editor?.chain().focus().toggleBold().run()}
 		disabled={!canRun((chain) => chain.toggleBold())}
-		class="shrink-0 px-3 py-1.5 text-sm rounded transition-colors
+		class="shrink-0 px-3 py-1.5 text-sm rounded pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors
 			{isActive('bold') ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Bold (⌘B)"
@@ -74,7 +74,7 @@
 		type="button"
 		onclick={() => editor?.chain().focus().toggleItalic().run()}
 		disabled={!canRun((chain) => chain.toggleItalic())}
-		class="shrink-0 px-3 py-1.5 text-sm rounded transition-colors italic
+		class="shrink-0 px-3 py-1.5 text-sm rounded pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors italic
 			{isActive('italic') ? 'bg-blue-100 text-blue-700' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Italic (⌘I)"
@@ -88,7 +88,7 @@
 		type="button"
 		onclick={() => toggleHeading(1)}
 		disabled={!canRun((chain) => chain.toggleHeading({ level: 1 }))}
-		class="shrink-0 px-3 py-1.5 text-sm rounded transition-colors
+		class="shrink-0 px-3 py-1.5 text-sm rounded pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors
 			{isActive('heading', { level: 1 }) ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Heading 1"
@@ -100,7 +100,7 @@
 		type="button"
 		onclick={() => toggleHeading(2)}
 		disabled={!canRun((chain) => chain.toggleHeading({ level: 2 }))}
-		class="shrink-0 px-3 py-1.5 text-sm rounded transition-colors
+		class="shrink-0 px-3 py-1.5 text-sm rounded pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors
 			{isActive('heading', { level: 2 }) ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Heading 2"
@@ -112,7 +112,7 @@
 		type="button"
 		onclick={() => toggleHeading(3)}
 		disabled={!canRun((chain) => chain.toggleHeading({ level: 3 }))}
-		class="shrink-0 px-3 py-1.5 text-sm rounded transition-colors
+		class="shrink-0 px-3 py-1.5 text-sm rounded pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors
 			{isActive('heading', { level: 3 }) ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Heading 3"
@@ -126,7 +126,7 @@
 		type="button"
 		onclick={() => editor?.chain().focus().toggleBulletList().run()}
 		disabled={!canRun((chain) => chain.toggleBulletList())}
-		class="shrink-0 px-3 py-1.5 text-sm rounded transition-colors
+		class="shrink-0 px-3 py-1.5 text-sm rounded pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors
 			{isActive('bulletList') ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Bullet List"
@@ -138,7 +138,7 @@
 		type="button"
 		onclick={() => editor?.chain().focus().toggleOrderedList().run()}
 		disabled={!canRun((chain) => chain.toggleOrderedList())}
-		class="shrink-0 px-3 py-1.5 text-sm rounded transition-colors
+		class="shrink-0 px-3 py-1.5 text-sm rounded pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors
 			{isActive('orderedList') ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Ordered List"
@@ -151,7 +151,7 @@
 		onclick={() => editor?.chain().focus().toggleTaskList().run()}
 		disabled={!canRun((chain) => chain.toggleTaskList())}
 		data-toolbar-task-list
-		class="shrink-0 px-3 py-1.5 text-sm rounded transition-colors
+		class="shrink-0 px-3 py-1.5 text-sm rounded pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors
 			{isActive('taskList') ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Task List (type [ ] at the start of a line)"
@@ -166,7 +166,7 @@
 		type="button"
 		onclick={() => editor?.chain().focus().setHorizontalRule().run()}
 		disabled={!canRun((chain) => chain.setHorizontalRule())}
-		class="shrink-0 px-3 py-1.5 text-sm rounded transition-colors text-stone-600 hover:bg-stone-100
+		class="shrink-0 px-3 py-1.5 text-sm rounded pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors text-stone-600 hover:bg-stone-100
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Horizontal Rule"
 	>
@@ -177,7 +177,7 @@
 		type="button"
 		onclick={handleLink}
 		disabled={!editor}
-		class="shrink-0 px-3 py-1.5 text-sm rounded transition-colors
+		class="shrink-0 px-3 py-1.5 text-sm rounded pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors
 			{isActive('link') ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Link"
@@ -189,7 +189,7 @@
 		type="button"
 		onclick={() => editor?.chain().focus().toggleCodeBlock().run()}
 		disabled={!editor}
-		class="shrink-0 px-3 py-1.5 text-sm rounded transition-colors
+		class="shrink-0 px-3 py-1.5 text-sm rounded pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors
 			{isActive('codeBlock') ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-stone-600 hover:bg-stone-100'}
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Code Block"
@@ -203,7 +203,7 @@
 		type="button"
 		onclick={onAttachFile}
 		disabled={!editor || !onAttachFile}
-		class="shrink-0 px-3 py-1.5 text-sm rounded transition-colors text-stone-600 hover:bg-stone-100
+		class="shrink-0 px-3 py-1.5 text-sm rounded pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors text-stone-600 hover:bg-stone-100
 			disabled:opacity-50 disabled:cursor-not-allowed"
 		title="Attach file"
 	>

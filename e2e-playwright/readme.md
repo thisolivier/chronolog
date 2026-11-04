@@ -55,18 +55,24 @@ npm run test:playwright:ui
 | `search-results-layout.spec.ts` | Sprint 046-CL: `/search` interleaves notes and time entries newest first, type icons labelled "Note" / "Time entry", client / contract on every hit, arrow keys walk the list; desktop icon column, phone (320 and 390 px) icon on the client/contract line with no sideways scroll; hits open their note or week. Screenshots go to `docs/review/screenshots/sprint-046/`. |
 | `client-colours.spec.ts` | Sprint 044-CL (own user): two active clients sharing a colour show the hint in Settings → Clients; the New client form suggests the first unused colour and the created client has it; the API default is the next unused one; archiving one of the pair removes the hint. Screenshot `sprint-044`. |
 | `two-factor-login.spec.ts` | Sprint 044-CL: a fresh user (own context) registers (the client-side move /register → /login → / must not throw "Navigation context not found"), enables TOTP in Settings with a code computed in the test (RFC 6238, HMAC-SHA1 via `node:crypto`; the helper is checked against the RFC test vector), signs out, signs in with the password, a wrong code is refused, a fresh code lands in the app. Screenshots `sprint-044`. |
+| `iphone-journeys.spec.ts` | Sprint 047-QA, tagged `@iphone` (desktop projects skip it; own user per test): sign-in and the week (add in the modal, edit, delete with touch-sized × and Yes), timer start/stop/discard, notes (pin, toolbar, wiki-link list and Move menu inside the screen, Find from the title bar, delete and Undo), Settings → Clients stacked with actions in view (Archive / Activate, inline edit), 2FA and token pages, sidebar rows and client view, search from the title bar, the offline banner; landscape (iPhone 15 only): week strip scrolls away, a tall modal scrolls. Every screen: no sideways scroll, no field under 16 px, 44×44 targets. Helpers in `iphone-helpers.ts`. Screenshots `sprint-047`, named after the device project. |
 | `work-type-consistency.spec.ts` | Sprint 032-CL: changing the deliverable resets the work type picker to none in the card editor and the add-entry row, and the saved entry matches; an API `work_type_mismatch` message shows in the card's error line. |
 
 ### Project Configuration
 
-The `playwright.config.ts` defines three projects:
+The `playwright.config.ts` defines these projects:
 
 1. **auth-setup** — Runs first. Registers a test user via the UI and saves cookies to
    `e2e-playwright/.auth/user.json`.
 2. **chromium** — Runs all spec files with authenticated state, using Chromium.
 3. **webkit** — Same tests, using WebKit. Catches WebKit-specific CSS/JS issues.
+4. **iphone-se**, **iphone-15**, **iphone-15-pro-max** (sprint 047-QA) — WebKit with Playwright's
+   `iPhone SE (3rd gen)`, `iPhone 15` and `iPhone 15 Pro Max` descriptors (viewport, touch, mobile
+   user agent). They run only tests tagged `@iphone` by default; `PLAYWRIGHT_IPHONE_ALL=1` runs the
+   whole suite on them (`PLAYWRIGHT_IPHONE_ALL=1 npx playwright test --project=iphone-15`).
+   An `@iphone` test skips itself on desktop projects (`test.skip(({ isMobile }) => !isMobile)`).
 
-Both chromium and webkit depend on `auth-setup`, so authentication runs once and is
+Every browser project depends on `auth-setup`, so authentication runs once and is
 shared across all browser projects.
 
 ### Screenshots for sprint reviews
