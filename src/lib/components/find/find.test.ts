@@ -17,7 +17,7 @@ import {
 	updateEditorFind
 } from './editor-find';
 import { findRangesIn } from './dom-find';
-import { isFindShortcut, isSearchShortcut } from './shortcuts';
+import { isFindShortcut, isSearchShortcut, OPEN_FIND_EVENT, requestFindInPage } from './shortcuts';
 
 let editor: Editor;
 
@@ -116,5 +116,13 @@ describe('shortcuts', () => {
 		expect(isSearchShortcut(key('k', { metaKey: true }), true)).toBe(true);
 		expect(isSearchShortcut(key('k', { ctrlKey: true }), false)).toBe(true);
 		expect(isSearchShortcut(key('k'), false)).toBe(false);
+	});
+
+	it('requestFindInPage sends the touch route event (047-QA)', () => {
+		const listener = vi.fn();
+		window.addEventListener(OPEN_FIND_EVENT, listener);
+		requestFindInPage();
+		window.removeEventListener(OPEN_FIND_EVENT, listener);
+		expect(listener).toHaveBeenCalledTimes(1);
 	});
 });

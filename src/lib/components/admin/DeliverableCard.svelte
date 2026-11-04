@@ -69,10 +69,10 @@
 				</div>
 				<div class="flex items-center gap-2">
 					{#if !showAddWorkType}
-						<button onclick={() => (showAddWorkType = true)} class="text-sm text-blue-600 hover:text-blue-800">+ Work Type</button>
+						<button onclick={() => (showAddWorkType = true)} class="text-sm text-blue-600 hover:text-blue-800 pointer-coarse:min-h-11">+ Work Type</button>
 					{/if}
-					<button onclick={startEditing} class="text-sm text-stone-500 hover:text-blue-600">Edit</button>
-					<button onclick={() => (isConfirmingDelete = true)} class="text-sm text-red-500 hover:text-red-700">Delete</button>
+					<button onclick={startEditing} class="text-sm text-stone-500 hover:text-blue-600 pointer-coarse:min-h-11">Edit</button>
+					<button onclick={() => (isConfirmingDelete = true)} class="text-sm text-red-500 hover:text-red-700 pointer-coarse:min-h-11">Delete</button>
 				</div>
 			</div>
 		{/if}

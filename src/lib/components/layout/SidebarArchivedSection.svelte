@@ -48,7 +48,7 @@
 	<button
 		type="button"
 		onclick={toggle}
-		class="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-xs font-semibold uppercase text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600"
+		class="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-xs font-semibold uppercase text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600 pointer-coarse:py-3.5"
 		aria-expanded={isExpanded}
 		aria-controls="sidebar-archived-list"
 		data-testid="sidebar-archived-toggle"

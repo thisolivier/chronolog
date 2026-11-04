@@ -155,7 +155,8 @@
 		</div>
 	{:else}
 		<div class="overflow-x-auto rounded-lg border border-stone-200 bg-white shadow-sm">
-			<table class="min-w-full divide-y divide-stone-200">
+			<!-- stack-table (app.css): one block per client below 640px, actions in view (sprint 047-QA) -->
+			<table class="stack-table min-w-full divide-y divide-stone-200">
 				<thead class="bg-stone-50">
 					<tr>
 						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-stone-500">

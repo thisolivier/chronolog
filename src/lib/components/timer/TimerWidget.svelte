@@ -423,7 +423,7 @@
 				<TimerDisplay {elapsedSeconds} isPaused={false} />
 				<button
 					onclick={handleStop}
-					class="rounded-md bg-red-600 px-3 py-1 text-sm font-medium whitespace-nowrap text-white hover:bg-red-700"
+					class="rounded-md bg-red-600 px-3 py-1 text-sm font-medium whitespace-nowrap text-white hover:bg-red-700 pointer-coarse:min-h-11 pointer-coarse:px-5"
 				>
 					Stop
 				</button>

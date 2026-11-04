@@ -104,7 +104,7 @@
 	aria-modal="true"
 	aria-label="Create new contract"
 >
-	<div class="mx-4 w-full max-w-md rounded-lg bg-white shadow-xl">
+	<div class="mx-4 max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-lg bg-white shadow-xl">
 		<div class="border-b border-stone-200 px-6 py-4">
 			<h2 class="text-lg font-semibold text-stone-900">New Contract</h2>
 		</div>

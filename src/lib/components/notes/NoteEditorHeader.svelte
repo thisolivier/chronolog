@@ -65,8 +65,8 @@
 	}
 
 	const menuButtonClass =
-		'inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700 transition-colors disabled:cursor-not-allowed disabled:opacity-40';
-	const menuItemClass = 'block w-full px-3 py-1.5 text-left text-sm text-stone-700 hover:bg-stone-100';
+		'inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700 transition-colors disabled:cursor-not-allowed disabled:opacity-40 pointer-coarse:min-h-11';
+	const menuItemClass = 'block w-full px-3 py-1.5 text-left text-sm text-stone-700 hover:bg-stone-100 pointer-coarse:py-3';
 </script>
 
 <div
@@ -107,14 +107,14 @@
 					isConfirmingDelete = false;
 					onDelete();
 				}}
-				class="rounded bg-red-600 px-2.5 py-1 font-medium text-white hover:bg-red-700"
+				class="rounded bg-red-600 px-2.5 py-1 font-medium text-white hover:bg-red-700 pointer-coarse:min-h-11 pointer-coarse:px-4"
 			>
 				Delete
 			</button>
 			<button
 				type="button"
 				onclick={() => (isConfirmingDelete = false)}
-				class="rounded px-2.5 py-1 text-stone-600 hover:bg-stone-100"
+				class="rounded px-2.5 py-1 text-stone-600 hover:bg-stone-100 pointer-coarse:min-h-11 pointer-coarse:px-4"
 			>
 				Cancel
 			</button>
@@ -126,7 +126,7 @@
 					Move ▾
 				</button>
 				{#if openMenu === 'move'}
-					<div class="absolute right-0 top-full z-10 mt-1 w-56 rounded-md border border-stone-200 bg-white py-1 shadow-lg">
+					<div class="absolute right-0 top-full z-10 mt-1 w-56 max-w-[calc(100vw-2rem)] rounded-md max-md:right-auto max-md:left-0 border border-stone-200 bg-white py-1 shadow-lg">
 						{#if moveContracts.length === 0}
 							<span class="block px-3 py-1.5 text-sm text-stone-400">No other contracts</span>
 						{:else}
@@ -159,7 +159,7 @@
 					Export ▾
 				</button>
 				{#if openMenu === 'export'}
-					<div class="absolute right-0 top-full z-10 mt-1 w-44 rounded-md border border-stone-200 bg-white py-1 shadow-lg">
+					<div class="absolute right-0 top-full z-10 mt-1 w-44 rounded-md max-md:right-auto max-md:left-0 border border-stone-200 bg-white py-1 shadow-lg">
 						<button
 							type="button"
 							onclick={() => {
@@ -189,7 +189,7 @@
 			<button
 				type="button"
 				onclick={() => (noteId ? (isConfirmingDelete = true) : onDelete())}
-				class="rounded px-2.5 py-1 text-xs text-stone-400 transition-colors hover:bg-red-50 hover:text-red-600"
+				class="rounded px-2.5 py-1 text-xs text-stone-400 transition-colors hover:bg-red-50 hover:text-red-600 pointer-coarse:min-h-11"
 				title={noteId ? 'Delete this note' : 'Discard this empty draft'}
 			>
 				{noteId ? 'Delete' : 'Discard'}

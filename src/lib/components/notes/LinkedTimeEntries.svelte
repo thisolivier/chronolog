@@ -106,7 +106,7 @@
 						</span>
 						<button
 							onclick={() => unlinkEntry(entry.timeEntryId)}
-							class="text-stone-300 opacity-0 transition-opacity hover:text-red-500 focus-visible:opacity-100 group-hover:opacity-100"
+							class="text-stone-300 opacity-0 transition-opacity hover:text-red-500 focus-visible:opacity-100 group-hover:opacity-100 pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:text-stone-400 pointer-coarse:opacity-100"
 							title="Unlink time entry"
 							aria-label="Unlink time entry"
 						>

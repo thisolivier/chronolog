@@ -24,7 +24,9 @@ sidebar, the note list, settings) the browser's own find is left alone.
   CSS Custom Highlight API (`::highlight(chronolog-find)`), which leaves the DOM alone. Without
   that API the count and stepping still work. `installFindStyles()` adds the colours once.
 - **shortcuts.ts** — `isFindShortcut`, `isSearchShortcut` (Cmd/Ctrl+K, used by the global search
-  field) and `shortcutLabel`.
+  field) and `shortcutLabel`; `requestFindInPage()` sends the `chronolog:open-find` window event,
+  the touch route (sprint 047-QA): the phone title bar's Find button (`AppShell.svelte`, shown on
+  the week and on a note) calls it and the FindBar of the panel on screen opens.
 
 ## Notes
 

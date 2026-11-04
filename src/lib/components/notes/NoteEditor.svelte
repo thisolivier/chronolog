@@ -380,7 +380,7 @@
 			<button
 				type="button"
 				onclick={toggleEditorMode}
-				class="px-3 py-1.5 text-xs rounded transition-colors mx-2 whitespace-nowrap border
+				class="px-3 py-1.5 text-xs rounded transition-colors mx-2 whitespace-nowrap border pointer-coarse:min-h-11
 					{editorMode === 'raw' ? 'bg-blue-100 text-blue-700 border-blue-200 font-semibold' : 'text-stone-500 hover:bg-stone-100 border-stone-200'}"
 				title="Toggle raw markdown view"
 			>

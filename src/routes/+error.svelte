@@ -13,7 +13,7 @@
 
 <svelte:head><title>Chronolog · {isNotFound ? 'Not found' : 'Error'}</title></svelte:head>
 
-<div class="flex min-h-screen items-center justify-center bg-stone-50 p-4">
+<div class="flex min-h-dvh items-center justify-center bg-stone-50 p-4">
 	<div class="w-full max-w-md rounded-lg border border-stone-200 bg-white p-8 text-center shadow-sm" data-testid="error-page">
 		<p class="text-sm font-semibold text-stone-400">{page.status}</p>
 		<h1 class="mt-2 text-2xl font-semibold text-stone-900">{heading}</h1>

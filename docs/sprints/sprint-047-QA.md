@@ -1,6 +1,6 @@
 # Sprint 047 — QA: The app at iPhone sizes, found and fixed
 
-**Status:** in progress
+**Status:** ready for review
 **Branch:** `sprint-047-QA/iphone-ui` · **Worktree:** `.claude/worktrees/sprint-047-QA` · **Port:** 5226
 **Sources:** owner request 2026-11-04: prepare the iOS build by UI testing at iPhone sizes. Runs in parallel with 048-DT (which owns `src-tauri/`, `scripts/ios/`, release docs and skills); wave rules in `docs/sprints/_wave-rules.md` apply (no migration).
 
@@ -23,4 +23,54 @@ Screenshots (with `UPDATE_SPRINT_SCREENSHOTS=1`) of each main screen at the thre
 
 ## Sign-off
 
-(pending)
+**2026-11-04, on `sprint-047-QA/iphone-ui` (rebased onto `main` `0b3ea31`). Ready for review, not merged.**
+
+### What was done
+
+1. **iPhone projects** in `playwright.config.ts`: `iphone-se` (iPhone SE 3rd gen, 375×667),
+   `iphone-15` (393×659) and `iphone-15-pro-max` (430×739), WebKit with Playwright 1.60's device
+   descriptors (touch, mobile UA, scale). They run tests tagged `@iphone`; `PLAYWRIGHT_IPHONE_ALL=1`
+   runs the whole suite on them. New `e2e-playwright/iphone-journeys.spec.ts` (6 tests, `@iphone`,
+   skipped on desktop projects) with `iphone-helpers.ts` (no sideways scroll, no field under 16 px,
+   44×44 targets, inside-the-screen checks, per-device screenshots).
+2. **Walk-through** of every journey in the spec at the three sizes plus iPhone 15 landscape, the
+   device-key gate on a second dev server with a key configured, and the whole suite once on
+   iPhone 15. Findings: `docs/review/2026-11-04-iphone-ui.md`.
+3. **Fixes** (14 of 18 findings): 16 px fields on phones / touch screens (Safari zoom on focus,
+   `app.css`); `h-dvh` shells, `viewport-fit=cover` and safe-area padding (`.safe-area-shell`);
+   44 px touch targets through `pointer-coarse:` across the title bar, week, cards, note list,
+   editor header and toolbar, sidebar, Settings rows, timer, find bar and toasts; note Move / Export
+   menus and the wiki-link list kept on screen; Settings → Clients stacked below 640 px
+   (`.stack-table`) so Edit / Archive / Delete are in view; a Find button in the phone title bar
+   (touch route to find in page); modals scroll when taller than the screen; the week strip scrolls
+   away on a short landscape screen; linked-entry unlink shown on touch; banner, toast, week-nav and
+   sign-in card spacing.
+
+### Counts
+
+18 issues found: 14 fixed (3 High, 7 Medium, 4 Low), 4 deferred (client reorder on touch — Medium;
+crowded title bar with a running timer, contract ▲▼ arrows, card edit raw `[[ID]]` — Low), with
+backlog proposals in the findings doc.
+
+### Tests
+
+`npm run check` 0 errors 0 warnings; `npm run lint` clean; `npm test` 110 files / 1063 tests (+1:
+the find touch-route event); API e2e (`qa-047-e2e`, port 5226) 22 files / 129 tests; Playwright full
+default run (`qa-047-pw`): **174 passed, 19 skipped, 0 failed, 0 flaky** — chromium 87 and webkit 87
+(the 6 `@iphone` tests skip there), iPhone SE / 15 / 15 Pro Max 6 each (landscape runs on iPhone 15
+only). Screenshots: `docs/review/screenshots/sprint-047/` (per device, `before/`, `after/`, device-key
+gate).
+
+### Left, and notes
+
+- Safe areas cannot be seen in emulation (insets are 0): **048-DT should check the notch, home
+  indicator and landscape corners in the iOS simulator**; the web side is `viewport-fit=cover` plus
+  `env(safe-area-inset-*)` padding on the full-height shells. If the Tauri WKWebView already insets
+  its content, the padding resolves to 0 and nothing changes.
+- The desktop specs are not layout-aware; on the iPhone projects (`PLAYWRIGHT_IPHONE_ALL=1`) 34 of
+  them fail on desktop-only paths (see the findings doc). Not in scope.
+- No schema change, no migration, no CLI change, no dependency.
+- QA users `qa-047-*` and their data remain in the shared dev database.
+- Merge risk with 048-DT: none expected in `src-tauri/` or `scripts/ios/` (untouched). Shared
+  surface: `src/app.html` (viewport now `viewport-fit=cover`) and `src/app.css` (was one line); if
+  048 edits either for the iOS shell, keep both. `playwright.config.ts` gains the iPhone projects.

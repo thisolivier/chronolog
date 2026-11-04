@@ -109,7 +109,7 @@
 		{@const isSelected = selectedContractId === contract.id}
 		<button
 			onclick={() => onSelect(contract.id, contract.clientId)}
-			class="flex w-full items-start gap-2 rounded-md px-3 py-1.5 text-left text-sm transition-colors {isSelected
+			class="flex w-full items-start gap-2 rounded-md px-3 py-1.5 text-left text-sm transition-colors pointer-coarse:py-3 {isSelected
 				? 'bg-blue-50 text-blue-700'
 				: restingRowClass}"
 			class:opacity-50={!contract.isActive}
@@ -138,7 +138,7 @@
 			{#if canCollapse}
 				<button
 					type="button"
-					class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-stone-400 hover:bg-stone-100 hover:text-stone-600"
+					class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-stone-400 hover:bg-stone-100 hover:text-stone-600 pointer-coarse:-my-3 pointer-coarse:h-11 pointer-coarse:w-8"
 					aria-expanded={!isCollapsed}
 					aria-controls={contractListId}
 					aria-label="{isCollapsed ? 'Expand' : 'Collapse'} {group.clientName}"
@@ -160,7 +160,7 @@
 			{#if onOpenClient && !muted}
 				<button
 					type="button"
-					class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-0.5 text-left hover:bg-stone-100 {isViewedClient
+					class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-0.5 text-left hover:bg-stone-100 pointer-coarse:py-3.5 {isViewedClient
 						? 'bg-blue-50'
 						: ''}"
 					aria-current={isViewedClient ? 'page' : undefined}
@@ -182,7 +182,7 @@
 				{@const isSelected = selectedContractId === contract.id}
 				<button
 					onclick={() => onSelect(contract.id, contract.clientId)}
-					class="flex w-full items-center gap-2 rounded-md py-1.5 pr-3 pl-7 text-left text-sm transition-colors {isSelected
+					class="flex w-full items-center gap-2 rounded-md py-1.5 pr-3 pl-7 text-left text-sm transition-colors pointer-coarse:py-3 {isSelected
 						? 'bg-blue-50 text-blue-700'
 						: restingRowClass}"
 					class:opacity-50={!contract.isActive}

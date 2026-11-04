@@ -65,15 +65,16 @@
 	}
 </script>
 
-<div class="sticky top-0 z-10 border-b border-stone-200 bg-white">
+<!-- On a short landscape phone screen the strip scrolls away, so the entries get the height (047-QA) -->
+<div class="sticky top-0 z-10 border-b border-stone-200 bg-white [@media(max-height:500px)]:static">
 	<!-- Week navigation row -->
 	<div class="flex items-center justify-between px-2 py-1.5 sm:px-4">
 		<div class="flex items-center gap-1.5">
 			<button
 				onclick={onPrevWeek}
-				class="rounded px-1.5 py-0.5 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+				class="rounded px-1.5 py-0.5 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-700 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
 				aria-label="Previous week"
-			>&#9664;<span class="hidden sm:inline"> Week {prevWeekNumber}</span></button>
+			>&#9664;<span class="ml-1 hidden sm:inline">Week {prevWeekNumber}</span></button>
 			<span class="text-sm font-medium text-stone-700">
 				Week {weekNumber} &middot; {formatWeekRange(weekStart)}
 			</span>
@@ -84,15 +85,15 @@
 					onclick={onToday}
 					disabled={isCurrentWeek}
 					title={isCurrentWeek ? 'Already on this week' : 'Go to today'}
-					class="rounded border border-stone-300 px-2 py-0.5 text-xs font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-800 disabled:cursor-default disabled:border-stone-200 disabled:text-stone-300 disabled:hover:bg-transparent"
+					class="rounded border border-stone-300 px-2 py-0.5 text-xs font-medium pointer-coarse:py-2 text-stone-600 hover:bg-stone-100 hover:text-stone-800 disabled:cursor-default disabled:border-stone-200 disabled:text-stone-300 disabled:hover:bg-transparent"
 					data-testid="week-today-button"
 				>Today</button>
 			{/if}
 			<button
 				onclick={onNextWeek}
-				class="rounded px-1.5 py-0.5 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+				class="rounded px-1.5 py-0.5 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-700 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
 				aria-label="Next week"
-			><span class="hidden sm:inline">Week {nextWeekNumber} </span>&#9654;</button>
+			><span class="mr-1 hidden sm:inline">Week {nextWeekNumber}</span>&#9654;</button>
 		</div>
 	</div>
 

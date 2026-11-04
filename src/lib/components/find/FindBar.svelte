@@ -7,7 +7,7 @@
 <script lang="ts">
 	import { onDestroy, tick } from 'svelte';
 	import type { Editor } from '@tiptap/core';
-	import { isFindShortcut } from './shortcuts';
+	import { isFindShortcut, OPEN_FIND_EVENT } from './shortcuts';
 	import { clearPaintedRanges, findRangesIn, installFindStyles, paintRanges } from './dom-find';
 	import { findEditorIn, getEditorFindState, removeFindPlugin, updateEditorFind } from './editor-find';
 
@@ -142,6 +142,19 @@
 		void open();
 	}
 
+	/** The phone title bar's Find button (no keyboard shortcut on a phone) */
+	function handleOpenFindRequest() {
+		const root = panelRoot();
+		if (!root?.isConnected) return;
+		if (mode === 'editor' && !findEditorIn(root)) return;
+		void open();
+	}
+
+	$effect(() => {
+		window.addEventListener(OPEN_FIND_EVENT, handleOpenFindRequest);
+		return () => window.removeEventListener(OPEN_FIND_EVENT, handleOpenFindRequest);
+	});
+
 	function handleWindowPointerdown(event: PointerEvent) {
 		lastPointerInsidePanel = !!panelRoot()?.contains(event.target as Node);
 	}
@@ -173,10 +186,10 @@
 				class="min-w-0 flex-1 rounded border border-stone-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none sm:max-w-xs"
 				data-testid="find-input"
 			/>
-			<span class="min-w-[5rem] text-xs tabular-nums text-stone-500" aria-live="polite" data-testid="find-count">{countLabel}</span>
-			<button type="button" onclick={() => move(-1)} disabled={matchCount === 0} class="rounded px-2 py-1 text-stone-600 hover:bg-stone-100 disabled:opacity-40" aria-label="Previous match" title="Previous (Shift+Enter)" data-testid="find-previous">↑</button>
-			<button type="button" onclick={() => move(1)} disabled={matchCount === 0} class="rounded px-2 py-1 text-stone-600 hover:bg-stone-100 disabled:opacity-40" aria-label="Next match" title="Next (Enter)" data-testid="find-next">↓</button>
-			<button type="button" onclick={() => close()} class="rounded px-2 py-1 text-stone-500 hover:bg-stone-100" aria-label="Close find" title="Close (Escape)" data-testid="find-close">✕</button>
+			<span class="min-w-[5rem] shrink-0 text-xs max-sm:min-w-0 tabular-nums text-stone-500" aria-live="polite" data-testid="find-count">{countLabel}</span>
+			<button type="button" onclick={() => move(-1)} disabled={matchCount === 0} class="rounded px-2 py-1 text-stone-600 hover:bg-stone-100 disabled:opacity-40 pointer-coarse:min-h-11 pointer-coarse:min-w-11" aria-label="Previous match" title="Previous (Shift+Enter)" data-testid="find-previous">↑</button>
+			<button type="button" onclick={() => move(1)} disabled={matchCount === 0} class="rounded px-2 py-1 text-stone-600 hover:bg-stone-100 disabled:opacity-40 pointer-coarse:min-h-11 pointer-coarse:min-w-11" aria-label="Next match" title="Next (Enter)" data-testid="find-next">↓</button>
+			<button type="button" onclick={() => close()} class="rounded px-2 py-1 text-stone-500 hover:bg-stone-100 pointer-coarse:min-h-11 pointer-coarse:min-w-11" aria-label="Close find" title="Close (Escape)" data-testid="find-close">✕</button>
 		</div>
 	{/if}
 </div>

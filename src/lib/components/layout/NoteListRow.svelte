@@ -53,7 +53,7 @@
 	<button
 		type="button"
 		onclick={() => onTogglePin(note)}
-		class="absolute top-2.5 right-2 rounded p-1 transition-opacity hover:bg-stone-200 focus-visible:opacity-100
+		class="absolute top-2.5 right-2 rounded p-1 transition-opacity pointer-coarse:top-0 pointer-coarse:right-0 pointer-coarse:p-[15px] hover:bg-stone-200 focus-visible:opacity-100
 			{note.isPinned
 			? 'text-amber-500 opacity-100'
 			: 'text-stone-400 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-50'}"
