@@ -19,7 +19,8 @@
 		onCancel
 	}: {
 		date: string;
-		onEntryCreated: () => void;
+		/** Called with the created entry's id, so the timesheet can focus its card */
+		onEntryCreated: (entryId: string) => void;
 		onCancel: () => void;
 	} = $props();
 
@@ -105,8 +106,8 @@
 				entryData.endTime = parsed.endTime;
 			}
 
-			await dataService.createTimeEntry(entryData);
-			onEntryCreated();
+			const created = await dataService.createTimeEntry(entryData);
+			onEntryCreated(created.id);
 		} catch (error) {
 			saveError = describeSaveError(error);
 		} finally {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tick } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import {
 		parseDuration,
 		formatMinutes,
@@ -17,6 +17,7 @@
 	import { describeSaveError } from '$lib/components/timer/save-error';
 	import WikiLinkRenderer from './WikiLinkRenderer.svelte';
 	import WikiLinkInput from './WikiLinkInput.svelte';
+	import { splitFormerlyLines } from './formerly-lines';
 	import type { TimeEntryFields } from '$lib/services/types';
 
 	const dataService = getDataService();
@@ -79,6 +80,19 @@
 	// Whether the contract has deliverables; decides if "Add deliverable…" is always shown
 	let contractOffersDeliverables = $state(false);
 
+	// After a contract change cleared the deliverable chain: the pickers open on the new
+	// contract, set to none, with a one-line notice of what was cleared
+	let contractChangeNotice = $state('');
+	let deliverablePickerContractId = $state('');
+
+	// Controls that take focus back when an editor is closed from the keyboard (A-11)
+	let cardElement: HTMLElement | undefined = $state();
+	let descriptionButton: HTMLButtonElement | undefined = $state();
+	let contractButton: HTMLButtonElement | undefined = $state();
+	let deliverableButton: HTMLButtonElement | undefined = $state();
+	let timeButton: HTMLButtonElement | undefined = $state();
+	let deliverableEditorElement: HTMLElement | undefined = $state();
+
 	let clientBorderClass = $derived(getClientBorderClass(entry.clientColorIndex));
 	let clientDotClass = $derived(getClientDotClass(entry.clientColorIndex));
 	let durationDisplay = $derived(formatMinutes(entry.durationMinutes));
@@ -88,6 +102,14 @@
 	let deliverableWorkTypeLabel = $derived(
 		[entry.deliverableName, entry.workTypeName].filter(Boolean).join(' > ')
 	);
+	// "Formerly: …" lines (kept when a contract, deliverable or work type is deleted) get their own muted line
+	let splitDescription = $derived(splitFormerlyLines(entry.description));
+
+	/** Put focus back on a card control once the editor that replaced it is gone */
+	async function refocus(getTarget: () => HTMLElement | undefined) {
+		await tick();
+		(getTarget() ?? cardElement)?.focus();
+	}
 
 	$effect(() => {
 		const contractId = entry.contractId;
@@ -157,10 +179,13 @@
 	function handleTimeKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
 			event.preventDefault();
-			saveTimeInput();
+			saveTimeInput().then(() => {
+				if (!isEditingTime) refocus(() => timeButton);
+			});
 		} else if (event.key === 'Escape') {
 			event.preventDefault();
 			cancelTimeEdit();
+			refocus(() => timeButton);
 		}
 	}
 
@@ -181,21 +206,40 @@
 	}
 
 	$effect(() => {
-		if (isEditingContract && selectedContractId && selectedContractId !== entry.contractId) {
-			// A deliverable belongs to a contract, so a contract change also clears the deliverable chain
-			const changes: Partial<TimeEntryFields> =
-				entry.deliverableId || entry.workTypeId
-					? { contractId: selectedContractId, deliverableId: null, workTypeId: null }
-					: { contractId: selectedContractId };
-			saveFields(changes);
-			isEditingContract = false;
-		}
+		if (!isEditingContract || !selectedContractId || selectedContractId === entry.contractId) return;
+		const nextContractId = selectedContractId;
+		untrack(() => changeContract(nextContractId));
 	});
+
+	/**
+	 * A deliverable and work type belong to a contract, so a contract change always clears both
+	 * (the server does not do it for us). When there was something to clear, the deliverable
+	 * pickers open on the new contract set to none, with a notice saying what went.
+	 */
+	function changeContract(nextContractId: string) {
+		const hadDeliverableChain = Boolean(entry.deliverableId || entry.workTypeId);
+		const clearedLabel = deliverableWorkTypeLabel || 'Deliverable';
+		const previousContractLabel = contractLabel;
+		isEditingContract = false;
+		saveFields({ contractId: nextContractId, deliverableId: null, workTypeId: null });
+		if (!hadDeliverableChain) {
+			contractChangeNotice = '';
+			refocus(() => contractButton);
+			return;
+		}
+		selectedDeliverableId = '';
+		selectedWorkTypeId = '';
+		deliverablePickerContractId = nextContractId;
+		contractChangeNotice = `Cleared “${clearedLabel}”: it belongs to ${previousContractLabel}.`;
+		isEditingDeliverable = true;
+		refocus(() => deliverableEditorElement?.querySelector('select') ?? undefined);
+	}
 
 	function handleContractKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape' || event.key === 'Enter') {
 			event.preventDefault();
 			closeContractEditor();
+			refocus(() => contractButton);
 		}
 	}
 
@@ -203,7 +247,16 @@
 	function startEditingDeliverable() {
 		selectedDeliverableId = entry.deliverableId ?? '';
 		selectedWorkTypeId = entry.workTypeId ?? '';
+		deliverablePickerContractId = '';
+		contractChangeNotice = '';
 		isEditingDeliverable = true;
+	}
+
+	function closeDeliverableEditor(returnFocus: boolean) {
+		isEditingDeliverable = false;
+		contractChangeNotice = '';
+		deliverablePickerContractId = '';
+		if (returnFocus) refocus(() => deliverableButton);
 	}
 
 	function handleDeliverableChange(nextDeliverableId: string) {
@@ -219,7 +272,7 @@
 	function handleDeliverableKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape' || event.key === 'Enter') {
 			event.preventDefault();
-			isEditingDeliverable = false;
+			closeDeliverableEditor(true);
 		}
 	}
 
@@ -246,10 +299,12 @@
 		if (event.key === 'Enter') {
 			event.preventDefault();
 			commitDescription();
+			refocus(() => descriptionButton);
 		} else if (event.key === 'Escape') {
 			event.preventDefault();
 			isDescriptionCancelled = true;
 			isEditingDescription = false;
+			refocus(() => descriptionButton);
 		}
 	}
 
@@ -269,9 +324,15 @@
 	}
 </script>
 
+<!-- Focusable (not in the Tab order) so a save can hand focus to the card it saved -->
 <div
-	class="group relative mb-2 flex rounded-lg border border-stone-200 border-l-[3px] bg-white p-3 transition-colors hover:bg-stone-50/50 {clientBorderClass}"
+	bind:this={cardElement}
+	tabindex="-1"
+	role="group"
+	aria-label="{splitDescription.body || 'Time entry'}, {contractLabel}, {durationDisplay}"
+	class="group relative mb-2 flex rounded-lg border border-stone-200 border-l-[3px] bg-white p-3 transition-colors hover:bg-stone-50/50 focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:outline-none {clientBorderClass}"
 	data-testid="time-entry-card"
+	data-entry-id={entry.id}
 >
 	<!-- Delete: on hover, on keyboard focus and always on touch screens -->
 	<div class="absolute right-1.5 top-1.5">
@@ -313,16 +374,17 @@
 			/>
 		{:else}
 			<button
+				bind:this={descriptionButton}
 				onclick={startEditingDescription}
 				class="block w-full text-left text-sm font-medium text-stone-900 hover:text-blue-600"
 				title="Click to edit description"
 			>
-				{#if entry.description}
+				{#if splitDescription.body}
 					<span
 						bind:this={descriptionElement}
 						class="break-words whitespace-pre-line {isDescriptionExpanded ? 'block' : 'line-clamp-3'}"
 					>
-						<WikiLinkRenderer text={entry.description} {onNoteLinkClick} />
+						<WikiLinkRenderer text={splitDescription.body} {onNoteLinkClick} />
 					</span>
 				{:else}
 					<span class="italic text-stone-400">What did you work on?</span>
@@ -336,6 +398,9 @@
 					aria-expanded={isDescriptionExpanded}
 				>{isDescriptionExpanded ? 'Show less' : 'Show more'}</button>
 			{/if}
+			{#each splitDescription.formerlyLines as formerlyLine, lineIndex (lineIndex)}
+				<p class="mt-0.5 text-xs break-words text-stone-400" data-testid="formerly-line">{formerlyLine}</p>
+			{/each}
 		{/if}
 
 		<!-- Row 2: Client / Contract with colour dot -->
@@ -358,6 +423,7 @@
 				</div>
 			{:else}
 				<button
+					bind:this={contractButton}
 					onclick={startEditingContract}
 					class="flex items-center gap-1.5 text-left text-xs text-stone-500 hover:text-blue-600"
 					title="Click to change contract"
@@ -372,9 +438,13 @@
 		<div class="mt-0.5 pl-3.5">
 			{#if isEditingDeliverable}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<div class="flex max-w-md items-center gap-1.5" onkeydown={handleDeliverableKeydown}>
+				<div
+					bind:this={deliverableEditorElement}
+					class="flex max-w-md items-center gap-1.5"
+					onkeydown={handleDeliverableKeydown}
+				>
 					<DeliverableSelect
-						contractId={entry.contractId}
+						contractId={deliverablePickerContractId || entry.contractId}
 						bind:selectedDeliverableId
 						compact={true}
 						alwaysRender={true}
@@ -387,13 +457,19 @@
 						onChange={handleWorkTypeChange}
 					/>
 					<button
-						onclick={() => (isEditingDeliverable = false)}
+						onclick={() => closeDeliverableEditor(true)}
 						class="shrink-0 rounded px-1.5 py-0.5 text-xs text-stone-500 hover:bg-stone-100"
 						type="button"
 					>Done</button>
 				</div>
+				{#if contractChangeNotice}
+					<p class="mt-1 text-xs text-amber-700" role="status" data-testid="contract-change-notice">
+						{contractChangeNotice}
+					</p>
+				{/if}
 			{:else if hasDeliverableOrWorkType}
 				<button
+					bind:this={deliverableButton}
 					onclick={startEditingDeliverable}
 					class="block text-left text-xs text-stone-400 hover:text-blue-600"
 					title="Click to change deliverable / work type"
@@ -401,6 +477,7 @@
 			{:else}
 				<!-- Prompt only where it is useful: the contract has deliverables, or on hover/focus -->
 				<button
+					bind:this={deliverableButton}
 					onclick={startEditingDeliverable}
 					class="block text-left text-xs italic text-stone-400 hover:text-blue-600 {contractOffersDeliverables
 						? ''
@@ -432,6 +509,7 @@
 			</div>
 		{:else}
 			<button
+				bind:this={timeButton}
 				onclick={startEditingTime}
 				class="text-right text-sm font-medium tabular-nums text-stone-500 hover:text-blue-600"
 				title="Click to edit time"

@@ -106,8 +106,18 @@ export interface NavigationContext {
 	selectContract: (contractId: string, clientId: string) => void;
 	selectWeek: (weekStart: string) => void;
 	selectNote: (noteId: string) => void;
-	/** Switch to notes mode for the note's contract and open the note in one step */
-	openNote: (noteId: string, contractId: string, clientId: string, options?: { replace?: boolean }) => void;
+	/**
+	 * Switch to notes mode for the note's contract and open the note in one step. `focusEditor`
+	 * asks the editor to take keyboard focus once the note is loaded (following a link, A-11).
+	 */
+	openNote: (
+		noteId: string,
+		contractId: string,
+		clientId: string,
+		options?: { replace?: boolean; focusEditor?: boolean }
+	) => void;
+	/** True once for the note an `openNote(…, { focusEditor: true })` asked to focus; then forgotten */
+	takeEditorFocus: (noteId: string) => boolean;
 	/** Open a new-note draft for the selected contract */
 	openDraft: () => void;
 	clearSelectedNote: () => void;
@@ -175,6 +185,8 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 	/** Contract -> client, for contracts the sidebar has not listed (yet) */
 	const clientHints: Record<string, string> = {};
 	let focusDay: string | null = null;
+	/** The note whose editor should take focus when it loads (set by openNote's focusEditor) */
+	let editorFocusNoteId: string | null = null;
 	/** True while a deep link gets the app root put under it (its two navigations are not user moves) */
 	let isAddingRootEntry = false;
 	/** A user move made while the root entry was being added; written once that is done */
@@ -343,8 +355,14 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		go({ kind: 'notes', contractId: route.contractId, noteId, draft: false }, { replace: route.draft });
 	};
 
-	const openNote = (noteId: string, contractId: string, clientId: string, actionOptions: { replace?: boolean } = {}) => {
+	const openNote = (
+		noteId: string,
+		contractId: string,
+		clientId: string,
+		actionOptions: { replace?: boolean; focusEditor?: boolean } = {}
+	) => {
 		if (clientId) clientHints[contractId] = clientId;
+		editorFocusNoteId = actionOptions.focusEditor ? noteId : null;
 		go({ kind: 'notes', contractId, noteId, draft: false }, { replace: actionOptions.replace ?? false });
 	};
 
@@ -367,6 +385,12 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		const week = getMondayOfWeek(date);
 		if (state.route.kind === 'time' && state.route.week === week) return;
 		go({ kind: 'time', week }, { replace: state.route.kind === 'time' });
+	};
+
+	const takeEditorFocus = (noteId: string) => {
+		if (editorFocusNoteId !== noteId) return false;
+		editorFocusNoteId = null;
+		return true;
 	};
 
 	const takeFocusDay = () => {
@@ -475,6 +499,7 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		clearSelectedNote,
 		showTimeEntryDay,
 		takeFocusDay,
+		takeEditorFocus,
 		rememberTimesheetScroll,
 		getTimesheetScroll,
 		toggleSidebar,

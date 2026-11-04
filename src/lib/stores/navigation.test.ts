@@ -200,6 +200,23 @@ describe('rule 1: an open note sits under its own contract', () => {
 	});
 });
 
+describe('focus follows a followed link (A-11)', () => {
+	it('openNote with focusEditor asks that note, once, to take focus', () => {
+		const { nav } = setup('/time/2026-W45');
+		nav.openNote('ACME.1', CONTRACT_A, CLIENT_A, { focusEditor: true });
+		expect(nav.takeEditorFocus('BORL.1')).toBe(false);
+		expect(nav.takeEditorFocus('ACME.1')).toBe(true);
+		expect(nav.takeEditorFocus('ACME.1')).toBe(false);
+	});
+
+	it('a plain openNote cancels an earlier focus request', () => {
+		const { nav } = setup('/time/2026-W45');
+		nav.openNote('ACME.1', CONTRACT_A, CLIENT_A, { focusEditor: true });
+		nav.openNote('ACME.1', CONTRACT_A, CLIENT_A);
+		expect(nav.takeEditorFocus('ACME.1')).toBe(false);
+	});
+});
+
 describe('rule 5: the week is sticky across modes', () => {
 	it('returns to the week you left', async () => {
 		const { nav, settle } = setup('/time/2026-W44');
