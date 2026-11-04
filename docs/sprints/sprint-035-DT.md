@@ -1,6 +1,6 @@
 # Sprint 035 — DT: macOS desktop app (Tauri 2) with a menu-bar timer
 
-**Status:** queued (starts after 033 and 034 merge)
+**Status:** in progress
 **Branch:** `sprint-035-DT/macos-menu-bar-app` · **Worktree:** `.claude/worktrees/sprint-035-DT` · **Port:** 5213
 **Sources:** owner request 2026-11-04; `docs/SPEC.md` (Tauri desktop shell); `docs/ONBOARDING.md` ("New Tauri desktop install"); Tauri 2 docs via context7 (`/tauri-apps/tauri-docs`: remote capability, system tray, macOS signing).
 
