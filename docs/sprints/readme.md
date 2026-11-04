@@ -10,6 +10,10 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 039-CL | Client/Server | Pinned notes, client view, sidebar collapse and client reorder | merged |
+| 040-CL | Client/Server | Checkbox task lists, `chronolog todos` | merged |
+| 041-CL | Client/Server | Editable timer start, Today button, Archive/Activate in Settings | merged |
+| 042-CL | Client/Server | Global search and find in page | merged |
 | 037-CL | Client/Server | Server-side note trash with restore; word count on create | merged |
 | 038-CL | Client/Server | Batch notes and time entries, chronolog import | merged |
 | 035-DT | Desktop | macOS menu-bar app (Tauri 2) wrapping production | merged |

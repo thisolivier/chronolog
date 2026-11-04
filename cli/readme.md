@@ -94,7 +94,7 @@ Notes may hold checkbox items, `- [ ] open` and `- [x] done` (nested by two spac
 
 ### Version
 
-`chronolog --version` prints the CLI version, the root `package.json` version (1.1.0 since sprint 038). `chronolog me` adds the server's (`serverVersion` from `GET /api/me`). Changes per sprint are in [CHANGELOG.md](CHANGELOG.md).
+`chronolog --version` prints the CLI version, the root `package.json` version (1.2.0 since sprints 039–042). `chronolog me` adds the server's (`serverVersion` from `GET /api/me`). Changes per sprint are in [CHANGELOG.md](CHANGELOG.md).
 
 ### Setting up clients (sprint 031-CL)
 

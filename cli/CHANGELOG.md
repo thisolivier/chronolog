@@ -4,7 +4,10 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 `chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
 030, 033 and 035 changed nothing in the CLI and are not listed.
 
-## Unreleased
+## 1.2.0 (sprints 039–042-CL, 2026-11-04): timer, todos, search across entries, pins
+
+**Changed output:** `search --json` now returns `{ notes: { hits, total }, timeEntries: { hits, total } }`
+instead of a list of notes; scripts that read it need `notes.hits`.
 
 - Sprint 041-CL: `timer` / `timer status`, `timer start <contract> ["desc"] [--at [date] HH:MM]`,
   `timer adjust --at [date] HH:MM` and `timer stop` (stops and saves the entry). `--at` takes

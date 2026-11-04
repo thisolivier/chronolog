@@ -25,29 +25,24 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 - **035-DT** macOS menu-bar app: window loads production, close hides, tray shows the running timer, built on the Mac mini (`~/sites/chronolog-desktop/`).
 - **038-CL** `POST /api/notes/batch`, `POST /api/time-entries/batch`, `chronolog import notes|entries`, `undo --last-import`, CLI 1.1.0.
 - **037-CL** Server-side note trash (`deleted_at`, 30-day purge, restore keeps ID and links), Undo toast, deleted wiki-links with inline restore, word count on create, container-runnable backfill and purge scripts; backlinks user-filter fix.
+- **039-CL** Pinned notes (`note pin|unpin`), client view `/notes/client/<id>`, collapsible clients, drag/keyboard client reorder (`client edit --order`); migration 0010.
+- **040-CL** Checkbox task lists in the editor and markdown, PDF boxes, `GET /api/notes/todos`, `chronolog todos`.
+- **041-CL** Editable start on a running timer (`PATCH /api/timer`, `timer start --at`, `timer adjust`, `timer stop`), Today button, Archive / Activate in Settings.
+- **042-CL** Global search (`/search`, `GET /api/search`, notes and entries, Cmd+K) and Cmd+F find in page; `chronolog search` covers entries. CLI 1.2.0.
 - **Offline banner and read cache** (`fix/offline-banner-and-cache`): the banner shows when the server is unreachable, and the read cache is write-through.
 
 ## Next (owner-decided, in this order)
 
 1. **Go-live on the Mac mini.** Owner steps in `docs/DEPLOYMENT.md`: `.env.prod`, first deploy, first account with registration opened then closed, Cloudflare Tunnel ingress and rate-limit rules, nightly backups.
-2. **Offline outbox sprint.** Long-lived read cache plus write outbox, last-write-wins per field, a visible "replayed" marker, and a held queue with a prompt when the server copy changed meanwhile (`docs/decisions.md`).
-3. **Airtable hours logging skill.**
-4. **End-client status and hours API skill.**
-5. **Invoice generation from existing templates.**
-6. **Key rotation (IF-4) and per-device keys (IF-5).** An `enc2:` envelope with a key id and a re-encrypt walker; several device keys so one lost device can be revoked alone.
+2. **Offline outbox sprint** (045-CL; runs last in the 2026-11-04 backlog run). Long-lived read cache plus write outbox, last-write-wins per field, a visible "replayed" marker, and a held queue with a prompt when the server copy changed meanwhile (`docs/decisions.md`).
+3. **Airtable hours logging skill.** Deferred by the owner until the MCP details are in hand.
+4. **End-client status and hours API skill.** Deferred until the owner has API access.
+5. **Invoice generation from existing templates.** Deferred until 3 and 4 are sorted.
+6. **Key rotation (IF-4) and per-device keys (IF-5).** Discuss with the owner before starting. An `enc2:` envelope with a key id and a re-encrypt walker; several device keys so one lost device can be revoked alone.
 
 ## Owner-requested, back of the queue (2026-11-04)
 
-- **Pin a note.** A pinned note sits at the top of its contract's note list (friction #40 covered this too; `notes.pinned_at` or a boolean, API + CLI `note pin|unpin`).
-- **Client view.** Clicking a client in the sidebar opens a combined note list across all of that client's contracts, pinned notes first, with the contract shown on each row; the URL is the state (`/notes/client/<clientId>`), and the sidebar highlights the client.
-- **Sidebar: drag to reorder clients.** Persisted per user (`clients.sort_order` exists for contracts; add the same for clients), keyboard alternative (move up/down), and the CLI `client edit --order`.
-- **Checkbox task lists in notes.** `- [ ]` / `- [x]` in markdown round-trips through TipTap (TaskList/TaskItem extensions) and the markdown serialiser, clickable in the editor, preserved by CLI edit/append and by export; CLI `note show` prints them as-is. Stretch: `chronolog todos [contract]` lists open items across notes.
-- **Editable start time on a running timer.** The timer widget's "Started: 16:04" becomes a time field (and a date when it crosses midnight); saving moves `startedAt` on the server timer so the elapsed clock, the menu-bar title and the saved entry all follow; CLI `timer start --at 09:30` and `timer adjust --at` as the API counterpart. Guard: not in the future, not earlier than the previous entry's end on that day without a warning.
-- **Global search.** A search bar at the top left of the shell (above the sidebar) that searches notes (title, body) and time entries (description) across all clients and opens a results page at `/search?q=`, grouped by type with client/contract, date and a highlighted snippet per hit; clicking a hit opens the note or the week with the entry selected. Server side extends the in-memory decrypted search from `notes/search` to time entries. Replaces the per-contract "Search all notes" box in the note list, or the two coexist (decide at spec time).
-- **Find in page (Cmd+F).** On a note or a timesheet week, Cmd+F opens a find bar at the top of that panel that searches only the current page, highlights every match, and has next/prev buttons and a count; Escape closes it. Browser find is intercepted only while the panel has focus; the desktop app gets the same shortcut.
-- **Today button.** In the timesheet week header, next to the week arrows, a "Today" button that jumps to the current week and scrolls today's section into view; disabled when already on the current week. CLI `week` already defaults to current.
-- **Archive / Activate as direct actions in Settings.** Today an active client (and contract) row only offers Archive from inside the Delete dialog; archived rows have Unarchive. Add an Archive button to active rows and label the pair Archive / Activate consistently in `ClientRow.svelte` and `ContractRow.svelte` (the form actions already exist).
-- **Sidebar: click a client heading to collapse its contracts.** Remembered per browser like the Archived group; collapsed-by-default rule to decide (suggest: never collapsed by default). Interacts with the client view above: a small disclosure control at the left of the client row (the same chevron the Archived group uses, in the slot where the colour dot sits now, dot moved next to the name) collapses; a click on the name opens the client view.
+All done in sprints 039–042 (2026-11-04). Open from them: the editor header has no pin control (list row only); the tablet overlay sidebar stays open when switching client views; `notes.is_pinned` is still written alongside `pinned_at` (drop later); find in page skips the raw markdown mode and wiki-link titles; `NoteEditor.svelte` is about 690 lines (move its CSS out); a client created after a reorder lands at the bottom.
 
 ## Carried-over follow-ups
 
