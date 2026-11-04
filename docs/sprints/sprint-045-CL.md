@@ -72,7 +72,7 @@ projection, cached answers, resolution; read cache +4); API e2e 21 files / 126 p
 `offline-outbox.spec.ts` 4 tests × chromium + webkit green (edit + entry offline, banner count,
 reload with no server, replay + markers; note conflict from a second context held, Keep mine; note
 created offline gets its real ID and keeps saving; entry conflict held, Keep the server's).
-Full Playwright: see below. Screenshots: `docs/review/screenshots/sprint-045/`
+Full Playwright (chromium + webkit, dev server on 5223): 154 passed, 5 skipped, 2 flaky (passed on retry: `notes-autosave` "switch to Time Entries" and `notes-conflict`, both under full-suite load; 5 repeats of each alone were 21/21 green). Screenshots: `docs/review/screenshots/sprint-045/`
 (`offline-banner-queued.png`, `replayed-marker.png`, `held-item-prompt.png`).
 
 Playwright now blocks service workers by default (`playwright.config.ts`): routing does not see
