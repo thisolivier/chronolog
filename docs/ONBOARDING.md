@@ -49,7 +49,7 @@ Do this once per laptop. Each laptop has its own token, so a lost laptop can be 
 2. **Install the CLI.** Clone the repo, then from the checkout run `npm install -g .` (Node 20+). Without installing, run `node cli/chronolog.mjs` instead.
 3. **Initialise.** Run `chronolog init`. It asks for the server URL (Enter keeps `https://chronolog.throb.online`), the API token and the device key. Input is hidden. It writes `~/.config/chronolog/config.json` with mode 600 and checks the connection.
 4. **First calls.** Run `chronolog me` (who the token belongs to, today and the ISO week), then `chronolog clients` (short codes and ids).
-5. **Claude Code.** The project skill `.claude/skills/chronolog-secretary/SKILL.md` teaches the workflow.
+5. **Claude Code.** The project skill `.claude/skills/chronolog-secretary/SKILL.md` (with `reference.md` beside it for filing, week summaries, client setup, imports and the timer) teaches the workflow.
 6. **Lost laptop.** In Settings -> API tokens, revoke that laptop's token. The next call from it gets 403 `token_revoked`. Other laptops are unaffected.
 
 Troubleshooting (the CLI exits 4 for 401 and 403, and 6 for 429):
