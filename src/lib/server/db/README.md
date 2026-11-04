@@ -52,6 +52,10 @@ Notes and time entries are linked via the `note_time_entries` join table.
 
 Deleting a note sets `notes.deleted_at` (partial index `notes_trash_user_id_idx` on `user_id` where it is set, migration `0009`). The row keeps its ID, `note_links` and `note_time_entries`, so a restore clears one column. Reads skip trashed rows unless a caller passes `includeDeleted`: `listNotesForContract`, `listNotesForUser`, `getNoteForUser`, `updateNoteForUser`, `searchNotesForUser`, `getNoteTitlesForUser`, `getBacklinksForNote` (sources) and the contract note counts in `listContractsByClientWithNoteCount`. `queries/note-trash.ts` holds delete, restore, the trash list and `purgeExpiredTrash` (30 days, run inside every delete). Note ID allocation still sees trashed rows, so an ID is never reused while its note can come back. Safe deletion of a contract moves trashed notes too (the foreign key needs it) and counts them.
 
+## Global search (sprint 042-CL)
+
+`queries/global-search.ts` (`searchEverythingForUser`) backs `GET /api/search` and `chronolog search`: the user's notes (ID, title, body; never the trash) and time entries (description), decrypted and matched in memory like `note-search.ts` (the columns are encrypted, so no SQL `ILIKE`). Notes rank with `rankNoteMatch` (exact ID, ID prefix, title, ID substring, body; newest first within a rank); entries are newest first. Each hit carries client, contract, a date and a snippet with match offsets (`$lib/utils/search-snippet.ts`); the limit is per group and `total` counts every match.
+
 ## Archiving and Safe Deletion
 
 `clients` and `contracts` carry `archived_at` (hidden from the sidebar, work kept) and `is_system` (the per-user "Deleted Client" and "Deleted Contract", migration `0007`).

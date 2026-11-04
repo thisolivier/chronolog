@@ -21,6 +21,7 @@ import * as manageClients from './commands/manage-clients.mjs';
 import * as manageStructure from './commands/manage-structure.mjs';
 import * as imports from './commands/import.mjs';
 import * as timer from './commands/timer.mjs';
+import * as searchCommand from './commands/search.mjs';
 import { init } from './commands/init.mjs';
 import { Cancelled } from './lib/confirm.mjs';
 import { CLI_VERSION } from './lib/version.mjs';
@@ -48,7 +49,7 @@ const USAGE = `Usage: chronolog <command> [arguments] [--json]      (chronolog -
   attachment get <id> [--out <path>] [--force]   saves under the original name here by default
   attachment delete <id> [--yes]                 warns if the note still links to it
   notes <contract> [--since YYYY-MM-DD]
-  search "<words or note id>" [--limit N]
+  search "<words or note id>" [--limit N]       notes and time entries, grouped, with snippets
   status <2026-W45|current> <unsubmitted|draft-ready|submitted>
   timer [status] | timer start <contract> ["desc"] [--at [date] HH:MM] | timer adjust --at [date] HH:MM | timer stop
                                  a start before another entry's end warns; --yes keeps it (required without a terminal)
@@ -76,7 +77,7 @@ const COMMANDS = {
 	contracts: read.contracts,
 	week: read.week,
 	notes: read.notes,
-	search: read.search,
+	search: searchCommand.search,
 	log: write.log,
 	status: write.status,
 	edit: correct.edit,

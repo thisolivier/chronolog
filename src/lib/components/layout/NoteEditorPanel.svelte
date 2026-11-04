@@ -1,4 +1,5 @@
 <script lang="ts">
+	import FindBar from '$lib/components/find/FindBar.svelte';
 	import { onDestroy, untrack } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import { getDataService } from '$lib/services/context';
@@ -455,6 +456,7 @@
 </script>
 
 <div class="flex h-full flex-col overflow-y-auto bg-stone-50">
+	<FindBar mode="editor" />
 	{#if isLoading}
 		<div class="flex flex-1 items-center justify-center">
 			<p class="text-stone-500">Loading note...</p>

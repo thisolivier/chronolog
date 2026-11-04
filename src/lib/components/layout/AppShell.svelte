@@ -4,6 +4,7 @@
 	import { getTimerStateContext } from '$lib/stores/timer-state.svelte';
 	import TimerIndicator from '$lib/components/weekly/TimerIndicator.svelte';
 	import ConnectionStatus from './ConnectionStatus.svelte';
+	import GlobalSearchField from '$lib/components/search/GlobalSearchField.svelte';
 	import { labelForPath, titleForRoute } from './navigation-labels';
 	import { requestNoteTitles, subscribeToNoteTitles } from '$lib/components/notes/note-titles.svelte';
 	import { parseWorkspacePath } from '$lib/stores/navigation-routes';
@@ -148,6 +149,15 @@
 					<span class="text-sm font-semibold text-stone-700">Chronolog</span>
 				{/if}
 			</div>
+			<!-- Global search (sprint 042-CL): the field gets the whole page on a phone -->
+			<a
+				href="/search"
+				class="ml-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+				aria-label="Search"
+				data-testid="mobile-search-link"
+			>
+				<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" /><path d="m13 13 4 4" stroke-linecap="round" /></svg>
+			</a>
 			{#if navigationContext.mobileNavigationLevel > 0}
 				<TimerIndicator
 					timerState={timerState.status}
@@ -186,6 +196,7 @@
 					aria-expanded={sidebarVisible}
 				>≡</button>
 				<span class="text-sm font-semibold text-stone-700">Chronolog</span>
+				<GlobalSearchField class="ml-2 w-56 lg:w-64" />
 			</div>
 			<TimerIndicator
 				timerState={timerState.status}

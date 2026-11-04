@@ -12,6 +12,15 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
   over 24 hours ago (`start_too_early`) exits 1; a start before the end of another entry warns and
   needs a yes on a terminal or `--yes` without one (exit 2 otherwise).
 
+- Sprint 042-CL: `search "<words>" [--limit N]` now searches time entry descriptions as well as
+  notes, through the new `GET /api/search`. It prints a `Notes (n)` group (title hits before body
+  hits; id, client/contract, last edited, title, then a snippet) and a `Time entries (n)` group
+  (date, duration, client/contract, snippet, entry id), matches marked `»…«`, `(5 of 12)` when the
+  limit cut a group. **`--json` shape changed**: `{ query, notes: { hits, total }, timeEntries:
+  { hits, total } }` instead of an array of notes (note ids are `notes.hits[].id`); each hit has a
+  `snippet` `{ text, matches: [{ start, end }] }`. Trashed notes never appear. A query under two
+  characters is a usage error (exit 2).
+
 ## Sprint 037-CL, 2026-11-04: server-side note trash (after 1.1.0; version not bumped)
 
 - `note delete <id> [--yes]` moves the note to the server's trash: it keeps its id, its wiki-links,

@@ -1,4 +1,4 @@
-/** Read-only commands: me, clients, contracts, week, notes, note show, search. */
+/** Read-only commands: me, clients, contracts, week, notes, note show (search: commands/search.mjs). */
 
 import { describeClient, describeContract, resolveClient, resolveContract } from '../lib/resolve.mjs';
 import { formatMinutes, isoWeekRange, parseIsoWeek, weekdayName } from '../lib/dates.mjs';
@@ -102,13 +102,4 @@ export async function noteShow({ api, print, positionals }) {
 	const header = `${note.id}  ${note.title ?? '(untitled)'}\nUpdated ${note.updatedAt}`;
 	const footer = linked.length ? `\n\nLinked time entries:\n${linked.join('\n')}` : '';
 	print(`${header}\n\n${(note.content ?? '').trimEnd()}${footer}`, { ...note, timeEntries });
-}
-
-export async function search({ api, print, positionals, flags }) {
-	const query = positionals.join(' ');
-	if (!query) throw new UsageError('Usage: chronolog search "<words or note id>"');
-	const limit = flags.limit ? `&limit=${encodeURIComponent(flags.limit)}` : '';
-	const { notes: results } = await api.get(`/api/notes/search?q=${encodeURIComponent(query)}${limit}`);
-	const lines = results.map((note) => `${note.id}  ${note.clientShortCode}/${note.contractName}  ${note.displayTitle ?? note.firstLine ?? ''}`);
-	print(lines.join('\n') || 'No matching notes.', results);
 }

@@ -218,3 +218,8 @@ entries `{"contract","date","duration","description","deliverable?","workType?",
 moves its start (`--at "yesterday 23:10"` across midnight), `timer start <contract> --at 09:30`
 starts one late, `timer stop` saves it. A `Warning:` that the start overlaps another entry (exit 2)
 means ask the owner; rerun with `--yes` only after a yes. Future or over-a-day starts exit 1.
+
+**Searching (sprint 042-CL).** `chronolog search "<words>" --json` covers notes and time entries:
+`{ notes: { hits, total }, timeEntries: { hits, total } }`. Note ids are `notes.hits[].id` (title hits
+first); entry hits carry `id`, `date`, `durationMinutes` and a `snippet.text`. Use it to answer "when
+did I work on X" or to find an entry id before `edit`. At least two characters.

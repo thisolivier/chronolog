@@ -38,7 +38,7 @@ Environment variables win over the file:
 - `week [2026-W45] [--client X | --contract X]`: entries and totals
 - `log <contract> <duration> "<desc>" [--date D] [--deliverable X [--work-type Y]] [--note ID]`
 - `note new <contract> "<title>" [--file body.md] [--date D]` (body from `--file` or stdin), `note show <note-id>`. `--date` (`YYYY-MM-DD`, `today`, `yesterday`, a weekday) backdates the note: its id carries that date and `createdAt` is noon of that day in the laptop's timezone; a future date is 400 `invalid_date`. The creation date cannot be changed afterwards (the id would have to change); delete and recreate instead.
-- `notes <contract> [--since YYYY-MM-DD]`, `search "<words or note id>" [--limit N]`
+- `notes <contract> [--since YYYY-MM-DD]`, `search "<words or note id>" [--limit N]` (notes and time entries in two groups, matches marked `»…«`; `--json` is the `GET /api/search` result)
 - `status <2026-W45|current> <unsubmitted|draft-ready|submitted>`
 - `edit <entry-id> [--duration D] [--description "..."] [--date D] [--deliverable X|none] [--work-type X|none]`: change one entry (`PATCH /api/time-entries/<id>`); only the flags given change. A plain duration clears an old start/end range; a range sets a new one. A work type is resolved under the new deliverable if given, else the entry's current one (`--tag` works too). `--deliverable none` clears both; a new deliverable without `--work-type` clears the old deliverable's work type.
 - `undo`: delete the last entry this CLI logged. `log` records it in `last-entry.json` next to the config file; `undo` deletes it once and forgets it. It refuses (exit 2) when nothing is recorded or the record is for another server. Entries made in the app or edited are not undoable this way.
@@ -148,7 +148,8 @@ cli/lib/import-history.mjs  last-import.json: the entries `undo --last-import` d
 cli/lib/note-body.mjs     note markdown: body input, title heading, edit/append text, word count
 cli/lib/attachment-files.mjs  attachment type from extension, reference lines, sizes, Content-Disposition filename
 cli/lib/version.mjs       CLI_VERSION from the root package.json
-cli/commands/read.mjs     me, clients, contracts, week, notes, note show, search
+cli/commands/read.mjs     me, clients, contracts, week, notes, note show
+cli/commands/search.mjs   search (GET /api/search)
 cli/commands/write.mjs    log, note new, status
 cli/commands/correct.mjs  edit, undo
 cli/commands/import.mjs   import notes|entries, undo --last-import (falls back to correct.undo)
