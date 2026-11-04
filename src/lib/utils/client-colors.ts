@@ -83,3 +83,14 @@ export function getClientBgClass(colorIndex: number): string {
 export function isValidClientColorIndex(value: unknown): value is number {
 	return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value < CLIENT_COLORS.length;
 }
+
+/**
+ * The colour a new client gets by default: the first palette index no existing client uses,
+ * or (all eight taken) the client count wrapped onto the palette. Shared by the admin "New
+ * client" form, `POST /api/clients` and the sidebar's inline new client (sprint 031-CL).
+ */
+export function suggestClientColorIndex(existingColorIndexes: readonly number[]): number {
+	const usedColorIndexes = new Set(existingColorIndexes.map((colorIndex) => colorIndex % CLIENT_COLORS.length));
+	const firstUnused = CLIENT_COLORS.findIndex((_, colorIndex) => !usedColorIndexes.has(colorIndex));
+	return firstUnused === -1 ? existingColorIndexes.length % CLIENT_COLORS.length : firstUnused;
+}

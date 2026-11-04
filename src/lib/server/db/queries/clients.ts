@@ -1,6 +1,7 @@
 import { eq, and, isNull } from 'drizzle-orm';
 import { database, clients } from '$lib/server/db';
 import { decryptText, encryptNullable, encryptText } from '$lib/server/crypto/server-cipher';
+import { suggestClientColorIndex } from '$lib/utils/client-colors';
 
 export type ClientUpdateData = {
 	name?: string;
@@ -99,6 +100,15 @@ export async function updateClient(clientId: string, userId: string, data: Clien
 		)
 		.returning();
 	return decryptOptionalClient(results[0]);
+}
+
+/**
+ * The default colour for the user's next client: the first palette colour none of their clients
+ * (archived included) uses, as the admin "New client" form suggests.
+ */
+export async function nextClientColorIndex(userId: string): Promise<number> {
+	const existingClients = await listClientsForUser(userId, { includeArchived: true });
+	return suggestClientColorIndex(existingClients.map((client) => client.colorIndex));
 }
 
 // Client deletion lives in `./safe-deletion.ts`: it reassigns entries and notes first.

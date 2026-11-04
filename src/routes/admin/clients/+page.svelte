@@ -4,7 +4,7 @@
 	import AdminBreadcrumb from '$lib/components/admin/AdminBreadcrumb.svelte';
 	import FormFeedback from '$lib/components/admin/FormFeedback.svelte';
 	import { closeOnSuccess, escapeCancels } from '$lib/components/admin/form-enhancers';
-	import { CLIENT_COLORS } from '$lib/utils/client-colors';
+	import { CLIENT_COLORS, suggestClientColorIndex } from '$lib/utils/client-colors';
 
 	let { data, form } = $props();
 
@@ -17,11 +17,7 @@
 	]);
 
 	// Default a new client to the first palette colour no existing client uses, so clients differ by default
-	const suggestedColorIndex = $derived.by(() => {
-		const usedColorIndexes = new Set(data.clients.map((client) => client.colorIndex % CLIENT_COLORS.length));
-		const firstUnused = CLIENT_COLORS.findIndex((_, colorIndex) => !usedColorIndexes.has(colorIndex));
-		return firstUnused === -1 ? data.clients.length % CLIENT_COLORS.length : firstUnused;
-	});
+	const suggestedColorIndex = $derived(suggestClientColorIndex(data.clients.map((client) => client.colorIndex)));
 </script>
 
 <svelte:head><title>Chronolog · Settings · Clients</title></svelte:head>

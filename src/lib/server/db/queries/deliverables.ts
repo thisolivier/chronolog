@@ -1,5 +1,30 @@
 import { eq, and } from 'drizzle-orm';
-import { database, deliverables } from '$lib/server/db';
+import { database, deliverables, contracts, clients } from '$lib/server/db';
+
+/**
+ * One of the user's deliverables, found through its contract and client (never the system
+ * contract's). `parentArchived` is true when the contract or its client is archived: deliverables
+ * have no archive state of their own, so they count as archived with their parent. `null` when
+ * missing or someone else's, so API routes answer 404 either way.
+ */
+export async function getDeliverableForUser(deliverableId: string, userId: string) {
+	const results = await database
+		.select({
+			deliverable: deliverables,
+			contractArchivedAt: contracts.archivedAt,
+			clientArchivedAt: clients.archivedAt
+		})
+		.from(deliverables)
+		.innerJoin(contracts, eq(deliverables.contractId, contracts.id))
+		.innerJoin(clients, eq(contracts.clientId, clients.id))
+		.where(
+			and(eq(deliverables.id, deliverableId), eq(clients.userId, userId), eq(contracts.isSystem, false))
+		)
+		.limit(1);
+	const row = results[0];
+	if (!row) return null;
+	return { ...row.deliverable, parentArchived: Boolean(row.contractArchivedAt || row.clientArchivedAt) };
+}
 
 export async function listDeliverablesForContract(contractId: string) {
 	return database

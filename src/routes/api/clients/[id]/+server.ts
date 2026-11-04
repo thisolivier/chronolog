@@ -1,96 +1,126 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { updateClient, type ClientUpdateData } from '$lib/server/db/queries/clients';
+import {
+	getClientForUser,
+	setClientArchived,
+	updateClient,
+	type ClientUpdateData
+} from '$lib/server/db/queries/clients';
+import { deleteClientWithReassignment, getClientUsage } from '$lib/server/db/queries/safe-deletion';
+import { archiveMessage, deletionMessage, isUniqueViolation } from '$lib/server/admin-actions';
+import { readJsonObject } from '$lib/server/api-request';
+import { apiError } from '$lib/server/api-errors';
 import { isValidClientColorIndex, CLIENT_COLORS } from '$lib/utils/client-colors';
-import { isUniqueViolation } from '$lib/server/admin-actions';
+import {
+	clientJson,
+	duplicateShortCode,
+	firstProblem,
+	notFound,
+	readClearableText,
+	readId,
+	readOptionalBoolean,
+	readOptionalText,
+	unauthorized
+} from '../../admin-input';
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** GET /api/clients/:id — one of the user's clients, archived or not. */
+export const GET: RequestHandler = async ({ params, locals }) => {
+	if (!locals.user) return unauthorized();
+	const clientId = readId(params.id, 'client');
+	if (clientId instanceof Response) return clientId;
+
+	const client = await getClientForUser(clientId, locals.user.id);
+	return client ? json({ client: clientJson(client) }) : notFound('client');
+};
 
 /**
  * PATCH /api/clients/:id
  *
- * Partial update of a client. Body: `{ colorIndex?, name?, shortCode?, emoji? }`.
- * `colorIndex` must be an integer palette index (0..7); `emoji` may be `null` to clear it.
+ * Partial update. Body: `{ name?, shortCode?, emoji?, colorIndex?, archived? }`. `colorIndex`
+ * is a palette index (0..7); `emoji` may be `null` to clear it; `archived: true|false` archives
+ * or restores (sprint 031-CL). A short code already in use is 409 `duplicate`.
  */
 export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 	const currentUser = locals.user;
-	if (!currentUser) {
-		return json({ error: 'Unauthorized' }, { status: 401 });
-	}
+	if (!currentUser) return unauthorized();
+	const clientId = readId(params.id, 'client');
+	if (clientId instanceof Response) return clientId;
 
-	const { id } = params;
-	if (!id || !UUID_PATTERN.test(id)) {
-		return json({ error: 'Invalid client ID' }, { status: 400 });
-	}
+	const parsedBody = await readJsonObject(request);
+	if (!parsedBody.ok) return parsedBody.response;
+	const { body } = parsedBody;
 
-	let body: Record<string, unknown>;
-	try {
-		body = await request.json();
-	} catch {
-		return json({ error: 'Invalid JSON body' }, { status: 400 });
-	}
-	if (body === null || typeof body !== 'object' || Array.isArray(body)) {
-		return json({ error: 'Body must be a JSON object' }, { status: 400 });
-	}
+	const name = readOptionalText(body, 'name', 'name must be a non-empty string');
+	const shortCode = readOptionalText(body, 'shortCode', 'shortCode must be a non-empty string');
+	const emoji = readClearableText(body, 'emoji');
+	const archived = readOptionalBoolean(body, 'archived');
+	const problem = firstProblem(name, shortCode, emoji, archived);
+	if (problem) return problem;
 
 	const updateData: ClientUpdateData = {};
-
 	if (body.colorIndex !== undefined) {
 		if (!isValidClientColorIndex(body.colorIndex)) {
-			return json(
-				{ error: `colorIndex must be an integer between 0 and ${CLIENT_COLORS.length - 1}` },
-				{ status: 400 }
-			);
+			return apiError(400, `colorIndex must be an integer between 0 and ${CLIENT_COLORS.length - 1}`, 'invalid_input');
 		}
 		updateData.colorIndex = body.colorIndex;
 	}
+	if (name !== undefined) updateData.name = name as string;
+	if (shortCode !== undefined) updateData.shortCode = shortCode as string;
+	if (emoji !== undefined) updateData.emoji = emoji as string | null;
 
-	if (body.name !== undefined) {
-		if (typeof body.name !== 'string' || body.name.trim() === '') {
-			return json({ error: 'name must be a non-empty string' }, { status: 400 });
+	if (Object.keys(updateData).length === 0 && archived === undefined) {
+		return apiError(400, 'No fields to update', 'invalid_input');
+	}
+
+	const owned = await getClientForUser(clientId, currentUser.id);
+	if (!owned) return notFound('client');
+	let client = owned;
+	const messages: string[] = [];
+
+	if (Object.keys(updateData).length > 0) {
+		let updated;
+		try {
+			updated = await updateClient(clientId, currentUser.id, updateData);
+		} catch (databaseError: unknown) {
+			if (isUniqueViolation(databaseError)) return duplicateShortCode(updateData.shortCode ?? '');
+			throw databaseError;
 		}
-		updateData.name = body.name.trim();
+		if (!updated) return notFound('client');
+		client = updated;
+		messages.push(`Client “${client.name}” saved.`);
+	}
+	if (archived !== undefined) {
+		const toggled = await setClientArchived(clientId, currentUser.id, archived as boolean);
+		if (!toggled) return notFound('client');
+		client = toggled;
+		messages.push(archiveMessage('client', client.name, archived as boolean));
 	}
 
-	if (body.shortCode !== undefined) {
-		if (typeof body.shortCode !== 'string' || body.shortCode.trim() === '') {
-			return json({ error: 'shortCode must be a non-empty string' }, { status: 400 });
-		}
-		updateData.shortCode = body.shortCode.trim();
-	}
+	return json({ client: clientJson(client), message: messages.join(' ') });
+};
 
-	if (body.emoji !== undefined) {
-		if (body.emoji !== null && typeof body.emoji !== 'string') {
-			return json({ error: 'emoji must be a string or null' }, { status: 400 });
-		}
-		updateData.emoji = body.emoji === null || body.emoji.trim() === '' ? null : body.emoji.trim();
-	}
+/**
+ * DELETE /api/clients/:id — the admin page's safe deletion: every time entry and note of every
+ * contract moves to the system "Deleted Client / Deleted Contract" (entries note where they came
+ * from), then the client and its contracts are deleted, in one transaction. Answers what moved.
+ */
+export const DELETE: RequestHandler = async ({ params, locals }) => {
+	const currentUser = locals.user;
+	if (!currentUser) return unauthorized();
+	const clientId = readId(params.id, 'client');
+	if (clientId instanceof Response) return clientId;
 
-	if (Object.keys(updateData).length === 0) {
-		return json({ error: 'No fields to update' }, { status: 400 });
-	}
+	const client = await getClientForUser(clientId, currentUser.id);
+	if (!client) return notFound('client');
+	const usage = await getClientUsage(clientId, currentUser.id);
 
-	let updatedClient;
-	try {
-		updatedClient = await updateClient(id, currentUser.id, updateData);
-	} catch (databaseError: unknown) {
-		if (isUniqueViolation(databaseError)) {
-			return json({ error: 'A client with this short code already exists' }, { status: 400 });
-		}
-		throw databaseError;
-	}
-
-	if (!updatedClient) {
-		return json({ error: 'Client not found' }, { status: 404 });
-	}
+	const result = await deleteClientWithReassignment(clientId, currentUser.id);
+	if (!result) return notFound('client');
 
 	return json({
-		client: {
-			id: updatedClient.id,
-			name: updatedClient.name,
-			shortCode: updatedClient.shortCode,
-			emoji: updatedClient.emoji,
-			colorIndex: updatedClient.colorIndex
-		}
+		deleted: { kind: 'client', id: client.id, name: client.name, shortCode: client.shortCode },
+		...result,
+		minutesMoved: usage.totalMinutes,
+		message: deletionMessage(client.name, result, usage.totalMinutes)
 	});
 };

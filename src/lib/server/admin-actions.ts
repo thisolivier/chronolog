@@ -57,3 +57,10 @@ export function archiveMessage(kind: 'client' | 'contract', name: string, archiv
 		? `Archived ${kind} “${name}”. It is hidden from the sidebar and selects; its entries and notes are kept.`
 		: `Restored ${kind} “${name}”. It is back in the sidebar and selects.`;
 }
+
+/** e.g. ` 3 time entries keep “Formerly: Phase 2” in the description.` (empty when none). */
+export function entriesKeptMessage(count: number, formerName: string): string {
+	if (count === 0) return '';
+	const entries = count === 1 ? '1 time entry keeps' : `${count} time entries keep`;
+	return ` ${entries} “Formerly: ${formerName}” in the description.`;
+}

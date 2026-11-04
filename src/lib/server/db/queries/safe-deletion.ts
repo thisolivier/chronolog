@@ -26,6 +26,7 @@ import { timeEntries } from '$lib/server/db/schema/time-entries';
 import { notes } from '$lib/server/db/schema/notes';
 import { decryptNullable, decryptText, encryptText } from '$lib/server/crypto/server-cipher';
 import { appendFormerlyLine } from './formerly-line';
+import { listContractRefsForUser } from './contracts';
 
 type Transaction = Parameters<Parameters<typeof database.transaction>[0]>[0];
 
@@ -350,6 +351,14 @@ export function sumUsage(usageList: Iterable<UsageCounts>): UsageCounts {
 		total.noteCount += usage.noteCount;
 	}
 	return total;
+}
+
+/** A client's usage over all its contracts (archived included), for the delete dialog and message. */
+export async function getClientUsage(clientId: string, userId: string): Promise<UsageCounts> {
+	const contractIds = (await listContractRefsForUser(userId))
+		.filter((contract) => contract.clientId === clientId)
+		.map((contract) => contract.id);
+	return sumUsage((await getContractUsage(contractIds)).values());
 }
 
 /** Number of entries (and their minutes) per deliverable / work type ID. */

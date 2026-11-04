@@ -10,6 +10,7 @@ import {
 import { listContractRefsForUser } from '$lib/server/db/queries/contracts';
 import {
 	deleteClientWithReassignment,
+	getClientUsage,
 	getContractUsage,
 	sumUsage
 } from '$lib/server/db/queries/safe-deletion';
@@ -140,10 +141,7 @@ export const actions: Actions = {
 		const client = await getClientForUser(clientId, currentUser.id);
 		if (!client) return fail(404, { error: 'That client no longer exists. Reload the page.' });
 
-		const contractRefs = (await listContractRefsForUser(currentUser.id)).filter(
-			(contract) => contract.clientId === clientId
-		);
-		const usage = sumUsage((await getContractUsage(contractRefs.map((row) => row.id))).values());
+		const usage = await getClientUsage(clientId, currentUser.id);
 
 		const result = await deleteClientWithReassignment(clientId, currentUser.id);
 		if (!result) return fail(404, { error: 'That client no longer exists. Reload the page.' });

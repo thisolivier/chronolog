@@ -3,7 +3,8 @@ import {
 	CLIENT_COLORS,
 	getClientBorderClass,
 	getClientDotClass,
-	getClientBgClass
+	getClientBgClass,
+	suggestClientColorIndex
 } from './client-colors';
 
 describe('CLIENT_COLORS', () => {
@@ -55,5 +56,17 @@ describe('getClientBgClass', () => {
 
 	it('wraps around for index > 7', () => {
 		expect(getClientBgClass(16)).toBe(getClientBgClass(0));
+	});
+});
+
+describe('suggestClientColorIndex', () => {
+	it('picks the first palette colour no client uses', () => {
+		expect(suggestClientColorIndex([])).toBe(0);
+		expect(suggestClientColorIndex([0, 1, 3])).toBe(2);
+		expect(suggestClientColorIndex([8])).toBe(1);
+	});
+
+	it('wraps the client count once every colour is taken', () => {
+		expect(suggestClientColorIndex([0, 1, 2, 3, 4, 5, 6, 7, 0, 1])).toBe(2);
 	});
 });
