@@ -85,12 +85,39 @@ export function isValidClientColorIndex(value: unknown): value is number {
 }
 
 /**
- * The colour a new client gets by default: the first palette index no existing client uses,
- * or (all eight taken) the client count wrapped onto the palette. Shared by the admin "New
- * client" form, `POST /api/clients` and the sidebar's inline new client (sprint 031-CL).
+ * The colour a new client gets by default: the first palette index none of the user's ACTIVE
+ * clients uses (archived ones free their colour, 044-CL); with all eight taken, the least used
+ * one (lowest index on a tie). Shared by the admin "New client" form, `POST /api/clients` and the
+ * sidebar's inline new client (sprint 031-CL). Existing clients keep their colours.
  */
-export function suggestClientColorIndex(existingColorIndexes: readonly number[]): number {
-	const usedColorIndexes = new Set(existingColorIndexes.map((colorIndex) => colorIndex % CLIENT_COLORS.length));
-	const firstUnused = CLIENT_COLORS.findIndex((_, colorIndex) => !usedColorIndexes.has(colorIndex));
-	return firstUnused === -1 ? existingColorIndexes.length % CLIENT_COLORS.length : firstUnused;
+export function suggestClientColorIndex(activeColorIndexes: readonly number[]): number {
+	const usageCounts = CLIENT_COLORS.map(() => 0);
+	for (const colorIndex of activeColorIndexes) usageCounts[colorIndex % CLIENT_COLORS.length] += 1;
+	const lowestCount = Math.min(...usageCounts);
+	return usageCounts.indexOf(lowestCount);
+}
+
+export interface SharedClientColor {
+	colorIndex: number;
+	colorName: string;
+	clientNames: string[];
+}
+
+/**
+ * Palette colours that two or more active clients share, for the hint in Settings → Clients
+ * (044-CL). Archived clients are ignored. Ordered by palette index; names keep the given order.
+ */
+export function findSharedClientColors(
+	clientList: readonly { name: string; colorIndex: number; archivedAt: Date | string | null }[]
+): SharedClientColor[] {
+	const namesByColor = new Map<number, string[]>();
+	for (const client of clientList) {
+		if (client.archivedAt !== null) continue;
+		const colorIndex = client.colorIndex % CLIENT_COLORS.length;
+		namesByColor.set(colorIndex, [...(namesByColor.get(colorIndex) ?? []), client.name]);
+	}
+	return [...namesByColor.entries()]
+		.filter(([, clientNames]) => clientNames.length > 1)
+		.sort(([left], [right]) => left - right)
+		.map(([colorIndex, clientNames]) => ({ colorIndex, colorName: CLIENT_COLORS[colorIndex].name, clientNames }));
 }

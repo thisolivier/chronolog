@@ -4,7 +4,7 @@
 	import AdminBreadcrumb from '$lib/components/admin/AdminBreadcrumb.svelte';
 	import FormFeedback from '$lib/components/admin/FormFeedback.svelte';
 	import { closeOnSuccess, escapeCancels } from '$lib/components/admin/form-enhancers';
-	import { CLIENT_COLORS, suggestClientColorIndex } from '$lib/utils/client-colors';
+	import { CLIENT_COLORS, findSharedClientColors, suggestClientColorIndex } from '$lib/utils/client-colors';
 
 	let { data, form } = $props();
 
@@ -16,8 +16,17 @@
 		...data.clients.filter((client) => client.archivedAt !== null)
 	]);
 
-	// Default a new client to the first palette colour no existing client uses, so clients differ by default
-	const suggestedColorIndex = $derived(suggestClientColorIndex(data.clients.map((client) => client.colorIndex)));
+	const activeClients = $derived(data.clients.filter((client) => client.archivedAt === null));
+
+	// Default a new client to the first palette colour no active client uses, so clients differ by default
+	const suggestedColorIndex = $derived(suggestClientColorIndex(activeClients.map((client) => client.colorIndex)));
+
+	// Active clients that share a colour: a hint, existing colours are never changed for the user
+	const sharedColors = $derived(findSharedClientColors(data.clients));
+
+	function listNames(names: string[]): string {
+		return names.length <= 2 ? names.join(' and ') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
+	}
 </script>
 
 <svelte:head><title>Chronolog · Settings · Clients</title></svelte:head>
@@ -41,6 +50,18 @@
 	</div>
 
 	<FormFeedback {form} />
+
+	{#if sharedColors.length > 0}
+		<div class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" data-testid="shared-colour-hint">
+			<p class="font-medium">Some active clients share a colour, so they look alike in the timesheet and sidebar.</p>
+			<ul class="mt-1 list-disc pl-5">
+				{#each sharedColors as shared (shared.colorIndex)}
+					<li>{listNames(shared.clientNames)} share {shared.colorName}.</li>
+				{/each}
+			</ul>
+			<p class="mt-1">Pick another colour with Edit on one of them.</p>
+		</div>
+	{/if}
 
 	{#if showCreateForm}
 		<div class="rounded-lg border border-stone-200 bg-white p-6 shadow-sm">

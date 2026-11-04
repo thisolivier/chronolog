@@ -4,7 +4,8 @@ import {
 	getClientBorderClass,
 	getClientDotClass,
 	getClientBgClass,
-	suggestClientColorIndex
+	suggestClientColorIndex,
+	findSharedClientColors
 } from './client-colors';
 
 describe('CLIENT_COLORS', () => {
@@ -66,7 +67,26 @@ describe('suggestClientColorIndex', () => {
 		expect(suggestClientColorIndex([8])).toBe(1);
 	});
 
-	it('wraps the client count once every colour is taken', () => {
+	it('picks the least used colour once every colour is taken (lowest index on a tie)', () => {
 		expect(suggestClientColorIndex([0, 1, 2, 3, 4, 5, 6, 7, 0, 1])).toBe(2);
+		expect(suggestClientColorIndex([0, 1, 2, 3, 4, 5, 6, 7])).toBe(0);
+		expect(suggestClientColorIndex([0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 7, 7])).toBe(6);
+	});
+});
+
+describe('findSharedClientColors', () => {
+	const client = (name: string, colorIndex: number, archivedAt: Date | null = null) => ({ name, colorIndex, archivedAt });
+
+	it('lists colours two or more active clients share, in palette order', () => {
+		expect(
+			findSharedClientColors([client('Acme', 1), client('Beta', 0), client('Gamma', 1), client('Delta', 0), client('Echo', 9), client('Solo', 2)])
+		).toEqual([
+			{ colorIndex: 0, colorName: 'Rose', clientNames: ['Beta', 'Delta'] },
+			{ colorIndex: 1, colorName: 'Sky', clientNames: ['Acme', 'Gamma', 'Echo'] }
+		]);
+	});
+
+	it('ignores archived clients', () => {
+		expect(findSharedClientColors([client('Acme', 1), client('Old', 1, new Date())])).toEqual([]);
 	});
 });

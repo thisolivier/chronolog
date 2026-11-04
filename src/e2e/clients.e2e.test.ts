@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from 'vitest';
 import './test-init';
-import { authGet, getSessionCookies, BASE_URL } from './helpers';
+import { authGet, authPost, getSessionCookies, BASE_URL } from './helpers';
 
 type ClientResponse = { id: string; name: string; shortCode: string; colorIndex: number };
 
@@ -118,5 +118,31 @@ describe('PATCH /api/clients/:id', () => {
 		});
 		// hooks.server.ts redirects unauthenticated requests to /login before the route runs.
 		expect([401, 303]).toContain(response.status);
+	});
+});
+
+describe('Default colour of a new client (044-CL)', () => {
+	async function activeColours(): Promise<number[]> {
+		const data = await (await authGet('/api/clients')).json();
+		return data.clients.map((client: ClientResponse) => client.colorIndex % 8);
+	}
+	const firstUnused = (used: number[]) => [0, 1, 2, 3, 4, 5, 6, 7].find((colour) => !used.includes(colour));
+	const shortCode = () => `C${Date.now().toString(36).slice(-5).toUpperCase()}${Math.floor(Math.random() * 10)}`;
+
+	it('takes the first colour no active client uses; archiving a client frees its colour', async () => {
+		const expected = firstUnused(await activeColours());
+		expect(expected).toBeDefined();
+		const created = await (await authPost('/api/clients', { name: 'Colour One', shortCode: shortCode() })).json();
+		expect(created.client.colorIndex).toBe(expected);
+
+		const next = firstUnused(await activeColours());
+		const second = await (await authPost('/api/clients', { name: 'Colour Two', shortCode: shortCode() })).json();
+		expect(second.client.colorIndex).toBe(next);
+		expect(second.client.colorIndex).not.toBe(created.client.colorIndex);
+
+		// Archived, the first client's colour (the lowest unused one when it was made) is free again
+		expect((await authPatch(`/api/clients/${created.client.id}`, { archived: true })).status).toBe(200);
+		const third = await (await authPost('/api/clients', { name: 'Colour Three', shortCode: shortCode() })).json();
+		expect(third.client.colorIndex).toBe(created.client.colorIndex);
 	});
 });

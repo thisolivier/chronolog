@@ -5,7 +5,8 @@ import {
 	createClient,
 	updateClient,
 	getClientForUser,
-	setClientArchived
+	setClientArchived,
+	nextClientColorIndex
 } from '$lib/server/db/queries/clients';
 import { listContractRefsForUser } from '$lib/server/db/queries/contracts';
 import {
@@ -76,7 +77,7 @@ export const actions: Actions = {
 		}
 
 		try {
-			await createClient(currentUser.id, name, shortCode, emoji, colorIndex);
+			await createClient(currentUser.id, name, shortCode, emoji, colorIndex ?? (await nextClientColorIndex(currentUser.id)));
 		} catch (databaseError: unknown) {
 			if (isUniqueViolation(databaseError)) {
 				return fail(400, { error: duplicateShortCodeMessage(shortCode), name, shortCode });
