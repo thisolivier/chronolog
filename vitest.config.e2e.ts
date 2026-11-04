@@ -10,8 +10,8 @@ export default defineConfig({
 		globalSetup: ['src/e2e/setup.ts'],
 		testTimeout: 30_000,
 		hookTimeout: 30_000,
-		// Run test files sequentially — they share a single test user and database state,
-		// and the note ID generation is sequential per day so concurrent creates would collide.
+		// Run test files sequentially — they share a single test user and database state.
+		// (Note IDs are allocated under an advisory lock since sprint 029-CL, so parallel creates are safe.)
 		fileParallelism: false,
 		// Allow test files to share state via env vars set in globalSetup
 		env: {
