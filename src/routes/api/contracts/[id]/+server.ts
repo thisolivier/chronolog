@@ -16,7 +16,7 @@ import {
 	unauthorized
 } from '../../admin-input';
 
-/** GET /api/contracts/:id — one of the user's contracts, archived or not (sprint 031-CL). */
+/** GET /api/contracts/:id — one of the user's contracts, archived or not, with delete `usage` (sprint 031-CL). */
 export const GET: RequestHandler = async ({ params, locals }) => {
 	if (!locals.user) return unauthorized();
 	const contractId = readId(params.id, 'contract');
@@ -24,7 +24,8 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 
 	const contract = await getContractForUser(contractId, locals.user.id);
 	if (!contract) return notFound('contract');
-	return json({ contract: { ...contractJson(contract), clientArchived: contract.clientArchivedAt !== null } });
+	const usage = (await getContractUsage([contract.id])).get(contract.id) ?? { timeEntryCount: 0, totalMinutes: 0, noteCount: 0 };
+	return json({ contract: { ...contractJson(contract), clientArchived: contract.clientArchivedAt !== null }, usage });
 };
 
 /**

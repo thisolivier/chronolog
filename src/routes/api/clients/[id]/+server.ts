@@ -23,14 +23,19 @@ import {
 	unauthorized
 } from '../../admin-input';
 
-/** GET /api/clients/:id — one of the user's clients, archived or not. */
+/**
+ * GET /api/clients/:id — one of the user’s clients, archived or not, with `usage` (entries,
+ * minutes and notes a delete would move), as the admin delete dialog shows.
+ */
 export const GET: RequestHandler = async ({ params, locals }) => {
 	if (!locals.user) return unauthorized();
 	const clientId = readId(params.id, 'client');
 	if (clientId instanceof Response) return clientId;
 
 	const client = await getClientForUser(clientId, locals.user.id);
-	return client ? json({ client: clientJson(client) }) : notFound('client');
+	if (!client) return notFound('client');
+	const usage = await getClientUsage(clientId, locals.user.id);
+	return json({ client: clientJson(client), usage });
 };
 
 /**

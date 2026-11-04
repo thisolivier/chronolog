@@ -57,7 +57,12 @@ export function resolveOne(reference, items, { kind, exactKeys, haystack, descri
 
 export function describeContract(contract) {
 	const inactive = contract.isActive === false ? ' [inactive]' : '';
-	return `${contract.clientShortCode}/${contract.name} (${contract.clientName})${inactive}  id=${contract.id}`;
+	const archived = contract.archived || contract.clientArchived ? ' [archived]' : '';
+	return `${contract.clientShortCode}/${contract.name} (${contract.clientName})${inactive}${archived}  id=${contract.id}`;
+}
+
+export function describeClient(client) {
+	return `${client.shortCode} ${client.name}${client.archived ? ' [archived]' : ''}  id=${client.id}`;
 }
 
 /** `contracts` are rows from GET /api/contracts-by-client. */
@@ -81,7 +86,7 @@ export function resolveClient(reference, clients) {
 		kind: 'client',
 		exactKeys: (client) => [client.shortCode, client.name],
 		haystack: (client) => `${client.shortCode} ${client.name}`,
-		describe: (client) => `${client.shortCode} ${client.name}  id=${client.id}`
+		describe: describeClient
 	});
 }
 
@@ -93,4 +98,36 @@ export function resolveDeliverable(reference, deliverables) {
 		haystack: (deliverable) => deliverable.name,
 		describe: (deliverable) => `${deliverable.name}  id=${deliverable.id}`
 	});
+}
+
+/** `workTypes` are rows from GET /api/work-types?deliverableId=. */
+export function resolveWorkType(reference, workTypes) {
+	return resolveOne(reference, workTypes, {
+		kind: 'work type',
+		exactKeys: (workType) => [workType.name],
+		haystack: (workType) => workType.name,
+		describe: (workType) => `${workType.name}  id=${workType.id}`
+	});
+}
+
+export function isUuid(text) {
+	return UUID_PATTERN.test(String(text ?? '').trim());
+}
+
+/**
+ * Splits a path reference `SHORTCODE/Contract/Deliverable/WorkType` into its contract part (the
+ * first two segments) and the rest. `depth` is how many segments the object needs (3 for a
+ * deliverable, 4 for a work type); fewer is a ReferenceError_ explaining the expected form.
+ */
+export function splitObjectPath(reference, depth, kind) {
+	const segments = String(reference ?? '').split('/').map((segment) => segment.trim());
+	if (segments.length < depth || segments.some((segment) => segment === '')) {
+		const form = ['SHORTCODE', 'Contract', 'Deliverable', 'WorkType'].slice(0, depth).join('/');
+		throw new ReferenceError_(`Name the ${kind} as ${form} or by id, not “${reference}”.`, [], 'missing');
+	}
+	return {
+		contractReference: segments.slice(0, 2).join('/'),
+		deliverableName: depth === 3 ? segments.slice(2).join('/') : segments[2],
+		workTypeName: segments.slice(3).join('/')
+	};
 }

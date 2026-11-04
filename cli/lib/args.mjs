@@ -1,11 +1,14 @@
 /**
  * Minimal argv parser: positionals plus `--flag value`, `--flag=value` and boolean flags.
  * Only flags listed in `booleanFlags` are value-less; every other `--name` takes the next word.
+ * `-y` is short for `--yes`.
  */
 
 export class UsageError extends Error {}
 
-export function parseArguments(argv, booleanFlags = ['json', 'help']) {
+export const BOOLEAN_FLAGS = ['json', 'help', 'yes', 'all', 'active', 'inactive'];
+
+export function parseArguments(argv, booleanFlags = BOOLEAN_FLAGS) {
 	const positionals = [];
 	const flags = {};
 	for (let index = 0; index < argv.length; index += 1) {
@@ -29,9 +32,25 @@ export function parseArguments(argv, booleanFlags = ['json', 'help']) {
 			}
 		} else if (word === '-h') {
 			flags.help = true;
+		} else if (word === '-y') {
+			flags.yes = true;
 		} else {
 			positionals.push(word);
 		}
 	}
 	return { positionals, flags };
+}
+
+/** Commands written as two words (`note new`, `client add`); `tag`/`tags` are the owner's word for work types. */
+const COMMAND_GROUPS = new Set(['note', 'client', 'contract', 'deliverable', 'work-type']);
+const ALIASES = { tag: 'work-type', tags: 'work-types', 'work-type-list': 'work-types', worktype: 'work-type', worktypes: 'work-types' };
+
+export function commandFromPositionals(positionals) {
+	let [commandName, ...rest] = positionals;
+	commandName = ALIASES[commandName] ?? commandName;
+	if (COMMAND_GROUPS.has(commandName)) {
+		commandName = `${commandName} ${rest[0] ?? ''}`.trim();
+		rest = rest.slice(1);
+	}
+	return { commandName, rest };
 }

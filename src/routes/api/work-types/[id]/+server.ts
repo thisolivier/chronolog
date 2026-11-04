@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getWorkTypeForUser, updateWorkType } from '$lib/server/db/queries/work-types';
-import { deleteWorkTypeWithNote } from '$lib/server/db/queries/safe-deletion';
+import { deleteWorkTypeWithNote, getEntryCountsBy } from '$lib/server/db/queries/safe-deletion';
 import { entriesKeptMessage } from '$lib/server/admin-actions';
 import { readJsonObject } from '$lib/server/api-request';
 import { apiError } from '$lib/server/api-errors';
@@ -23,7 +23,8 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	const workType = await getWorkTypeForUser(workTypeId, locals.user.id);
 	if (!workType) return notFound('work type');
 	const { parentArchived, ...fields } = workType;
-	return json({ workType: { ...fields, archived: parentArchived } });
+	const usage = (await getEntryCountsBy('workTypeId', [workType.id])).get(workType.id) ?? { timeEntryCount: 0, totalMinutes: 0 };
+	return json({ workType: { ...fields, archived: parentArchived }, usage });
 };
 
 /** PATCH /api/work-types/:id — body `{ name?, sortOrder? }`. */

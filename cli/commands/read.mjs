@@ -1,6 +1,6 @@
 /** Read-only commands: me, clients, contracts, week, notes, note show, search. */
 
-import { describeContract, resolveClient, resolveContract } from '../lib/resolve.mjs';
+import { describeClient, describeContract, resolveClient, resolveContract } from '../lib/resolve.mjs';
 import { formatMinutes, isoWeekRange, parseIsoWeek, weekdayName } from '../lib/dates.mjs';
 import { UsageError } from '../lib/args.mjs';
 
@@ -17,16 +17,17 @@ export async function me({ api, print }) {
 	);
 }
 
-export async function clients({ api, print }) {
-	const { clients: clientList } = await api.get('/api/clients');
-	print(clientList.map((client) => `${client.shortCode.padEnd(8)} ${client.name}  id=${client.id}`).join('\n') || 'No clients.', clientList);
+export async function clients({ api, print, flags }) {
+	const { clients: clientList } = await api.get(`/api/clients${flags.all ? '?includeArchived=true' : ''}`);
+	print(clientList.map((client) => describeClient({ ...client, shortCode: client.shortCode.padEnd(8) })).join('\n') || 'No clients.', clientList);
 }
 
-export async function contracts({ api, print, positionals }) {
-	let contractList = await fetchContracts(api);
+export async function contracts({ api, print, positionals, flags }) {
+	const archivedQuery = flags.all ? '?includeArchived=true' : '';
+	let contractList = (await api.get(`/api/contracts-by-client${archivedQuery}`)).contracts;
 	const clientReference = positionals.join(' ');
 	if (clientReference) {
-		const { clients: clientList } = await api.get('/api/clients');
+		const { clients: clientList } = await api.get(`/api/clients${archivedQuery}`);
 		const client = resolveClient(clientReference, clientList);
 		contractList = contractList.filter((contract) => contract.clientId === client.id);
 	}

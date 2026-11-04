@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getDeliverableForUser, updateDeliverable } from '$lib/server/db/queries/deliverables';
-import { deleteDeliverableWithNote } from '$lib/server/db/queries/safe-deletion';
+import { deleteDeliverableWithNote, getEntryCountsBy } from '$lib/server/db/queries/safe-deletion';
 import { entriesKeptMessage } from '$lib/server/admin-actions';
 import { readJsonObject } from '$lib/server/api-request';
 import { apiError } from '$lib/server/api-errors';
@@ -23,7 +23,8 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	const deliverable = await getDeliverableForUser(deliverableId, locals.user.id);
 	if (!deliverable) return notFound('deliverable');
 	const { parentArchived, ...fields } = deliverable;
-	return json({ deliverable: { ...fields, archived: parentArchived } });
+	const usage = (await getEntryCountsBy('deliverableId', [deliverable.id])).get(deliverable.id) ?? { timeEntryCount: 0, totalMinutes: 0 };
+	return json({ deliverable: { ...fields, archived: parentArchived }, usage });
 };
 
 /** PATCH /api/deliverables/:id — body `{ name?, sortOrder? }`. */
