@@ -60,7 +60,7 @@ describe('versions', () => {
 	it('--version prints the CLI version; me carries the server version', async () => {
 		const plain = await runCli(['--version']);
 		expect(plain.stdout.trim()).toBe(`chronolog ${PACKAGE_VERSION}`);
-		expect(PACKAGE_VERSION).toBe('1.0.0');
+		expect(PACKAGE_VERSION).toMatch(/^[1-9]\d*\.\d+\.\d+$/);
 		const me = await runJson(['me']);
 		expect(me).toMatchObject({ serverVersion: PACKAGE_VERSION, cliVersion: PACKAGE_VERSION });
 		const meText = await runCli(['me']);
