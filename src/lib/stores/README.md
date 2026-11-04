@@ -43,7 +43,9 @@ The URL is the state. `createNavigationState` parses the URL it is given, and `s
 
 Each action is a URL write. Mode, contract and note changes push a history entry. Week changes inside the timesheet, closing a note, and a draft turning into a saved note replace the current entry. `showTimeEntryDay` replaces when the timesheet is already open and pushes otherwise. The rules are listed in `docs/ux/09-navigation-state.md`.
 
-`mobileNavigationLevel` is not stored. It is derived from the route (`mobileLevelFor` in `navigation-routes.ts`): home is 0, the timesheet or a contract's note list is 1, and a note or a draft is 2.
+`mobileNavigationLevel` is not stored. It is derived from the route (`mobileLevelFor` in `navigation-routes.ts`): home is 0, the timesheet or a note list (a contract's or a client's) is 1, and a note or a draft is 2.
+
+The client view (sprint 039-CL): `selectClient(clientId)` opens one client's notes across its contracts; `listClientId` names that client (null otherwise) and `selectedClientId` returns it. Inside it, `selectNote(noteId, contractId)` and `openDraft(contractId)` take the note's contract (it is in the URL, so the editor's "note under its own contract" rule still holds), and `openNote` keeps the client view when the note belongs to the viewed client (a link to another client's note leaves it). Closing a note returns to the client list.
 
 Phone Back (`goBackMobile`) uses the in-app history mirror (`navigation-history.ts`). If the previous entry is inside the app it calls `history.back()`; otherwise it moves one level up with a replace. `backTarget` gives that path and whether it is a history entry, which the phone's Back label is built from.
 
@@ -53,7 +55,7 @@ A fresh deep link (a URL opened directly, not by reload or Back) gets `/` put un
 
 Persistence: the sidebar-collapsed preference is in localStorage (`chronolog:sidebar-collapsed`), as is the sidebar's Archived item being expanded (`chronolog:sidebar-archived-expanded`, kept by `ContractsSidebar`, not this store). Timesheet scroll positions per week are in sessionStorage (`chronolog:timesheet-scroll`), as is the in-app history (`chronolog:in-app-history`). `showTimeEntryDay(date)` sets the week to show and the day to scroll to; `takeFocusDay()` hands that day out once and then forgets it. `openNote(…, { focusEditor: true })` (a followed wiki-link) marks the note so `takeEditorFocus(noteId)` returns true once; NoteEditorPanel then focuses the editor at the top (not on touch screens).
 
-Actions: `selectTimeEntries`, `selectContract`, `selectWeek`, `selectNote`, `openNote`, `openDraft`, `clearSelectedNote`, `showTimeEntryDay`, `toggleSidebar`, `navigateMobile`, `goBackMobile`, and the timesheet scroll helpers.
+Actions: `selectTimeEntries`, `selectContract`, `selectClient`, `selectWeek`, `selectNote`, `openNote`, `openDraft`, `clearSelectedNote`, `showTimeEntryDay`, `toggleSidebar`, `navigateMobile`, `goBackMobile`, and the timesheet scroll helpers.
 
 ### navigation-routes.ts
 
@@ -66,6 +68,9 @@ Pure functions that map workspace URLs to routes and back. No Svelte.
 | `/notes/<contractId>` | `notes` | A contract's note list |
 | `/notes/<contractId>/<noteId>` | `notes` | A note open under its contract |
 | `/notes/<contractId>/new` | `notes`, `draft` | An unsaved new-note draft for that contract |
+| `/notes/client/<clientId>` | `client` | One client's notes across its contracts (sprint 039-CL) |
+| `/notes/client/<clientId>/<contractId>/<noteId>` | `client` | A note open with the client view as the list |
+| `/notes/client/<clientId>/<contractId>/new` | `client`, `draft` | A draft for that contract inside the client view |
 
 `parseWorkspacePath` returns null for any other page (settings, admin, login), which is how the store knows to keep the last workspace place.
 

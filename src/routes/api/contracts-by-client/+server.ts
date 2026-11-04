@@ -6,7 +6,8 @@ import { listContractsByClientWithNoteCount } from '$lib/server/db/queries/contr
  * GET /api/contracts-by-client
  *
  * Returns a flat list of contracts with client name and note count.
- * Ordered by sortOrder then contract name. With `?includeArchived=true`, archived contracts and
+ * Ordered by sortOrder then contract name; `clientSortOrder` is the client's manual sidebar
+ * position (sprint 039-CL; the sidebar groups clients by it, then by name). With `?includeArchived=true`, archived contracts and
  * the contracts of archived clients are included (`archived`, `clientArchived`; sprint 031-CL).
  */
 export const GET: RequestHandler = async ({ locals, url }) => {
@@ -28,6 +29,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 			clientShortCode: row.clientShortCode,
 			clientEmoji: row.clientEmoji,
 			clientColorIndex: row.clientColorIndex,
+			clientSortOrder: row.clientSortOrder,
 			noteCount: row.noteCount,
 			archived: row.archivedAt !== null,
 			clientArchived: row.clientArchivedAt !== null

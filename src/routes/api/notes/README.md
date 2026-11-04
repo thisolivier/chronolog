@@ -27,15 +27,16 @@ The ID is auto-generated when creating a note. It is allocated and inserted in o
 
 ## Routes
 
-### `GET /api/notes[?contractId=X][&updatedSince=ISO-8601]`
+### `GET /api/notes[?contractId=X | ?clientId=X][&updatedSince=ISO-8601]`
 
 Lists the user's notes. At least one filter is required (400 `bad_request` otherwise).
 
 **Query Parameters:**
 - `contractId` (optional): only this contract's notes. Must be a UUID (400 `invalid_contract`).
+- `clientId` (optional, sprint 039-CL): the notes of every contract of this client, archived contracts included (the app's client view). Must be a UUID (400 `invalid_client`); another user's client lists nothing.
 - `updatedSince` (optional): only notes changed after this ISO 8601 date or date-time (400 `invalid_date` if unparseable). Used for incremental sync; the CLI's `chronolog notes --since` sends it.
 
-**Response:** each note has `id`, `contractId`, `title`, `displayTitle`, `firstLine`, `secondLine`, `isPinned`, `createdAt` and `updatedAt`. No body content is returned.
+**Response:** each note has `id`, `contractId`, `title`, `displayTitle`, `firstLine`, `secondLine`, `isPinned`, `pinnedAt`, `createdAt` and `updatedAt`. No body content is returned.
 
 - `displayTitle` is the stored title, else the first line of the body, else `null`.
 - `firstLine` and `secondLine` are preview lines. Notes created over the API have no TipTap JSON, so their preview is taken from the markdown `content`.
@@ -58,7 +59,7 @@ Lists the user's notes. At least one filter is required (400 `bad_request` other
 }
 ```
 
-Notes are sorted by pinned status first, then by `updatedAt` (descending).
+Pinned notes come first, most recently pinned on top (`pinnedAt` descending), then the rest by `updatedAt` (descending).
 
 ### `POST /api/notes`
 
@@ -204,6 +205,12 @@ Moves the note to the trash (see above) and purges the caller's trash older than
 Takes the caller's note out of the trash with its ID, links and time-entry links. 404 `not_in_trash` when it is not the caller's or not in the trash. A restore onto an archived contract is allowed; `contract.archived` reports it.
 
 **Response:** `{ "note": { …the full note… }, "contract": { "id", "name", "clientShortCode", "archived", "isSystem" } }`
+
+### `PUT /api/notes/[noteId]/pin` (sprint 039-CL)
+
+Body `{ "pinned": true | false }`. Pins or unpins the caller's note. A dedicated route rather than a `PATCH` field: `PATCH` requires `expectedUpdatedAt` and bumps `updatedAt`, while pinning is not an edit and must not make an open editor's next autosave a 409. `updatedAt` does not change; pinning a pinned note keeps its first `pinnedAt`. 400 `bad_request` when `pinned` is not a boolean; 404 `note_not_found` for another user's note or one in the trash.
+
+**Response:** `{ "note": { "id", "contractId", "isPinned", "pinnedAt" } }`
 
 ### `GET /api/notes/trash`
 

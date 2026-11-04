@@ -13,6 +13,8 @@ export type ContractsByClientResult = {
 	clientShortCode: string;
 	clientEmoji: string | null;
 	clientColorIndex: number;
+	/** The client's manual sidebar position (sprint 039-CL); clients sort by it, then by name */
+	clientSortOrder?: number;
 	noteCount: number;
 	/** Only with `includeArchived` (sprint 031-CL): the contract, or its client, is archived */
 	archived?: boolean;
@@ -53,10 +55,20 @@ export type NoteSummary = {
 	id: string;
 	contractId: string;
 	isPinned: boolean;
+	/** When it was pinned (sprint 039-CL): pinned notes sort first, most recently pinned on top */
+	pinnedAt?: string | null;
 	createdAt: string;
 	updatedAt: string;
 	firstLine: string;
 	secondLine: string;
+};
+
+/** `PUT /api/notes/[id]/pin` answer (sprint 039-CL) */
+export type NotePinState = {
+	id: string;
+	contractId: string;
+	isPinned: boolean;
+	pinnedAt: string | null;
 };
 
 export type NoteDetail = {
@@ -67,6 +79,7 @@ export type NoteDetail = {
 	contractId: string;
 	wordCount: number;
 	isPinned: boolean;
+	pinnedAt?: string | null;
 	createdAt: string;
 	updatedAt: string;
 };

@@ -38,7 +38,8 @@ Environment variables win over the file:
 - `week [2026-W45] [--client X | --contract X]`: entries and totals
 - `log <contract> <duration> "<desc>" [--date D] [--deliverable X [--work-type Y]] [--note ID]`
 - `note new <contract> "<title>" [--file body.md] [--date D]` (body from `--file` or stdin), `note show <note-id>`. `--date` (`YYYY-MM-DD`, `today`, `yesterday`, a weekday) backdates the note: its id carries that date and `createdAt` is noon of that day in the laptop's timezone; a future date is 400 `invalid_date`. The creation date cannot be changed afterwards (the id would have to change); delete and recreate instead.
-- `notes <contract> [--since YYYY-MM-DD]`, `search "<words or note id>" [--limit N]` (notes and time entries in two groups, matches marked `»…«`; `--json` is the `GET /api/search` result)
+- `notes <contract> [--since YYYY-MM-DD]`, `search "<words or note id>" [--limit N]` (notes and time entries in two groups, matches marked `»…«`; `--json` is the `GET /api/search` result). `notes` lists pinned notes first, marked 📌.
+- `note pin <id>` / `note unpin <id>` (sprint 039-CL): a pinned note sits at the top of its contract's list in the app and of the client view, most recently pinned first (`PUT /api/notes/<id>/pin`). Pinning does not change the note's `updatedAt`, so an editor open on it does not see a conflict. An unknown or trashed note exits 3.
 - `status <2026-W45|current> <unsubmitted|draft-ready|submitted>`
 - `edit <entry-id> [--duration D] [--description "..."] [--date D] [--deliverable X|none] [--work-type X|none]`: change one entry (`PATCH /api/time-entries/<id>`); only the flags given change. A plain duration clears an old start/end range; a range sets a new one. A work type is resolved under the new deliverable if given, else the entry's current one (`--tag` works too). `--deliverable none` clears both; a new deliverable without `--work-type` clears the old deliverable's work type.
 - `undo`: delete the last entry this CLI logged. `log` records it in `last-entry.json` next to the config file; `undo` deletes it once and forgets it. It refuses (exit 2) when nothing is recorded or the record is for another server. Entries made in the app or edited are not undoable this way.
@@ -100,7 +101,7 @@ Notes may hold checkbox items, `- [ ] open` and `- [x] done` (nested by two spac
 These call the same `/api/*` routes, and so the same rules, as Settings → Clients and contracts.
 
 - `client add "<name>" --code SHORT [--emoji X] [--color 0-7]`: the colour defaults to the first one no client uses
-- `client edit <client> [--name] [--code] [--emoji X|none] [--color]`, `client archive|unarchive <client>`
+- `client edit <client> [--name] [--code] [--emoji X|none] [--color] [--order N]`, `client archive|unarchive <client>`. `--order N` (sprint 039-CL) moves the client to place N in the app's sidebar among the active clients (1 = top; a number past the end means last) and prints where it landed
 - `client remove <client>`: entries and notes of all its contracts move to Deleted Client / Deleted Contract (each entry keeps a "Formerly:" line), then it is deleted
 - `contract add <client> "<name>" [--description D] [--inactive]`, `contract edit <contract> [--name] [--description D|none] [--active|--inactive]`, `contract archive|unarchive|remove <contract>`
 - `deliverables <contract> [--all]`, `deliverable add <contract> "<name>" [--order N]`, `deliverable edit <ref> [--name] [--order N]`, `deliverable remove <ref>`
@@ -161,6 +162,7 @@ cli/commands/correct.mjs  edit, undo
 cli/commands/import.mjs   import notes|entries, undo --last-import (falls back to correct.undo)
 cli/commands/note-changes.mjs  note edit, append, delete, restore
 cli/commands/todos.mjs    todos: checkbox items across notes (GET /api/notes/todos)
+cli/commands/note-pins.mjs     note pin, note unpin (sprint 039-CL)
 cli/commands/attachments.mjs   note attach, note attachments, attachment get, attachment delete
 cli/commands/timer.mjs    timer (status), timer start/adjust/stop; --at parsing; the overlap confirmation
 cli/commands/manage-clients.mjs    client and contract add/edit/archive/unarchive/remove

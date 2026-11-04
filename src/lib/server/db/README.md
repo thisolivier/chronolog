@@ -20,7 +20,7 @@ db/
   seed.ts             # Development seed script
   schema/
     users.ts          # Users table
-    clients.ts        # Clients table (belongs to user; archived_at, is_system)
+    clients.ts        # Clients table (belongs to user; archived_at, is_system, sort_order)
     contracts.ts      # Contracts table (belongs to client; archived_at, is_system)
     deliverables.ts   # Deliverables table (belongs to contract)
     work-types.ts     # Work types table (belongs to deliverable)
@@ -55,6 +55,12 @@ Deleting a note sets `notes.deleted_at` (partial index `notes_trash_user_id_idx`
 ## Global search (sprint 042-CL)
 
 `queries/global-search.ts` (`searchEverythingForUser`) backs `GET /api/search` and `chronolog search`: the user's notes (ID, title, body; never the trash) and time entries (description), decrypted and matched in memory like `note-search.ts` (the columns are encrypted, so no SQL `ILIKE`). Notes rank with `rankNoteMatch` (exact ID, ID prefix, title, ID substring, body; newest first within a rank); entries are newest first. Each hit carries client, contract, a date and a snippet with match offsets (`$lib/utils/search-snippet.ts`); the limit is per group and `total` counts every match.
+
+## Pinned notes and client order (sprint 039-CL)
+
+Migration `0010`: `notes.pinned_at timestamptz` and `clients.sort_order integer not null default 0`. A pinned note has `pinned_at` set (and `is_pinned` true; the old boolean is kept in step for older readers and can be dropped later); lists order by `pinned_at desc nulls last`, then `updated_at desc` (`noteListOrder` in `queries/notes.ts`). The migration gives notes already marked `is_pinned` a `pinned_at` equal to their `updated_at`. `queries/note-pins.ts` pins and unpins without touching `updated_at`. `listNotesForUser({ clientId })` lists every contract of a client (the client view).
+
+Client names are encrypted, so the migration cannot number clients by name: every client starts at 0, and `sort_order`, then name, reads exactly as the old name order. `queries/client-order.ts` holds `compareClientOrder`, `reorderClientsForUser` (listed clients first, the rest after in their current order, all renumbered 0..n-1 in one locked transaction), `moveClientToPosition` (the CLI's `--order`) and `nextClientSortOrder` (a new client lands by name until the user has reordered, then last).
 
 ## Archiving and Safe Deletion
 

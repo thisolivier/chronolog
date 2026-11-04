@@ -15,6 +15,7 @@ import type { TimerLocalStart,
 	ClientSummary,
 	NoteSummary,
 	NoteDetail,
+	NotePinState,
 	UpdateNoteInput,
 	UpdateNoteOptions,
 	CreateNoteInput,
@@ -67,10 +68,22 @@ export class DelegatingDataService implements DataService {
 		return this.delegate.getClients();
 	}
 
+	reorderClients(orderedClientIds: string[]): Promise<void> {
+		return this.delegate.reorderClients(orderedClientIds);
+	}
+
 	// ── Notes ─────────────────────────────────────────────────
 
 	getNotesForContract(contractId: string): Promise<NoteSummary[]> {
 		return this.delegate.getNotesForContract(contractId);
+	}
+
+	getNotesForClient(clientId: string): Promise<NoteSummary[]> {
+		return this.delegate.getNotesForClient(clientId);
+	}
+
+	setNotePinned(noteId: string, pinned: boolean): Promise<NotePinState> {
+		return this.delegate.setNotePinned(noteId, pinned);
 	}
 
 	getNoteById(noteId: string): Promise<NoteDetail> {

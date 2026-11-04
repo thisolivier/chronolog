@@ -5,6 +5,7 @@ import { formatMinutes, isoWeekRange, parseIsoWeek, weekdayName } from '../lib/d
 import { UsageError } from '../lib/args.mjs';
 import { CLI_VERSION } from '../lib/version.mjs';
 import { fetchNote } from '../lib/note-fetch.mjs';
+import { PIN_MARKER } from './note-pins.mjs';
 
 export async function fetchContracts(api) {
 	return (await api.get('/api/contracts-by-client')).contracts;
@@ -89,7 +90,10 @@ export async function notes({ api, print, positionals, flags }) {
 	}
 	if (flags.since) params.set('updatedSince', flags.since);
 	const { notes: noteList } = await api.get(`/api/notes?${params}`);
-	const lines = noteList.map((note) => `${note.id}  ${String(note.updatedAt).slice(0, 10)}  ${note.displayTitle ?? note.firstLine ?? '(untitled)'}`);
+	// Pinned notes come first (the server's order) and carry a pin (sprint 039-CL)
+	const lines = noteList.map(
+		(note) => `${note.isPinned ? `${PIN_MARKER} ` : ''}${note.id}  ${String(note.updatedAt).slice(0, 10)}  ${note.displayTitle ?? note.firstLine ?? '(untitled)'}`
+	);
 	print([`Notes for ${contractLabel}: ${noteList.length}`, ...lines].join('\n'), noteList);
 }
 

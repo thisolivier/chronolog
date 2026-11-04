@@ -46,7 +46,7 @@ export async function clientAdd({ api, print, positionals, flags }) {
 
 export async function clientEdit({ api, print, positionals, flags }) {
 	const reference = positionals.join(' ');
-	const usage = 'Usage: chronolog client edit <client> [--name "..."] [--code SHORT] [--emoji X|none] [--color 0-7]';
+	const usage = 'Usage: chronolog client edit <client> [--name "..."] [--code SHORT] [--emoji X|none] [--color 0-7] [--order N]';
 	if (!reference) throw new UsageError(usage);
 	const body = {};
 	if (flags.name !== undefined) body.name = String(flags.name);
@@ -54,11 +54,18 @@ export async function clientEdit({ api, print, positionals, flags }) {
 	if (flags.emoji !== undefined) body.emoji = clearable(flags.emoji);
 	const colorIndex = parseColor(flags);
 	if (colorIndex !== undefined) body.colorIndex = colorIndex;
+	// --order N: the client's place in the app's sidebar, 1 = top (sprint 039-CL)
+	if (flags.order !== undefined) {
+		const position = Number(flags.order);
+		if (!Number.isInteger(position) || position < 1) throw new UsageError('--order must be a whole number, 1 or more (1 = top of the sidebar).');
+		body.position = position;
+	}
 	if (Object.keys(body).length === 0) throw new UsageError(`Nothing to change. ${usage}`);
 
 	const client = await findClient(api, reference);
 	const result = await api.patch(`/api/clients/${client.id}`, body);
-	print(`Saved client ${describeClient(result.client)}`, result.client);
+	const ordered = result.position !== undefined ? `, number ${result.position} in the sidebar` : '';
+	print(`Saved client ${describeClient(result.client)}${ordered}`, { ...result.client, ...(result.position !== undefined ? { position: result.position } : {}) });
 }
 
 function clientArchiver(archived) {

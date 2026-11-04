@@ -2,6 +2,7 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { database, clients } from '$lib/server/db';
 import { decryptText, encryptNullable, encryptText } from '$lib/server/crypto/server-cipher';
 import { suggestClientColorIndex } from '$lib/utils/client-colors';
+import { compareClientOrder, nextClientSortOrder } from './client-order';
 
 export type ClientUpdateData = {
 	name?: string;
@@ -27,7 +28,7 @@ export function compareNames(left: string, right: string): number {
 }
 
 /**
- * A user's clients, name-ordered. The system "Deleted Client" is never listed; archived clients
+ * A user's clients in sidebar order (manual `sortOrder`, then name; sprint 039-CL). The system "Deleted Client" is never listed; archived clients
  * are left out unless `includeArchived` (the admin list shows them so they can be restored).
  */
 export async function listClientsForUser(
@@ -44,7 +45,7 @@ export async function listClientsForUser(
 				includeArchived ? undefined : isNull(clients.archivedAt)
 			)
 		);
-	return rows.map(decryptClient).sort((left, right) => compareNames(left.name, right.name));
+	return rows.map(decryptClient).sort(compareClientOrder);
 }
 
 /** One of the user's own (non-system) clients, archived or not. */
@@ -85,7 +86,8 @@ export async function createClient(
 			name: encryptText(name),
 			shortCode,
 			emoji: emoji ?? null,
-			colorIndex: colorIndex ?? 0
+			colorIndex: colorIndex ?? 0,
+			sortOrder: await nextClientSortOrder(userId)
 		})
 		.returning();
 	return decryptClient(results[0]);

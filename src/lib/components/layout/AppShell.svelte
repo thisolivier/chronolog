@@ -108,7 +108,7 @@
 	$effect(() => subscribeToNoteTitles(() => titleCacheVersion++));
 	$effect(() => {
 		const previous = parseWorkspacePath(navigationContext.backTarget.path, '');
-		if (previous?.kind === 'notes' && previous.noteId) requestNoteTitles([previous.noteId]);
+		if ((previous?.kind === 'notes' || previous?.kind === 'client') && previous.noteId) requestNoteTitles([previous.noteId]);
 	});
 	const backLabel = $derived.by(() => {
 		void titleCacheVersion;

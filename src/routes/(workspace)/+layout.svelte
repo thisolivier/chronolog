@@ -1,7 +1,8 @@
 <script lang="ts">
 	/**
 	 * The workspace (sidebar, list, timesheet or editor) for every workspace URL:
-	 * `/`, `/time/<week>`, `/notes/<contract>`, `/notes/<contract>/<note|new>`.
+	 * `/`, `/time/<week>`, `/notes/<contract>`, `/notes/<contract>/<note|new>`, and the client view
+	 * `/notes/client/<client>[/<contract>/<note|new>]` (sprint 039-CL).
 	 * It is a layout so moving between those URLs never remounts the panels; the pages are empty
 	 * and the navigation store reads the URL (sprint 027-CL).
 	 */
@@ -26,9 +27,11 @@
 				? 'Chronolog'
 				: `Chronolog · Time entries · Week ${getIsoWeekNumber(nav.selectedWeek ?? '')}`;
 		}
-		const contractName = nav.selectedContractId
-			? contractDirectory.labels[nav.selectedContractId]?.name
-			: undefined;
+		const contractName = nav.listClientId
+			? (contractDirectory.clientName(nav.listClientId) ?? undefined)
+			: nav.selectedContractId
+				? contractDirectory.labels[nav.selectedContractId]?.name
+				: undefined;
 		return contractName ? `Chronolog · Notes · ${contractName}` : 'Chronolog · Notes';
 	});
 </script>

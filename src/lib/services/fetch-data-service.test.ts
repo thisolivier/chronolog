@@ -344,6 +344,33 @@ describe('FetchDataService', () => {
 		});
 	});
 
+	describe('sprint 039-CL: client view, pins and client order', () => {
+		it('getNotesForClient calls GET /api/notes?clientId= and unwraps .notes', async () => {
+			mockFetch.mockResolvedValueOnce(mockJsonResponse({ notes: [{ id: 'n1' }] }));
+			expect(await service.getNotesForClient('client 1')).toEqual([{ id: 'n1' }]);
+			expect(getLastFetchCall(mockFetch)[0]).toBe('/api/notes?clientId=client%201');
+		});
+
+		it('setNotePinned calls PUT /api/notes/:id/pin with { pinned }', async () => {
+			const pinState = { id: 'n1', contractId: 'c1', isPinned: true, pinnedAt: '2026-11-04T10:00:00Z' };
+			mockFetch.mockResolvedValueOnce(mockJsonResponse({ note: pinState }));
+			expect(await service.setNotePinned('n1', true)).toEqual(pinState);
+			const [url, options] = getLastFetchCall(mockFetch);
+			expect(url).toBe('/api/notes/n1/pin');
+			expect(options?.method).toBe('PUT');
+			expect(getLastFetchBody(mockFetch)).toEqual({ pinned: true });
+		});
+
+		it('reorderClients calls PATCH /api/clients/reorder with { orderedIds }', async () => {
+			mockFetch.mockResolvedValueOnce(mockJsonResponse({ ok: true }));
+			await service.reorderClients(['b', 'a']);
+			const [url, options] = getLastFetchCall(mockFetch);
+			expect(url).toBe('/api/clients/reorder');
+			expect(options?.method).toBe('PATCH');
+			expect(getLastFetchBody(mockFetch)).toEqual({ orderedIds: ['b', 'a'] });
+		});
+	});
+
 	describe('getNoteBacklinks', () => {
 		it('calls GET /api/notes/:id/backlinks and unwraps .backlinks', async () => {
 			const backlinks: Backlink[] = [
@@ -939,7 +966,10 @@ describe('DataService interface completeness', () => {
 		'getContracts',
 		'createContract',
 		'getClients',
+		'reorderClients',
 		'getNotesForContract',
+		'getNotesForClient',
+		'setNotePinned',
 		'getNoteById',
 		'createNote',
 		'updateNote',

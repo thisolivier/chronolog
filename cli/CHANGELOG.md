@@ -25,6 +25,11 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
   `snippet` `{ text, matches: [{ start, end }] }`. Trashed notes never appear. A query under two
   characters is a usage error (exit 2).
 
+- Sprint 039-CL: `note pin <id>` / `note unpin <id>` keep a note at the top of its list in the app
+  (`PUT /api/notes/<id>/pin`; `updatedAt` unchanged). `notes <contract>` marks pinned notes with 📌
+  (they already came first). `client edit <client> --order N` moves a client to place N in the
+  sidebar (1 = top) and prints where it landed.
+
 ## Sprint 037-CL, 2026-11-04: server-side note trash (after 1.1.0; version not bumped)
 
 - `note delete <id> [--yes]` moves the note to the server's trash: it keeps its id, its wiki-links,

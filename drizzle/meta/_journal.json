@@ -71,6 +71,13 @@
       "when": 1793812571885,
       "tag": "0009_note_trash",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793816640679,
+      "tag": "0010_pinned_notes_client_order",
+      "breakpoints": true
     }
   ]
 }

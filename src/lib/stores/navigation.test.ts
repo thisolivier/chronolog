@@ -366,3 +366,78 @@ describe('sidebar preference', () => {
 		expect(setup('/', storage).nav.panel1Collapsed).toBe(true);
 	});
 });
+
+describe('the client view (sprint 039-CL)', () => {
+	const CONTRACT_A2 = '33333333-3333-4333-8333-333333333333';
+	beforeEach(() => {
+		contractDirectory.replaceAll([
+			{ id: CONTRACT_A, name: 'Rocket Build', clientName: 'Acme Corp', clientId: CLIENT_A },
+			{ id: CONTRACT_A2, name: 'Rocket Audit', clientName: 'Acme Corp', clientId: CLIENT_A },
+			{ id: CONTRACT_B, name: 'Data Platform', clientName: 'Borealis Labs', clientId: CLIENT_B }
+		]);
+	});
+
+	it('selectClient pushes /notes/client/<id>; nothing is selected but the client', async () => {
+		const { nav, calls, settle } = setup(`/notes/${CONTRACT_A}`);
+		nav.selectClient(CLIENT_A);
+		await settle();
+		expect(calls).toEqual([{ path: `/notes/client/${CLIENT_A}`, replace: false }]);
+		expect(nav.isNotesMode).toBe(true);
+		expect(nav.listClientId).toBe(CLIENT_A);
+		expect(nav.selectedClientId).toBe(CLIENT_A);
+		expect(nav.selectedContractId).toBeNull();
+		expect(nav.mobileNavigationLevel).toBe(1);
+	});
+
+	it('opening a note keeps the client view as the list; closing it goes back to the client list', async () => {
+		const { nav, calls, settle } = setup(`/notes/client/${CLIENT_A}`);
+		nav.selectNote('ACME.2', CONTRACT_A2);
+		await settle();
+		expect(nav.selectedContractId).toBe(CONTRACT_A2);
+		expect(nav.listClientId).toBe(CLIENT_A);
+		expect(nav.mobileNavigationLevel).toBe(2);
+		nav.clearSelectedNote();
+		await settle();
+		expect(calls).toEqual([
+			{ path: `/notes/client/${CLIENT_A}/${CONTRACT_A2}/ACME.2`, replace: false },
+			{ path: `/notes/client/${CLIENT_A}`, replace: true }
+		]);
+	});
+
+	it('a link to a note of the same client stays in the client view; another client’s leaves it', async () => {
+		const { nav } = setup(`/notes/client/${CLIENT_A}`);
+		nav.openNote('ACME.1', CONTRACT_A, '');
+		expect(nav.route).toEqual({ kind: 'client', clientId: CLIENT_A, contractId: CONTRACT_A, noteId: 'ACME.1', draft: false });
+		// The editor's "note under its own contract" correction keeps the view too
+		nav.openNote('ACME.1', CONTRACT_A2, CLIENT_A, { replace: true });
+		expect(nav.listClientId).toBe(CLIENT_A);
+		nav.openNote('BORL.1', CONTRACT_B, CLIENT_B);
+		expect(nav.route).toEqual({ kind: 'notes', contractId: CONTRACT_B, noteId: 'BORL.1', draft: false });
+		expect(nav.listClientId).toBeNull();
+	});
+
+	it('New Note in the client view needs a contract and opens the draft inside the view', async () => {
+		const { nav, calls, settle } = setup(`/notes/client/${CLIENT_A}`);
+		nav.openDraft();
+		expect(nav.isDraftOpen).toBe(false);
+		nav.openDraft(CONTRACT_A2);
+		await settle();
+		nav.selectNote('ACME.9');
+		await settle();
+		expect(calls).toEqual([
+			{ path: `/notes/client/${CLIENT_A}/${CONTRACT_A2}/new`, replace: false },
+			{ path: `/notes/client/${CLIENT_A}/${CONTRACT_A2}/ACME.9`, replace: true }
+		]);
+	});
+
+	it('reads client view URLs on load, and Back from a note goes one level up to the client list', async () => {
+		const draft = setup(`/notes/client/${CLIENT_A}/${CONTRACT_A}/new`).nav;
+		expect(draft.isDraftOpen).toBe(true);
+		expect(draft.selectedContractId).toBe(CONTRACT_A);
+		const { nav, calls, settle } = setup(`/notes/client/${CLIENT_A}/${CONTRACT_A}/ACME.4`);
+		expect(nav.selectedNoteId).toBe('ACME.4');
+		nav.goBackMobile();
+		await settle();
+		expect(calls.at(-1)).toEqual({ path: `/notes/client/${CLIENT_A}`, replace: true });
+	});
+});

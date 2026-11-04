@@ -6,6 +6,7 @@ import type {
 	ClientSummary,
 	NoteSummary,
 	NoteDetail,
+	NotePinState,
 	UpdateNoteInput,
 	UpdateNoteOptions,
 	CreateNoteInput,
@@ -34,9 +35,15 @@ export interface DataService {
 
 	// Clients
 	getClients(): Promise<ClientSummary[]>;
+	/** Persist the sidebar's client order; unlisted clients (archived) follow (sprint 039-CL) */
+	reorderClients(orderedClientIds: string[]): Promise<void>;
 
 	// Notes
 	getNotesForContract(contractId: string): Promise<NoteSummary[]>;
+	/** Every note of a client's contracts, pinned first (the client view, sprint 039-CL) */
+	getNotesForClient(clientId: string): Promise<NoteSummary[]>;
+	/** Pin or unpin; does not change the note's `updatedAt` (sprint 039-CL) */
+	setNotePinned(noteId: string, pinned: boolean): Promise<NotePinState>;
 	getNoteById(noteId: string): Promise<NoteDetail>;
 	createNote(contractId: string, initial?: CreateNoteInput): Promise<NoteSummary>;
 	updateNote(noteId: string, data: UpdateNoteInput, options?: UpdateNoteOptions): Promise<NoteDetail>;
