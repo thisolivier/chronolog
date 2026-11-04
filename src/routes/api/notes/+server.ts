@@ -6,6 +6,7 @@ import { noteDisplayTitle } from '$lib/utils/note-display-title';
 import { apiError } from '$lib/server/api-errors';
 import { readJsonObject, readRequestTimezone } from '$lib/server/api-request';
 import { contractBelongsToUser } from '$lib/server/db/queries/contracts';
+import { isCalendarDate, localDateString, noonInTimezone } from '$lib/utils/local-calendar';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -64,7 +65,12 @@ export const GET: RequestHandler = async ({ locals, url }) => {
  *
  * Creates a new note with auto-generated ID (`SHORTCODE.YYYYMMDD.SEQ`, the date in the caller's
  * timezone from `X-Timezone` or `?tz=`, as for `GET /api/me`). 403 when the contract is not the
- * caller's. Body: { contractId, title?, content?, contentJson? } — `content` is markdown.
+ * caller's. Body: { contractId, title?, content?, contentJson?, createdAt? } — `content` is markdown.
+ *
+ * `createdAt` (`YYYY-MM-DD`, sprint 034-CL) backdates the note: its ID carries that date and
+ * `created_at` is noon of that day in the caller's timezone (`updated_at` stays now). Today is
+ * the same as leaving it out. A future day or anything not a calendar date is 400 `invalid_date`.
+ * The creation date cannot be changed later: the ID would have to change.
  */
 export const POST: RequestHandler = async ({ locals, request, url }) => {
 	const currentUser = locals.user;
@@ -72,7 +78,7 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
 
 	const parsedBody = await readJsonObject(request);
 	if (!parsedBody.ok) return parsedBody.response;
-	const { contractId, title, content, contentJson } = parsedBody.body;
+	const { contractId, title, content, contentJson, createdAt } = parsedBody.body;
 
 	if (!contractId) return apiError(400, 'contractId is required');
 	if (typeof contractId !== 'string' || !UUID_PATTERN.test(contractId)) {
@@ -90,13 +96,25 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
 	const timezoneResult = readRequestTimezone(url, request);
 	if (!timezoneResult.ok) return timezoneResult.response;
 
+	const clock: { timezone: string; now?: Date } = { timezone: timezoneResult.timezone };
+	if (createdAt !== undefined && createdAt !== null) {
+		if (typeof createdAt !== 'string' || !isCalendarDate(createdAt)) {
+			return apiError(400, 'createdAt must be a calendar date, YYYY-MM-DD', 'invalid_date');
+		}
+		const today = localDateString(new Date(), timezoneResult.timezone);
+		if (createdAt > today) {
+			return apiError(400, `createdAt ${createdAt} is in the future (today is ${today})`, 'invalid_date');
+		}
+		if (createdAt < today) clock.now = noonInTimezone(createdAt, timezoneResult.timezone);
+	}
+
 	const note = await createNoteForUser(
 		currentUser.id,
 		contractId,
 		(title as string | null) ?? undefined,
 		(content as string | null) ?? undefined,
 		(contentJson as string | null) ?? undefined,
-		{ timezone: timezoneResult.timezone }
+		clock
 	);
 
 	return json({ note }, { status: 201 });
