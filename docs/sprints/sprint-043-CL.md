@@ -1,6 +1,6 @@
 # Sprint 043 — CL: Notes and editor follow-ups
 
-**Status:** ready for review
+**Status:** merged
 **Branch:** `sprint-043-CL/notes-followups` · **Worktree:** `.claude/worktrees/sprint-043-CL` · **Port:** 5221
 **Sources:** "Carried-over follow-ups / Notes / editor" in `docs/backlog.md`. Runs in parallel with 044-CL; wave rules in `docs/sprints/_wave-rules.md` apply (no migration in this sprint).
 

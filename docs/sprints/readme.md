@@ -10,6 +10,7 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 043-CL | Client | Notes follow-ups: trash view, previews, phone Undo, panel split | merged |
 | 046-CL | Client | Search results interleaved with type icons | merged |
 | 039-CL | Client/Server | Pinned notes, client view, sidebar collapse and client reorder | merged |
 | 040-CL | Client/Server | Checkbox task lists, `chronolog todos` | merged |
