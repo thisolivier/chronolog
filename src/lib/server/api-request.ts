@@ -42,18 +42,18 @@ export function readRequestTimezone(url: URL, request: Request): TimezoneResult 
 	return { ok: true, timezone: requested };
 }
 
-export type ClientIdResult = { ok: true; clientId: string | undefined } | { ok: false; response: Response };
+export type ClientRequestIdResult = { ok: true; clientRequestId: string | undefined } | { ok: false; response: Response };
 
-const CLIENT_ID_PATTERN = /^[A-Za-z0-9._:-]{1,100}$/;
+const CLIENT_REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,100}$/;
 
 /**
- * Optional `clientId` on a create (sprint 045-CL): the caller's own ID for the new row, so a
+ * Optional `clientRequestId` on a create (sprint 045-CL; not `clientId`, which names a customer): the caller's own ID for the new row, so a
  * create sent twice (a retry after a lost answer) returns the first row instead of a second one.
  */
-export function readClientId(value: unknown): ClientIdResult {
-	if (value === undefined || value === null || value === '') return { ok: true, clientId: undefined };
-	if (typeof value !== 'string' || !CLIENT_ID_PATTERN.test(value)) {
-		return { ok: false, response: apiError(400, 'clientId must be 1-100 letters, digits, dots, colons, dashes or underscores', 'invalid_client_id') };
+export function readClientRequestId(value: unknown): ClientRequestIdResult {
+	if (value === undefined || value === null || value === '') return { ok: true, clientRequestId: undefined };
+	if (typeof value !== 'string' || !CLIENT_REQUEST_ID_PATTERN.test(value)) {
+		return { ok: false, response: apiError(400, 'clientRequestId must be 1-100 letters, digits, dots, colons, dashes or underscores', 'invalid_client_request_id') };
 	}
-	return { ok: true, clientId: value };
+	return { ok: true, clientRequestId: value };
 }

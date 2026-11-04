@@ -37,7 +37,7 @@
 		<div class="py-3 pr-9 pl-4">
 			<span class="mb-0.5 flex items-center gap-1.5">
 				<span class="truncate text-sm font-semibold text-stone-900">{title}</span>
-				<OutboxMarker resourceKey="note:{note.id}" />
+				<OutboxMarker resourceKey="note:{note.id}" otherKey={note.clientRequestId ? `note:${note.clientRequestId}` : null} />
 			</span>
 			<div class="truncate text-xs text-stone-500">
 				{#if contractName}

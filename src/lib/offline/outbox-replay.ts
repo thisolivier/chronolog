@@ -10,18 +10,22 @@
 import type { CreateTimeEntryInput, TimeEntryFields } from '$lib/services/types';
 import { planEntryDelete, planEntryUpdate, planNoteUpdate, type ServerEntry, type ServerNote } from './outbox-merge';
 import { applyIdMapping, replaceTempIds, tempIdsIn } from './outbox-queue';
-import type { HoldInfo, NoteFieldValues, OutboxItem, OutboxState } from './outbox-types';
+import type { EntryCreateItem, EntryUpdateItem, HoldInfo, NoteFieldValues, OutboxItem, OutboxState } from './outbox-types';
 
 export interface ReplayTransport {
 	/** The signed-in account on the server (`GET /api/me`), or null when signed out */
 	currentUserId(): Promise<string | null>;
-	/** `clientId` makes the create idempotent: a repeat returns the first note */
-	createNote(contractId: string, fields: NoteFieldValues, clientId: string): Promise<{ id: string; updatedAt: string }>;
+	/**
+	 * `requestId` (sent as `clientRequestId`) makes the create idempotent: a repeat returns the first note with `created: false`
+	 * (its text is whatever the first, lost-answer attempt sent, not necessarily the current one)
+	 */
+	createNote(contractId: string, fields: NoteFieldValues, requestId: string): Promise<{ id: string; updatedAt: string; created: boolean }>;
 	/** null when the note is gone (deleted, in the trash, not found) */
 	getNote(noteId: string): Promise<ServerNote | null>;
 	/** Rejects with a 409 when `expectedUpdatedAt` is stale */
 	putNote(noteId: string, body: NoteFieldValues & { expectedUpdatedAt: string }): Promise<{ updatedAt: string }>;
-	createEntry(input: CreateTimeEntryInput, clientId: string): Promise<{ id: string }>;
+	/** As `createNote`; `entry` is the server row (on a repeat, the first attempt's values) */
+	createEntry(input: CreateTimeEntryInput, requestId: string): Promise<{ id: string; created: boolean; entry: ServerEntry }>;
 	getEntry(entryId: string): Promise<ServerEntry | null>;
 	putEntry(entryId: string, body: Partial<TimeEntryFields>): Promise<void>;
 	deleteEntry(entryId: string): Promise<void>;
@@ -149,7 +153,9 @@ export async function replayOutbox(access: OutboxAccess, transport: ReplayTransp
 					current.realUpdatedAt = created.updatedAt;
 				});
 				remap(item.tempId, created.id, 'note');
-				if (contentReady && findItem(item.sequence)?.revision === sentRevision) {
+				// A repeat of an earlier attempt whose answer was lost: the server kept that attempt's
+				// text, so the item stays and phase 2 sends the current text (review blocker)
+				if (contentReady && created.created && findItem(item.sequence)?.revision === sentRevision) {
 					access.update((state) => {
 						state.items = state.items.filter((candidate) => candidate.sequence !== item.sequence);
 					});
@@ -291,23 +297,27 @@ async function replayItem(
 				const input = { ...item.input };
 				if (input.description) input.description = replaceTempIds(input.description, idMap);
 				setInFlight(item.sequence, true);
-				let created: { id: string };
+				let created: { id: string; created: boolean; entry: ServerEntry };
 				try {
 					created = await transport.createEntry(input, item.tempId);
 				} finally {
 					setInFlight(item.sequence, false);
 				}
+				if (!created.created) {
+					// The server already had it from an earlier attempt whose answer was lost, with that
+					// attempt's values: what is queued now goes as an edit based on that row
+					access.update((state) => {
+						const current = state.items.find((candidate) => candidate.sequence === item.sequence);
+						if (current?.kind !== 'entry-create') return;
+						convertCreateToUpdate(current, created.id, serverEntryBase(created.entry));
+					});
+					remap(item.tempId, created.id, 'entry');
+					return false;
+				}
 				finishItem(access, item, (current) => {
 					if (current.kind !== 'entry-create') return;
 					// Edited while the create was in flight: the rest goes as an update
-					const changes = { ...current.input } as Partial<TimeEntryFields>;
-					Object.assign(current, {
-						kind: 'entry-update',
-						entryId: created.id,
-						base: { ...item.input },
-						changes,
-						displayPatch: current.display
-					});
+					convertCreateToUpdate(current, created.id, inputAsFields(item.input));
 				});
 				remap(item.tempId, created.id, 'entry');
 				hooks.onReplayed?.('entry', created.id);
@@ -361,4 +371,38 @@ async function replayItem(
 		fail(item.sequence, error);
 		return false;
 	}
+}
+
+/** Every field of a create, a missing optional one as null, as an edit's changes or base */
+function inputAsFields(input: CreateTimeEntryInput): Partial<TimeEntryFields> {
+	return {
+		contractId: input.contractId,
+		deliverableId: input.deliverableId ?? null,
+		workTypeId: input.workTypeId ?? null,
+		date: input.date,
+		startTime: input.startTime ?? null,
+		endTime: input.endTime ?? null,
+		durationMinutes: input.durationMinutes,
+		description: input.description ?? null
+	};
+}
+
+function serverEntryBase(entry: ServerEntry): Partial<TimeEntryFields> {
+	const base: Record<string, unknown> = {};
+	for (const field of ['contractId', 'deliverableId', 'workTypeId', 'date', 'startTime', 'endTime', 'durationMinutes', 'description']) {
+		base[field] = entry[field as keyof ServerEntry] ?? null;
+	}
+	return base as Partial<TimeEntryFields>;
+}
+
+/** An entry create the server has: the queued values go as an edit of `entryId` based on `base` */
+function convertCreateToUpdate(current: EntryCreateItem, entryId: string, base: Partial<TimeEntryFields>): void {
+	const update = current as unknown as EntryUpdateItem;
+	const changes = inputAsFields(current.input);
+	const displayPatch = current.display;
+	Object.assign(update, { kind: 'entry-update', entryId, base, changes, displayPatch });
+	delete (update as unknown as Partial<EntryCreateItem>).input;
+	delete (update as unknown as Partial<EntryCreateItem>).display;
+	delete (update as unknown as Partial<EntryCreateItem>).tempId;
+	update.revision += 1;
 }

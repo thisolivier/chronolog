@@ -170,7 +170,7 @@ export function _resetSessionExpiredState(): void {
 export async function fetchJson<ResponseType>(
 	url: string,
 	options?: RequestInit,
-	{ offlineFallback = true }: { offlineFallback?: boolean } = {}
+	{ offlineFallback = true, onStatus }: { offlineFallback?: boolean; onStatus?: (status: number) => void } = {}
 ): Promise<ResponseType> {
 	const method = (options?.method ?? 'GET').toUpperCase();
 	const isRead = method === 'GET';
@@ -208,6 +208,7 @@ export async function fetchJson<ResponseType>(
 		);
 	}
 	const body = (await response.json()) as ResponseType;
+	onStatus?.(response.status);
 	if (isRead) rememberRead(url, body);
 	else updateReadCacheAfterWrite(url, method, body);
 	return body;
@@ -234,6 +235,22 @@ export async function postJson<ResponseType>(url: string, body: unknown): Promis
 		headers: { 'Content-Type': 'application/json', ...(timezone ? { 'X-Timezone': timezone } : {}) },
 		body: JSON.stringify(body)
 	});
+}
+
+/** A POST that also says how it succeeded: 201 made the row, 200 found it (idempotent creates) */
+export async function postJsonWithStatus<ResponseType>(url: string, body: unknown): Promise<{ body: ResponseType; status: number }> {
+	const timezone = browserTimezone();
+	let status = 0;
+	const responseBody = await fetchJson<ResponseType>(
+		url,
+		{
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', ...(timezone ? { 'X-Timezone': timezone } : {}) },
+			body: JSON.stringify(body)
+		},
+		{ onStatus: (responseStatus) => (status = responseStatus) }
+	);
+	return { body: responseBody, status };
 }
 
 /** PATCH with the browser's timezone, which the timer start check reads as "now" (sprint 041-CL). */

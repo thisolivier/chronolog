@@ -45,15 +45,15 @@ function fakeServer() {
 	const signedIn = { userId: 'owner' as string | null };
 	const transport: ReplayTransport = {
 		currentUserId: vi.fn(async () => signedIn.userId),
-		createNote: vi.fn(async (contractId, fields, clientId) => {
-			// Idempotent like the server: a repeat of a clientId returns the first note
-			const existingId = notesByClientId.get(clientId);
-			if (existingId) return { id: existingId, updatedAt: notes.get(existingId)!.updatedAt };
+		createNote: vi.fn(async (contractId, fields, requestId) => {
+			// Idempotent like the server: a repeat of a requestId returns the first note
+			const existingId = notesByClientId.get(requestId);
+			if (existingId) return { id: existingId, updatedAt: notes.get(existingId)!.updatedAt, created: false };
 			const id = `ACME.20261104.00${++noteCounter}`;
-			notesByClientId.set(clientId, id);
+			notesByClientId.set(requestId, id);
 			calls.push(`createNote ${contractId} ${fields.content ?? '(empty)'}`);
 			notes.set(id, { title: fields.title ?? null, content: fields.content ?? null, contentJson: fields.contentJson ?? null, updatedAt: stamp() });
-			return { id, updatedAt: notes.get(id)!.updatedAt };
+			return { id, updatedAt: notes.get(id)!.updatedAt, created: true };
 		}),
 		getNote: vi.fn(async (noteId) => notes.get(noteId) ?? null),
 		putNote: vi.fn(async (noteId, body) => {
@@ -65,14 +65,14 @@ function fakeServer() {
 			notes.set(noteId, { ...note, ...fields, updatedAt: stamp() });
 			return { updatedAt: notes.get(noteId)!.updatedAt };
 		}),
-		createEntry: vi.fn(async (input, clientId) => {
-			const existingId = entriesByClientId.get(clientId);
-			if (existingId) return { id: existingId };
+		createEntry: vi.fn(async (input, requestId) => {
+			const existingId = entriesByClientId.get(requestId);
+			if (existingId) return { id: existingId, created: false, entry: { ...entries.get(existingId) } };
 			const id = `entry-${entriesByClientId.size + 1}`;
-			entriesByClientId.set(clientId, id);
+			entriesByClientId.set(requestId, id);
 			calls.push(`createEntry ${input.description}`);
 			entries.set(id, { ...input });
-			return { id };
+			return { id, created: true, entry: { ...input } };
 		}),
 		getEntry: vi.fn(async (entryId) => entries.get(entryId) ?? null),
 		putEntry: vi.fn(async (entryId, body) => {
@@ -217,8 +217,8 @@ describe('outbox replay', () => {
 		const server = fakeServer();
 		const originalCreate = server.transport.createEntry;
 		let lostAnswers = 1;
-		server.transport.createEntry = vi.fn(async (input, clientId) => {
-			const created = await originalCreate(input, clientId);
+		server.transport.createEntry = vi.fn(async (input, requestId) => {
+			const created = await originalCreate(input, requestId);
 			// The server made the entry, but the answer never arrived (TypeError, 524)
 			if (lostAnswers-- > 0) throw new TypeError('Failed to fetch');
 			return created;
@@ -243,10 +243,10 @@ describe('outbox replay', () => {
 		queueEntryCreate(state, { tempId, input: { date: '2026-11-04', durationMinutes: 30, contractId: 'C' }, display: {} as never, now: NOW });
 		const access = memoryAccess(state);
 		const originalCreate = server.transport.createEntry;
-		server.transport.createEntry = vi.fn(async (input, clientId) => {
+		server.transport.createEntry = vi.fn(async (input, requestId) => {
 			// The user deletes the entry while its create is on the way
 			access.update((draft) => queueEntryDelete(draft, { entryId: tempId, base: null, date: null, now: NOW }));
-			return originalCreate(input, clientId);
+			return originalCreate(input, requestId);
 		});
 		await replayOutbox(access, server.transport, hooks);
 		expect(server.calls).toContain('deleteEntry entry-1');
@@ -267,5 +267,48 @@ describe('outbox replay', () => {
 		server.signedIn.userId = 'owner';
 		server.entries.set('E1', { durationMinutes: 30 });
 		expect((await replayOutbox(access, server.transport, { ...hooks, ownerUserId: 'owner' })).replayed).toBe(1);
+	});
+
+	it('a retried note create that gets the first attempt\'s older text back still sends the current text (re-review blocker)', async () => {
+		const server = fakeServer();
+		const state = emptyOutboxState();
+		queueNoteCreate(state, { tempId: TEMP_A, contractId: 'C', fields: { content: 'first words' }, now: NOW });
+		const access = memoryAccess(state);
+		const originalCreate = server.transport.createNote;
+		let lostAnswers = 1;
+		server.transport.createNote = vi.fn(async (contractId, fields, requestId) => {
+			const created = await originalCreate(contractId, fields, requestId);
+			if (lostAnswers-- > 0) throw new TypeError('Failed to fetch');
+			return created;
+		});
+		expect((await replayOutbox(access, server.transport, hooks)).stoppedBy).toBe('network');
+		// Typed on while offline: folded into the queued create
+		access.update((draft) => queueNoteUpdate(draft, { noteId: TEMP_A, baseUpdatedAt: NOW, base: null, changes: { content: 'first words and more' }, now: NOW }));
+		await replayOutbox(access, server.transport, hooks);
+		const [noteId] = [...server.notes.keys()];
+		expect(server.notes.size).toBe(1);
+		expect(server.notes.get(noteId)?.content).toBe('first words and more');
+		expect(access.state.items).toEqual([]);
+	});
+
+	it('a retried entry create that gets the first attempt\'s row back sends the current values as an edit (re-review blocker)', async () => {
+		const server = fakeServer();
+		const tempId = 'offline-00000000000000e4';
+		const state = emptyOutboxState();
+		queueEntryCreate(state, { tempId, input: { date: '2026-11-04', durationMinutes: 30, contractId: 'C', description: 'first' }, display: {} as never, now: NOW });
+		const access = memoryAccess(state);
+		const originalCreate = server.transport.createEntry;
+		let lostAnswers = 1;
+		server.transport.createEntry = vi.fn(async (input, requestId) => {
+			const created = await originalCreate(input, requestId);
+			if (lostAnswers-- > 0) throw new TypeError('Failed to fetch');
+			return created;
+		});
+		await replayOutbox(access, server.transport, hooks);
+		access.update((draft) => queueEntryUpdate(draft, { entryId: tempId, base: null, changes: { durationMinutes: 45, description: 'changed after' }, now: NOW }));
+		await replayOutbox(access, server.transport, hooks);
+		expect(server.entries.size).toBe(1);
+		expect(server.entries.get('entry-1')).toMatchObject({ durationMinutes: 45, description: 'changed after' });
+		expect(access.state.items).toEqual([]);
 	});
 });

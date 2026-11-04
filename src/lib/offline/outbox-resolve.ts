@@ -38,6 +38,13 @@ export function resolveHeldItem(state: OutboxState, sequence: number, choice: Ho
 	if (!item) return;
 	if (choice === 'server') {
 		removeItem(state, sequence);
+		// An entry that never reached the server: its queued edits and delete go with it, or the
+		// delete would wait for a create that will never come (re-review c)
+		if (item.kind === 'entry-create') {
+			state.items = state.items.filter(
+				(other) => !((other.kind === 'entry-update' || other.kind === 'entry-delete') && other.entryId === item.tempId)
+			);
+		}
 		return;
 	}
 	const server = item.hold?.server ?? null;

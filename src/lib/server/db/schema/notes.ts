@@ -27,8 +27,8 @@ export const notes = pgTable("notes", {
 	deletedAt: timestamp("deleted_at", { withTimezone: true }),
 	// The creating client's own ID for the note (sprint 045-CL: the offline outbox's temp ID), so a
 	// create sent twice returns the first note instead of making a second one
-	clientId: text("client_id")
+	clientRequestId: text("client_request_id")
 }, (table) => [
 	index("notes_trash_user_id_idx").on(table.userId).where(sql`${table.deletedAt} is not null`),
-	uniqueIndex("notes_user_client_id_idx").on(table.userId, table.clientId).where(sql`${table.clientId} is not null`)
+	uniqueIndex("notes_user_client_request_id_idx").on(table.userId, table.clientRequestId).where(sql`${table.clientRequestId} is not null`)
 ]);

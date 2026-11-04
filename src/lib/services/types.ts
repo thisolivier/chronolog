@@ -61,6 +61,8 @@ export type NoteSummary = {
 	updatedAt: string;
 	firstLine: string;
 	secondLine: string;
+	/** The offline outbox's temp ID this note was created with, if any (sprint 045-CL) */
+	clientRequestId?: string;
 };
 
 /** `PUT /api/notes/[id]/pin` answer (sprint 039-CL) */
@@ -104,8 +106,8 @@ export type Backlink = {
 };
 
 export type CreateNoteInput = {
-	/** The client's own ID for the note: a repeated create returns the first note (sprint 045-CL) */
-	clientId?: string;
+	/** The caller's own ID for the note: a repeated create returns the first note (sprint 045-CL) */
+	clientRequestId?: string;
 	title?: string;
 	content?: string;
 	contentJson?: string;
@@ -196,8 +198,8 @@ export type TimeEntryFields = {
 };
 
 export type CreateTimeEntryInput = {
-	/** The client's own ID for the entry: a repeated create returns the first entry (sprint 045-CL) */
-	clientId?: string;
+	/** The caller's own ID for the entry: a repeated create returns the first entry (sprint 045-CL) */
+	clientRequestId?: string;
 	date: string;
 	durationMinutes: number;
 	contractId: string;
@@ -239,6 +241,8 @@ export type TimeEntryDisplay = {
 	workTypeName: string | null;
 	description: string | null;
 	date: string;
+	/** The offline outbox's temp ID this entry was created with, if any (sprint 045-CL) */
+	clientRequestId?: string | null;
 };
 
 // -- Timer --

@@ -18,9 +18,11 @@ reaches the server, waits in the queue, or is held until the user decides.
 3. **Queue.** One item per resource, in order of first edit (`outbox-queue.ts`), stored in
    localStorage per user, one key per item (`outbox-storage.ts`): on disk before the call returns,
    and two tabs queueing at once never overwrite each other. Items are tagged with their account.
-   Temp IDs are `offline-<16 hex>`; they double as the `clientId` of the create, online or
+   Temp IDs are `offline-<16 hex>`; they double as the `clientRequestId` of the create, online or
    replayed, so the server makes the row once even when an answer was lost (`POST /api/notes`,
-   `POST /api/time-entries`, unique per user, migration 0011).
+   `POST /api/time-entries`, unique per user, migration 0011). A repeat answers 200 with the first
+   attempt's row: the queued values then go as an edit of it, lists show that row once, and edits
+   of it fold into the queued create.
 4. **Replay** (`outbox-replay.ts`) first checks `GET /api/me`: if another account is signed in,
    nothing is sent (the banner says so). Then phase 1 creates the notes made offline (temp IDs remapped
    everywhere, wiki-links included), phase 2 sends the rest in order against the live server copy

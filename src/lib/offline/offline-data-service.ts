@@ -94,6 +94,24 @@ export class OfflineDataService extends FetchDataService {
 		);
 	}
 
+	/**
+	 * A server row that is also still a queued create (its create reached the server but the answer
+	 * was lost): edits go into that create, under its temp ID, so they are sent after it and are
+	 * not overwritten by its older values when it is replayed.
+	 */
+	private queuedCreateAlias(type: 'note' | 'entry', id: string): string {
+		if (isTempId(id) || !outbox.isOpen) return id;
+		const requestId =
+			type === 'note'
+				? peekCachedRead<{ note: { clientRequestId?: string | null } }>(`/api/notes/${id}`)?.note?.clientRequestId
+				: cachedEntry(weeklyReads(), id)?.clientRequestId;
+		if (!requestId) return id;
+		const queued = this.items().some(
+			(item) => (item.kind === 'note-create' && item.tempId === requestId && !item.realId) || (item.kind === 'entry-create' && item.tempId === requestId)
+		);
+		return queued ? requestId : id;
+	}
+
 	private canQueueAfter(error: unknown): boolean {
 		return outbox.isOpen && isOfflineError(error);
 	}
@@ -117,10 +135,10 @@ export class OfflineDataService extends FetchDataService {
 		const fields = pickNoteFields(initial ?? {}, this.idMap());
 		// One ID for the online try and, if it fails, the queued create: the server makes the note
 		// once even if the first request got there and only its answer was lost (review fix 1)
-		const tempId = initial?.clientId ?? newTempId();
+		const tempId = initial?.clientRequestId ?? newTempId();
 		if (this.mustQueue(null, JSON.stringify(fields))) return this.queueCreatedNote(contractId, fields, tempId);
 		try {
-			return await super.createNote(contractId, { ...initial, ...fields, clientId: tempId });
+			return await super.createNote(contractId, { ...initial, ...fields, clientRequestId: tempId });
 		} catch (error) {
 			if (this.canQueueAfter(error)) return this.queueCreatedNote(contractId, fields, tempId);
 			throw error;
@@ -147,7 +165,7 @@ export class OfflineDataService extends FetchDataService {
 
 	async updateNote(noteId: string, data: UpdateNoteInput, options?: UpdateNoteOptions): Promise<NoteDetail> {
 		const idMap = this.idMap();
-		const resolvedId = idMap[noteId] ?? noteId;
+		const resolvedId = this.queuedCreateAlias('note', idMap[noteId] ?? noteId);
 		// A move changes the note's place, not its text: it is never queued
 		if (data.contractId) return super.updateNote(resolvedId, data, options);
 		const outgoing: UpdateNoteInput = {
@@ -306,13 +324,13 @@ export class OfflineDataService extends FetchDataService {
 	}
 
 	async createTimeEntry(data: CreateTimeEntryInput): Promise<{ id: string }> {
-		const { clientId, ...fields } = data;
+		const { clientRequestId, ...fields } = data;
 		const outgoing = { ...fields, ...(fields.description ? { description: replaceTempIds(fields.description, this.idMap()) } : {}) };
 		// Same ID online and in the queue: never a second entry for one save (review fix 1)
-		const tempId = clientId ?? newTempId();
+		const tempId = clientRequestId ?? newTempId();
 		if (this.mustQueue(null, outgoing.description)) return this.queueCreatedEntry(outgoing, tempId);
 		try {
-			return await super.createTimeEntry({ ...outgoing, clientId: tempId });
+			return await super.createTimeEntry({ ...outgoing, clientRequestId: tempId });
 		} catch (error) {
 			if (this.canQueueAfter(error)) return this.queueCreatedEntry(outgoing, tempId);
 			throw error;
@@ -347,7 +365,7 @@ export class OfflineDataService extends FetchDataService {
 
 	async updateTimeEntry(entryId: string, data: Partial<TimeEntryFields>): Promise<void> {
 		const idMap = this.idMap();
-		const resolvedId = idMap[entryId] ?? entryId;
+		const resolvedId = this.queuedCreateAlias('entry', idMap[entryId] ?? entryId);
 		const outgoing = { ...data };
 		if (typeof outgoing.description === 'string') outgoing.description = replaceTempIds(outgoing.description, idMap);
 		if (isTempId(resolvedId) || this.mustQueue(`entry:${resolvedId}`, outgoing.description)) {
@@ -370,7 +388,7 @@ export class OfflineDataService extends FetchDataService {
 	}
 
 	async deleteTimeEntry(entryId: string): Promise<void> {
-		const resolvedId = this.idMap()[entryId] ?? entryId;
+		const resolvedId = this.queuedCreateAlias('entry', this.idMap()[entryId] ?? entryId);
 		if (isTempId(resolvedId) || this.mustQueue(`entry:${resolvedId}`, null)) return this.queueEntryRemoval(resolvedId);
 		try {
 			await super.deleteTimeEntry(resolvedId);

@@ -28,7 +28,7 @@ export const timeEntries = pgTable('time_entries', {
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 	// The creating client's own ID (sprint 045-CL: the offline outbox's temp ID); a create sent
 	// twice returns the first entry
-	clientId: text('client_id')
+	clientRequestId: text('client_request_id')
 }, (table) => [
-	uniqueIndex('time_entries_user_client_id_idx').on(table.userId, table.clientId).where(sql`${table.clientId} is not null`)
+	uniqueIndex('time_entries_user_client_request_id_idx').on(table.userId, table.clientRequestId).where(sql`${table.clientRequestId} is not null`)
 ]);

@@ -107,8 +107,21 @@ export function applyOutboxChange(storage: Storage, prefix: string, before: Outb
 	} catch {
 		throw new OutboxFullError();
 	}
+	const beforeRevisions = new Map(before.items.map((item) => [item.sequence, item.revision]));
 	for (const sequence of beforeById.keys()) {
-		if (!afterSequences.has(sequence)) storage.removeItem(itemKey(prefix, sequence));
+		if (afterSequences.has(sequence)) continue;
+		// Another tab changed it since it was read (a new revision): it is newer work, keep it
+		if (storedRevision(storage, itemKey(prefix, sequence)) !== beforeRevisions.get(sequence)) continue;
+		storage.removeItem(itemKey(prefix, sequence));
+	}
+}
+
+function storedRevision(storage: Storage, key: string): number | null {
+	try {
+		const stored = JSON.parse(storage.getItem(key) ?? 'null') as { revision?: number } | null;
+		return stored?.revision ?? null;
+	} catch {
+		return null;
 	}
 }
 

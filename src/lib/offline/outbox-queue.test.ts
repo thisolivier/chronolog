@@ -179,4 +179,22 @@ describe('outbox queue', () => {
 		applyIdMapping(state, tempId, 'real-entry');
 		expect(state.items[1]).toMatchObject({ kind: 'entry-delete', entryId: 'real-entry' });
 	});
+
+	it('removing a finished item keeps it when another tab changed it meanwhile (re-review a)', () => {
+		const storage = new MemoryStorage();
+		const empty = loadOutboxState(storage, 'p:');
+		const queued = structuredClone(empty);
+		queueNoteUpdate(queued, { noteId: 'A', baseUpdatedAt: 't', base: null, changes: { title: 'one' }, now: NOW });
+		applyOutboxChange(storage, 'p:', empty, queued);
+		// The replaying tab read revision 1 and is about to remove it...
+		const replayRead = loadOutboxState(storage, 'p:');
+		const replayDone = { ...structuredClone(replayRead), items: [] };
+		// ...while another tab folds a new edit into it (revision 2)
+		const otherRead = loadOutboxState(storage, 'p:');
+		const otherAfter = structuredClone(otherRead);
+		queueNoteUpdate(otherAfter, { noteId: 'A', baseUpdatedAt: 't', base: null, changes: { title: 'two' }, now: NOW });
+		applyOutboxChange(storage, 'p:', otherRead, otherAfter);
+		applyOutboxChange(storage, 'p:', replayRead, replayDone);
+		expect(loadOutboxState(storage, 'p:').items).toMatchObject([{ revision: 2, changes: { title: 'two' } }]);
+	});
 });

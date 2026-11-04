@@ -37,6 +37,8 @@
 		deliverableName: string | null;
 		workTypeId?: string | null;
 		workTypeName: string | null;
+		/** The offline outbox's temp ID it was created with, if any (sprint 045-CL) */
+		clientRequestId?: string | null;
 		description: string | null;
 		date: string;
 	};
@@ -337,7 +339,7 @@
 >
 	<!-- Offline outbox state: queued, held or replayed (sprint 045-CL) -->
 	<div class="pointer-events-none absolute right-9 top-2">
-		<OutboxMarker resourceKey="entry:{entry.id}" />
+		<OutboxMarker resourceKey="entry:{entry.id}" otherKey={entry.clientRequestId ? `entry:${entry.clientRequestId}` : null} />
 	</div>
 
 	<!-- Delete: on hover, on keyboard focus and always on touch screens -->

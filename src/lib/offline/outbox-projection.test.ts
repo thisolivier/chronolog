@@ -114,4 +114,34 @@ describe('resolving a held item', () => {
 		resolveHeldItem(state, item.sequence, 'server');
 		expect(state.items).toEqual([]);
 	});
+
+	it('discarding a refused entry create drops the delete waiting on it; retry keeps it waiting (re-review c)', () => {
+		const tempId = 'offline-00000000000000e9';
+		const build = () => {
+			const state = emptyOutboxState();
+			queueEntryCreate(state, { tempId, input: { date: '2026-11-04', durationMinutes: 15, contractId: 'C' }, display: entry(tempId, '2026-11-04', 15), now: NOW });
+			state.items[0].inFlight = true;
+			queueEntryDelete(state, { entryId: tempId, base: null, date: null, now: NOW });
+			state.items[0].inFlight = undefined;
+			state.items[0].status = 'held';
+			state.items[0].hold = { reason: 'refused', message: '403', heldAt: NOW };
+			return state;
+		};
+		const discarded = build();
+		resolveHeldItem(discarded, discarded.items[0].sequence, 'server');
+		expect(discarded.items).toEqual([]);
+		const retried = build();
+		resolveHeldItem(retried, retried.items[0].sequence, 'retry');
+		expect(retried.items.map((item) => [item.kind, item.status])).toEqual([['entry-create', 'pending'], ['entry-delete', 'pending']]);
+	});
+
+	it('a queued create the server already has shows once, with the queued values', () => {
+		const tempId = 'offline-00000000000000ea';
+		const state = emptyOutboxState();
+		queueEntryCreate(state, { tempId, input: { date: '2026-11-04', durationMinutes: 50, contractId: 'C' }, display: { ...entry(tempId, '2026-11-04', 50, 'queued text') }, now: NOW });
+		const serverRow = { ...entry('real-1', '2026-11-04', 20, 'first attempt'), clientRequestId: tempId };
+		const [projected] = projectWeeks([week([serverRow])], state.items);
+		expect(projected.days[2].entries).toHaveLength(1);
+		expect(projected.days[2].entries[0]).toMatchObject({ id: 'real-1', durationMinutes: 50, description: 'queued text' });
+	});
 });

@@ -6,9 +6,10 @@
 <script lang="ts">
 	import { outbox } from './outbox-store.svelte';
 
-	let { resourceKey }: { resourceKey: string } = $props();
+	/** `otherKey`: the same row under the temp ID it was created with offline, if any */
+	let { resourceKey, otherKey = null }: { resourceKey: string; otherKey?: string | null } = $props();
 
-	const status = $derived(outbox.statusOf(resourceKey));
+	const status = $derived(outbox.statusOf(resourceKey) ?? (otherKey ? outbox.statusOf(otherKey) : null));
 	const styles = {
 		queued: 'bg-amber-100 text-amber-800',
 		held: 'bg-red-100 text-red-700',

@@ -19,8 +19,8 @@ Screenshots: offline banner with queued count, replayed marker, held-item prompt
 
 ## Sign-off
 
-**Done (2026-11-04).** No new dependency. After review: migration 0011 and an optional `clientId`
-on two POST routes (see Review fixes). Module: `src/lib/offline/` (readme there); `docs/SPEC.md` Offline Strategy rewritten.
+**Done (2026-11-04).** No new dependency. After review: migration 0011 and an optional
+`clientRequestId` on two POST routes (see Review fixes). Module: `src/lib/offline/` (readme there); `docs/SPEC.md` Offline Strategy rewritten.
 
 1. **Read cache.** `fetch-helpers.ts`' per-URL cache is persisted per user in IndexedDB
    (`chronolog-reads-<userId>`, plain IndexedDB, newest 600 copies) and loaded at start; a read
@@ -102,7 +102,7 @@ and `test-results/` (a report write was reloading pages under test).
 
 1. **Duplicate creates (HIGH).** Migration `0011_idempotent_client_ids`: nullable `client_id` on
    `notes` and `time_entries`, unique `(user_id, client_id) where client_id is not null`.
-   `POST /api/notes` and `POST /api/time-entries` take an optional `clientId`; a repeat answers 200
+   `POST /api/notes` and `POST /api/time-entries` take an optional `clientId` (renamed `clientRequestId` in the re-review); a repeat answers 200
    with the first row, same shape (notes check under the ID-allocation advisory lock; entries
    catch the unique violation). The browser uses one temp ID for the online try and, if that
    fails, the queued create, so a lost answer, a 524 or a tab closing mid-replay never makes a
@@ -150,5 +150,36 @@ registration).
 passed, no flakes; on this branch after the fixes: 156 passed, no flakes. So no evidence the branch
 causes them; they flaked once, under full-suite load, and did not reproduce.
 
-**Deploy note.** Migration 0011 must run before the new app serves (`drizzle-kit migrate`); it
-was applied to the shared dev database.
+**Deploy note.** Migration 0011 (`0011_idempotent_client_request_ids`) must run before the new app
+serves (`drizzle-kit migrate`); it is applied to the shared dev database.
+
+### Re-review fixes (2026-11-04)
+
+- **Blocker: a retried create got the first attempt's row and dropped later edits.** The replay
+  transport now reports `created` (201) or not (200). Note: the item keeps `realId` +
+  `realUpdatedAt` from the existing row and phase 2 PUTs the current text (normal 409 / hold
+  rules). Entry: the item becomes an `entry-update` of the existing row, with that row as the base
+  and the current values as the changes. Also: lists show that row once with the queued values
+  (projection matches `clientRequestId`), and an edit or delete of the row folds into the queued
+  create instead of going online ahead of it (which the create's older values would then
+  overwrite). Unit tests for both kinds ("retry returns the existing row with older content: the
+  current content still reaches the server"); Playwright, chromium + webkit: an entry whose first
+  POST reached the server but lost its answer (`route.fetch()` then abort), edited while queued,
+  ends as one entry with the edited text.
+- **Renamed the key to `clientRequestId`** (column `client_request_id`, indexes
+  `*_user_client_request_id_idx`, error `invalid_client_request_id`). The raw rows now carry the
+  key, and `clientId` already means the customer in this API (`GET /api/notes?clientId=`, entry and
+  title objects), so the old name would have collided. Migration 0011 was regenerated under the
+  new name; the dev database was renamed in place and its migration record updated (hash and
+  timestamp), so `drizzle-kit migrate` reports nothing pending there and production runs the new
+  file as is.
+- **a) Two tabs, same item:** removing a finished item re-reads its key first and keeps it when its
+  stored revision changed (unit test).
+- **b) Notes unique violation:** `createNoteOnce` catches the `(user_id, client_request_id)` unique
+  violation (same `clientRequestId` on two contracts at once: different ID locks) and returns the
+  existing note; DB test with two parallel creates gets one note, one `created: false`.
+- **c) Delete waiting on a refused create:** "Discard mine" on a held entry create also drops the
+  edits and delete queued under its temp ID; "Try again" leaves the delete waiting (unit test).
+
+**Tests after the re-review fixes.** `npm run check` 0/0, lint clean, `npm test` 110 files / 1062
+passed, API e2e 22 files / 129 passed, full Playwright 158 passed, 5 skipped, 0 flaky.

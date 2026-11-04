@@ -85,15 +85,23 @@ export function projectNoteSummaries(
 		if (!fields || (fields.content === undefined && fields.contentJson === undefined)) return note;
 		return { ...note, ...previewLines(fields) };
 	});
-	const listedIds = new Set(projected.map((note) => note.id));
+	// A queued create the server already has (an attempt whose answer was lost) shows as that row
+	const createsByTempId = new Map(
+		items.filter((item): item is NoteCreateItem => item.kind === 'note-create').map((item) => [item.tempId, item])
+	);
+	const deduplicated = projected.map((note) => {
+		const queued = note.clientRequestId ? createsByTempId.get(note.clientRequestId) : undefined;
+		return queued ? { ...note, ...previewLines(queued.fields) } : note;
+	});
+	const listedIds = new Set(deduplicated.flatMap((note) => [note.id, note.clientRequestId ?? '']));
 	const created = items
 		.filter((item): item is NoteCreateItem => item.kind === 'note-create' && includesContract(item.contractId))
-		.filter((item) => !listedIds.has(item.realId ?? item.tempId))
+		.filter((item) => !listedIds.has(item.realId ?? item.tempId) && !listedIds.has(item.tempId))
 		.map(summaryFromCreate)
 		.reverse();
-	const firstUnpinned = projected.findIndex((note) => !note.isPinned);
-	const insertAt = firstUnpinned === -1 ? projected.length : firstUnpinned;
-	return [...projected.slice(0, insertAt), ...created, ...projected.slice(insertAt)];
+	const firstUnpinned = deduplicated.findIndex((note) => !note.isPinned);
+	const insertAt = firstUnpinned === -1 ? deduplicated.length : firstUnpinned;
+	return [...deduplicated.slice(0, insertAt), ...created, ...deduplicated.slice(insertAt)];
 }
 
 /**
@@ -103,11 +111,26 @@ export function projectNoteSummaries(
 export function projectWeeks(weeks: WeekData[], items: OutboxItem[]): WeekData[] {
 	const deletedIds = new Set<string>();
 	const updatedById = new Map<string, Partial<TimeEntryDisplay>>();
-	const created: TimeEntryDisplay[] = [];
+	let created: TimeEntryDisplay[] = [];
 	for (const item of items) {
 		if (item.kind === 'entry-delete') deletedIds.add(item.entryId);
 		else if (item.kind === 'entry-update') updatedById.set(item.entryId, item.displayPatch ?? item.changes);
 		else if (item.kind === 'entry-create') created.push(item.display);
+	}
+	// A queued create the server already has (an attempt whose answer was lost): the server row
+	// shows the queued values instead of a second card, and keeps the queued state's temp-ID
+	// deletes and edits
+	for (const week of weeks) {
+		for (const day of week.days) {
+			for (const entry of day.entries) {
+				const queued = entry.clientRequestId ? created.find((candidate) => candidate.id === entry.clientRequestId) : undefined;
+				if (!queued) continue;
+				created = created.filter((candidate) => candidate !== queued);
+				const { id: tempId, ...queuedValues } = queued;
+				updatedById.set(entry.id, { ...queuedValues, ...updatedById.get(tempId) });
+				if (deletedIds.has(tempId)) deletedIds.add(entry.id);
+			}
+		}
 	}
 	if (deletedIds.size === 0 && updatedById.size === 0 && created.length === 0) return weeks;
 

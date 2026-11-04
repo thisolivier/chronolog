@@ -292,4 +292,49 @@ test.describe('offline outbox', () => {
 		const server = await page.evaluate(async (id) => (await (await fetch(`/api/time-entries/${id}`)).json()).entry, entryId);
 		expect(server.description).toBe('Laptop description');
 	});
+
+	test('an entry whose create answer was lost is made once and keeps the edit made after (review blocker)', async ({ page, baseURL }) => {
+		await signInAsFreshUser(page, baseURL, 'lost');
+		await openHome(page);
+		const seeded = await seed(page);
+		await page.goto('/time');
+		await page.waitForURL(/\/time\/\d{4}-W\d{2}$/);
+		await expect(page.locator(`[data-add-entry="${seeded.today}"]`)).toBeVisible();
+
+		// The first POST reaches the server but its answer is lost; later ones fail until released
+		let postsSeen = 0;
+		await page.route('**/api/time-entries', async (route) => {
+			if (route.request().method() !== 'POST') return route.continue();
+			postsSeen += 1;
+			if (postsSeen === 1) await route.fetch();
+			return route.abort('failed');
+		});
+		const text = `Lost answer ${Date.now().toString(36)}`;
+		await page.locator(`[data-add-entry="${seeded.today}"]`).click();
+		await page.keyboard.type(text);
+		await page.locator(`#new-entry-${seeded.today}-contract`).selectOption({ label: seeded.contractLabel });
+		await page.locator(`#new-entry-${seeded.today}-time`).fill('20m');
+		await page.locator(`#new-entry-${seeded.today}-time`).press('Enter');
+		const card = page.locator('[data-testid="time-entry-card"]', { hasText: text });
+		await expect(card.getByTestId('outbox-marker')).toHaveAttribute('data-outbox-status', 'queued');
+
+		// Edited while still queued: folded into the queued create
+		await card.getByTitle('Click to edit description').click();
+		await page.keyboard.press('End');
+		await page.keyboard.type(' plus later words');
+		await page.keyboard.press('Enter');
+		await expect(card).toContainText('plus later words');
+
+		await page.unroute('**/api/time-entries');
+		await expect(card.getByTestId('outbox-marker')).toHaveAttribute('data-outbox-status', 'replayed', { timeout: 25000 });
+		const entries = await page.evaluate(
+			async ({ today, text }) => {
+				const range = await (await fetch(`/api/time-entries?from=${today}&to=${today}`)).json();
+				return (range.entries as { description: string | null }[]).filter((entry) => entry.description?.startsWith(text));
+			},
+			{ today: seeded.today, text }
+		);
+		expect(entries).toHaveLength(1);
+		expect(entries[0].description).toBe(`${text} plus later words`);
+	});
 });
