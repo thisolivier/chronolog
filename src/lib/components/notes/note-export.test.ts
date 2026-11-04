@@ -105,3 +105,14 @@ describe('buildMarkdownExportContent with first-line titles', () => {
 		expect(buildMarkdownExportContent('A very long first…', content)).toBe(content);
 	});
 });
+
+describe('attached PDF links in exports (sprint 036)', () => {
+	const pdfLink = '[Statement of work.pdf](chronolog://attachment/550e8400-e29b-41d4-a716-446655440000)';
+
+	it('markdown export keeps the link with the filename as its text', () => {
+		const content = `Contract signed.\n\n${pdfLink}\n`;
+		const exported = buildMarkdownExportContent('Kick-off', content);
+		expect(exported).toBe(`# Kick-off\n\nContract signed.\n\n${pdfLink}\n`);
+		expect(exported).toContain('[Statement of work.pdf](');
+	});
+});
