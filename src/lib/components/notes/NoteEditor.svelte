@@ -16,6 +16,7 @@
 	import { AnchoredHeading } from './extensions/anchored-heading.js';
 	import { AttachmentImage } from './extensions/attachment-image.js';
 	import { MarkdownText } from './extensions/markdown-text.js';
+	import { TaskListExtensions } from './extensions/task-list.js';
 	import { revokeAllTrackedUrls } from './extensions/attachment-resolver.js';
 	import { ATTACHMENT_LINK_PROTOCOLS, attachmentHrefFromTarget, openAttachment } from './extensions/attachment-link.js';
 	import { AutosaveController, type SaveStatus, type PersistOptions } from './note-autosave';
@@ -267,6 +268,8 @@
 				Placeholder.configure({ placeholder: 'Start writing...' }),
 				Markdown,
 				WikiLink,
+				// `- [ ]` / `- [x]` checkbox items, nestable (sprint 040-CL)
+				...TaskListExtensions,
 			],
 			content,
 			editable: !readonly,
@@ -491,6 +494,56 @@
 	:global(.tiptap li > p) {
 		margin-top: 0;
 		margin-bottom: 0;
+	}
+
+	/* Task lists (sprint 040-CL): a checkbox instead of the bullet; done items are muted */
+	:global(.tiptap ul[data-type='taskList']) {
+		list-style: none;
+		padding-left: 0.25em;
+	}
+
+	:global(.tiptap ul[data-type='taskList'] ul[data-type='taskList']) {
+		padding-left: 1.5em;
+	}
+
+	:global(.tiptap ul[data-type='taskList'] > li) {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.5em;
+	}
+
+	:global(.tiptap ul[data-type='taskList'] > li > label) {
+		flex: 0 0 auto;
+		user-select: none;
+		margin-top: 0.05em;
+	}
+
+	:global(.tiptap ul[data-type='taskList'] > li > label input[type='checkbox']) {
+		width: 1em;
+		height: 1em;
+		cursor: pointer;
+		accent-color: #2563eb;
+	}
+
+	:global(.tiptap ul[data-type='taskList'] > li > div) {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	/* the item's text sits in a <div>, so `li > p` above does not reach it */
+	:global(.tiptap ul[data-type='taskList'] > li > div > p) {
+		margin-top: 0;
+		margin-bottom: 0;
+	}
+
+	:global(.tiptap ul[data-type='taskList'] > li > div > ul) {
+		margin-top: 0.25em;
+		margin-bottom: 0;
+	}
+
+	:global(.tiptap ul[data-type='taskList'] > li[data-checked='true'] > div > p) {
+		color: #a8a29e;
+		text-decoration: line-through;
 	}
 
 	:global(.tiptap hr) {

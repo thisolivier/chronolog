@@ -13,6 +13,7 @@ Pure utility modules with no server or framework dependencies. Usable on both cl
 - **usage-summary.ts** — Wording for the admin delete confirm dialogs ("2 contracts, 3 time entries (4h 45m) and 1 note") and `hasRecordedWork()`, which decides whether Archive is offered first. No server imports.
 - **group-contracts-by-client.ts** — Groups contracts under their client for the sidebar, clients ordered by name and contracts keeping their server order.
 - **sidebar-sections.ts** — Splits the sidebar's contracts into active client groups and the Archived section (a contract is archived when it or its client is); used by the contract directory store.
+- **task-items.ts** — `extractTaskItems(markdown)`: the `- [ ]` / `- [x]` items of a note (text, checked, depth, line), skipping fenced code and empty items. Used by `GET /api/notes/todos` (sprint 040-CL).
 - **uuid.ts** — `isUuid()`, used by the `[clientId=uuid]` / `[contractId=uuid]` route matchers so malformed IDs return 404 rather than a database error.
 
 ## Testing

@@ -18,4 +18,10 @@ describe('calculateWordCountFromMarkdown', () => {
 		expect(calculateWordCountFromJson(json)).toBe(5);
 		expect(calculateWordCountFromMarkdown('# Weekly notes\n\nThree more words\n')).toBe(5);
 	});
+
+	it('does not count task-list checkboxes as words (sprint 040-CL)', () => {
+		// open task done task nested child three Call Jane
+		expect(calculateWordCountFromMarkdown('- [ ] open task\n- [x] done task\n  - [X] nested child three\n* [ ] Call Jane')).toBe(9);
+		expect(calculateWordCountFromMarkdown('- [ ]\n- [x] \n')).toBe(0);
+	});
 });

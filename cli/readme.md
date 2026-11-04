@@ -85,6 +85,12 @@ Environment variables win over the file:
 - A note change without `expectedUpdatedAt` is applied whatever the note's state (`(updated, unconditionally)`).
 - The ids of created entries go to `last-import.json`; `chronolog undo --last-import` deletes them all after confirmation (`--yes` without a terminal, as for `remove`). Notes are not undone this way.
 
+### Task lists (sprint 040-CL)
+
+Notes may hold checkbox items, `- [ ] open` and `- [x] done` (nested by two spaces). The editor shows them as checkboxes; `note show` prints the markdown as-is and `note new/edit/append` keep it (it is plain markdown). The editor writes `* [ ]` instead of `- [ ]` when a task list sits next to a bullet list, so the two stay separate lists.
+
+- `todos [contract] [--all]`: open items across the user's notes, from `GET /api/notes/todos` (the server reads each note's markdown; one request instead of fetching every note). One line per item, `<note id>  <title>  <item>`, nested items indented, a blank line between notes; across all contracts the title is followed by `(SHORT/Contract)`. `--all` adds done items and prefixes each with `[ ]` or `[x]`. `--json` prints `{ notes: [{ id, contractId, contract, title, updatedAt, items: [{ text, checked, depth, line }] }], openCount, doneCount }`. Code blocks and notes in the trash are never read.
+
 ### Version
 
 `chronolog --version` prints the CLI version, the root `package.json` version (1.1.0 since sprint 038). `chronolog me` adds the server's (`serverVersion` from `GET /api/me`). Changes per sprint are in [CHANGELOG.md](CHANGELOG.md).
@@ -153,6 +159,7 @@ cli/commands/write.mjs    log, note new, status
 cli/commands/correct.mjs  edit, undo
 cli/commands/import.mjs   import notes|entries, undo --last-import (falls back to correct.undo)
 cli/commands/note-changes.mjs  note edit, append, delete, restore
+cli/commands/todos.mjs    todos: checkbox items across notes (GET /api/notes/todos)
 cli/commands/attachments.mjs   note attach, note attachments, attachment get, attachment delete
 cli/commands/timer.mjs    timer (status), timer start/adjust/stop; --at parsing; the overlap confirmation
 cli/commands/manage-clients.mjs    client and contract add/edit/archive/unarchive/remove

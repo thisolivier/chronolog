@@ -218,3 +218,9 @@ entries `{"contract","date","duration","description","deliverable?","workType?",
 moves its start (`--at "yesterday 23:10"` across midnight), `timer start <contract> --at 09:30`
 starts one late, `timer stop` saves it. A `Warning:` that the start overlaps another entry (exit 2)
 means ask the owner; rerun with `--yes` only after a yes. Future or over-a-day starts exit 1.
+
+## Task lists
+
+Write action items as `- [ ] text` (`- [x]` when done; indent two spaces to nest): the app shows
+them as checkboxes. `chronolog todos [contract]` lists open items across notes (`--all` adds done
+ones); use it when the owner asks what is outstanding.
