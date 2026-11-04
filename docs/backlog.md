@@ -75,12 +75,10 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 
 - Pause was removed in 025; bringing it back needs a `paused_seconds` column (025 sign-off).
 - A timer with no contract lives only in this browser's localStorage, so another device will not see it (025 sign-off).
-- Bare integers are read as minutes (`8` is 8 minutes); revisit if users type hours (025 sign-off).
 - `TimeEntryDisplay.clientId`, `deliverableId` and `workTypeId` are still optional (019 sign-off).
 
 ### Admin / shell
 
-- New Note still works on an archived contract (the API never refused it); decide whether archived contracts should be read-only (033 sign-off).
 - Two clients can share the same palette colour (Internal and Acme both pink in test data); more visible now that single-contract rows show the dot alone (033 sign-off).
 - The checklist driver README still describes the pre-033 sidebar grouping (033 sign-off).
 

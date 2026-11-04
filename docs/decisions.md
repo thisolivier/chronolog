@@ -54,3 +54,9 @@ file removed from the box.
 First account registered with TOTP 2FA, then `ALLOW_REGISTRATION=false` set in `.env.prod` and the stack
 redeployed at `9a6e5d8` (sprints 029 and 030 included). Pre-change backup taken. Registration is closed;
 reopen only for one account at a time by flipping the flag and redeploying.
+
+## 2026-11-04 — Archived contracts stay writable; bare integers are minutes
+
+Archived clients and contracts are not read-only: notes and entries can still be created and edited on
+them (033 follow-up closed). A bare integer duration stays minutes (`8` is 8 minutes; 025 follow-up
+closed). Pause (needs a `paused_seconds` column) is still undecided.
