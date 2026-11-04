@@ -16,8 +16,21 @@ export const DEVICE_COOKIE_NAME = 'chronolog_device';
 export const DEVICE_KEY_HEADER = 'x-device-key';
 export const DEVICE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
-/** Paths reachable without a device key: the unlock page, its assets, the PWA manifest and SW. */
-const exemptExactPaths = new Set(['/unlock', '/manifest.webmanifest', '/sw.js', '/service-worker.js']);
+/**
+ * Paths reachable without a device key: the unlock page, its assets, the PWA manifest, its icons
+ * and the SW. In production adapter-node serves `static/` before the hooks run; this list keeps
+ * dev the same, and lets Add to Home Screen fetch the icons from the unlock page.
+ */
+const exemptExactPaths = new Set([
+	'/unlock',
+	'/manifest.webmanifest',
+	'/apple-touch-icon.png',
+	'/pwa-192x192.png',
+	'/pwa-512x512.png',
+	'/favicon.png',
+	'/sw.js',
+	'/service-worker.js'
+]);
 const exemptPathPrefixes = ['/_app/'];
 
 export function isGateExemptPath(pathname: string): boolean {

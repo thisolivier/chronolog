@@ -112,7 +112,7 @@ describe('hooks.server handle device gate', () => {
 	});
 
 	it('serves the exempt paths without a key or a session lookup', async () => {
-		for (const pathname of ['/unlock', '/_app/immutable/entry/start.js', '/manifest.webmanifest', '/sw.js', '/service-worker.js']) {
+		for (const pathname of ['/unlock', '/_app/immutable/entry/start.js', '/manifest.webmanifest', '/apple-touch-icon.png', '/pwa-192x192.png', '/sw.js', '/service-worker.js']) {
 			const response = await handle({ event: makeEvent(pathname), resolve });
 			expect(response.status).toBe(200);
 		}

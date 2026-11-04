@@ -70,3 +70,10 @@ loading production like the macOS menu-bar app, shipped to TestFlight with the r
 `~/sites/navidromClient/spike/.signing`). iOS bundle id `dev.thisolivier.chronolog` via
 `tauri.ios.conf.json`; the desktop app keeps `com.chronolog.app` so its stored data and device key stay put.
 Preceded by a UI pass at iPhone sizes.
+
+## 2026-11-04 — PWA alongside the iOS shell
+
+The web app is now a proper installable PWA: `static/manifest.webmanifest` (standalone, Chronolog
+blue `#2563eb`), Apple home-screen tags and icons cut from the iOS app icon (the old `pwa-*.png` were
+placeholders). The owner runs it side by side with the Tauri iOS shell as an experiment; whichever
+wins decides whether the TestFlight lane is kept.
