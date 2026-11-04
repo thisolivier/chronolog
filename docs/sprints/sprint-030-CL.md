@@ -1,6 +1,6 @@
 # Sprint 030 — CL: Timesheet polish
 
-**Status:** ready for review
+**Status:** merged
 **Branch:** `sprint-030-CL/timesheet-polish` · **Worktree:** `.claude/worktrees/sprint-030-CL` · **Port:** 5208
 **Sources:** `docs/backlog.md` (Timesheet / timer, Navigation), `docs/review/2026-11-03-ux-journeys.md` (P-01, P-02, P-05, A-11), sprint 025 and 027 sign-offs.
 
@@ -34,7 +34,7 @@ Before/after screenshots for tasks 1, 2, 4 and 5 in `docs/review/screenshots/spr
 
 ## Sign-off
 
-**Status:** ready for review (2026-11-03). Branch `sprint-030-CL/timesheet-polish`, rebased on `main` at `6c28d08` (docs-only commits since the spec; sprint 029 not merged yet, so no overlap to resolve). Not merged. Dev server was on port 5208. QA users left in the dev DB: `qa-030-before-*`, `qa-030-after-*` (screenshot runs), `qa-030-tz-*` (task 7 tests) and the usual `pw-test-*` Playwright user.
+**Status:** merged
 
 **Boundaries:** changes are in `components/weekly/**`, `components/timer/**`, `layout/TimeEntriesPanel.svelte` (the timesheet), `stores/navigation.svelte.ts` and `layout/NoteEditorPanel.svelte` (focus handling). One line outside that list: `notes/NoteEditor.svelte`'s `autofocus` prop now also accepts `'start'` (true still means the end). No API, CLI, server query or migration change.
 
