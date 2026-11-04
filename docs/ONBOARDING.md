@@ -2,7 +2,7 @@
 
 How to connect a new browser, laptop CLI or desktop install to the production instance at
 `https://chronolog.throb.online`, and how to bring the instance back from a backup. Server setup
-itself is in [DEPLOYMENT.md](DEPLOYMENT.md).
+itself is in [DEPLOYMENT.md](DEPLOYMENT.md). The one-page laptop walkthrough is [LAPTOP-SETUP.md](LAPTOP-SETUP.md).
 
 > The device-key sections are filled in (sprint 023). The API-token and CLI sections are filled in by sprint 028.
 
