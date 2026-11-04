@@ -5,6 +5,7 @@
  *
  * Exit codes: 0 ok · 1 error · 2 usage · 3 unknown or ambiguous reference (ask the person)
  *             4 auth (401/403: token, device key) · 5 conflict (409) · 6 rate limited (429)
+ *             7 note changed on the server since it was read (note edit/append; re-run)
  */
 
 import { commandFromPositionals, parseArguments, UsageError } from './lib/args.mjs';
@@ -14,6 +15,7 @@ import { ReferenceError_ } from './lib/resolve.mjs';
 import * as read from './commands/read.mjs';
 import * as write from './commands/write.mjs';
 import * as correct from './commands/correct.mjs';
+import * as noteChanges from './commands/note-changes.mjs';
 import * as manageClients from './commands/manage-clients.mjs';
 import * as manageStructure from './commands/manage-structure.mjs';
 import { init } from './commands/init.mjs';
@@ -31,6 +33,10 @@ const USAGE = `Usage: chronolog <command> [arguments] [--json]
   undo                                   delete the last entry this CLI logged
   note new <contract> "<title>" [--file body.md]   body from --file or stdin
   note show <note-id>
+  note edit <note-id> [--title "..."] [--contract X] [--file body.md]   a body replaces the text
+  note append <note-id> [--file text.md]         adds a blank line and the text (or stdin)
+  note delete <note-id> [--yes]                  keeps a copy in ~/.config/chronolog/trash/
+  note restore [<note-id>] [--contract X]        recreates it as a new note (no id: list the trash)
   notes <contract> [--since YYYY-MM-DD]
   search "<words or note id>" [--limit N]
   status <2026-W45|current> <unsubmitted|draft-ready|submitted>
@@ -65,6 +71,10 @@ const COMMANDS = {
 	undo: correct.undo,
 	'note new': write.noteNew,
 	'note show': read.noteShow,
+	'note edit': noteChanges.noteEdit,
+	'note append': noteChanges.noteAppend,
+	'note delete': noteChanges.noteDelete,
+	'note restore': noteChanges.noteRestore,
 	'client add': manageClients.clientAdd,
 	'client edit': manageClients.clientEdit,
 	'client archive': manageClients.clientArchive,
@@ -85,11 +95,10 @@ const COMMANDS = {
 	'work-type remove': manageStructure.workTypeRemove
 };
 
-
-
 function exitCodeFor(failure) {
 	if (failure instanceof UsageError) return 2;
 	if (failure instanceof ReferenceError_) return 3;
+	if (failure instanceof noteChanges.NoteChanged) return 7;
 	if (failure instanceof ApiError) {
 		if (failure.status === 401 || failure.status === 403) return 4;
 		if (failure.status === 404 && failure.code === 'note_not_found') return 3;
@@ -125,7 +134,7 @@ export async function main(argv, environment = process.env) {
 		return 0;
 	} catch (failure) {
 		if (failure instanceof Cancelled) {
-			print('Nothing removed.', { removed: false });
+			print(commandName === 'note delete' ? 'Nothing deleted.' : 'Nothing removed.', { removed: false });
 			return 0;
 		}
 		const exitCode = exitCodeFor(failure);

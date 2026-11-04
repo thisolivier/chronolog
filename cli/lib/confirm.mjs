@@ -1,5 +1,5 @@
 /**
- * Confirmation for `remove` commands (sprint 031-CL). `--yes` skips the question; on a terminal
+ * Confirmation for `remove` commands (sprint 031-CL) and `note delete` (034-CL). `--yes` skips the question; on a terminal
  * the person types y; with no terminal (Claude, scripts) and no `--yes` the command refuses with
  * a usage error (exit 2), so nothing is ever deleted without an explicit yes.
  */
@@ -24,11 +24,16 @@ function ask(question, stdin, stdout) {
 	});
 }
 
-export async function confirmRemoval({ flags, summary, stdin = process.stdin, stdout = process.stderr }) {
+export async function confirmRemoval({
+	flags,
+	summary,
+	question = 'Remove it?',
+	refusal = 'Not removed: confirm with the owner, then run again with --yes (or archive instead).',
+	stdin = process.stdin,
+	stdout = process.stderr
+}) {
 	if (flags.yes) return;
-	if (!stdin.isTTY) {
-		throw new UsageError(`${summary}\nNot removed: confirm with the owner, then run again with --yes (or archive instead).`);
-	}
-	const answer = await ask(`${summary}\nRemove it? [y/N] `, stdin, stdout);
+	if (!stdin.isTTY) throw new UsageError(`${summary}\n${refusal}`);
+	const answer = await ask(`${summary}\n${question} [y/N] `, stdin, stdout);
 	if (answer !== 'y' && answer !== 'yes') throw new Cancelled();
 }

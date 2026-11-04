@@ -1,12 +1,12 @@
 /** Commands that change data: log, note new, status. */
 
-import { readFileSync } from 'node:fs';
 import { resolveContract } from '../lib/resolve.mjs';
 import { resolveEntryDeliverable, resolveEntryWorkType } from '../lib/entry-references.mjs';
 import { formatMinutes, parseIsoWeek, resolveDateWord } from '../lib/dates.mjs';
 import { UsageError } from '../lib/args.mjs';
 import { fetchContracts } from './read.mjs';
 import { recordLastEntry } from '../lib/history.mjs';
+import { readBody } from '../lib/note-body.mjs';
 
 const WEEK_STATES = { unsubmitted: 'Unsubmitted', 'draft-ready': 'Draft ready', 'draft ready': 'Draft ready', draft: 'Draft ready', submitted: 'Submitted' };
 
@@ -43,12 +43,6 @@ export async function log({ api, print, positionals, flags, config, environment 
 		`Logged ${summary}\nid=${entry.id}`,
 		{ ...entry, contractName: contract.name, clientShortCode: contract.clientShortCode }
 	);
-}
-
-function readBody(flags, stdin) {
-	if (flags.file) return readFileSync(flags.file, 'utf8');
-	if (!stdin.isTTY) return readFileSync(0, 'utf8');
-	return '';
 }
 
 export async function noteNew({ api, print, positionals, flags, stdin = process.stdin }) {
