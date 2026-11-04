@@ -9,8 +9,9 @@ State modules use Svelte 5's runes (`$state`, `$derived`) with a context-based p
 ## Working Pattern
 
 ```typescript
-// In root layout (+layout.svelte), for signed-in users. Simplified: the real layout guards on
-// data.user and passes the document load type on first load (see src/routes/+layout.svelte).
+// In root layout (+layout.svelte), signed in or not (044-CL: a client-side move from /login or
+// /register into the app finds the context). Simplified: the real layout passes the document load
+// type on first load (see src/routes/+layout.svelte).
 import { afterNavigate, goto } from '$app/navigation';
 import { page } from '$app/state';
 import { createNavigationState, setNavigationContext } from '$lib/stores/navigation.svelte';

@@ -11,39 +11,36 @@
 
 	let { children, data } = $props();
 
-	// Initialize navigation context for authenticated users
-	// This is called once during component init and won't change
-	// (user authentication state changes require page reload via auth redirects)
+	// The root layout always creates the navigation, timer and data-service contexts, signed in or
+	// not (044-CL). It mounts once per page load, so a client-side move from a signed-out page
+	// (/login, /register, /unlock) into the workspace finds them in place; before, they were made
+	// only when the first page had a user, and that move threw "Navigation context not found".
 	// The URL is the navigation state (sprint 027-CL): the store starts from this URL, writes
 	// user moves back with goto, and re-reads the URL after every navigation, Back included.
-	const navState = data.user
-		? createNavigationState({
-				initialUrl: page.url,
-				adapter: {
-					navigate: (path, { replace }) =>
-						goto(path, { replaceState: replace, noScroll: true, keepFocus: true }),
-					back: () => history.back()
-				},
-				sessionStorage: browser ? safeStorage(() => window.sessionStorage) : null,
-				localStorage: browser ? safeStorage(() => window.localStorage) : null
-			})
-		: null;
-	if (navState) {
-		setNavigationContext(navState);
-		afterNavigate((navigation) => {
-			if (!navigation.to) return;
-			const loadType =
-				navigation.type === 'enter'
-					? (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type
-					: undefined;
-			void navState.syncFromUrl(navigation.to.url, navigation.type, navigation.delta, loadType);
-		});
-	}
+	const navState = createNavigationState({
+		initialUrl: page.url,
+		adapter: {
+			navigate: (path, { replace }) => goto(path, { replaceState: replace, noScroll: true, keepFocus: true }),
+			back: () => history.back()
+		},
+		sessionStorage: browser ? safeStorage(() => window.sessionStorage) : null,
+		localStorage: browser ? safeStorage(() => window.localStorage) : null
+	});
+	setNavigationContext(navState);
+	afterNavigate((navigation) => {
+		if (!navigation.to) return;
+		const loadType =
+			navigation.type === 'enter'
+				? (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type
+				: undefined;
+		void navState.syncFromUrl(navigation.to.url, navigation.type, navigation.delta, loadType);
+	});
 
-	// Load every workspace route's code up front: moving between them is then a pure client-side
-	// change that also works offline (a missing chunk would fall back to a full page load).
+	// Once signed in, load every workspace route's code up front: moving between them is then a
+	// pure client-side change that also works offline (a missing chunk would fall back to a full
+	// page load).
 	$effect(() => {
-		if (!navState) return;
+		if (!data.user) return;
 		const sampleContract = '00000000-0000-4000-8000-000000000000';
 		for (const path of ['/', '/time/2026-W01', `/notes/${sampleContract}`, `/notes/${sampleContract}/new`]) {
 			void preloadCode(path).catch(() => {});
@@ -58,20 +55,12 @@
 		}
 	}
 
-	// Initialize shared timer state for cross-component communication
-	// (TimerWidget publishes; TimerIndicator in AppShell reads)
-	const timerState = data.user ? createTimerState() : null;
-	if (timerState) {
-		setTimerStateContext(timerState);
-	}
+	// Shared timer state (TimerWidget publishes; TimerIndicator in AppShell reads)
+	setTimerStateContext(createTimerState());
 
-	// Initialize data service for authenticated users.
-	// A DelegatingDataService wraps the active implementation so that
-	// existing component references remain valid if we swap backends.
-	const delegatingService = data.user ? new DelegatingDataService(new FetchDataService()) : null;
-	if (delegatingService) {
-		setDataServiceContext(delegatingService);
-	}
+	// Data service. A DelegatingDataService wraps the active implementation so that existing
+	// component references remain valid if we swap backends.
+	setDataServiceContext(new DelegatingDataService(new FetchDataService()));
 
 	// PWA update prompt state
 	let showUpdatePrompt = $state(false);

@@ -1,9 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { authClient } from '$lib/auth-client';
-	import type { PageData } from './$types';
-
-	let { data }: { data: PageData } = $props();
+	import { clearDesktopTimer } from '$lib/desktop/bridge';
 
 	// Sign-in only works through the script below; until it has hydrated, the submit buttons stay
 	// disabled so a fast click can't fall back to a native GET submit to /login? (QA R1).
@@ -11,12 +9,8 @@
 
 	onMount(() => {
 		isHydrated = true;
-		// Reached /login by client-side navigation while already signed in (see
-		// +page.server.ts). Full page reload so the root layout re-mounts with the
-		// authenticated user and initializes navigation context.
-		if (data.alreadyAuthenticated) {
-			window.location.replace('/');
-		}
+		// Signed out (or the session expired): the desktop menu bar must not keep showing a timer
+		clearDesktopTimer();
 	});
 
 	let email = $state('');
@@ -54,8 +48,8 @@
 				return;
 			}
 
-			// Full page reload so the root layout re-mounts with the
-			// authenticated user and initializes navigation context.
+			// Full page load so the root layout's server data carries the signed-in user
+			// (and the session cookie is in place for every request after it).
 			window.location.href = '/';
 		} catch (_error) {
 			errorMessage = 'An unexpected error occurred. Please try again.';
@@ -79,8 +73,8 @@
 				return;
 			}
 
-			// Full page reload so the root layout re-mounts with the
-			// authenticated user and initializes navigation context.
+			// Full page load so the root layout's server data carries the signed-in user
+			// (and the session cookie is in place for every request after it).
 			window.location.href = '/';
 		} catch (_error) {
 			errorMessage = 'An unexpected error occurred. Please try again.';
