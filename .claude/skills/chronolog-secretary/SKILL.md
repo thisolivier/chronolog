@@ -1,6 +1,6 @@
 ---
 name: chronolog-secretary
-description: Log consulting time, write client notes, summarise a client's week and set up clients in Chronolog through the `chronolog` CLI. Use when the user says they worked on something ("log 2h on the Acme work"), asks to write up or file a note for a client, asks what was done this week or for a client, asks to mark a week ready or submitted, or asks to add, rename, archive or remove a client, contract, deliverable or work type (tag).
+description: Log consulting time, write, change or delete client notes, summarise a client's week and set up clients in Chronolog through the `chronolog` CLI. Use when the user says they worked on something ("log 2h on the Acme work"), asks to write up or file a note for a client, asks what was done this week or for a client, asks to mark a week ready or submitted, or asks to add, rename, archive or remove a client, contract, deliverable or work type (tag).
 allowed-tools: Bash(chronolog:*), Bash(node cli/chronolog.mjs:*), Read, Write
 ---
 
@@ -92,6 +92,30 @@ and the note are about the same work (create the note first, then log). Read one
 **Status notes**: title `Status: <topic>` or `Weekly status <ISO week>`; sections Done / Next /
 Risks or questions; facts from the owner or from `chronolog week`, never invented.
 
+**Backdate** with `--date yesterday` (or `YYYY-MM-DD`, a weekday) when the owner says it was
+yesterday's meeting: the id carries that date, and it cannot be changed later.
+
+## Changing a note
+
+```bash
+chronolog note show ACME.20261103.001 --json             # always read first; keep its updatedAt
+chronolog note append ACME.20261103.001 --expected-updated-at <updatedAt> --json <<'EOF_NOTE'
+## Update 4 Nov
+- Guest step removed in staging.
+EOF_NOTE
+chronolog note edit ACME.20261103.001 --title "Status: checkout" --contract ACME/Retainer --json
+```
+
+- **Read before you change.** Show the owner what is there, then pass the `updatedAt` you read as
+  `--expected-updated-at`. Exit **7** "note changed on the server" means the owner edited it in the
+  app meanwhile: nothing was written. Re-read, tell them, and only then redo the change.
+- **Prefer `append`** for status updates and new facts; it adds a blank line and the text at the
+  end. `edit` with a body (stdin or `--file`) replaces the whole text: only when asked to rewrite.
+- **Never delete a note unless the owner asked for it in this conversation.** `note delete <id>`
+  without `--yes` exits 2 and prints title, contract and word count: tell the owner, then rerun with
+  `--yes` on their yes. A copy goes to `~/.config/chronolog/trash/<id>.md` (path printed);
+  `chronolog note restore <id>` recreates it on the same contract (`note restore` lists the trash).
+
 ## Summarising a client's week
 
 ```bash
@@ -150,8 +174,9 @@ The CLI prints the server's `{ error, code }`; with `--json` it is on stderr wit
 | 4 | 401 `invalid_token` / `unauthorized` | The token is wrong. Owner creates a new one in Settings → API tokens, then `chronolog init`. |
 | 4 | 403 `token_revoked` | This laptop's token was revoked. Same fix; do not retry. |
 | 5 | 409 `conflict` | Someone changed the item in the app. Re-read it (`note show`), tell the owner, do not overwrite. |
+| 7 | `note_changed` | The note changed since you read it. Re-read (`note show`), tell the owner, do not overwrite. |
 | 5 | 409 `duplicate` | That short code is taken. Ask the owner for another; never pick one yourself. |
-| 2 | `remove` without `--yes` | Expected: show the owner what would move, rerun with `--yes` only on their yes. |
+| 2 | `remove` / `note delete` without `--yes` | Expected: show the owner what would go, rerun with `--yes` only on their yes. |
 | 6 | 429 `rate_limited` | Too many failed attempts. Wait a minute; do not loop. |
 | 1 | 400 `deliverable_mismatch` / `work_type_mismatch` | The pair does not belong together; show the message, ask which is right. |
 | 1 | 400 (e.g. `invalid_duration`) | Fix the input from the message, or ask the owner. |

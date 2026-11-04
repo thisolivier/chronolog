@@ -2,7 +2,7 @@
 
 Command-line client for the Chronolog REST API. The laptop Claude secretary uses it to read and write time entries and notes for one signed-in user, and (sprint 031-CL) to set up clients, contracts, deliverables and work types. It authenticates with a personal API token (see `src/lib/server/auth-tokens/README.md`).
 
-Node 20+, no dependencies. It talks only to `/api/*`; the only local state is the config file and `last-entry.json` beside it (the entry `undo` would delete).
+Node 20+, no dependencies. It talks only to `/api/*`; the only local state is the config file, `last-entry.json` beside it (the entry `undo` would delete) and `trash/` (copies of notes `note delete` removed).
 
 ## Install
 
@@ -37,11 +37,19 @@ Environment variables win over the file:
 - `clients [--all]`, `contracts [client] [--all]`: reference lists (`--all` adds archived ones, marked `[archived]`)
 - `week [2026-W45] [--client X | --contract X]`: entries and totals
 - `log <contract> <duration> "<desc>" [--date D] [--deliverable X [--work-type Y]] [--note ID]`
-- `note new <contract> "<title>" [--file body.md]` (body from `--file` or stdin), `note show <note-id>`
+- `note new <contract> "<title>" [--file body.md] [--date D]` (body from `--file` or stdin), `note show <note-id>`. `--date` (`YYYY-MM-DD`, `today`, `yesterday`, a weekday) backdates the note: its id carries that date and `createdAt` is noon of that day in the laptop's timezone; a future date is 400 `invalid_date`. The creation date cannot be changed afterwards (the id would have to change); delete and recreate instead.
 - `notes <contract> [--since YYYY-MM-DD]`, `search "<words or note id>" [--limit N]`
 - `status <2026-W45|current> <unsubmitted|draft-ready|submitted>`
 - `edit <entry-id> [--duration D] [--description "..."] [--date D] [--deliverable X|none] [--work-type X|none]`: change one entry (`PATCH /api/time-entries/<id>`); only the flags given change. A plain duration clears an old start/end range; a range sets a new one. A work type is resolved under the new deliverable if given, else the entry's current one (`--tag` works too). `--deliverable none` clears both; a new deliverable without `--work-type` clears the old deliverable's work type.
 - `undo`: delete the last entry this CLI logged. `log` records it in `last-entry.json` next to the config file; `undo` deletes it once and forgets it. It refuses (exit 2) when nothing is recorded or the record is for another server. Entries made in the app or edited are not undoable this way.
+
+### Changing and deleting notes (sprint 034-CL)
+
+- `note edit <id> [--title "..."] [--contract X] [--file body.md | stdin]`: a body replaces the whole text (the note's `# title` heading is kept unless the body brings its own); `--title` replaces the heading; `--contract` moves the note (its id keeps its prefix).
+- `note append <id> [--file text.md | stdin]`: adds a blank line and the text at the end.
+- Both read the note, then `PATCH /api/notes/<id>` with the `updatedAt` they read (or `--expected-updated-at T`, the copy shown to the owner earlier). If the note changed in the app since, the server answers 409 and the command exits **7** "note changed on the server since it was read; re-run" without retrying. They send markdown only, so the server drops the note's TipTap JSON and the editor reloads from the new markdown.
+- `note delete <id> [--yes]`: prints title, contract and word count, asks `[y/N]` on a terminal, refuses (exit 2) without `--yes` otherwise. Before deleting it writes `trash/<id>.md` next to the config file (`~/.config/chronolog/trash/`, mode 600): a `---` header (id, title, contractId, contract, updatedAt, deletedAt) then the markdown.
+- `note restore [<id>] [--contract X]`: recreates the note from the trash file on the same contract (or `--contract`) with a newly allocated id for today, then removes the file. Without an id it lists the trash.
 
 ### Setting up clients (sprint 031-CL)
 
@@ -75,6 +83,7 @@ The server refuses an entry whose deliverable is not on its contract (400 `deliv
 | 4 | Auth failure (401/403): token or device key |
 | 5 | Conflict (409), including a duplicate short code |
 | 6 | Rate limited (429) |
+| 7 | Note changed on the server since it was read (`note edit` / `note append`): re-read, then re-run |
 
 ## References are never guessed
 
@@ -95,9 +104,12 @@ cli/lib/entry-references.mjs  an entry's deliverable and work type (work type on
 cli/lib/confirm.mjs       remove confirmation: --yes, [y/N] on a terminal, refuse otherwise
 cli/lib/dates.mjs         ISO weeks, --date words, duration formatting
 cli/lib/history.mjs       last-entry.json: the entry `undo` deletes
+cli/lib/note-body.mjs     note markdown: body input, title heading, edit/append text, word count
+cli/lib/trash.mjs         trash/<id>.md copies of deleted notes
 cli/commands/read.mjs     me, clients, contracts, week, notes, note show, search
 cli/commands/write.mjs    log, note new, status
 cli/commands/correct.mjs  edit, undo
+cli/commands/note-changes.mjs  note edit, append, delete, restore
 cli/commands/manage-clients.mjs    client and contract add/edit/archive/unarchive/remove
 cli/commands/manage-structure.mjs  deliverable and work type add/edit/remove and lists
 cli/commands/init.mjs     setup: prompts (hidden input) or piped lines, then GET /api/me

@@ -67,6 +67,7 @@ Creates a new note with an auto-generated ID.
 - `title` (optional): Note title
 - `content` (optional): Markdown content
 - `contentJson` (optional): TipTap JSON for rich text rendering
+- `createdAt` (optional, sprint 034-CL): `YYYY-MM-DD` to backdate the note. The ID carries that date and `created_at` is noon of that day in the caller's timezone (`X-Timezone` / `?tz=`); `updatedAt` is now. Today is the same as leaving it out; a future day or a non-calendar value is `400 invalid_date`. The creation date cannot be changed later (the ID would have to change).
 
 **Response:**
 ```json
@@ -145,6 +146,8 @@ Updates a note's title and/or content.
 
 All fields are optional - only provided fields will be updated.
 
+`content` without `contentJson` (the CLI) clears `contentJson` and recounts `wordCount` from the markdown, so the editor reloads from the new markdown instead of the stale TipTap document; `"contentJson": null` also clears it. The browser sends both. A `contractId` moves the note (the ID keeps its prefix) and must be the caller's (`403 contract_forbidden`).
+
 `expectedUpdatedAt` is the `updatedAt` the client last saw. When the note has changed since (for example, in another tab), the save is refused with `409` and `{ "error": "conflict", "updatedAt": "..." }`. The editor then halts autosave and offers Reload. Without the field, the save is unconditional.
 
 **Response:**
@@ -164,14 +167,21 @@ All fields are optional - only provided fields will be updated.
 }
 ```
 
+### `PATCH /api/notes/[noteId]`
+
+Partial change for machine clients (sprint 034-CL): the same fields and rules as `PUT`, but `expectedUpdatedAt` is required (`400 expected_updated_at_required` without it), so a change is always based on the copy the caller read; a stale copy is `409 conflict`.
+
 ### `DELETE /api/notes/[noteId]`
 
-Deletes a note and all associated time entry links.
+Deletes a note and its time entry links (another user's note is 404 and untouched).
 
 **Response:**
 ```json
 {
-  "success": true
+  "success": true,
+  "id": "BIGCH.20260207.001",
+  "title": "Meeting Notes",
+  "contractId": "uuid"
 }
 ```
 
