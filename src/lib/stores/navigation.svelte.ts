@@ -22,6 +22,7 @@ import { InAppHistory } from './navigation-history';
 import {
 	buildWorkspacePath,
 	currentMonday,
+	isNoteListRoute,
 	mobileLevelFor,
 	parentRoute,
 	parseWorkspacePath,
@@ -82,6 +83,8 @@ export interface NavigationContext {
 	selectedClientId: string | null;
 	selectedWeek: string | null;
 	selectedNoteId: string | null;
+	/** The client whose notes the list shows (`/notes/client/<id>`, sprint 039-CL), else null */
+	listClientId: string | null;
 	panel1Collapsed: boolean;
 	mobileNavigationLevel: MobileNavigationLevel;
 
@@ -104,8 +107,11 @@ export interface NavigationContext {
 	// Actions
 	selectTimeEntries: (options?: { replace?: boolean }) => void;
 	selectContract: (contractId: string, clientId: string) => void;
+	/** Show one client's notes across its contracts (the client view, sprint 039-CL) */
+	selectClient: (clientId: string) => void;
 	selectWeek: (weekStart: string) => void;
-	selectNote: (noteId: string) => void;
+	/** Open a note of the current list; in the client view pass the note's contract */
+	selectNote: (noteId: string, contractId?: string) => void;
 	/**
 	 * Switch to notes mode for the note's contract and open the note in one step. `focusEditor`
 	 * asks the editor to take keyboard focus once the note is loaded (following a link, A-11).
@@ -118,8 +124,8 @@ export interface NavigationContext {
 	) => void;
 	/** True once for the note an `openNote(…, { focusEditor: true })` asked to focus; then forgotten */
 	takeEditorFocus: (noteId: string) => boolean;
-	/** Open a new-note draft for the selected contract */
-	openDraft: () => void;
+	/** Open a new-note draft for the selected contract (in the client view: the contract given) */
+	openDraft: (contractId?: string) => void;
 	clearSelectedNote: () => void;
 	/** Show the timesheet on the week holding `date`, scrolled to that day */
 	showTimeEntryDay: (date: string) => void;
@@ -313,13 +319,30 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 	}
 
 	// --- Derived state (plain functions over $state: reactive in components, fresh in tests) ---
-	const mode = (): NavigationMode => (state.route.kind === 'notes' ? 'notes' : 'time-entries');
-	const selectedContractId = () => (state.route.kind === 'notes' ? state.route.contractId : null);
-	const selectedNoteId = () => (state.route.kind === 'notes' ? state.route.noteId : null);
+	const mode = (): NavigationMode => (isNoteListRoute(state.route) ? 'notes' : 'time-entries');
+	const selectedContractId = () => (isNoteListRoute(state.route) ? state.route.contractId : null);
+	const selectedNoteId = () => (isNoteListRoute(state.route) ? state.route.noteId : null);
+	const listClientId = () => (state.route.kind === 'client' ? state.route.clientId : null);
+	const clientOfContract = (contractId: string) =>
+		contractDirectory.labels[contractId]?.clientId ?? clientHints[contractId] ?? null;
 	const selectedClientId = () => {
+		const viewedClientId = listClientId();
+		if (viewedClientId) return viewedClientId;
 		const contractId = selectedContractId();
 		if (!contractId) return null;
-		return contractDirectory.labels[contractId]?.clientId ?? clientHints[contractId] ?? null;
+		return clientOfContract(contractId);
+	};
+
+	/**
+	 * Where a note of `contractId` opens: inside the client view while it shows that contract's
+	 * client (039-CL), else under its contract.
+	 */
+	const noteRoute = (contractId: string, noteId: string | null, draft: boolean, clientId?: string): WorkspaceRoute => {
+		const route = state.route;
+		if (route.kind === 'client' && (clientId || clientOfContract(contractId)) === route.clientId) {
+			return { kind: 'client', clientId: route.clientId, contractId, noteId, draft };
+		}
+		return { kind: 'notes', contractId, noteId, draft };
 	};
 	const selectedWeek = () => (state.route.kind === 'time' ? state.route.week : state.lastWeek);
 	const backTarget = () => {
@@ -339,6 +362,10 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		go({ kind: 'notes', contractId, noteId: null, draft: false }, { replace: false });
 	};
 
+	const selectClient = (clientId: string) => {
+		go({ kind: 'client', clientId, contractId: null, noteId: null, draft: false }, { replace: false });
+	};
+
 	const selectWeek = (weekStart: string) => {
 		state.lastWeek = weekStart;
 		// Inside the timesheet a week change replaces the entry; elsewhere it only sets the week
@@ -348,8 +375,14 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		}
 	};
 
-	const selectNote = (noteId: string) => {
+	const selectNote = (noteId: string, contractId?: string) => {
 		const route = state.route;
+		if (route.kind === 'client') {
+			const noteContractId = contractId ?? route.contractId;
+			if (!noteContractId) return;
+			go({ ...route, contractId: noteContractId, noteId, draft: false }, { replace: route.draft });
+			return;
+		}
 		if (route.kind !== 'notes') return;
 		// A draft that was just saved becomes that note in place (Back skips the empty draft)
 		go({ kind: 'notes', contractId: route.contractId, noteId, draft: false }, { replace: route.draft });
@@ -363,20 +396,26 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 	) => {
 		if (clientId) clientHints[contractId] = clientId;
 		editorFocusNoteId = actionOptions.focusEditor ? noteId : null;
-		go({ kind: 'notes', contractId, noteId, draft: false }, { replace: actionOptions.replace ?? false });
+		go(noteRoute(contractId, noteId, false, clientId), { replace: actionOptions.replace ?? false });
 	};
 
-	const openDraft = () => {
+	const openDraft = (contractId?: string) => {
 		const route = state.route;
+		if (route.kind === 'client') {
+			const draftContractId = contractId ?? route.contractId;
+			if (!draftContractId) return;
+			go({ ...route, contractId: draftContractId, noteId: null, draft: true }, { replace: route.draft });
+			return;
+		}
 		if (route.kind !== 'notes') return;
 		go({ kind: 'notes', contractId: route.contractId, noteId: null, draft: true }, { replace: route.draft });
 	};
 
 	const clearSelectedNote = () => {
 		const route = state.route;
-		if (route.kind !== 'notes' || (!route.noteId && !route.draft)) return;
+		if (!isNoteListRoute(route) || (!route.noteId && !route.draft)) return;
 		// Closing (or deleting) a note replaces its entry, so Back never reopens it
-		go({ kind: 'notes', contractId: route.contractId, noteId: null, draft: false }, { replace: true });
+		go(parentRoute(route), { replace: true });
 	};
 
 	const showTimeEntryDay = (date: string) => {
@@ -419,8 +458,10 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		if (level === 0) go({ kind: 'home' }, { replace: false });
 		else if (level === 1)
 			go(
-				state.route.kind === 'notes'
-					? { kind: 'notes', contractId: state.route.contractId, noteId: null, draft: false }
+				isNoteListRoute(state.route)
+					? parentRoute(state.route).kind === 'home'
+						? state.route
+						: parentRoute(state.route)
 					: { kind: 'time', week: state.lastWeek },
 				{ replace: false }
 			);
@@ -453,6 +494,9 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		get selectedNoteId() {
 			return selectedNoteId();
 		},
+		get listClientId() {
+			return listClientId();
+		},
 		get panel1Collapsed() {
 			return state.panel1Collapsed;
 		},
@@ -472,7 +516,7 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 			return state.route.kind === 'home';
 		},
 		get isDraftOpen() {
-			return state.route.kind === 'notes' && state.route.draft;
+			return isNoteListRoute(state.route) && state.route.draft;
 		},
 		get route() {
 			return state.route;
@@ -492,6 +536,7 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 
 		selectTimeEntries,
 		selectContract,
+		selectClient,
 		selectWeek,
 		selectNote,
 		openNote,

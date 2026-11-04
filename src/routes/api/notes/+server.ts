@@ -12,10 +12,11 @@ import { isCalendarDate, localDateString, noonInTimezone } from '$lib/utils/loca
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * GET /api/notes[?contractId=X][&updatedSince=ISO-8601]
+ * GET /api/notes[?contractId=X | ?clientId=X][&updatedSince=ISO-8601]
  *
- * Lists the user's notes (one contract's when `contractId` is given; only those changed after
- * `updatedSince` when given), pinned first, then by updatedAt desc. At least one filter is
+ * Lists the user's notes (one contract's when `contractId` is given, every contract of one client
+ * when `clientId` is given (sprint 039-CL); only those changed after `updatedSince` when given),
+ * pinned first (most recently pinned on top), then by updatedAt desc. At least one filter is
  * required. Notes without TipTap JSON (created over the API) preview from their markdown.
  */
 export const GET: RequestHandler = async ({ locals, url }) => {
@@ -23,12 +24,16 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	if (!currentUser) throw error(401, 'Unauthorized');
 
 	const contractId = url.searchParams.get('contractId') ?? undefined;
+	const clientId = url.searchParams.get('clientId') ?? undefined;
 	const updatedSinceParam = url.searchParams.get('updatedSince');
-	if (!contractId && !updatedSinceParam) {
-		return apiError(400, 'contractId or updatedSince is required', 'bad_request');
+	if (!contractId && !clientId && !updatedSinceParam) {
+		return apiError(400, 'contractId, clientId or updatedSince is required', 'bad_request');
 	}
 	if (contractId && !UUID_PATTERN.test(contractId)) {
 		return apiError(400, 'contractId must be a UUID', 'invalid_contract');
+	}
+	if (clientId && !UUID_PATTERN.test(clientId)) {
+		return apiError(400, 'clientId must be a UUID', 'invalid_client');
 	}
 	let updatedSince: Date | undefined;
 	if (updatedSinceParam) {
@@ -38,7 +43,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 		}
 	}
 
-	const notesList = await listNotesForUser(currentUser.id, { contractId, updatedSince });
+	const notesList = await listNotesForUser(currentUser.id, { contractId, clientId, updatedSince });
 
 	// Return only the fields needed for the list view
 	const notes = notesList.map((note) => {
@@ -50,7 +55,8 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 			contractId: note.contractId,
 			title: note.title,
 			displayTitle: noteDisplayTitle(note.title, note.contentJson) ?? (preview.firstLine || null),
-			isPinned: note.isPinned,
+			isPinned: note.pinnedAt !== null,
+			pinnedAt: note.pinnedAt,
 			createdAt: note.createdAt,
 			updatedAt: note.updatedAt,
 			firstLine: preview.firstLine,

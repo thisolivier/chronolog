@@ -91,6 +91,7 @@ type ClientRow = {
 	shortCode: string;
 	emoji: string | null;
 	colorIndex: number;
+	sortOrder?: number;
 	archivedAt: Date | null;
 };
 
@@ -101,6 +102,7 @@ export function clientJson(client: ClientRow) {
 		shortCode: client.shortCode,
 		emoji: client.emoji,
 		colorIndex: client.colorIndex,
+		sortOrder: client.sortOrder ?? 0,
 		archived: client.archivedAt !== null,
 		archivedAt: client.archivedAt
 	};

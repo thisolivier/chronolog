@@ -22,6 +22,12 @@ export const clients = pgTable(
 		shortCode: text('short_code').notNull(),
 		emoji: text('emoji'),
 		colorIndex: integer('color_index').notNull().default(0),
+		/**
+		 * Manual sidebar order (sprint 039-CL), then name. Names are encrypted, so the migration
+		 * cannot number clients by name: all start at 0, which orders them by name as before, and
+		 * the first reorder numbers every client.
+		 */
+		sortOrder: integer('sort_order').notNull().default(0),
 		/** Archived clients keep their data but are hidden from selects and the sidebar. */
 		archivedAt: timestamp('archived_at', { withTimezone: true }),
 		/** The per-user "Deleted Client" that receives reassigned entries; hidden everywhere. */

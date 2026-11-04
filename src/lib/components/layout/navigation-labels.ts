@@ -19,6 +19,7 @@ export function labelForRoute(route: WorkspaceRoute): string {
 	if (route.kind === 'time') return `Week ${getIsoWeekNumber(route.week)}`;
 	if (route.draft) return 'New note';
 	if (route.noteId) return shorten(getCachedNoteTitle(route.noteId)?.displayTitle || 'Note');
+	if (route.kind === 'client') return shorten(contractDirectory.clientName(route.clientId) ?? 'Notes');
 	return shorten(contractDirectory.labels[route.contractId]?.name ?? 'Notes');
 }
 
@@ -34,5 +35,6 @@ export function labelForPath(path: string, fallbackWeek: string): string {
 export function titleForRoute(route: WorkspaceRoute): string {
 	if (route.kind === 'home') return 'Chronolog';
 	if (route.kind === 'time') return `Time entries · Week ${getIsoWeekNumber(route.week)}`;
+	if (route.kind === 'client') return contractDirectory.clientName(route.clientId) ?? 'Notes';
 	return contractDirectory.contextLabel(route.contractId) ?? 'Notes';
 }

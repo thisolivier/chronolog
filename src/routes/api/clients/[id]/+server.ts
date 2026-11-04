@@ -6,6 +6,7 @@ import {
 	updateClient,
 	type ClientUpdateData
 } from '$lib/server/db/queries/clients';
+import { moveClientToPosition } from '$lib/server/db/queries/client-order';
 import { deleteClientWithReassignment, getClientUsage } from '$lib/server/db/queries/safe-deletion';
 import { archiveMessage, deletionMessage, isUniqueViolation } from '$lib/server/admin-actions';
 import { readJsonObject } from '$lib/server/api-request';
@@ -41,9 +42,12 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 /**
  * PATCH /api/clients/:id
  *
- * Partial update. Body: `{ name?, shortCode?, emoji?, colorIndex?, archived? }`. `colorIndex`
- * is a palette index (0..7); `emoji` may be `null` to clear it; `archived: true|false` archives
- * or restores (sprint 031-CL). A short code already in use is 409 `duplicate`.
+ * Partial update. Body: `{ name?, shortCode?, emoji?, colorIndex?, archived?, position? }`.
+ * `colorIndex` is a palette index (0..7); `emoji` may be `null` to clear it; `archived: true|false`
+ * archives or restores (sprint 031-CL). `position` (1 = top, sprint 039-CL) moves the client in the
+ * sidebar order among the active clients; past the end means last; the answer's `position` says
+ * where it landed. A short code already in use is
+ * 409 `duplicate`.
  */
 export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 	const currentUser = locals.user;
@@ -73,7 +77,12 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 	if (shortCode !== undefined) updateData.shortCode = shortCode as string;
 	if (emoji !== undefined) updateData.emoji = emoji as string | null;
 
-	if (Object.keys(updateData).length === 0 && archived === undefined) {
+	const position = body.position;
+	if (position !== undefined && (!Number.isInteger(position) || (position as number) < 1)) {
+		return apiError(400, 'position must be a whole number, 1 or more', 'invalid_input');
+	}
+
+	if (Object.keys(updateData).length === 0 && archived === undefined && position === undefined) {
 		return apiError(400, 'No fields to update', 'invalid_input');
 	}
 
@@ -100,8 +109,16 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 		client = toggled;
 		messages.push(archiveMessage('client', client.name, archived as boolean));
 	}
+	let placed: number | null = null;
+	if (position !== undefined) {
+		placed = await moveClientToPosition(currentUser.id, clientId, position as number);
+		if (placed === null) return notFound('client');
+		client = (await getClientForUser(clientId, currentUser.id)) ?? client;
+		messages.push(`Client “${client.name}” is now number ${placed} in the sidebar.`);
+	}
 
-	return json({ client: clientJson(client), message: messages.join(' ') });
+	// `position`: where the client landed (1 = top), when the request moved it
+	return json({ client: clientJson(client), message: messages.join(' '), ...(placed !== null ? { position: placed } : {}) });
 };
 
 /**

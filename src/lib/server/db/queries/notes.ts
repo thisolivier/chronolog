@@ -1,4 +1,4 @@
-import { eq, and, desc, gt, isNull, like, sql } from "drizzle-orm";
+import { eq, and, desc, gt, inArray, isNull, like, sql } from "drizzle-orm";
 import { localDateString } from '$lib/utils/local-calendar';
 import { database, notes, noteTimeEntries, contracts, clients, timeEntries } from "$lib/server/db";
 import { decryptNullable, decryptText, encryptNullable } from '$lib/server/crypto/server-cipher';
@@ -26,31 +26,40 @@ function decryptOptionalNote(row: NoteRow | undefined): NoteRow | null {
 /** Rows not in the trash (sprint 037-CL). Every list, search and lookup applies it by default. */
 export const notInTrash = isNull(notes.deletedAt);
 
+/** List order (sprint 039-CL): pinned notes first, most recently pinned on top, then newest change. */
+export const noteListOrder = [sql`${notes.pinnedAt} desc nulls last`, desc(notes.updatedAt)];
+
 export async function listNotesForContract(userId: string, contractId: string) {
 	const results = await database
 		.select()
 		.from(notes)
 		.where(and(eq(notes.userId, userId), eq(notes.contractId, contractId), notInTrash))
-		.orderBy(desc(notes.isPinned), desc(notes.updatedAt));
+		.orderBy(...noteListOrder);
 	return results.map(decryptNote);
 }
 
 /**
  * The user's notes, optionally for one contract and/or changed after `updatedSince`,
- * pinned first then newest first. Used by `GET /api/notes` (sprint 028-CL).
+ * pinned first then newest first. Used by `GET /api/notes` (sprint 028-CL). With `clientId`, the
+ * notes of every contract of that client (the client view, sprint 039-CL).
  */
 export async function listNotesForUser(
 	userId: string,
-	filters: { contractId?: string; updatedSince?: Date } = {}
+	filters: { contractId?: string; clientId?: string; updatedSince?: Date } = {}
 ) {
 	const conditions = [eq(notes.userId, userId), notInTrash];
 	if (filters.contractId) conditions.push(eq(notes.contractId, filters.contractId));
+	if (filters.clientId) {
+		conditions.push(
+			inArray(notes.contractId, database.select({ id: contracts.id }).from(contracts).where(eq(contracts.clientId, filters.clientId)))
+		);
+	}
 	if (filters.updatedSince) conditions.push(gt(notes.updatedAt, filters.updatedSince));
 	const results = await database
 		.select()
 		.from(notes)
 		.where(and(...conditions))
-		.orderBy(desc(notes.isPinned), desc(notes.updatedAt));
+		.orderBy(...noteListOrder);
 	return results.map(decryptNote);
 }
 

@@ -229,3 +229,9 @@ did I work on X" or to find an entry id before `edit`. At least two characters.
 Write action items as `- [ ] text` (`- [x]` when done; indent two spaces to nest): the app shows
 them as checkboxes. `chronolog todos [contract]` lists open items across notes (`--all` adds done
 ones); use it when the owner asks what is outstanding.
+
+## Pinning notes and ordering clients
+
+`chronolog note pin <id>` keeps a note at the top of its contract's list in the app (and of the
+client view); `note unpin <id>` puts it back. `notes <contract>` shows pinned notes first with 📌.
+`chronolog client edit <client> --order N` moves the client to place N in the app's sidebar (1 = top).

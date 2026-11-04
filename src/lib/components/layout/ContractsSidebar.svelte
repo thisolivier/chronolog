@@ -9,6 +9,9 @@
 	import type { ClientSummary } from '$lib/services/types';
 	import { NOTES_CHANGED_EVENT } from '$lib/services/notes-changed-event';
 	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
+	import { browserLocalStorage } from './archived-section-state';
+	import { readCollapsedClientIds, withClientCollapsed, writeCollapsedClientIds } from './client-collapse-state';
+	import { ClientReorderController } from './client-reorder.svelte';
 
 	const navigationContext = getNavigationContext();
 	const dataService = getDataService();
@@ -23,6 +26,31 @@
 	const sections = $derived(contractDirectory.sections);
 	const selectedContractId = $derived(navigationContext.selectedContractId);
 	const selectionIsArchived = $derived(contractDirectory.isArchived(selectedContractId));
+	const viewedClientId = $derived(navigationContext.listClientId);
+
+	// Collapsed clients, remembered per browser (039-CL); never collapsed by default
+	let collapsedClientIds = $state<string[]>(readCollapsedClientIds(browserLocalStorage()));
+	function toggleClientCollapsed(clientId: string) {
+		collapsedClientIds = withClientCollapsed(collapsedClientIds, clientId, !collapsedClientIds.includes(clientId));
+		writeCollapsedClientIds(browserLocalStorage(), collapsedClientIds);
+	}
+
+	// Drag or Alt+Arrow to reorder the active clients (039-CL); the focused heading keeps focus
+	const clientReorder = new ClientReorderController({
+		getOrder: () => sections.activeGroups.map((group) => group.clientId),
+		nameOf: (clientId) => contractDirectory.clientName(clientId) ?? 'Client',
+		apply: (orderedClientIds) => {
+			contractDirectory.applyClientOrder(orderedClientIds);
+			const focusedHandle = document.activeElement?.getAttribute('data-client-reorder-handle');
+			if (focusedHandle) {
+				void tick().then(() =>
+					navigationElement?.querySelector<HTMLElement>(`[data-client-reorder-handle="${focusedHandle}"]`)?.focus()
+				);
+			}
+		},
+		persist: (orderedClientIds) => dataService.reorderClients(orderedClientIds),
+		revert: () => void loadContracts()
+	});
 
 	async function loadContracts() {
 		try {
@@ -99,6 +127,10 @@
 		navigationContext.selectContract(contractId, clientId);
 	}
 
+	function handleClientClick(clientId: string) {
+		navigationContext.selectClient(clientId);
+	}
+
 	function handleContractCreated(created?: { id: string; clientId: string }) {
 		showCreateModal = false;
 		if (created) navigationContext.selectContract(created.id, created.clientId);
@@ -142,7 +174,16 @@
 				</div>
 			{/if}
 			{#each sections.activeGroups as group (group.clientId)}
-				<SidebarClientGroup {group} {selectedContractId} onSelect={handleContractClick} />
+				<SidebarClientGroup
+					{group}
+					{selectedContractId}
+					{viewedClientId}
+					onSelect={handleContractClick}
+					onOpenClient={handleClientClick}
+					isCollapsed={collapsedClientIds.includes(group.clientId)}
+					onToggleCollapse={toggleClientCollapsed}
+					reorder={clientReorder}
+				/>
 			{/each}
 			{#if sections.archivedContractCount > 0}
 				<SidebarArchivedSection
@@ -154,7 +195,7 @@
 				/>
 			{/if}
 		{/if}
-
+		<p class="sr-only" aria-live="polite" data-testid="sidebar-reorder-announcement">{clientReorder.announcement}</p>
 	</div>
 
 	<!-- Action buttons just above the timer -->

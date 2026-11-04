@@ -51,8 +51,29 @@ class ContractDirectory {
 		this.contracts = contracts.map(withDefaults);
 	}
 
+	/** Apply a client order at once, before the server saves it (the sidebar's reorder, 039-CL) */
+	applyClientOrder(orderedClientIds: string[]): void {
+		const positionOf = new Map(orderedClientIds.map((clientId, index) => [clientId, index]));
+		this.contracts = this.contracts.map((contract) =>
+			positionOf.has(contract.clientId) ? { ...contract, clientSortOrder: positionOf.get(contract.clientId) } : contract
+		);
+	}
+
 	isArchived(contractId: string | null): boolean {
 		return contractId !== null && this.sections.archivedContractIds.has(contractId);
+	}
+
+	/** A client's name from any of its contracts, or null while the sidebar has not loaded it */
+	clientName(clientId: string | null): string | null {
+		if (!clientId) return null;
+		return this.contracts.find((contract) => contract.clientId === clientId)?.clientName ?? null;
+	}
+
+	/** The client's contracts (archived ones last), for the client view's New Note (sprint 039-CL) */
+	contractsOfClient(clientId: string | null): ContractsByClientResult[] {
+		if (!clientId) return [];
+		const ofClient = this.contracts.filter((contract) => contract.clientId === clientId);
+		return [...ofClient.filter((contract) => !this.isArchived(contract.id)), ...ofClient.filter((contract) => this.isArchived(contract.id))];
 	}
 
 	/** "Acme Corp · Rocket Build", or null while the sidebar has not loaded that contract */

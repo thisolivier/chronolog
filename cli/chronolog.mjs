@@ -16,6 +16,7 @@ import * as read from './commands/read.mjs';
 import * as write from './commands/write.mjs';
 import * as correct from './commands/correct.mjs';
 import * as noteChanges from './commands/note-changes.mjs';
+import * as notePins from './commands/note-pins.mjs';
 import * as attachments from './commands/attachments.mjs';
 import * as manageClients from './commands/manage-clients.mjs';
 import * as manageStructure from './commands/manage-structure.mjs';
@@ -45,6 +46,7 @@ const USAGE = `Usage: chronolog <command> [arguments] [--json]      (chronolog -
                                  edit/append: --expected-updated-at T refuses (exit 7) if changed since T
   note delete <note-id> [--yes]                  moves it to the trash (restorable for 30 days)
   note restore [<note-id>]                       brings it back with its id and links (no id: list the trash)
+  note pin|unpin <note-id>                       pinned notes stay at the top of their list (📌 in \`notes\`)
   note attach <note-id> <file> [--no-insert]     image or PDF (10 MB); appends ![name]/[name](chronolog://…)
   note attachments <note-id>                     id, filename, type, size, created
   attachment get <id> [--out <path>] [--force]   saves under the original name here by default
@@ -58,7 +60,7 @@ const USAGE = `Usage: chronolog <command> [arguments] [--json]      (chronolog -
 
 Setting up clients (remove asks first; -y/--yes skips the question, required without a terminal):
   client add "<name>" --code SHORT [--emoji X] [--color 0-7]
-  client edit|archive|unarchive|remove <client>      edit: [--name] [--code] [--emoji X|none] [--color]
+  client edit|archive|unarchive|remove <client>      edit: [--name] [--code] [--emoji X|none] [--color] [--order N]
   contract add <client> "<name>" [--description D] [--inactive]
   contract edit|archive|unarchive|remove <contract>  edit: [--name] [--description D|none] [--active|--inactive]
   deliverables <contract> [--all]
@@ -92,6 +94,8 @@ const COMMANDS = {
 	'note append': noteChanges.noteAppend,
 	'note delete': noteChanges.noteDelete,
 	'note restore': noteChanges.noteRestore,
+	'note pin': notePins.notePin,
+	'note unpin': notePins.noteUnpin,
 	'note attach': attachments.noteAttach,
 	'note attachments': attachments.noteAttachments,
 	'attachment get': attachments.attachmentGet,

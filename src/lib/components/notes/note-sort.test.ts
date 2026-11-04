@@ -29,6 +29,18 @@ describe('sortNotes', () => {
 		expect(sortNotes([older, newer], 'created').map((entry) => entry.id)).toEqual(['newer', 'older']);
 	});
 
+	it('puts the most recently pinned note first, then the other pinned ones (sprint 039-CL)', () => {
+		const pinnedEarlier = { ...note('pinned-earlier', '2026-10-01T09:00:00Z', '2026-11-04T09:00:00Z', true), pinnedAt: '2026-11-01T09:00:00Z' };
+		const pinnedLater = { ...note('pinned-later', '2026-10-01T09:00:00Z', '2026-10-01T09:00:00Z', true), pinnedAt: '2026-11-03T09:00:00Z' };
+		expect(sortNotes([older, pinnedEarlier, newer, pinnedLater, pinned], 'modified').map((entry) => entry.id)).toEqual([
+			'pinned-later',
+			'pinned-earlier',
+			'pinned',
+			'older',
+			'newer'
+		]);
+	});
+
 	it('does not mutate the input', () => {
 		const input = [newer, older];
 		sortNotes(input, 'modified');

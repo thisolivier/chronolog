@@ -1,6 +1,7 @@
 /**
  * Sidebar grouping (sprint 026-CL, finding 18): contracts under their client's heading.
- * Clients are ordered by name; contracts keep the order they arrive in (the server sorts them by
+ * Clients are ordered by their manual sidebar position (`clientSortOrder`, sprint 039-CL), then by
+ * name; contracts keep the order they arrive in (the server sorts them by
  * manual `sortOrder`, then name).
  */
 
@@ -10,6 +11,7 @@ export interface GroupableContract {
 	clientName: string;
 	clientColorIndex: number;
 	clientEmoji?: string | null;
+	clientSortOrder?: number;
 }
 
 export interface ClientGroup<Contract extends GroupableContract> {
@@ -17,6 +19,7 @@ export interface ClientGroup<Contract extends GroupableContract> {
 	clientName: string;
 	clientColorIndex: number;
 	clientEmoji: string | null;
+	clientSortOrder: number;
 	contracts: Contract[];
 }
 
@@ -32,13 +35,16 @@ export function groupContractsByClient<Contract extends GroupableContract>(
 				clientName: contract.clientName,
 				clientColorIndex: contract.clientColorIndex,
 				clientEmoji: contract.clientEmoji ?? null,
+				clientSortOrder: contract.clientSortOrder ?? 0,
 				contracts: []
 			};
 			groups.set(contract.clientId, group);
 		}
 		group.contracts.push(contract);
 	}
-	return [...groups.values()].sort((left, right) =>
-		left.clientName.localeCompare(right.clientName, undefined, { sensitivity: 'base' })
+	return [...groups.values()].sort(
+		(left, right) =>
+			left.clientSortOrder - right.clientSortOrder ||
+			left.clientName.localeCompare(right.clientName, undefined, { sensitivity: 'base' })
 	);
 }

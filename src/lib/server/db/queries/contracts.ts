@@ -271,6 +271,7 @@ export async function listContractsByClientWithNoteCount(
 			clientShortCode: clients.shortCode,
 			clientEmoji: clients.emoji,
 			clientColorIndex: clients.colorIndex,
+			clientSortOrder: clients.sortOrder,
 			clientArchivedAt: clients.archivedAt,
 			noteCount: sql<number>`cast(count(${notes.id}) as int)`
 		})

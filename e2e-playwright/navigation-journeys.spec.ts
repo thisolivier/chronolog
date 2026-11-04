@@ -195,7 +195,7 @@ test.describe('J8: phone', () => {
 		await expect(page).toHaveURL(`/notes/${data.contractA}`);
 		await expect(page.getByTestId('mobile-context-title')).toContainText(data.nameA);
 		// In-app moves only: the list's only row is the seeded note
-		await page.locator('.divide-y > button').first().click();
+		await page.getByTestId('note-list-row').first().getByRole('button').first().click();
 		await expect(page).toHaveURL(`/notes/${data.contractA}/${data.noteA}`);
 		await expect(editor(page)).toBeVisible();
 

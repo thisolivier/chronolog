@@ -7,6 +7,7 @@ import type { TimerLocalStart,
 	ClientSummary,
 	NoteSummary,
 	NoteDetail,
+	NotePinState,
 	UpdateNoteInput,
 	UpdateNoteOptions,
 	CreateNoteInput,
@@ -61,6 +62,10 @@ export class FetchDataService implements DataService {
 		return data.clients;
 	}
 
+	async reorderClients(orderedClientIds: string[]): Promise<void> {
+		await patchJson('/api/clients/reorder', { orderedIds: orderedClientIds });
+	}
+
 	// -- Notes --
 
 	async getNotesForContract(contractId: string): Promise<NoteSummary[]> {
@@ -68,6 +73,16 @@ export class FetchDataService implements DataService {
 			`/api/notes?contractId=${encodeURIComponent(contractId)}`
 		);
 		return data.notes;
+	}
+
+	async getNotesForClient(clientId: string): Promise<NoteSummary[]> {
+		const data = await fetchJson<{ notes: NoteSummary[] }>(`/api/notes?clientId=${encodeURIComponent(clientId)}`);
+		return data.notes;
+	}
+
+	async setNotePinned(noteId: string, pinned: boolean): Promise<NotePinState> {
+		const data = await putJson<{ note: NotePinState }>(`/api/notes/${encodeURIComponent(noteId)}/pin`, { pinned });
+		return data.note;
 	}
 
 	async getNoteById(noteId: string): Promise<NoteDetail> {

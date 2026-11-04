@@ -16,7 +16,10 @@ export const notes = pgTable("notes", {
 	content: text("content"),
 	contentJson: text("content_json"),
 	wordCount: integer("word_count").notNull().default(0),
+	// Kept in step with pinnedAt (sprint 039-CL): older code and the API read the boolean
 	isPinned: boolean("is_pinned").notNull().default(false),
+	// When the note was pinned (sprint 039-CL); pinned notes sort first, most recently pinned on top
+	pinnedAt: timestamp("pinned_at", { withTimezone: true }),
 	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 	// Server-side trash (sprint 037-CL): set on delete, cleared on restore. Trashed notes keep their
