@@ -197,3 +197,17 @@ The CLI prints the server's `{ error, code }`; with `--json` it is on stderr wit
 
 Never print, log or echo the API token or device key, and never read
 `~/.config/chronolog/config.json` aloud.
+
+## Importing history
+
+To back-fill weeks or months, never loop `log` or `note new`: write one file per batch (e.g.
+`~/secretary/imports/2026-10-entries.jsonl`), one JSON object per line with the CLI's references:
+entries `{"contract","date","duration","description","deliverable?","workType?","note?"}`, notes
+`{"contract","title","body","date"}` or changes `{"id","append"}` (see `cli/readme.md`).
+1. `chronolog import entries <file> --dry-run` (or `import notes`); exit 3 lists lines with unknown
+   or ambiguous references: ask the owner, fix the file, rerun. Nothing was sent.
+2. Show the owner the dry run (count, date range, total hours) and wait for a yes.
+3. `chronolog import entries <file>`; report the summary. `fail` lines (exit 1) were not saved:
+   fix only those lines into a new file and import that, never the whole file again.
+4. Keep the file. A wrong import of entries is undone with `chronolog undo --last-import` (asks
+   first; `--yes` only after the owner agrees).

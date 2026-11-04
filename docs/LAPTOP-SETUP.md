@@ -164,6 +164,8 @@ Quick reference:
 chronolog log ACME/Website 1h30m "Checkout review" [--date yesterday] [--deliverable X] [--note ID]
 chronolog edit <entry-id> --duration 2h
 chronolog undo                      # deletes the last entry this laptop logged
+chronolog import entries october.jsonl --dry-run   # then without --dry-run; notes too (import notes)
+chronolog undo --last-import        # deletes every entry of the last import (asks first)
 chronolog note new ACME/Website "Status 4 Nov" --file body.md [--date yesterday]
 chronolog note append <note-id> --file update.md   # or note edit <id> [--title] [--contract]; exit 7 = changed in the app
 chronolog note delete <note-id>    # asks first; copy kept in ~/.config/chronolog/trash/, note restore <id>
