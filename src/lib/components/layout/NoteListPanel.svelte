@@ -15,6 +15,8 @@
 	import { NoteListSearch } from './note-list-search.svelte';
 	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
 	import type { NoteSummary, NoteSearchResult } from '$lib/services/types';
+	import { OUTBOX_REPLAYED_EVENT } from '$lib/offline/offline-session.svelte';
+	import { OUTBOX_RESOLVED_EVENT } from '$lib/offline/outbox-resolve';
 
 	const navigationContext = getNavigationContext();
 	const dataService = getDataService();
@@ -70,6 +72,19 @@
 		if (!contractId) return false;
 		if (viewedClientId) return contractDirectory.labels[contractId]?.clientId === viewedClientId;
 		return contractId === navigationContext.selectedContractId;
+	}
+
+	/** Offline changes reached the server (new IDs, new previews): reload without a spinner */
+	async function refreshNotesQuietly() {
+		const key = currentListKey();
+		if (!key) return;
+		const [kind, id] = key.split(':');
+		try {
+			const loadedNotes = kind === 'client' ? await dataService.getNotesForClient(id) : await dataService.getNotesForContract(id);
+			if (currentListKey() === key) notesList = loadedNotes;
+		} catch (error) {
+			console.error('Error refreshing notes:', error);
+		}
 	}
 
 	async function fetchNotes(key: string) {
@@ -209,6 +224,11 @@
 				if (key && listShowsContract(contractId)) void fetchNotes(key);
 			})
 		];
+		const handleOutboxChange = () => void refreshNotesQuietly();
+		for (const eventName of [OUTBOX_REPLAYED_EVENT, OUTBOX_RESOLVED_EVENT]) {
+			window.addEventListener(eventName, handleOutboxChange);
+			unsubscribers.push(() => window.removeEventListener(eventName, handleOutboxChange));
+		}
 		return () => {
 			unsubscribers.forEach((unsubscribe) => unsubscribe());
 			clearTimeout(moveFeedbackTimeout);

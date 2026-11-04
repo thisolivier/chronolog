@@ -1,13 +1,16 @@
 <script lang="ts">
 	import '../app.css';
 	import { browser } from '$app/environment';
+	import { untrack } from 'svelte';
 	import { afterNavigate, goto, preloadCode } from '$app/navigation';
 	import { page } from '$app/state';
 	import { createNavigationState, setNavigationContext } from '$lib/stores/navigation.svelte';
 	import { createTimerState, setTimerStateContext } from '$lib/stores/timer-state.svelte';
 	import { setDataServiceContext } from '$lib/services/context';
-	import { FetchDataService } from '$lib/services/fetch-data-service';
 	import { DelegatingDataService } from '$lib/services/delegating-data-service';
+	import { OfflineDataService } from '$lib/offline/offline-data-service';
+	import { startOfflineSession } from '$lib/offline/offline-session.svelte';
+	import { watchServiceWorkerUpdates } from '$lib/offline/service-worker-updates';
 
 	let { children, data } = $props();
 
@@ -59,48 +62,33 @@
 	setTimerStateContext(createTimerState());
 
 	// Data service. A DelegatingDataService wraps the active implementation so that existing
-	// component references remain valid if we swap backends.
-	setDataServiceContext(new DelegatingDataService(new FetchDataService()));
+	// component references remain valid if we swap backends. OfflineDataService is the fetch
+	// service plus the offline outbox (sprint 045-CL).
+	setDataServiceContext(new DelegatingDataService(new OfflineDataService()));
 
-	// PWA update prompt state
-	let showUpdatePrompt = $state(false);
-	let pwaRegistration: { update: () => Promise<void> } | null = null;
-
-	// Register PWA service worker — skip in Tauri (native app doesn't need it)
+	// The signed-in user's outbox and long-lived read cache (sprint 045-CL). Started here, before
+	// the panels' first requests, and again if the user signs in without a page load.
+	if (browser) untrack(() => data.user?.id && startOfflineSession(data.user.id));
 	$effect(() => {
-		const isTauri =
-			typeof window !== 'undefined' &&
-			('__TAURI__' in window || '__TAURI_INTERNALS__' in window);
+		if (data.user?.id) startOfflineSession(data.user.id);
+	});
 
-		if (isTauri) {
-			console.log('[Chronolog] Tauri detected — skipping service worker registration');
-			return;
-		}
+	// A new version of the app's service worker is waiting (src/service-worker.ts, sprint 045-CL)
+	let showUpdatePrompt = $state(false);
+	let activateUpdate: (() => void) | null = null;
 
-		// Dynamically import the virtual PWA module to register the service worker
-		import('virtual:pwa-register')
-			.then(({ registerSW }) => {
-				const updateSW = registerSW({
-					onNeedRefresh() {
-						showUpdatePrompt = true;
-						pwaRegistration = {
-							update: async () => {
-								await updateSW(true);
-							}
-						};
-					},
-					onOfflineReady() {
-						console.log('[Chronolog] PWA ready for offline use');
-					}
-				});
-			})
-			.catch((error) => {
-				console.warn('[Chronolog] Service worker registration failed:', error);
-			});
+	// Skipped in Tauri (the native app does not need a service worker)
+	$effect(() => {
+		const isTauri = '__TAURI__' in window || '__TAURI_INTERNALS__' in window;
+		if (isTauri) return;
+		return watchServiceWorkerUpdates((activate) => {
+			activateUpdate = activate;
+			showUpdatePrompt = true;
+		});
 	});
 
 	function handleUpdateAccept() {
-		pwaRegistration?.update();
+		activateUpdate?.();
 		showUpdatePrompt = false;
 	}
 
