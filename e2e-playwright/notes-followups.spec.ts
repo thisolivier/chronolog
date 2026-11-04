@@ -8,10 +8,10 @@
  */
 import { test, expect, type Page } from '@playwright/test';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { editor, noteListItem, openNoteId } from './notes-helpers';
+import { sprintScreenshotDirectory } from './sprint-screenshots';
 
-const SCREENSHOTS = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'review', 'screenshots', 'sprint-043');
+const SCREENSHOTS = sprintScreenshotDirectory('sprint-043');
 const PHONE = { width: 390, height: 844 };
 
 type Seeded = { contractId: string; clientId: string; contractName: string };
