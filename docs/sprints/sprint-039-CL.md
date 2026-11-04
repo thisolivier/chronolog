@@ -20,7 +20,7 @@ Screenshots: pinned note on top; client view with contract labels; collapsed cli
 
 ## Sign-off
 
-**2026-11-04, implemented on `sprint-039-CL/sidebar-client-view`, rebased onto `main` (`1def320`, after the sprint 041 and 042 merges). Status: ready for review, not merged.**
+**2026-11-04, implemented on `sprint-039-CL/sidebar-client-view`, rebased onto `main` (`cf5a611`, after the sprint 040, 041 and 042 merges). Status: ready for review, not merged.**
 
 ### What was done
 
@@ -32,7 +32,7 @@ Screenshots: pinned note on top; client view with contract labels; collapsed cli
 
 ### Verification
 
-After the rebase onto `1def320`: `npm run check` 0 errors (the 3 existing warnings in `src/routes/+layout.svelte`), `npm run lint` clean, `npm test` **949 passed in 95 files**, API e2e against `http://localhost:5217` (`E2E_USER_PREFIX=qa-039-e2e`) **117 passed in 19 files**, Playwright (`qa-039-pw`) **120 passed, 5 skipped** (the existing chromium-only offline tests under webkit). The new spec alone: 11 passed (10 tests and auth setup).
+After the rebase onto `cf5a611`: `npm run check` 0 errors (the 3 existing warnings in `src/routes/+layout.svelte`), `npm run lint` clean, `npm test` **977 passed in 99 files**, API e2e against `http://localhost:5217` (`E2E_USER_PREFIX=qa-039-e2e`) **121 passed in 20 files**, Playwright (`qa-039-pw`) **123 passed, 5 skipped** (the existing chromium-only offline tests under webkit), 1 flaky: J2 (timesheet week and scroll) on webkit failed once and passed on retry; it is outside this sprint and passed in the earlier full runs. The new spec alone: 11 passed (10 tests and auth setup).
 
 Screenshots in `docs/review/screenshots/sprint-039/`: `01-pinned-note-on-top.png`, `02-client-view.png` (contract labels, pinned first, client highlighted), `03-collapsed-client.png`, `04-sidebar-after-reorder.png`, `05-client-view-phone.png` (390 px, WebKit; Back from a note opened in it returns to the client list).
 
