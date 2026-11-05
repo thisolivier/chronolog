@@ -11,6 +11,7 @@
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 050-UI | Client | Back/forward through the journey: top bar ‹ › left of search, ⌘[ ⌘], week paging is a step | merged |
 | 049-UI | Client | Attach a note to a time entry; sidebar + New contract; client chevrons on the right | merged |
 | 048-DT | Desktop/iOS | Tauri iOS shell and TestFlight lane (ship-ios.sh), up to signing | merged |
 | 047-QA | QA | iPhone-size UI pass: 18 issues, 14 fixed; iPhone Playwright projects | merged |

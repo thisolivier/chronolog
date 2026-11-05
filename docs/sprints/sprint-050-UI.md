@@ -1,6 +1,6 @@
 # Sprint 050 — UI: Back and forward through the user's journey
 
-**Status:** ready for review
+**Status:** merged
 **Branch:** `sprint-050-UI/back-forward` · **Worktree:** `.claude/worktrees/sprint-050-UI` · **Port:** 5225
 **Sources:** owner request 2026-11-05: back/forward buttons for moving through the user's journey, "to the left of the search bar, and left align the search bar". Every navigation is a step (opening a note, a contract, the timesheet, client view, settings, search results opened, and paging weeks); typing is not a step. Wave rules in `docs/sprints/_wave-rules.md` apply (no migration, no API change).
 
