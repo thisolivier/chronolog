@@ -1,6 +1,6 @@
 # Sprint 049 — UI: Attach a note to a time entry; sidebar contract button and chevrons
 
-**Status:** ready for review
+**Status:** merged
 **Branch:** `sprint-049-UI/attach-note-sidebar` · **Worktree:** `.claude/worktrees/sprint-049-UI` · **Port:** 5225
 **Sources:** owner requests 2026-11-05 (using the PWA on iPhone): "Attach a note button for a time recording — opens a new note for the client/contract, links it in the time entry text. New contract button gone in sidebar, add a + button to the right of the Contracts heading. Move chevron for each client to the right, aligned with the plus." Wave rules in `docs/sprints/_wave-rules.md` apply (no migration expected).
 

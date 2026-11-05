@@ -5,14 +5,12 @@
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
 | 018-QA | QA | Manual testing backlog | superseded by docs/review/2026-11-03-qa-state.md |
-| 048-DT | Desktop/iOS | Tauri iOS shell and TestFlight lane (ship-ios.sh), up to signing | merged |
-| 047-QA | QA | iPhone-size UI pass: 18 issues, 14 fixed; iPhone Playwright projects | merged |
-| 045-CL | Client | Offline outbox: persistent read cache, write outbox, held conflicts, app-shell service worker | ready for review |
 
 ## Completed Sprints
 
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
+| 049-UI | Client | Attach a note to a time entry; sidebar + New contract; client chevrons on the right | merged |
 | 048-DT | Desktop/iOS | Tauri iOS shell and TestFlight lane (ship-ios.sh), up to signing | merged |
 | 047-QA | QA | iPhone-size UI pass: 18 issues, 14 fixed; iPhone Playwright projects | merged |
 | 045-CL | Client/Server | Offline outbox: persistent read cache, write outbox, idempotent creates, service worker | merged |
