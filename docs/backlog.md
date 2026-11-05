@@ -52,6 +52,10 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 
 All done in sprints 039–042 and 046 (2026-11-04). Open from them: global search does not resolve wiki-links to titles; saved titles keep a linked note's old title after a rename; the editor header has no pin control (list row only); the tablet overlay sidebar stays open when switching client views; `notes.is_pinned` is still written alongside `pinned_at` (drop later); find in page skips the raw markdown mode and wiki-link titles; `NoteEditor.svelte` is about 690 lines (move its CSS out); a client created after a reorder lands at the bottom.
 
+## Owner-requested (2026-11-05)
+
+- **Desktop timer placement.** Hide the top bar's running-timer indicator while the sidebar timer widget is on screen; when the left-most sidebar is collapsed, keep the timer widget visible in the middle (notes/time entries list) panel instead of losing it.
+
 ## Carried-over follow-ups
 
 ### Notes / editor
