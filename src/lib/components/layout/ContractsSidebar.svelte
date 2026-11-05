@@ -156,9 +156,21 @@
 			Time Entries
 		</button>
 
-		<!-- Contracts heading -->
-		<div class="mb-2 flex items-center justify-between px-3">
+		<!-- Contracts heading; its + lines up with the client chevrons below (049-UI) -->
+		<div class="mb-2 flex items-center justify-between pr-1 pl-3">
 			<span class="text-xs font-semibold uppercase text-stone-400">Contracts</span>
+			<button
+				type="button"
+				onclick={() => (showCreateModal = true)}
+				class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-stone-400 hover:bg-stone-100 hover:text-stone-600 pointer-coarse:-my-3 pointer-coarse:h-11 pointer-coarse:w-8"
+				aria-label="New contract"
+				title="New contract"
+				data-testid="sidebar-new-contract"
+			>
+				<svg class="h-3 w-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+					<path d="M6 2v8M2 6h8" stroke-linecap="round" />
+				</svg>
+			</button>
 		</div>
 
 		<!-- Contracts grouped by client; a one-contract client is a single row -->
@@ -171,7 +183,7 @@
 		{:else}
 			{#if sections.activeGroups.length === 0}
 				<div class="px-3 py-4 text-xs text-stone-500">
-					No {sections.archivedContractCount > 0 ? 'active ' : ''}contracts yet. Use <span class="font-medium">New Contract</span> below.
+					No {sections.archivedContractCount > 0 ? 'active ' : ''}contracts yet. Use <span class="font-medium">+</span> next to Contracts.
 				</div>
 			{/if}
 			{#each sections.activeGroups as group (group.clientId)}

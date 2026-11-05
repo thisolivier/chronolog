@@ -10,7 +10,7 @@ export type SplitDescription = {
 	formerlyLines: string[];
 };
 
-const FORMERLY_LINE_PATTERN = /^\s*Formerly: .+$/;
+export const FORMERLY_LINE_PATTERN = /^\s*Formerly: .+$/;
 
 export function splitFormerlyLines(description: string | null | undefined): SplitDescription {
 	const formerlyLines: string[] = [];
