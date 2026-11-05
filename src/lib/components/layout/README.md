@@ -15,14 +15,14 @@ The panels are hosted by `src/routes/(workspace)/+layout.svelte`, which covers `
 │  240px      │  flex-grow                                    │
 │  collapsible│  WeekStrip + day sections                     │
 └─────────────┴───────────────────────────────────────────────┘
-  Top bar: hamburger toggle | TimerIndicator
+  Top bar: hamburger toggle | Chronolog | ‹ › | search field (left-aligned) ... TimerIndicator
 ```
 
 ### Mobile (<768px, single panel push/pop)
 
 ```
 Level 0: sidebar (contracts + timer widget)   top bar: "Chronolog"
-Level 1: note list (notes mode)               top bar: "← <Back label>" <context title> | TimerIndicator
+Level 1: note list (notes mode)               top bar: "← <Back label>" [›] <context title> | TimerIndicator
          time entries (time mode)
 Level 2: note editor (notes mode only)        top bar: "← <Back label>" <context title> | TimerIndicator
 ```
@@ -50,7 +50,11 @@ Tablet and desktop share one DOM branch, so crossing 1024px never remounts the e
 
 ### AppShell.svelte
 
-Mode-aware layout container. It picks the branch from the breakpoints above. On desktop the top bar always shows the hamburger sidebar toggle and the TimerIndicator; in time mode Panel 2 is hidden (sidebar + content), in notes mode the three-panel layout with a resizable Panel 2 is shown. On mobile a permanent top bar shows "Chronolog" at level 0. Deeper levels show "← <where Back goes>" (for example "← Week 45" or "← Acme Corp · Rocket Build"), then a context title (for example "Acme Corp · Rocket Build" or "Time entries · Week 45"), then the TimerIndicator. Back uses the in-app history when it can (see `$lib/stores/README.md`). Level 1 renders Panel 2 only in notes mode and goes straight to Panel 3 (time entries) in time mode. Tapping the mobile TimerIndicator returns to level 0 where the timer widget lives. `ConnectionStatus` is rendered here, showing the offline banner. The top bar also holds the global search field (`$lib/components/search/GlobalSearchField.svelte`, sprint 042-CL) next to the app name; on a phone a search icon in the header links to `/search`. iPhone (sprint 047-QA): both branches are `h-dvh` (not 100vh, which runs under Safari's toolbar) with `.safe-area-shell` padding (notch, home indicator; `app.html` has `viewport-fit=cover`); on the week or a note the phone title bar also has a Find button (the touch route to find in page, see `$lib/components/find/README.md`). Touch screens get 44 px targets through Tailwind's `pointer-coarse:` variant here and in the sidebar, note list, week and editor components; the global phone rules (16 px fields, safe areas, the stacked Settings table) are in `src/app.css`.
+Mode-aware layout container. It picks the branch from the breakpoints above. On desktop the top bar always shows the hamburger sidebar toggle and the TimerIndicator; in time mode Panel 2 is hidden (sidebar + content), in notes mode the three-panel layout with a resizable Panel 2 is shown. On mobile a permanent top bar shows "Chronolog" at level 0. Deeper levels show "← <where Back goes>" (for example "← Week 45" or "← Acme Corp · Rocket Build"), then a context title (for example "Acme Corp · Rocket Build" or "Time entries · Week 45"), then the TimerIndicator. Back uses the in-app history when it can (see `$lib/stores/README.md`). Level 1 renders Panel 2 only in notes mode and goes straight to Panel 3 (time entries) in time mode. Tapping the mobile TimerIndicator returns to level 0 where the timer widget lives. `ConnectionStatus` is rendered here, showing the offline banner. The top bar also holds Back / Forward (`HistoryButtons`, sprint 050-UI) and, right after them and left-aligned, the global search field (`$lib/components/search/GlobalSearchField.svelte`, sprint 042-CL); the phone bar adds a › after "← Back" when a step is ahead; on a phone a search icon in the header links to `/search`. iPhone (sprint 047-QA): both branches are `h-dvh` (not 100vh, which runs under Safari's toolbar) with `.safe-area-shell` padding (notch, home indicator; `app.html` has `viewport-fit=cover`); on the week or a note the phone title bar also has a Find button (the touch route to find in page, see `$lib/components/find/README.md`). Touch screens get 44 px targets through Tailwind's `pointer-coarse:` variant here and in the sidebar, note list, week and editor components; the global phone rules (16 px fields, safe areas, the stacked Settings table) are in `src/app.css`.
+
+### HistoryButtons.svelte
+
+Back / Forward through this tab's journey (sprint 050-UI), for the Mac app and the installed PWA, which have no browser buttons. `variant="desktop"` (AppShell's top bar, and on md+ screens the Search, Trash and Settings headers) shows ‹ › right before the search field, the unavailable one disabled, with "Back to {label}" / "Forward to {label}" as accessible label and tooltip (labels from `navigation-labels.ts`, note titles from the title cache). `variant="phone"` shows only a › next to the phone's labelled "← Back", and only when a step is ahead (at home, next to the app name). Both call `navigation.goBack()` / `goForward()` and listen for Cmd+[ / Cmd+] (Ctrl elsewhere) and Alt+← / Alt+→ through `history-shortcuts.ts`, which ignores keys typed in a field or the editor.
 
 ### ConnectionStatus.svelte
 
@@ -105,7 +109,7 @@ Panel 3 content in notes mode. Opens whatever the URL names (a note, a `/notes/<
 
 ### navigation-labels.ts
 
-Pure helpers that name workspace places. `labelForPath` gives the phone's Back label (a history entry, or the level above; settings and admin read as "Settings"), `labelForRoute` gives short labels such as "Week 45" or the note's title, and `titleForRoute` gives the phone title bar text. They read `navigation-routes.ts`, the contract directory and the note title cache.
+Pure helpers that name workspace places. `labelForPath` gives the phone's Back label and the ‹ › labels (a history entry, or the level above; settings and admin read as "Settings", `/search` as "Search", the trash as "Trash"), `noteIdOfPath` names the note an entry shows (to fetch its title), `labelForRoute` gives short labels such as "Week 45" or the note's title, and `titleForRoute` gives the phone title bar text. They read `navigation-routes.ts`, the contract directory and the note title cache.
 
 ## Navigation State
 

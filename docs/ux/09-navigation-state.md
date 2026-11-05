@@ -31,9 +31,12 @@ between them never remounts the sidebar, list, timesheet or editor. The pages th
 - **Writes the URL** on every user action with SvelteKit `goto` (`noScroll`, `keepFocus`). The state
   changes at once, so a component reading the store right after calling it sees the new value.
   Actions in the same tick become one navigation (e.g. `selectTimeEntries()` then `selectWeek()`).
-- **History entries**: mode, contract and note changes push. Week changes inside the timesheet,
-  closing or deleting a note, a draft turning into its saved note, and a wrong contract being
-  corrected replace the current entry.
+- **History entries** (sprint 050-UI: every navigation is a step, typing is not): mode, contract,
+  client and note changes push, and so does each week paged or picked (week arrows, Today, a
+  search hit). Closing or deleting a note, a draft turning into its saved note, a note made offline
+  getting its real ID, moving a note to another contract, and a wrong contract being corrected
+  replace the current entry. Autosave, title and description edits, timer fields and typing in the
+  search field never touch the history; submitting a search pushes `/search?q=…`.
 - **Not in the URL**: the collapsed sidebar is a per-device preference (localStorage); the
   timesheet's scroll position per week and the in-app history mirror live in sessionStorage.
 
@@ -54,7 +57,8 @@ Added: `openDraft`, `showTimeEntryDay`, `isHome`, `isDraftOpen`, `route`, `works
 2. **The URL is the state.** Reload, bookmarks and shared links restore the screen. Browser,
    Android and the app's own Back all walk the real history. The phone level is derived from the
    route (table above). A page opened straight on a deep link gets `/` put under it, so Back goes
-   up into the app instead of out of it.
+   up into the app instead of out of it. The top bar's ‹ › (050-UI; Cmd/Ctrl+[ ], Alt+←/→) walk
+   this tab's in-app history and are disabled at its ends, so they never leave the app.
 3. **The sidebar shows hierarchy.** Contracts sit under client headings (sprint 026). The selected
    contract and its client heading are highlighted. "Time Entries" is highlighted while the
    timesheet is on screen; on the phone's home nothing is.

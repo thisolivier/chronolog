@@ -20,7 +20,8 @@ const navigationState = createNavigationState({
 	initialUrl: page.url,
 	adapter: {
 		navigate: (path, { replace }) => goto(path, { replaceState: replace, noScroll: true, keepFocus: true }),
-		back: () => history.back()
+		back: () => history.back(),
+		forward: () => history.forward()
 	},
 	sessionStorage: window.sessionStorage,
 	localStorage: window.localStorage
@@ -42,11 +43,13 @@ navigation.selectTimeEntries();
 
 The URL is the state. `createNavigationState` parses the URL it is given, and `syncFromUrl` re-reads it after every navigation, so Back, Forward and plain links all land in the same place. Actions change the state at once, so a component that reads the store right after an action sees the new value; the action then writes the new URL through the adapter (`goto`). Several actions in one tick become one navigation.
 
-Each action is a URL write. Mode, contract and note changes push a history entry. Week changes inside the timesheet, closing a note, and a draft turning into a saved note replace the current entry. `showTimeEntryDay` replaces when the timesheet is already open and pushes otherwise. The rules are listed in `docs/ux/09-navigation-state.md`.
+Each action is a URL write. Every navigation is a step (sprint 050-UI): mode, contract, client and note changes and each week paged (`selectWeek`) or jumped to (`showTimeEntryDay` on another week) push a history entry. Closing a note, a draft turning into a saved note, a note getting its real ID (`selectNote(…, { replace: true })`), moving a note and URL corrections replace the current entry. Typing never navigates. The rules are listed in `docs/ux/09-navigation-state.md`.
 
 `mobileNavigationLevel` is not stored. It is derived from the route (`mobileLevelFor` in `navigation-routes.ts`): home is 0, the timesheet or a note list (a contract's or a client's) is 1, and a note or a draft is 2.
 
 The client view (sprint 039-CL): `selectClient(clientId)` opens one client's notes across its contracts; `listClientId` names that client (null otherwise) and `selectedClientId` returns it. Inside it, `selectNote(noteId, contractId)` and `openDraft(contractId)` take the note's contract (it is in the URL, so the editor's "note under its own contract" rule still holds), and `openNote` keeps the client view when the note belongs to the viewed client (a link to another client's note leaves it). Closing a note returns to the client list.
+
+Back and Forward (sprint 050-UI): `canGoBack` / `canGoForward` say whether an in-app entry is behind or ahead, `previousPath` / `nextPath` name it (the buttons build their labels from these), and `goBack()` / `goForward()` call the adapter's `back` / `forward` only then, so they never leave the app. Each call is counted as a pending move until it lands, so quick repeated presses stop at the ends too.
 
 Phone Back (`goBackMobile`) uses the in-app history mirror (`navigation-history.ts`). If the previous entry is inside the app it calls `history.back()`; otherwise it moves one level up with a replace. `backTarget` gives that path and whether it is a history entry, which the phone's Back label is built from.
 
@@ -56,7 +59,9 @@ A fresh deep link (a URL opened directly, not by reload or Back) gets `/` put un
 
 Persistence: the sidebar-collapsed preference is in localStorage (`chronolog:sidebar-collapsed`), as is the sidebar's Archived item being expanded (`chronolog:sidebar-archived-expanded`, kept by `ContractsSidebar`, not this store). Timesheet scroll positions per week are in sessionStorage (`chronolog:timesheet-scroll`), as is the in-app history (`chronolog:in-app-history`). `showTimeEntryDay(date)` sets the week to show and the day to scroll to; `takeFocusDay()` hands that day out once and then forgets it. `openNote(…, { focusEditor: true })` (a followed wiki-link) marks the note so `takeEditorFocus(noteId)` returns true once; NoteEditorPanel then focuses the editor at the top (not on touch screens). `focusEditor: 'new-note'` (a note just made by Attach note, 049-UI) is returned as `'new-note'` and focuses the editor on touch screens too.
 
-Actions: `selectTimeEntries`, `selectContract`, `selectClient`, `selectWeek`, `selectNote`, `openNote`, `openDraft`, `clearSelectedNote`, `showTimeEntryDay`, `toggleSidebar`, `navigateMobile`, `goBackMobile`, and the timesheet scroll helpers.
+Actions: `selectTimeEntries`, `selectContract`, `selectClient`, `selectWeek`, `selectNote`, `openNote`, `openDraft`, `clearSelectedNote`, `showTimeEntryDay`, `toggleSidebar`, `navigateMobile`, `goBackMobile`, `goBack`, `goForward`, and the timesheet scroll helpers.
+
+Tests: `navigation.test.ts` (one group per rule), `navigation-steps.test.ts` (push/replace rules and Back/Forward, 050-UI), sharing the fake adapter in `navigation-test-setup.ts`.
 
 ### navigation-routes.ts
 
@@ -77,7 +82,7 @@ Pure functions that map workspace URLs to routes and back. No Svelte.
 
 ### navigation-history.ts
 
-`InAppHistory` mirrors the browser history entries this tab visited inside Chronolog, because a page cannot read its own history. Every navigation (push, replace, or Back/Forward by a delta) is recorded. If the recorded stack no longer matches what the browser did, it starts over from the current URL. The stack is kept in sessionStorage and capped at 200 entries; a reload restores it when it still points at the current URL. The phone's Back button reads it for its target and label.
+`InAppHistory` mirrors the browser history entries this tab visited inside Chronolog, because a page cannot read its own history. Every navigation (push, replace, or Back/Forward by a delta) is recorded. If the recorded stack no longer matches what the browser did, it starts over from the current URL. The stack is kept in sessionStorage and capped at 200 entries; a reload restores it when it still points at the current URL, entries ahead included. `previous` / `next` and `canGoBack` / `canGoForward` count from where the tab is going: `expectMove(±1)` records a Back/Forward the app asked for until it lands. SvelteKit reports only the last of several quick moves, so a landing is matched to the entry the pending moves lead to, then to `delta`, then to the nearest entry with that path. The phone's Back button and the top bar's ‹ › read it.
 
 ### connectivity.svelte.ts
 

@@ -5,6 +5,7 @@
 	import TimerIndicator from '$lib/components/weekly/TimerIndicator.svelte';
 	import ConnectionStatus from './ConnectionStatus.svelte';
 	import GlobalSearchField from '$lib/components/search/GlobalSearchField.svelte';
+	import HistoryButtons from './HistoryButtons.svelte';
 	import { requestFindInPage } from '$lib/components/find/shortcuts';
 	import { labelForPath, titleForRoute } from './navigation-labels';
 	import { requestNoteTitles, subscribeToNoteTitles } from '$lib/components/notes/note-titles.svelte';
@@ -144,15 +145,19 @@
 				{#if navigationContext.mobileNavigationLevel > 0}
 					<button
 						onclick={() => navigationContext.goBackMobile()}
-						class="-ml-2 flex min-h-11 flex-shrink-0 items-center px-2 text-sm font-medium text-blue-600 hover:text-blue-800"
+						class="-ml-2 flex min-h-11 max-w-[65%] flex-shrink-0 items-center px-2 text-sm font-medium text-blue-600 hover:text-blue-800"
 						aria-label="Back to {backLabel}"
 						data-testid="mobile-back"
 					>
-						&larr; {backLabel}
+						<span class="truncate">&larr; {backLabel}</span>
 					</button>
+					<!-- Forward (050-UI): only when there is a step ahead, to keep the bar's room -->
+					<HistoryButtons variant="phone" class="-ml-3" />
+					<!-- The title gives way first; Back truncates only past 65% of the bar (long note titles) -->
 					<span class="min-w-0 truncate text-xs text-stone-500" data-testid="mobile-context-title">{mobileTitle}</span>
 				{:else}
 					<span class="text-sm font-semibold text-stone-700">Chronolog</span>
+					<HistoryButtons variant="phone" class="-ml-1" />
 				{/if}
 			</div>
 			{#if mobileShowsContentPanel}
@@ -204,7 +209,7 @@
 	<!-- Desktop: Multi-panel layout -->
 	<div class="safe-area-shell flex h-dvh flex-col overflow-hidden bg-white">
 		<!-- Top bar -->
-		<div class="flex h-12 items-center justify-between border-b border-stone-200 bg-white px-4">
+		<div class="flex h-12 items-center justify-between border-b border-stone-200 bg-white px-4" data-testid="app-top-bar">
 			<div class="flex items-center gap-3">
 				<button
 					onclick={toggleSidebar}
@@ -213,7 +218,9 @@
 					aria-expanded={sidebarVisible}
 				>≡</button>
 				<span class="text-sm font-semibold text-stone-700">Chronolog</span>
-				<GlobalSearchField class="ml-2 w-56 lg:w-64" />
+				<!-- Back / Forward (050-UI) right before the left-aligned search field -->
+				<HistoryButtons class="ml-1" />
+				<GlobalSearchField class="w-60 lg:w-72" />
 			</div>
 			<TimerIndicator
 				timerState={timerState.status}

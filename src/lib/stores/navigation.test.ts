@@ -4,69 +4,13 @@
  * SvelteKit would fire once a navigation completes.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createNavigationState, type NavigationContext } from './navigation.svelte';
+import { MemoryStorage, enter, setup } from './navigation-test-setup';
 import { contractDirectory } from './contract-directory.svelte';
 
 const CONTRACT_A = '11111111-1111-4111-8111-111111111111';
 const CONTRACT_B = '22222222-2222-4222-8222-222222222222';
 const CLIENT_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const CLIENT_B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
-// Wednesday 4 November 2026 -> ISO week 45, Monday 2 November
-const NOW = () => new Date(2026, 10, 4, 10, 0, 0);
-
-type Call = { path: string; replace: boolean };
-
-class MemoryStorage {
-	private values = new Map<string, string>();
-	get length() {
-		return this.values.size;
-	}
-	clear() {
-		this.values.clear();
-	}
-	getItem(key: string) {
-		return this.values.get(key) ?? null;
-	}
-	key(index: number) {
-		return [...this.values.keys()][index] ?? null;
-	}
-	removeItem(key: string) {
-		this.values.delete(key);
-	}
-	setItem(key: string, value: string) {
-		this.values.set(key, value);
-	}
-}
-
-function setup(startPath = '/', storage = new MemoryStorage()) {
-	const calls: Call[] = [];
-	let backCalls = 0;
-	const nav = createNavigationState({
-		initialUrl: new URL('http://app' + startPath),
-		adapter: {
-			navigate: (path, { replace }) => {
-				calls.push({ path, replace });
-			},
-			back: () => {
-				backCalls++;
-			}
-		},
-		sessionStorage: storage as unknown as Storage,
-		localStorage: storage as unknown as Storage,
-		now: NOW
-	});
-	/** Let the store flush (one microtask) and then report the navigation landing */
-	async function settle() {
-		await Promise.resolve();
-		const last = calls.at(-1);
-		if (last) await nav.syncFromUrl(new URL('http://app' + last.path), 'goto');
-	}
-	return { nav, calls, settle, backCount: () => backCalls, storage };
-}
-
-async function enter(nav: NavigationContext, path: string, loadType = 'reload') {
-	await nav.syncFromUrl(new URL('http://app' + path), 'enter', undefined, loadType);
-}
 
 beforeEach(() => {
 	contractDirectory.replaceAll([
@@ -113,11 +57,11 @@ describe('rule 2: the URL is the state', () => {
 		]);
 	});
 
-	it('replaces the entry for week changes inside the timesheet', async () => {
+	it('pushes an entry for each week paged inside the timesheet (050-UI)', async () => {
 		const { nav, calls, settle } = setup('/time/2026-W45');
 		nav.selectWeek('2026-10-26');
 		await settle();
-		expect(calls).toEqual([{ path: '/time/2026-W44', replace: true }]);
+		expect(calls).toEqual([{ path: '/time/2026-W44', replace: false }]);
 		expect(nav.selectedWeek).toBe('2026-10-26');
 	});
 

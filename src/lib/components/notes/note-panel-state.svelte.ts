@@ -195,7 +195,7 @@ export class NotePanelState {
 		session.noteId = realId;
 		this.activeNoteId = realId;
 		if (this.currentNote?.id === tempId) this.currentNote = { ...this.currentNote, id: realId };
-		if (this.navigation.selectedNoteId === tempId) this.navigation.selectNote(realId, session.contractId);
+		if (this.navigation.selectedNoteId === tempId) this.navigation.selectNote(realId, session.contractId, { replace: true });
 	}
 
 	/** "Keep the server's" for the open note: show the server copy instead of this device's */

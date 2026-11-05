@@ -230,3 +230,99 @@ describe('InAppHistory.save', () => {
 		expect(() => history.save(createThrowingStorage())).not.toThrow();
 	});
 });
+
+describe('InAppHistory forward (sprint 050-UI)', () => {
+	it('knows nothing is ahead after a push, and nothing behind at the first entry', () => {
+		const history = new InAppHistory();
+		history.reset('/');
+		expect(history.canGoBack).toBe(false);
+		expect(history.canGoForward).toBe(false);
+		history.apply({ kind: 'push', path: '/time/2026-W45' });
+		expect(history.canGoBack).toBe(true);
+		expect(history.next).toBeNull();
+		expect(history.canGoForward).toBe(false);
+	});
+
+	it('after Back the entry left is next, and Forward returns to it', () => {
+		const history = historyWith(['/', '/time/2026-W45', '/time/2026-W44'], 2);
+		history.apply({ kind: 'pop', path: '/time/2026-W45', delta: -1 });
+		expect(history.next).toBe('/time/2026-W44');
+		expect(history.previous).toBe('/');
+		expect(history.canGoForward).toBe(true);
+		history.apply({ kind: 'pop', path: '/time/2026-W44', delta: 1 });
+		expect(history.index).toBe(2);
+		expect(history.canGoForward).toBe(false);
+	});
+
+	it('a push after Back drops what was ahead, like the browser', () => {
+		const history = historyWith(['/', '/a', '/b'], 1);
+		history.apply({ kind: 'push', path: '/c' });
+		expect(history.entries).toEqual(['/', '/a', '/c']);
+		expect(history.canGoForward).toBe(false);
+	});
+
+	it('a replace keeps what is ahead', () => {
+		const history = historyWith(['/', '/a', '/b'], 1);
+		history.apply({ kind: 'replace', path: '/a2' });
+		expect(history.next).toBe('/b');
+	});
+
+	it('a reload restores the entries ahead too', () => {
+		const storage = createMemoryStorage();
+		historyWith(['/', '/a', '/b'], 1).save(storage);
+		const restored = InAppHistory.restore(storage, '/a');
+		expect(restored?.next).toBe('/b');
+		expect(restored?.previous).toBe('/');
+	});
+
+	it('an empty history has neither', () => {
+		const history = new InAppHistory();
+		expect(history.next).toBeNull();
+		expect(history.canGoBack).toBe(false);
+		expect(history.canGoForward).toBe(false);
+	});
+});
+
+describe('InAppHistory quick presses (sprint 050-UI)', () => {
+	it('counts moves still on their way, so Back stops at the first entry', () => {
+		const history = historyWith(['/', '/a', '/b'], 2);
+		history.expectMove(-1);
+		history.expectMove(-1);
+		expect(history.canGoBack).toBe(false);
+		expect(history.next).toBe('/a');
+	});
+
+	it('lands on where the pending moves lead when only the last move is reported', () => {
+		const history = historyWith(['/', '/a', '/b', '/c'], 0);
+		history.expectMove(1);
+		history.expectMove(1);
+		history.expectMove(1);
+		history.apply({ kind: 'pop', path: '/c', delta: 1 });
+		expect(history.index).toBe(3);
+		expect(history.pendingMoves).toBe(0);
+	});
+
+	it('keeps the rest pending when an earlier move lands first', () => {
+		const history = historyWith(['/', '/a', '/b'], 2);
+		history.expectMove(-1);
+		history.expectMove(-1);
+		history.apply({ kind: 'pop', path: '/a', delta: -1 });
+		expect(history.index).toBe(1);
+		expect(history.pendingMoves).toBe(-1);
+	});
+
+	it('finds the nearest matching entry when the reported delta is short', () => {
+		const history = historyWith(['/', '/a', '/b', '/c'], 0);
+		history.apply({ kind: 'pop', path: '/c', delta: 1 });
+		expect(history.index).toBe(3);
+		expect(history.entries).toHaveLength(4);
+	});
+
+	it('a push clears pending moves', () => {
+		const history = historyWith(['/', '/a'], 1);
+		history.expectMove(-1);
+		history.apply({ kind: 'push', path: '/z' });
+		expect(history.pendingMoves).toBe(0);
+		expect(history.previous).toBe('/a');
+	});
+});
