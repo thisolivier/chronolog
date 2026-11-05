@@ -80,6 +80,11 @@ export class FetchDataService implements DataService {
 		return data.notes;
 	}
 
+	async getAllNotes(): Promise<NoteSummary[]> {
+		const data = await fetchJson<{ notes: NoteSummary[] }>('/api/notes?all=true');
+		return data.notes;
+	}
+
 	async setNotePinned(noteId: string, pinned: boolean): Promise<NotePinState> {
 		const data = await putJson<{ note: NotePinState }>(`/api/notes/${encodeURIComponent(noteId)}/pin`, { pinned });
 		return data.note;

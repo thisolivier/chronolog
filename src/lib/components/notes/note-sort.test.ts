@@ -25,6 +25,14 @@ describe('sortNotes', () => {
 		]);
 	});
 
+	it('ignores pins when floatPinned is false (all notes, sprint 051-UI)', () => {
+		expect(sortNotes([pinned, newer, older], 'modified', { floatPinned: false }).map((entry) => entry.id)).toEqual([
+			'older',
+			'newer',
+			'pinned'
+		]);
+	});
+
 	it('sorts by creation time when asked', () => {
 		expect(sortNotes([older, newer], 'created').map((entry) => entry.id)).toEqual(['newer', 'older']);
 	});

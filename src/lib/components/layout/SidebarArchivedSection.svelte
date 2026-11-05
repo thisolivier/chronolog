@@ -45,24 +45,16 @@
 </script>
 
 <div class="mt-3 border-t border-stone-200 pt-2" data-testid="sidebar-archived-section">
+	<!-- The chevron sits in the right-hand column shared with the client chevrons (051-UI): same
+	     box (h-5 w-5, w-8 on touch) and the same right inset (pr-1) -->
 	<button
 		type="button"
 		onclick={toggle}
-		class="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-xs font-semibold uppercase text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600 pointer-coarse:py-3.5"
+		class="flex w-full items-center gap-2 rounded-md py-1.5 pr-1 pl-3 text-left text-xs font-semibold uppercase text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600 pointer-coarse:py-3.5"
 		aria-expanded={isExpanded}
 		aria-controls="sidebar-archived-list"
 		data-testid="sidebar-archived-toggle"
 	>
-		<svg
-			class="h-3 w-3 flex-shrink-0 transition-transform {isExpanded ? 'rotate-90' : ''}"
-			viewBox="0 0 12 12"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="1.75"
-			aria-hidden="true"
-		>
-			<path d="M4.5 2.5 8 6l-3.5 3.5" stroke-linecap="round" stroke-linejoin="round" />
-		</svg>
 		<span class="flex-1">Archived</span>
 		<span
 			class="rounded-full bg-stone-200/70 px-1.5 text-[11px] font-medium normal-case tabular-nums text-stone-500"
@@ -70,6 +62,21 @@
 			data-testid="sidebar-archived-count"
 		>
 			{contractCount}
+		</span>
+		<span
+			class="flex h-5 w-5 flex-shrink-0 items-center justify-center pointer-coarse:w-8"
+			data-testid="sidebar-archived-chevron"
+		>
+			<svg
+				class="h-3 w-3 transition-transform {isExpanded ? 'rotate-90' : ''}"
+				viewBox="0 0 12 12"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.75"
+				aria-hidden="true"
+			>
+				<path d="M4.5 2.5 8 6l-3.5 3.5" stroke-linecap="round" stroke-linejoin="round" />
+			</svg>
 		</span>
 	</button>
 	<div id="sidebar-archived-list" class="mt-1" hidden={!isExpanded}>

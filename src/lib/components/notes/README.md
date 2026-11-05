@@ -86,6 +86,8 @@ The ten-second "Moved to trash. Undo" toast after a delete. Its state is module-
 
 ### note-sort.ts
 
+`sortNotes(list, order, { floatPinned })`: `floatPinned: false` (the all-notes view, 051-UI) leaves pins in date order.
+
 Sort order for the note list (`modified` or `created`), persisted in localStorage. `sortNotes` is pure.
 
 ### note-print.ts
@@ -102,19 +104,19 @@ Formatting toolbar with active state indicators (bold, italic, headings, lists, 
 
 ### NoteEditorHeader.svelte
 
-Header above the editor: note ID, `SaveStatusIndicator`, Move / Export / Delete actions and a message line. Delete asks for confirmation inline (no native `confirm()`, which Tauri can suppress). A `conflict` status offers Reload.
+Header above the editor: note ID (`NoteCodeCopyButton`), `SaveStatusIndicator`, Move / Export / Delete actions and a message line. Move and Export open their menus without a chevron (sprint 051-UI; `aria-haspopup="menu"` and `aria-expanded` mark them). Delete asks for confirmation inline (no native `confirm()`, which Tauri can suppress). A `conflict` status offers Reload.
+
+### NoteCodeCopyButton.svelte
+
+The note code in the header (sprint 051-UI): a click or tap copies it through `$lib/utils/copy-text.ts` (Clipboard API, then a hidden-textarea `execCommand('copy')` fallback, for Safari/WebKit and the Tauri webview). A "Copied" bubble floats under the code for 1.5 s without moving the header line, and a polite live region announces it; if both ways are refused it says "Couldn't copy" and selects the code. `data-testid="note-code-copy"`, `note-code-copied`.
 
 ### SaveStatusIndicator.svelte
 
-Small status label for the save state (saved, saving, unsaved, error, conflict, or draft).
+The save pill (sprint 051-UI): "Saved" (green) / "Saving" (amber; also while a change waits for its debounce) / "Draft" (grey), one fixed width (`w-[4.75rem]`) so the header line never shifts or wraps while typing. Failures stay distinct: a red pill sized to its message ("Couldn't save — retrying", or the conflict message with Reload). Labels and tones are `save-status-display.ts` (unit-tested); `data-testid="save-status"` keeps its `data-status` values (`saved`, `saving`, `unsaved`, `error`, `conflict`, `draft`).
 
 ### NoteBacklinks.svelte
 
 "Linked from" list of notes that link to the current note, shown by display title. The server leaves out trashed sources.
-
-### NoteSearchResults.svelte
-
-Result list for the note search field in the note list. Each result shows the contract prefix, since search spans all contracts.
 
 ### print-styles.css
 

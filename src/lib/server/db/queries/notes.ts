@@ -46,7 +46,7 @@ export async function listNotesForContract(userId: string, contractId: string) {
  */
 export async function listNotesForUser(
 	userId: string,
-	filters: { contractId?: string; clientId?: string; updatedSince?: Date } = {}
+	filters: { contractId?: string; clientId?: string; updatedSince?: Date; newestFirst?: boolean } = {}
 ) {
 	const conditions = [eq(notes.userId, userId), notInTrash];
 	if (filters.contractId) conditions.push(eq(notes.contractId, filters.contractId));
@@ -60,7 +60,8 @@ export async function listNotesForUser(
 		.select()
 		.from(notes)
 		.where(and(...conditions))
-		.orderBy(...noteListOrder);
+		// `newestFirst` (all notes, sprint 051-UI): pins are not floated
+		.orderBy(...(filters.newestFirst ? [desc(notes.updatedAt)] : noteListOrder));
 	return results.map(decryptNote);
 }
 

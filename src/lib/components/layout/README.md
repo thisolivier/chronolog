@@ -62,20 +62,20 @@ Offline banner, rendered by AppShell and by `SettingsShell`. It reads `src/lib/s
 
 ### ContractsSidebar.svelte
 
-Panel 1 sidebar content. Shows Time Entries, the contracts (a `+` right of the "Contracts" heading opens New Contract, `ContractCreateModal`; sprint 049-UI), and the Archived item, then Settings and the timer widget pinned to the bottom. It loads the contracts (archived ones included) into the contract directory store, which splits them into the active clients and the Archived section; the sidebar only draws them. Note counts refresh on `notes-changed` and `note-moved` window events, and the list reloads whenever the sidebar mounts again (coming back from Settings).
+Panel 1 sidebar content. One scrolling list (`sidebar-scroll`): Time Entries, the "Notes" heading (a button that opens all notes, `/notes/all`, `aria-current` while shown; sprint 051-UI), the contracts by client, the Archived item, then Trash and Settings (`SidebarUtilityLinks`). Below the list there is only the timer widget. New contracts are made in Settings → Clients and contracts (the 049 `+` next to the heading was removed in 051 at the owner's request; the no-contracts hint links there). It loads the contracts (archived ones included) into the contract directory store, which splits them into the active clients and the Archived section; the sidebar only draws them. Note counts refresh on `notes-changed` and `note-moved` window events, and the list reloads whenever the sidebar mounts again (coming back from Settings).
 
 Hierarchy (sprint 033-CL):
 - A client with two or more active contracts is a heading (colour dot + name) with its contracts indented under it.
 - A client with exactly one active contract is one row at the client's indent: the dot, the contract name, and the client name beneath it in small muted text. Archived contracts do not count towards the one.
-- **Archived**, after the last active client and only when something is archived: a toggle button (`aria-expanded`, count badge of archived contracts), collapsed by default and remembered per browser. It lists archived clients with their contracts and the archived contracts of active clients under their client's name, in the same grammar but muted.
+- **Archived**, after the last active client and only when something is archived: a toggle button (`aria-expanded`, count badge of archived contracts, and a chevron in the same right-hand column as the client chevrons, 051-UI), collapsed by default and remembered per browser. It lists archived clients with their contracts and the archived contracts of active clients under their client's name, in the same grammar but muted.
 
 Sprint 039-CL:
-- A client heading is the client's name with its dot, which opens the client view (`aria-current` and blue while it is shown), and a chevron (collapse) at the row's right edge; the chevrons share the heading `+`'s right inset and box size, so they form one column under it (049-UI). Collapsing hides the client's contracts except the open one; the choice is remembered per browser in `client-collapse-state.ts` (`chronolog:sidebar-collapsed-clients`, never collapsed by default). A single-contract client has no chevron and no client-view entry (its row opens the contract).
+- A client heading is the client's name with its dot, which opens the client view (`aria-current` and blue while it is shown), and a chevron (collapse) at the row's right edge; the client chevrons and the Archived chevron share one right inset and box size (`h-5 w-5`, `w-8` on touch), so they form one column (049-UI, 051-UI). Collapsing hides the client's contracts except the open one; the choice is remembered per browser in `client-collapse-state.ts` (`chronolog:sidebar-collapsed-clients`, never collapsed by default). A single-contract client has no chevron and no client-view entry (its row opens the contract).
 - Active clients can be reordered: drag a client's name (or its single row) onto another client (native HTML5 drag and drop, drop line above or below), or Alt+ArrowUp / Alt+ArrowDown on it, announced in a polite live region (`sidebar-reorder-announcement`). `client-reorder.svelte.ts` applies the order to the directory store at once and saves it with `PATCH /api/clients/reorder`; a failed save reloads the list.
 
 The contract open in the URL is highlighted (`aria-current`, blue) and the heading of the group holding it turns blue. When that contract is archived the Archived item expands (without changing the remembered choice), and a newly selected row is scrolled into view. On the phone home nothing is highlighted, including Time Entries.
 
-Stable test hooks: `sidebar-new-contract` (the heading `+`), `[data-testid="sidebar-client-group"]` (aria-label = client name, `data-client-id`) per active client, `sidebar-client-heading`, `sidebar-client-chevron`, `sidebar-client-name`, `[data-client-reorder-handle]`, `sidebar-single-contract-row`, `sidebar-row-client-name`, `sidebar-note-count`; `data-contract-id` on every contract button; `sidebar-archived-section`, `sidebar-archived-toggle`, `sidebar-archived-count` and `sidebar-archived-client-group`.
+Stable test hooks: `sidebar-scroll`, `sidebar-notes-heading`, `[data-testid="sidebar-client-group"]` (aria-label = client name, `data-client-id`) per active client, `sidebar-client-heading`, `sidebar-client-chevron`, `sidebar-client-name`, `[data-client-reorder-handle]`, `sidebar-single-contract-row`, `sidebar-row-client-name`, `sidebar-note-count`; `data-contract-id` on every contract button; `sidebar-archived-section`, `sidebar-archived-toggle`, `sidebar-archived-count`, `sidebar-archived-chevron` and `sidebar-archived-client-group`; `sidebar-trash-link`, `sidebar-settings-link`.
 
 ### SidebarClientGroup.svelte
 
@@ -85,9 +85,9 @@ One client in the sidebar: the heading plus children, or the single-contract row
 
 The Archived toggle and its list. The expanded preference is read and written through `archived-section-state.ts` (localStorage, guarded with try/catch, default collapsed).
 
-### SidebarTrashLink.svelte
+### SidebarUtilityLinks.svelte
 
-"Trash" under the Archived item (sprint 043-CL), in the same muted style: a link to the trash page `/notes/trash`. The sidebar was chosen over the foot of the note list because the trash spans every contract and is rarely needed.
+"Trash" (sprint 043-CL, the trash page `/notes/trash`) and "Settings" (sprint 051-UI, formerly a fixed footer above the timer) under the Archived item, in the same muted style: icon and label. The sidebar was chosen for the trash over the foot of the note list because it spans every contract and is rarely needed.
 
 ### TimeEntriesPanel.svelte
 
@@ -95,11 +95,10 @@ Main content panel for time entries mode. Integrates WeekStrip as a sticky heade
 
 ### NoteListPanel.svelte
 
-Panel 2 content in notes mode. Lists notes for the selected contract, or in the client view (`/notes/client/<id>`, sprint 039-CL) every note of the client's contracts with each row's contract named, pinned notes first. Rows are `NoteListRow.svelte`: first-line title, date, second line, and a pin button on the right (`aria-pressed`; always shown when pinned, on hover or focus otherwise) that calls `PUT /api/notes/<id>/pin` and re-sorts in place. The header names the selected client and contract (or the client and "All contracts"), so it reads correctly with the sidebar collapsed. Also provides:
-- A search field that searches all contracts (`dataService.searchNotes`); each result shows its contract prefix
+Panel 2 content in notes mode. Lists notes for the selected contract, or in the client view (`/notes/client/<id>`, sprint 039-CL) every note of the client's contracts with each row's contract named, pinned notes first. In all notes (`/notes/all`, sprint 051-UI; `dataService.getAllNotes`, `GET /api/notes?all=true`) it lists every note of every contract, archived ones included, newest first by the sort toggle's time with pins not floated, each row naming "Client · Contract" on its own line; New Note there asks which active contract. Rows are `NoteListRow.svelte`: first-line title, date, second line, and a pin button on the right (`aria-pressed`; always shown when pinned, on hover or focus otherwise) that calls `PUT /api/notes/<id>/pin` and re-sorts in place. The header names the selected client and contract (or the client and "All contracts"), so it reads correctly with the sidebar collapsed. Also provides:
 - A sort toggle (modified / created, persisted)
 - New Note (`NoteListNewNoteButton.svelte`), which opens a draft in the editor at `/notes/<contract>/new`; in the client view a one-contract client uses its contract and otherwise a small menu asks which (the draft opens at `/notes/client/<client>/<contract>/new`). The list only gains the note once the first save creates it
-- The search box's state lives in `note-list-search.svelte.ts` (debounced, latest answer wins)
+- No search box of its own: search is the top bar's (the list's "Search all notes" box was removed in sprint 051-UI)
 
 It listens for the window events `note-created` and `note-saved` (updates a note's preview in place), `note-moved` (removes the note from this contract's list and shows a transient "Moved to Client / Contract" status line, `data-testid="move-feedback"`, tied to the destination contract) and `note-deleted` (removes the note). The moved note itself stays open in the editor, which then follows the note to its new contract.
 

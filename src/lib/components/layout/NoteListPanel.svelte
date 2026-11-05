@@ -1,6 +1,7 @@
 <!--
 	NoteListPanel - Panel 2 content for notes mode: one contract's notes, or one client's notes across
-	its contracts (the client view, `/notes/client/<id>`, sprint 039-CL). Pinned notes first.
+	its contracts (the client view, `/notes/client/<id>`, sprint 039-CL), pinned notes first; or every
+	note (all notes, `/notes/all`, sprint 051-UI), newest first with pins not floated.
 -->
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
@@ -11,10 +12,9 @@
 	import { startNoteDraft, endNoteDraft } from '$lib/components/notes/note-draft.svelte';
 	import { onNoteEvent } from '$lib/components/notes/note-events';
 	import { sortNotes, loadSortPreference, saveSortPreference, type NoteSortOrder } from '$lib/components/notes/note-sort';
-	import NoteSearchResults from '$lib/components/notes/NoteSearchResults.svelte';
-	import { NoteListSearch } from './note-list-search.svelte';
 	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
-	import type { NoteSummary, NoteSearchResult } from '$lib/services/types';
+	import { ALL_NOTES_LABEL } from './navigation-labels';
+	import type { NoteSummary } from '$lib/services/types';
 	import { OUTBOX_REPLAYED_EVENT } from '$lib/offline/offline-session.svelte';
 	import { OUTBOX_RESOLVED_EVENT } from '$lib/offline/outbox-resolve';
 
@@ -37,9 +37,9 @@
 	// eslint-disable-next-line svelte/prefer-svelte-reactivity -- bookkeeping only, never rendered
 	const createdWhileLoading = new Map<string, NoteSummary>();
 
-	const search = new NoteListSearch((query) => dataService.searchNotes(query, { limit: 25 }));
-
-	let sortedNotes = $derived(sortNotes(notesList, sortOrder));
+	/** All notes (051-UI): every contract, newest first, pins not floated */
+	let isAllNotesView = $derived(navigationContext.isAllNotesView);
+	let sortedNotes = $derived(sortNotes(notesList, sortOrder, { floatPinned: !isAllNotesView }));
 	let isDraftOpen = $derived(navigationContext.isDraftOpen);
 	/** The client view's client (039-CL); null for a contract's list */
 	let viewedClientId = $derived(navigationContext.listClientId);
@@ -48,15 +48,19 @@
 		navigationContext.selectedContractId ? contractDirectory.labels[navigationContext.selectedContractId] : undefined
 	);
 	let viewedClientName = $derived(contractDirectory.clientName(viewedClientId));
-	// New Note in the client view: the client's active contracts (all of them if none is active)
+	// New Note in the client view: the client's active contracts (all of them if none is active);
+	// in all notes, every active contract
 	let clientContracts = $derived.by(() => {
+		if (isAllNotesView) return contractDirectory.contracts.filter((contract) => !contractDirectory.isArchived(contract.id));
 		const ofClient = contractDirectory.contractsOfClient(viewedClientId);
 		const active = ofClient.filter((contract) => !contractDirectory.isArchived(contract.id));
 		return active.length > 0 ? active : ofClient;
 	});
-	/** What the list shows: `contract:<id>`, `client:<id>`, or null */
+	/** What the list shows: `all`, `contract:<id>`, `client:<id>`, or null */
 	let listKey = $derived(
-		viewedClientId
+		isAllNotesView
+			? 'all'
+			: viewedClientId
 			? `client:${viewedClientId}`
 			: navigationContext.selectedContractId
 				? `contract:${navigationContext.selectedContractId}`
@@ -70,17 +74,23 @@
 	/** True when a note of `contractId` belongs in the list on screen */
 	function listShowsContract(contractId: string | undefined): boolean {
 		if (!contractId) return false;
+		if (isAllNotesView) return true;
 		if (viewedClientId) return contractDirectory.labels[contractId]?.clientId === viewedClientId;
 		return contractId === navigationContext.selectedContractId;
+	}
+
+	function loadNotesFor(key: string): Promise<NoteSummary[]> {
+		if (key === 'all') return dataService.getAllNotes();
+		const [kind, id] = key.split(':');
+		return kind === 'client' ? dataService.getNotesForClient(id) : dataService.getNotesForContract(id);
 	}
 
 	/** Offline changes reached the server (new IDs, new previews): reload without a spinner */
 	async function refreshNotesQuietly() {
 		const key = currentListKey();
 		if (!key) return;
-		const [kind, id] = key.split(':');
 		try {
-			const loadedNotes = kind === 'client' ? await dataService.getNotesForClient(id) : await dataService.getNotesForContract(id);
+			const loadedNotes = await loadNotesFor(key);
 			if (currentListKey() === key) notesList = loadedNotes;
 		} catch (error) {
 			console.error('Error refreshing notes:', error);
@@ -92,8 +102,7 @@
 		fetchError = null;
 		try {
 			createdWhileLoading.clear();
-			const [kind, id] = key.split(':');
-			const loadedNotes = kind === 'client' ? await dataService.getNotesForClient(id) : await dataService.getNotesForContract(id);
+			const loadedNotes = await loadNotesFor(key);
 			if (currentListKey() === key) {
 				const missing = [...createdWhileLoading.values()].filter(
 					(created) => listShowsContract(created.contractId) && !loadedNotes.some((note) => note.id === created.id)
@@ -159,11 +168,6 @@
 	function clearMoveFeedback() {
 		moveFeedback = null;
 		clearTimeout(moveFeedbackTimeout);
-	}
-
-	function openSearchResult(result: NoteSearchResult) {
-		endNoteDraft();
-		navigationContext.openNote(result.id, result.contractId, result.clientId);
 	}
 
 	// Re-fetch notes, and drop transient state, whenever the list's contract or client changes.
@@ -232,7 +236,6 @@
 		return () => {
 			unsubscribers.forEach((unsubscribe) => unsubscribe());
 			clearTimeout(moveFeedbackTimeout);
-			search.dispose();
 		};
 	});
 </script>
@@ -244,13 +247,18 @@
 		<div
 			class="min-w-0"
 			data-testid="note-list-context"
-			title={viewedClientId
+			title={isAllNotesView
+				? 'All notes, newest first'
+				: viewedClientId
 				? `${viewedClientName ?? 'Client'} · all contracts`
 				: contractLabel
 					? `${contractLabel.clientName} · ${contractLabel.name}`
 					: undefined}
 		>
-			{#if viewedClientId}
+			{#if isAllNotesView}
+				<p class="truncate text-xs text-stone-500">Every contract, newest first</p>
+				<h2 class="truncate text-sm font-semibold text-stone-900">{ALL_NOTES_LABEL}</h2>
+			{:else if viewedClientId}
 				<p class="truncate text-xs text-stone-500">All contracts</p>
 				<h2 class="truncate text-sm font-semibold text-stone-900">{viewedClientName ?? 'Notes'}</h2>
 			{:else}
@@ -269,37 +277,11 @@
 				{sortOrder === 'modified' ? 'Modified ↓' : 'Created ↓'}
 			</button>
 			<NoteListNewNoteButton
-				contractId={viewedClientId ? null : navigationContext.selectedContractId}
-				clientContracts={viewedClientId ? clientContracts : []}
+				contractId={viewedClientId || isAllNotesView ? null : navigationContext.selectedContractId}
+				clientContracts={viewedClientId || isAllNotesView ? clientContracts : []}
+				withClientNames={isAllNotesView}
 				onCreate={handleCreateNote}
 			/>
-		</div>
-	</div>
-
-	<!-- Search across all contracts -->
-	<div class="border-b border-stone-200 bg-white px-3 py-2">
-		<div class="relative">
-			<input
-				type="text"
-				role="searchbox"
-				bind:value={search.query}
-				oninput={() => search.handleInput()}
-				onkeydown={(event) => event.key === 'Escape' && search.clear()}
-				placeholder="Search all notes"
-				aria-label="Search all notes"
-				data-testid="note-search-input"
-				class="w-full rounded-md border border-stone-200 bg-stone-50 py-1.5 pl-2.5 pr-7 text-sm text-stone-800 placeholder:text-stone-400 focus:border-blue-400 focus:bg-white focus:outline-none"
-			/>
-			{#if search.query}
-				<button
-					type="button"
-					onclick={() => search.clear()}
-					class="absolute right-1.5 top-1/2 -translate-y-1/2 px-1 text-stone-400 hover:text-stone-600"
-					aria-label="Clear search"
-				>
-					&times;
-				</button>
-			{/if}
 		</div>
 	</div>
 
@@ -315,14 +297,7 @@
 	{/if}
 
 	<div class="flex-1 overflow-y-auto">
-		{#if search.isActive}
-			<NoteSearchResults
-				results={search.results}
-				isSearching={search.isSearching}
-				selectedNoteId={navigationContext.selectedNoteId}
-				onOpen={openSearchResult}
-			/>
-		{:else if isLoading}
+		{#if isLoading}
 			<div class="flex items-center justify-center py-8">
 				<div class="text-sm text-stone-500">Loading notes...</div>
 			</div>
@@ -343,7 +318,12 @@
 						{note}
 						isSelected={navigationContext.selectedNoteId === note.id}
 						dateField={sortOrder === 'created' ? 'createdAt' : 'updatedAt'}
-						contractName={viewedClientId ? (contractDirectory.labels[note.contractId]?.name ?? null) : null}
+						contractName={isAllNotesView
+							? contractDirectory.contextLabel(note.contractId)
+							: viewedClientId
+								? (contractDirectory.labels[note.contractId]?.name ?? null)
+								: null}
+						contractOnOwnLine={isAllNotesView}
 						onOpen={handleNoteClick}
 						onTogglePin={togglePin}
 					/>

@@ -2,7 +2,8 @@
 	/**
 	 * The workspace (sidebar, list, timesheet or editor) for every workspace URL:
 	 * `/`, `/time/<week>`, `/notes/<contract>`, `/notes/<contract>/<note|new>`, and the client view
-	 * `/notes/client/<client>[/<contract>/<note|new>]` (sprint 039-CL).
+	 * `/notes/client/<client>[/<contract>/<note|new>]` (sprint 039-CL), and all notes
+	 * `/notes/all[/<contract>/<note|new>]` (sprint 051-UI).
 	 * It is a layout so moving between those URLs never remounts the panels; the pages are empty
 	 * and the navigation store reads the URL (sprint 027-CL).
 	 */
@@ -16,6 +17,7 @@
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
 	import { getIsoWeekNumber } from '$lib/utils/iso-week';
+	import { ALL_NOTES_LABEL } from '$lib/components/layout/navigation-labels';
 
 	let { children } = $props();
 
@@ -28,6 +30,7 @@
 				? 'Chronolog'
 				: `Chronolog · Time entries · Week ${getIsoWeekNumber(nav.selectedWeek ?? '')}`;
 		}
+		if (nav.isAllNotesView) return `Chronolog · Notes · ${ALL_NOTES_LABEL}`;
 		const contractName = nav.listClientId
 			? (contractDirectory.clientName(nav.listClientId) ?? undefined)
 			: nav.selectedContractId

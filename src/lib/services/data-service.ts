@@ -42,6 +42,8 @@ export interface DataService {
 	getNotesForContract(contractId: string): Promise<NoteSummary[]>;
 	/** Every note of a client's contracts, pinned first (the client view, sprint 039-CL) */
 	getNotesForClient(clientId: string): Promise<NoteSummary[]>;
+	/** Every note of every contract, newest change first, pins not floated (all notes, 051-UI) */
+	getAllNotes(): Promise<NoteSummary[]>;
 	/** Pin or unpin; does not change the note's `updatedAt` (sprint 039-CL) */
 	setNotePinned(noteId: string, pinned: boolean): Promise<NotePinState>;
 	getNoteById(noteId: string): Promise<NoteDetail>;

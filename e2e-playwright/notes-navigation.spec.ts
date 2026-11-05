@@ -46,9 +46,10 @@ test('wiki-links, "Linked from" chips and search open notes in their own contrac
 	await expectSidebarSelected(page, 'General');
 	await expect(noteListItem(page, sourceTitle)).toBeVisible();
 
-	// Search result → other contract
-	await page.getByTestId('note-search-input').fill(targetTitle);
-	await page.getByTestId('note-search-results').getByText(targetTitle).click();
+	// Search hit (top-bar search; the note list's own box went in 051-UI) → other contract
+	await page.getByTestId('global-search-input').fill(targetTitle);
+	await page.getByTestId('global-search-input').press('Enter');
+	await page.getByTestId('search-hit-note').filter({ hasText: targetTitle }).first().click();
 	await expect.poll(() => openNoteId(page)).toBe(targetId);
 	await expectSidebarSelected(page, otherContract);
 });
@@ -63,7 +64,7 @@ test('moving a note keeps it open under its new contract', async ({ page }) => {
 	const title = `Moving ${suffix}`;
 	const noteId = await createNote(page, title);
 
-	await page.getByRole('button', { name: 'Move ▾' }).click();
+	await page.getByRole('button', { name: 'Move', exact: true }).click();
 	await page.locator('[data-move-menu]').getByRole('button', { name: new RegExp(destination) }).click();
 
 	await expect(page.getByTestId('move-feedback')).toContainText(destination);

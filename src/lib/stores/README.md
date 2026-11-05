@@ -45,9 +45,11 @@ The URL is the state. `createNavigationState` parses the URL it is given, and `s
 
 Each action is a URL write. Every navigation is a step (sprint 050-UI): mode, contract, client and note changes and each week paged (`selectWeek`) or jumped to (`showTimeEntryDay` on another week) push a history entry. Closing a note, a draft turning into a saved note, a note getting its real ID (`selectNote(…, { replace: true })`), moving a note and URL corrections replace the current entry. Typing never navigates. The rules are listed in `docs/ux/09-navigation-state.md`.
 
-`mobileNavigationLevel` is not stored. It is derived from the route (`mobileLevelFor` in `navigation-routes.ts`): home is 0, the timesheet or a note list (a contract's or a client's) is 1, and a note or a draft is 2.
+`mobileNavigationLevel` is not stored. It is derived from the route (`mobileLevelFor` in `navigation-routes.ts`): home is 0, the timesheet or a note list (a contract's, a client's or all notes) is 1, and a note or a draft is 2.
 
 The client view (sprint 039-CL): `selectClient(clientId)` opens one client's notes across its contracts; `listClientId` names that client (null otherwise) and `selectedClientId` returns it. Inside it, `selectNote(noteId, contractId)` and `openDraft(contractId)` take the note's contract (it is in the URL, so the editor's "note under its own contract" rule still holds), and `openNote` keeps the client view when the note belongs to the viewed client (a link to another client's note leaves it). Closing a note returns to the client list.
+
+All notes (sprint 051-UI): `selectAllNotes()` pushes `/notes/all`, every note of every contract (the sidebar's "Notes" heading); `isAllNotesView` is true there. It works like the client view without a client: `/notes/all/<contract>/<note|new>` opens a note or draft with all notes as the list, `selectNote` / `openDraft` take the contract, `openNote` stays in the view for any note, and closing a note returns to `/notes/all`. Labelled "All notes" for Back / Forward and the phone title (`navigation-labels.ts`).
 
 Back and Forward (sprint 050-UI): `canGoBack` / `canGoForward` say whether an in-app entry is behind or ahead, `previousPath` / `nextPath` name it (the buttons build their labels from these), and `goBack()` / `goForward()` call the adapter's `back` / `forward` only then, so they never leave the app. Each call is counted as a pending move until it lands, so quick repeated presses stop at the ends too.
 

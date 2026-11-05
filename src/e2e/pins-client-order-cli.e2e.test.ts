@@ -2,7 +2,7 @@
  * Sprint 039-CL: pinned notes and the client order through the `chronolog` CLI against the live
  * server. `note pin` puts an older note on top of `notes` with a pin marker (the browser's list
  * order), keeps its `updatedAt`, and `note unpin` puts it back; `GET /api/notes?clientId=` lists the
- * client's contracts together; `client edit --order` moves a client in the order the sidebar uses
+ * client's contracts together (`?all=true` every note, sprint 051-UI); `client edit --order` moves a client in the order the sidebar uses
  * (`/api/clients` and `clientSortOrder` in `/api/contracts-by-client`).
  */
 import './test-init';
@@ -100,6 +100,20 @@ describe('note pin / unpin through the CLI', () => {
 		expect(ids[0]).toBe(noteIds[1]);
 		expect(ids).toContain(elsewhere);
 		expect(new Set(notes.map((note: { contractId: string }) => note.contractId))).toEqual(new Set([firstContractId, secondContractId]));
+	});
+
+	it('GET /api/notes?all=true lists every note, newest change first, pins not floated (sprint 051-UI)', async () => {
+		const { notes } = await getJson('/api/notes?all=true');
+		const updatedTimes = notes.map((note: { updatedAt: string }) => new Date(note.updatedAt).getTime());
+		expect(updatedTimes).toEqual([...updatedTimes].sort((left, right) => right - left));
+		const ids = notes.map((note: { id: string }) => note.id);
+		expect(ids).toEqual(expect.arrayContaining(noteIds));
+		// noteIds[1] is pinned but older than the note made in the other contract
+		expect(notes.find((note: { id: string }) => note.id === noteIds[1]).isPinned).toBe(true);
+		expect(ids.indexOf(noteIds[1])).toBeGreaterThan(ids.indexOf(noteIds[2]));
+		// Still an explicit opt-in: no filter is 400, and all=true does not mix with a filter
+		expect((await authGet('/api/notes')).status).toBe(400);
+		expect((await authGet(`/api/notes?all=true&clientId=${clientId}`)).status).toBe(400);
 	});
 });
 

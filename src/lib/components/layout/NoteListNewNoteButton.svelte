@@ -1,7 +1,8 @@
 <!--
 	NoteListNewNoteButton — the note list's New Note (sprint 039-CL split). Under a contract it starts
 	a draft for that contract. In the client view a client with one contract uses it; with several,
-	the button opens a small menu asking which contract the note is for.
+	the button opens a small menu asking which contract the note is for. In all notes (051-UI) the
+	menu lists every active contract, each named "Client · Contract" (`withClientNames`).
 -->
 <script lang="ts">
 	import type { ContractsByClientResult } from '$lib/services/types';
@@ -9,12 +10,15 @@
 	let {
 		contractId,
 		clientContracts,
+		withClientNames = false,
 		onCreate
 	}: {
 		/** The list's contract; null in the client view */
 		contractId: string | null;
 		/** The viewed client's contracts (client view only) */
 		clientContracts: ContractsByClientResult[];
+		/** Name each menu item "Client · Contract" (the list spans several clients) */
+		withClientNames?: boolean;
 		onCreate: (contractId: string) => void;
 	} = $props();
 
@@ -70,7 +74,7 @@
 			tabindex="-1"
 			aria-label="New note for which contract?"
 			onkeydown={handleMenuKeydown}
-			class="absolute right-0 z-30 mt-1 w-56 rounded-md border border-stone-200 bg-white py-1 shadow-lg"
+			class="absolute right-0 z-30 mt-1 max-h-80 w-64 overflow-y-auto rounded-md border border-stone-200 bg-white py-1 shadow-lg"
 			data-testid="new-note-contract-menu"
 		>
 			<p class="px-3 py-1 text-[11px] font-semibold uppercase text-stone-400">New note for</p>
@@ -81,7 +85,7 @@
 					onclick={() => choose(contract.id)}
 					class="block w-full truncate px-3 py-1.5 text-left text-sm text-stone-700 hover:bg-stone-100 focus:bg-stone-100 focus:outline-none"
 				>
-					{contract.name}
+					{withClientNames ? `${contract.clientName} · ${contract.name}` : contract.name}
 				</button>
 			{/each}
 		</div>

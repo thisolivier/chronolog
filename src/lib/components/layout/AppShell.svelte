@@ -9,7 +9,7 @@
 	import { requestFindInPage } from '$lib/components/find/shortcuts';
 	import { labelForPath, titleForRoute } from './navigation-labels';
 	import { requestNoteTitles, subscribeToNoteTitles } from '$lib/components/notes/note-titles.svelte';
-	import { parseWorkspacePath } from '$lib/stores/navigation-routes';
+	import { isNoteListRoute, parseWorkspacePath } from '$lib/stores/navigation-routes';
 
 	interface Props {
 		panel1: Snippet;
@@ -110,7 +110,7 @@
 	$effect(() => subscribeToNoteTitles(() => titleCacheVersion++));
 	$effect(() => {
 		const previous = parseWorkspacePath(navigationContext.backTarget.path, '');
-		if ((previous?.kind === 'notes' || previous?.kind === 'client') && previous.noteId) requestNoteTitles([previous.noteId]);
+		if (previous && isNoteListRoute(previous) && previous.noteId) requestNoteTitles([previous.noteId]);
 	});
 	const backLabel = $derived.by(() => {
 		void titleCacheVersion;

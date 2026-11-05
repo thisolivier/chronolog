@@ -45,7 +45,7 @@ test.describe('Offline Simulation (Chromium only)', () => {
 
 		// The sidebar should still be functional
 		await expect(page.getByRole('button', { name: 'Time Entries' })).toBeVisible();
-		await expect(page.getByText('Contracts', { exact: true })).toBeVisible();
+		await expect(page.getByTestId('sidebar-notes-heading')).toBeVisible();
 
 		// Go back online
 		await context.setOffline(false);
@@ -148,7 +148,7 @@ test.describe('Offline Simulation (Chromium only)', () => {
 		// Reload to force fresh data fetch — proves the connection is restored
 		await page.reload();
 		await expect(page.getByRole('button', { name: 'Time Entries' })).toBeVisible({ timeout: 10000 });
-		await expect(page.getByText('Contracts', { exact: true })).toBeVisible();
+		await expect(page.getByTestId('sidebar-notes-heading')).toBeVisible();
 
 		// Data should load successfully
 		const generalContract = page.getByText('General').first();

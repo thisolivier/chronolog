@@ -2,7 +2,7 @@
 	SidebarClientGroup — one client in the contracts sidebar (sprint 026 grouping, 033 collapse).
 	Two or more contracts: the client heading with the contracts indented under it. The heading is the
 	client's name with its colour dot, which opens the client view (`/notes/client/<id>`), and at the
-	right edge a chevron (collapse; sprint 039-CL), lined up under the Contracts heading's + (049-UI).
+	right edge a chevron (collapse; sprint 039-CL), in one column with the Archived chevron (051-UI).
 	A collapsed client still shows its open contract.
 	Exactly one contract: a single row at the client's indent with the dot, the contract name and
 	the client name beneath it in small muted text, so a scan down the dots still reads by client.

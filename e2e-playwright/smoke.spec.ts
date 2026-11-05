@@ -49,9 +49,9 @@ test.describe('Authenticated', () => {
 		// Should NOT redirect to /login
 		await expect(page).not.toHaveURL(/\/login/);
 
-		// The sidebar should show "Time Entries" button and "Contracts" heading
+		// The sidebar should show "Time Entries" button and the "Notes" heading (051-UI)
 		await expect(page.getByRole('button', { name: 'Time Entries' })).toBeVisible({ timeout: 10000 });
-		await expect(page.getByText('Contracts', { exact: true })).toBeVisible();
+		await expect(page.getByTestId('sidebar-notes-heading')).toBeVisible();
 	});
 
 	test('sidebar shows the auto-created "General" contract', async ({ page }) => {
