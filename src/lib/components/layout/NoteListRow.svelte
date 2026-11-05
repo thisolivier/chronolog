@@ -2,7 +2,8 @@
 	NoteListRow — one note in the note list (split out of NoteListPanel, sprint 039-CL).
 	The row opens the note; the pin button on its right pins or unpins it. When pinned the pin
 	stays visible and is the row's marker; unpinned it shows on hover or focus (always faintly on
-	touch screens). `contractName` is shown in the client view, where rows come from several contracts.
+	touch screens). `contractName` is shown in the client view, where rows come from several contracts;
+	in all notes (051-UI) it is "Client · Contract" on its own line (`contractOnOwnLine`), so the date stays visible.
 -->
 <script lang="ts">
 	import { formatSmartDate } from '$lib/utils/format-date';
@@ -14,6 +15,7 @@
 		isSelected,
 		dateField,
 		contractName = null,
+		contractOnOwnLine = false,
 		onOpen,
 		onTogglePin
 	}: {
@@ -21,6 +23,7 @@
 		isSelected: boolean;
 		dateField: 'createdAt' | 'updatedAt';
 		contractName?: string | null;
+		contractOnOwnLine?: boolean;
 		onOpen: (note: NoteSummary) => void;
 		onTogglePin: (note: NoteSummary) => void;
 	} = $props();
@@ -39,8 +42,11 @@
 				<span class="truncate text-sm font-semibold text-stone-900">{title}</span>
 				<OutboxMarker resourceKey="note:{note.id}" otherKey={note.clientRequestId ? `note:${note.clientRequestId}` : null} />
 			</span>
+			{#if contractName && contractOnOwnLine}
+				<div class="truncate text-xs font-medium text-stone-600" data-testid="note-row-contract">{contractName}</div>
+			{/if}
 			<div class="truncate text-xs text-stone-500">
-				{#if contractName}
+				{#if contractName && !contractOnOwnLine}
 					<span class="mr-1.5 font-medium text-stone-600" data-testid="note-row-contract">{contractName}</span>
 				{/if}
 				<span class="font-medium">{formatSmartDate(note[dateField])}</span>

@@ -9,6 +9,8 @@
  *   /notes/client/<clientId>                        one client's notes, all contracts (039-CL)
  *   /notes/client/<clientId>/<contractId>/<noteId>  a note open with the client view as the list
  *   /notes/client/<clientId>/<contractId>/new       a draft for that contract, client view as the list
+ *   /notes/all                        every note of every contract, newest first, no pin float (051-UI)
+ *   /notes/all/<contractId>/<noteId>  a note open with all notes as the list (`/new`: a draft)
  *   /notes/trash                      not a workspace URL: the trash page (043-CL)
  */
 import { getIsoWeekNumber, getIsoYear, getMondayOfIsoWeek, getMondayOfWeek } from '$lib/utils/iso-week';
@@ -18,10 +20,16 @@ export type WorkspaceRoute =
 	| { kind: 'time'; week: string }
 	| { kind: 'notes'; contractId: string; noteId: string | null; draft: boolean }
 	/** The client view (sprint 039-CL): `contractId` is the open note's or draft's, null on the list */
-	| { kind: 'client'; clientId: string; contractId: string | null; noteId: string | null; draft: boolean };
+	| { kind: 'client'; clientId: string; contractId: string | null; noteId: string | null; draft: boolean }
+	/** All notes (sprint 051-UI): `contractId` is the open note's or draft's, null on the list */
+	| { kind: 'all'; contractId: string | null; noteId: string | null; draft: boolean };
 
 /** Path segment of the client view, `/notes/client/<id>` (contract IDs are UUIDs, never `client`) */
 export const CLIENT_SEGMENT = 'client';
+
+/** Path segment of the all-notes view, `/notes/all` (sprint 051-UI; never a contract UUID) */
+export const ALL_NOTES_SEGMENT = 'all';
+export const ALL_NOTES_PATH = `/notes/${ALL_NOTES_SEGMENT}`;
 
 /** Path of the trash page (sprint 043-CL); `trash` is never a contract UUID */
 export const TRASH_SEGMENT = 'trash';
@@ -74,6 +82,12 @@ export function parseWorkspacePath(pathname: string, fallbackWeek: string): Work
 		const draft = segments[4] === DRAFT_SEGMENT;
 		return { kind: 'client', clientId: segments[2], contractId: segments[3], noteId: draft ? null : segments[4], draft };
 	}
+	if (segments[0] === 'notes' && segments[1] === ALL_NOTES_SEGMENT) {
+		if (segments.length === 2) return { kind: 'all', contractId: null, noteId: null, draft: false };
+		if (segments.length !== 4) return null;
+		const draft = segments[3] === DRAFT_SEGMENT;
+		return { kind: 'all', contractId: segments[2], noteId: draft ? null : segments[3], draft };
+	}
 	if (segments[0] === 'notes' && (segments.length === 2 || segments.length === 3)) {
 		const contractId = segments[1];
 		const noteSegment = segments[2] ?? null;
@@ -100,12 +114,19 @@ export function buildWorkspacePath(route: WorkspaceRoute): string {
 			const contractBase = `${base}/${encodeURIComponent(route.contractId)}`;
 			return route.draft ? `${contractBase}/${DRAFT_SEGMENT}` : `${contractBase}/${encodeURIComponent(route.noteId ?? '')}`;
 		}
+		case 'all': {
+			if (!route.contractId || (!route.noteId && !route.draft)) return ALL_NOTES_PATH;
+			const contractBase = `${ALL_NOTES_PATH}/${encodeURIComponent(route.contractId)}`;
+			return route.draft ? `${contractBase}/${DRAFT_SEGMENT}` : `${contractBase}/${encodeURIComponent(route.noteId ?? '')}`;
+		}
 	}
 }
 
-/** The list a route shows: a contract's notes, a client's notes (039-CL), or none */
-export function isNoteListRoute(route: WorkspaceRoute): route is Extract<WorkspaceRoute, { kind: 'notes' | 'client' }> {
-	return route.kind === 'notes' || route.kind === 'client';
+/** The list a route shows: a contract's notes, a client's notes (039-CL), all notes (051-UI), or none */
+export function isNoteListRoute(
+	route: WorkspaceRoute
+): route is Extract<WorkspaceRoute, { kind: 'notes' | 'client' | 'all' }> {
+	return route.kind === 'notes' || route.kind === 'client' || route.kind === 'all';
 }
 
 /** Phone drill-down depth: home = sidebar (0); timesheet or note list = 1; a note or draft = 2 */
@@ -115,13 +136,16 @@ export function mobileLevelFor(route: WorkspaceRoute): 0 | 1 | 2 {
 	return 1;
 }
 
-/** One level up: note -> its contract's (or client's) list; list or timesheet -> home */
+/** One level up: note -> its contract's (or client's, or all notes) list; list or timesheet -> home */
 export function parentRoute(route: WorkspaceRoute): WorkspaceRoute {
 	if (route.kind === 'notes' && (route.noteId || route.draft)) {
 		return { kind: 'notes', contractId: route.contractId, noteId: null, draft: false };
 	}
 	if (route.kind === 'client' && (route.noteId || route.draft)) {
 		return { kind: 'client', clientId: route.clientId, contractId: null, noteId: null, draft: false };
+	}
+	if (route.kind === 'all' && (route.noteId || route.draft)) {
+		return { kind: 'all', contractId: null, noteId: null, draft: false };
 	}
 	return { kind: 'home' };
 }

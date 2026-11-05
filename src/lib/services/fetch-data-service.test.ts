@@ -351,6 +351,12 @@ describe('FetchDataService', () => {
 			expect(getLastFetchCall(mockFetch)[0]).toBe('/api/notes?clientId=client%201');
 		});
 
+		it('getAllNotes calls GET /api/notes?all=true and unwraps .notes', async () => {
+			mockFetch.mockResolvedValueOnce(mockJsonResponse({ notes: [{ id: 'n1' }] }));
+			expect(await service.getAllNotes()).toEqual([{ id: 'n1' }]);
+			expect(getLastFetchCall(mockFetch)[0]).toBe('/api/notes?all=true');
+		});
+
 		it('setNotePinned calls PUT /api/notes/:id/pin with { pinned }', async () => {
 			const pinState = { id: 'n1', contractId: 'c1', isPinned: true, pinnedAt: '2026-11-04T10:00:00Z' };
 			mockFetch.mockResolvedValueOnce(mockJsonResponse({ note: pinState }));
@@ -969,6 +975,7 @@ describe('DataService interface completeness', () => {
 		'reorderClients',
 		'getNotesForContract',
 		'getNotesForClient',
+		'getAllNotes',
 		'setNotePinned',
 		'getNoteById',
 		'createNote',

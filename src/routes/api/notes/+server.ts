@@ -13,12 +13,14 @@ import { isCalendarDate, localDateString, noonInTimezone } from '$lib/utils/loca
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * GET /api/notes[?contractId=X | ?clientId=X][&updatedSince=ISO-8601]
+ * GET /api/notes[?contractId=X | ?clientId=X | ?all=true][&updatedSince=ISO-8601]
  *
  * Lists the user's notes (one contract's when `contractId` is given, every contract of one client
  * when `clientId` is given (sprint 039-CL); only those changed after `updatedSince` when given),
  * pinned first (most recently pinned on top), then by updatedAt desc. At least one filter is
- * required. Notes without TipTap JSON (created over the API) preview from their markdown.
+ * required; `all=true` (sprint 051-UI) is the explicit opt-in for every note of every contract,
+ * active and archived, newest change first with pins not floated (the all-notes view). Like the
+ * other filters it is not paginated. Notes without TipTap JSON (created over the API) preview from their markdown.
  */
 export const GET: RequestHandler = async ({ locals, url }) => {
 	const currentUser = locals.user;
@@ -27,8 +29,12 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	const contractId = url.searchParams.get('contractId') ?? undefined;
 	const clientId = url.searchParams.get('clientId') ?? undefined;
 	const updatedSinceParam = url.searchParams.get('updatedSince');
-	if (!contractId && !clientId && !updatedSinceParam) {
-		return apiError(400, 'contractId, clientId or updatedSince is required', 'bad_request');
+	const allNotes = url.searchParams.get('all') === 'true';
+	if (!contractId && !clientId && !updatedSinceParam && !allNotes) {
+		return apiError(400, 'contractId, clientId, all=true or updatedSince is required', 'bad_request');
+	}
+	if (allNotes && (contractId || clientId)) {
+		return apiError(400, 'all=true cannot be combined with contractId or clientId', 'bad_request');
 	}
 	if (contractId && !UUID_PATTERN.test(contractId)) {
 		return apiError(400, 'contractId must be a UUID', 'invalid_contract');
@@ -44,7 +50,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 		}
 	}
 
-	const notesList = await listNotesForUser(currentUser.id, { contractId, clientId, updatedSince });
+	const notesList = await listNotesForUser(currentUser.id, { contractId, clientId, updatedSince, newestFirst: allNotes });
 	// Wiki-links in titles and previews read as their target's title (sprint 043-CL)
 	const previewOptions = await wikiLinkPreviewOptions(currentUser.id, notesList);
 

@@ -1,10 +1,12 @@
 <!--
-	Note editor header: note ID, save status, and the Move / Export / Delete actions.
+	Note editor header: note ID (click to copy, 051-UI), save status (a fixed-width pill), and the
+	Move / Export / Delete actions (menus without chevrons since 051-UI; `aria-haspopup` says so).
 	Delete asks for confirmation inline (no native confirm(), which Tauri can suppress).
 -->
 <script lang="ts">
 	import { getDataService } from '$lib/services/context';
 	import SaveStatusIndicator from './SaveStatusIndicator.svelte';
+	import NoteCodeCopyButton from './NoteCodeCopyButton.svelte';
 	import OutboxMarker from '$lib/offline/OutboxMarker.svelte';
 	import type { SaveStatus } from './note-autosave';
 	import type { ContractOption } from '$lib/services/types';
@@ -73,14 +75,18 @@
 	class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-b border-stone-200 bg-white px-4 py-2"
 	data-testid="note-editor-header"
 >
-	<div class="flex min-w-0 items-center gap-3">
+	<div class="flex min-w-0 items-center gap-3 max-md:gap-2">
 		{#if contractLabel}
-			<span class="truncate text-xs text-stone-600" data-testid="note-editor-context">
+			<span class="min-w-0 truncate text-xs text-stone-600" data-testid="note-editor-context">
 				{contractLabel.clientName} <span class="text-stone-400">/</span>
 				<span class="font-medium text-stone-800">{contractLabel.name}</span>
 			</span>
 		{/if}
-		<span class="truncate font-mono text-xs text-stone-400">{noteId ?? 'New note'}</span>
+		{#if noteId}
+			<NoteCodeCopyButton noteCode={noteId} />
+		{:else}
+			<span class="truncate font-mono text-xs text-stone-400">New note</span>
+		{/if}
 		<SaveStatusIndicator status={saveStatus} isDraft={!noteId} />
 		{#if noteId}<OutboxMarker resourceKey="note:{noteId}" />{/if}
 		{#if saveStatus === 'conflict' && onReload}
@@ -122,8 +128,15 @@
 	{:else}
 		<div class="flex items-center gap-1">
 			<div class="relative" data-move-menu>
-				<button type="button" onclick={toggleMoveMenu} disabled={!noteId} class={menuButtonClass}>
-					Move ▾
+				<button
+					type="button"
+					onclick={toggleMoveMenu}
+					disabled={!noteId}
+					class={menuButtonClass}
+					aria-haspopup="menu"
+					aria-expanded={openMenu === 'move'}
+				>
+					Move
 				</button>
 				{#if openMenu === 'move'}
 					<div class="absolute right-0 top-full z-10 mt-1 w-56 max-w-[calc(100vw-2rem)] rounded-md max-md:right-auto max-md:left-0 border border-stone-200 bg-white py-1 shadow-lg">
@@ -155,8 +168,10 @@
 					onclick={() => (openMenu = openMenu === 'export' ? null : 'export')}
 					disabled={!noteId}
 					class={menuButtonClass}
+					aria-haspopup="menu"
+					aria-expanded={openMenu === 'export'}
 				>
-					Export ▾
+					Export
 				</button>
 				{#if openMenu === 'export'}
 					<div class="absolute right-0 top-full z-10 mt-1 w-44 rounded-md max-md:right-auto max-md:left-0 border border-stone-200 bg-white py-1 shadow-lg">

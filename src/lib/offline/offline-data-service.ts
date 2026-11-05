@@ -234,6 +234,10 @@ export class OfflineDataService extends FetchDataService {
 		return this.projectedList(() => super.getNotesForClient(clientId), (contractId) => clientContracts.has(contractId));
 	}
 
+	async getAllNotes(): Promise<NoteSummary[]> {
+		return this.projectedList(() => super.getAllNotes(), () => true);
+	}
+
 	private async projectedList(
 		load: () => Promise<NoteSummary[]>,
 		includesContract: (contractId: string) => boolean

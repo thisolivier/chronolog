@@ -34,5 +34,7 @@ backed by `GET /api/search` (`src/lib/server/db/queries/global-search.ts`). The 
 - **search-types.ts** — client shapes of the response, `fetchGlobalSearch()`, and
   `fetchClientColorIndexes()` (`GET /api/clients`, once per page, for the colour dots).
 
-A note hit opens through `navigation.openNote()`, like any other note link. The per-contract
-"Search all notes" box in the note list (`/api/notes/search`) is separate and unchanged.
+A note hit opens through `navigation.openNote()`, like any other note link. This is the app's only
+search box: the note list's own "Search all notes" box was removed in sprint 051-UI (owner
+request). `/api/notes/search` stays: the `[[` wiki-link suggestions and the time entry
+description's link input use it.

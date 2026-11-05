@@ -9,6 +9,9 @@ import { getIsoWeekNumber } from '$lib/utils/iso-week';
 
 const MAX_LABEL_LENGTH = 24;
 
+/** The all-notes view's name (sprint 051-UI): Back / Forward labels, phone title, page title */
+export const ALL_NOTES_LABEL = 'All notes';
+
 function shorten(label: string): string {
 	return label.length > MAX_LABEL_LENGTH ? `${label.slice(0, MAX_LABEL_LENGTH - 1)}…` : label;
 }
@@ -20,6 +23,7 @@ export function labelForRoute(route: WorkspaceRoute): string {
 	if (route.draft) return 'New note';
 	if (route.noteId) return shorten(getCachedNoteTitle(route.noteId)?.displayTitle || 'Note');
 	if (route.kind === 'client') return shorten(contractDirectory.clientName(route.clientId) ?? 'Notes');
+	if (route.kind === 'all') return ALL_NOTES_LABEL;
 	return shorten(contractDirectory.labels[route.contractId]?.name ?? 'Notes');
 }
 
@@ -36,7 +40,7 @@ export function labelForPath(path: string, fallbackWeek: string): string {
 /** The note a history entry shows, so its title can be fetched for the label */
 export function noteIdOfPath(path: string | null): string | null {
 	const route = path ? parseWorkspacePath(path, '') : null;
-	return route && (route.kind === 'notes' || route.kind === 'client') ? route.noteId : null;
+	return route && route.kind !== 'home' && route.kind !== 'time' ? route.noteId : null;
 }
 
 /** Phone title bar: where you are */
@@ -44,5 +48,6 @@ export function titleForRoute(route: WorkspaceRoute): string {
 	if (route.kind === 'home') return 'Chronolog';
 	if (route.kind === 'time') return `Time entries · Week ${getIsoWeekNumber(route.week)}`;
 	if (route.kind === 'client') return contractDirectory.clientName(route.clientId) ?? 'Notes';
+	if (route.kind === 'all') return ALL_NOTES_LABEL;
 	return contractDirectory.contextLabel(route.contractId) ?? 'Notes';
 }

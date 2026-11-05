@@ -82,6 +82,10 @@ export class DelegatingDataService implements DataService {
 		return this.delegate.getNotesForClient(clientId);
 	}
 
+	getAllNotes(): Promise<NoteSummary[]> {
+		return this.delegate.getAllNotes();
+	}
+
 	setNotePinned(noteId: string, pinned: boolean): Promise<NotePinState> {
 		return this.delegate.setNotePinned(noteId, pinned);
 	}

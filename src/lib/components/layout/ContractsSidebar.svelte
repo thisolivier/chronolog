@@ -3,11 +3,10 @@
 	import { getDataService } from '$lib/services/context';
 	import { tick } from 'svelte';
 	import TimerWidget from '$lib/components/timer/TimerWidget.svelte';
-	import ContractCreateModal from '$lib/components/admin/ContractCreateModal.svelte';
 	import SidebarClientGroup from './SidebarClientGroup.svelte';
 	import SidebarArchivedSection from './SidebarArchivedSection.svelte';
-	import SidebarTrashLink from './SidebarTrashLink.svelte';
-	import type { ClientSummary } from '$lib/services/types';
+	import SidebarUtilityLinks from './SidebarUtilityLinks.svelte';
+	import { CLIENTS_SETTINGS_HREF } from '$lib/components/onboarding/first-run';
 	import { NOTES_CHANGED_EVENT } from '$lib/services/notes-changed-event';
 	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
 	import { browserLocalStorage } from './archived-section-state';
@@ -17,10 +16,8 @@
 	const navigationContext = getNavigationContext();
 	const dataService = getDataService();
 
-	let allClients = $state<ClientSummary[]>([]);
 	let isLoading = $state(true);
 	let errorMessage = $state('');
-	let showCreateModal = $state(false);
 	let navigationElement = $state<HTMLElement | null>(null);
 
 	// Active clients, then one Archived item; the directory store decides which is which (033)
@@ -84,18 +81,8 @@
 		};
 	});
 
-	async function loadClients() {
-		try {
-			allClients = await dataService.getClients();
-		} catch (error) {
-			// Client loading failure is non-critical; the modal will just have an empty dropdown
-			console.error('Failed to load clients:', error);
-		}
-	}
-
 	$effect(() => {
 		loadContracts();
-		loadClients();
 	});
 
 	// Bring a newly selected row on screen (a deep link, a followed link, an archived contract),
@@ -132,19 +119,13 @@
 		navigationContext.selectClient(clientId);
 	}
 
-	function handleContractCreated(created?: { id: string; clientId: string }) {
-		showCreateModal = false;
-		if (created) navigationContext.selectContract(created.id, created.clientId);
-		// Reload the contracts list and clients list
-		isLoading = true;
-		loadContracts();
-		loadClients();
-	}
+	// The "Notes" heading opens all notes (051-UI); highlighted while that list is shown
+	const isAllNotesHighlighted = $derived(navigationContext.isAllNotesView);
 </script>
 
 <div class="flex h-full flex-col">
 	<!-- Navigation Section (scrollable) -->
-	<div class="flex-1 overflow-y-auto p-3" bind:this={navigationElement}>
+	<div class="flex-1 overflow-y-auto p-3" bind:this={navigationElement} data-testid="sidebar-scroll">
 		<!-- Time Entries Link -->
 		<button
 			onclick={handleTimeEntriesClick}
@@ -156,22 +137,20 @@
 			Time Entries
 		</button>
 
-		<!-- Contracts heading; its + lines up with the client chevrons below (049-UI) -->
-		<div class="mb-2 flex items-center justify-between pr-1 pl-3">
-			<span class="text-xs font-semibold uppercase text-stone-400">Contracts</span>
-			<button
-				type="button"
-				onclick={() => (showCreateModal = true)}
-				class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-stone-400 hover:bg-stone-100 hover:text-stone-600 pointer-coarse:-my-3 pointer-coarse:h-11 pointer-coarse:w-8"
-				aria-label="New contract"
-				title="New contract"
-				data-testid="sidebar-new-contract"
-			>
-				<svg class="h-3 w-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-					<path d="M6 2v8M2 6h8" stroke-linecap="round" />
-				</svg>
-			</button>
-		</div>
+		<!-- "Notes" heading: opens every note, newest first (051-UI). New contracts are made in
+		     Settings (the 049 `+` was removed at the owner's request) -->
+		<button
+			type="button"
+			onclick={() => navigationContext.selectAllNotes()}
+			class="mb-1 flex w-full items-center rounded-md px-3 py-1 text-left text-xs font-semibold uppercase transition-colors pointer-coarse:py-3 {isAllNotesHighlighted
+				? 'bg-blue-50 text-blue-700'
+				: 'text-stone-400 hover:bg-stone-100 hover:text-stone-600'}"
+			aria-current={isAllNotesHighlighted ? 'page' : undefined}
+			title="All notes, newest first"
+			data-testid="sidebar-notes-heading"
+		>
+			Notes
+		</button>
 
 		<!-- Contracts grouped by client; a one-contract client is a single row -->
 		{#if isLoading}
@@ -183,7 +162,8 @@
 		{:else}
 			{#if sections.activeGroups.length === 0}
 				<div class="px-3 py-4 text-xs text-stone-500">
-					No {sections.archivedContractCount > 0 ? 'active ' : ''}contracts yet. Use <span class="font-medium">+</span> next to Contracts.
+					No {sections.archivedContractCount > 0 ? 'active ' : ''}contracts yet. Add one in
+					<a href={CLIENTS_SETTINGS_HREF} class="font-medium text-blue-700 underline hover:text-blue-900">Settings → Clients and contracts</a>.
 				</div>
 			{/if}
 			{#each sections.activeGroups as group (group.clientId)}
@@ -207,33 +187,13 @@
 					onSelect={handleContractClick}
 				/>
 			{/if}
-			<SidebarTrashLink withDivider={sections.archivedContractCount === 0} />
+			<SidebarUtilityLinks withDivider={sections.archivedContractCount === 0} />
 		{/if}
 		<p class="sr-only" aria-live="polite" data-testid="sidebar-reorder-announcement">{clientReorder.announcement}</p>
-	</div>
-
-	<!-- Action buttons just above the timer -->
-	<div class="flex-shrink-0 border-t border-stone-200 px-3 py-1.5">
-		<a
-			href="/settings"
-			class="block w-full px-3 py-1 text-left text-xs text-stone-500 hover:text-stone-700 pointer-coarse:py-3.5"
-		>
-			Settings
-		</a>
 	</div>
 
 	<!-- Timer Widget at Bottom -->
 	<div class="flex-shrink-0 border-t border-stone-200 p-3">
 		<TimerWidget />
 	</div>
-
-	<!-- Contract Create Modal -->
-	{#if showCreateModal}
-		<ContractCreateModal
-			clients={allClients}
-			initialClientId={navigationContext.selectedClientId}
-			onCreated={handleContractCreated}
-			onClose={() => (showCreateModal = false)}
-		/>
-	{/if}
 </div>

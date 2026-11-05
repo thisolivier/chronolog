@@ -88,6 +88,8 @@ export interface NavigationContext {
 	selectedNoteId: string | null;
 	/** The client whose notes the list shows (`/notes/client/<id>`, sprint 039-CL), else null */
 	listClientId: string | null;
+	/** The list shows every note (`/notes/all`, sprint 051-UI) */
+	isAllNotesView: boolean;
 	panel1Collapsed: boolean;
 	mobileNavigationLevel: MobileNavigationLevel;
 
@@ -118,6 +120,8 @@ export interface NavigationContext {
 	selectContract: (contractId: string, clientId: string) => void;
 	/** Show one client's notes across its contracts (the client view, sprint 039-CL) */
 	selectClient: (clientId: string) => void;
+	/** Show every note of every contract, newest first (the sidebar's "Notes" heading, 051-UI) */
+	selectAllNotes: () => void;
 	selectWeek: (weekStart: string) => void;
 	/** Open a note of the current list; in the client view pass the note's contract */
 	selectNote: (noteId: string, contractId?: string, options?: { replace?: boolean }) => void;
@@ -349,13 +353,15 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 
 	/**
 	 * Where a note of `contractId` opens: inside the client view while it shows that contract's
-	 * client (039-CL), else under its contract.
+	 * client (039-CL) or all notes (051-UI), else under its contract.
 	 */
 	const noteRoute = (contractId: string, noteId: string | null, draft: boolean, clientId?: string): WorkspaceRoute => {
 		const route = state.route;
 		if (route.kind === 'client' && (clientId || clientOfContract(contractId)) === route.clientId) {
 			return { kind: 'client', clientId: route.clientId, contractId, noteId, draft };
 		}
+		// All notes (051-UI) holds every contract's notes, so a note opened from it stays there
+		if (route.kind === 'all') return { kind: 'all', contractId, noteId, draft };
 		return { kind: 'notes', contractId, noteId, draft };
 	};
 	const selectedWeek = () => (state.route.kind === 'time' ? state.route.week : state.lastWeek);
@@ -380,6 +386,10 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		go({ kind: 'client', clientId, contractId: null, noteId: null, draft: false }, { replace: false });
 	};
 
+	const selectAllNotes = () => {
+		go({ kind: 'all', contractId: null, noteId: null, draft: false }, { replace: false });
+	};
+
 	const selectWeek = (weekStart: string) => {
 		state.lastWeek = weekStart;
 		// Inside the timesheet each week paged is a step (050-UI); elsewhere it only sets the week
@@ -393,7 +403,7 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		const route = state.route;
 		// A draft that was just saved becomes that note in place (Back skips the empty draft)
 		const replace = actionOptions.replace ?? (isNoteListRoute(route) && route.draft);
-		if (route.kind === 'client') {
+		if (route.kind === 'client' || route.kind === 'all') {
 			const noteContractId = contractId ?? route.contractId;
 			if (!noteContractId) return;
 			go({ ...route, contractId: noteContractId, noteId, draft: false }, { replace });
@@ -417,7 +427,7 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 
 	const openDraft = (contractId?: string) => {
 		const route = state.route;
-		if (route.kind === 'client') {
+		if (route.kind === 'client' || route.kind === 'all') {
 			const draftContractId = contractId ?? route.contractId;
 			if (!draftContractId) return;
 			go({ ...route, contractId: draftContractId, noteId: null, draft: true }, { replace: route.draft });
@@ -537,6 +547,9 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		get listClientId() {
 			return listClientId();
 		},
+		get isAllNotesView() {
+			return state.route.kind === 'all';
+		},
 		get panel1Collapsed() {
 			return state.panel1Collapsed;
 		},
@@ -589,6 +602,7 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		selectTimeEntries,
 		selectContract,
 		selectClient,
+		selectAllNotes,
 		selectWeek,
 		selectNote,
 		openNote,

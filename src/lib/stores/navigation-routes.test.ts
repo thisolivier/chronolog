@@ -233,3 +233,24 @@ describe('client view paths (sprint 039-CL)', () => {
 		expect(parentRoute(list)).toEqual({ kind: 'home' });
 	});
 });
+
+describe('all-notes paths (sprint 051-UI)', () => {
+	const CONTRACT = '11111111-1111-4111-8111-111111111111';
+	it('round-trips the list, a note and a draft', () => {
+		for (const path of ['/notes/all', `/notes/all/${CONTRACT}/ACME.20261104.001`, `/notes/all/${CONTRACT}/new`]) {
+			const route = parseWorkspacePath(path, '2026-11-02');
+			expect(route?.kind).toBe('all');
+			expect(buildWorkspacePath(route!)).toBe(path);
+		}
+	});
+
+	it('rejects a half path, and goes up note -> all notes -> home', () => {
+		expect(parseWorkspacePath(`/notes/all/${CONTRACT}`, '2026-11-02')).toBeNull();
+		const note = parseWorkspacePath(`/notes/all/${CONTRACT}/ACME.1`, '2026-11-02')!;
+		expect(mobileLevelFor(note)).toBe(2);
+		const list = parentRoute(note);
+		expect(buildWorkspacePath(list)).toBe('/notes/all');
+		expect(mobileLevelFor(list)).toBe(1);
+		expect(parentRoute(list)).toEqual({ kind: 'home' });
+	});
+});

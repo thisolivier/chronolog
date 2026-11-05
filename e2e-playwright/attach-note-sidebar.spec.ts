@@ -6,8 +6,8 @@
  * - With the description editor open, the typed text is kept and gets the link.
  * - The running timer shows Attach note once it has a contract; it links the note in the timer's
  *   description and opens the note.
- * - The `+` right of "Contracts" opens New Contract; the client chevrons sit at the right edge,
- *   in one column under the `+` (same right edge, same box size), and still collapse.
+ * - The client chevrons sit at the right edge and still collapse. (The `+` New contract right of
+ *   the heading was removed in sprint 051-UI at the owner's request: contracts are made in Settings.)
  * Desktop (1280) and phone (390, touch) runs; each test signs up its own user
  * (`E2E_USER_PREFIX=qa-049`). Screenshots: `UPDATE_SPRINT_SCREENSHOTS=1` → docs/review/screenshots/sprint-049/.
  */
@@ -154,33 +154,30 @@ for (const layout of [
 			expect((await serverState(page, seeded)).noteIds).toEqual([noteId]);
 		});
 
-		test('sidebar: + opens New Contract; chevrons line up under it at the right edge', async ({ page, baseURL, browserName }) => {
+		test('sidebar: no + by the Notes heading; chevrons sit at the right edge', async ({ page, baseURL, browserName }) => {
 			await signInAsFreshUser(page, baseURL, `sidebar-${layout.name}`);
 			const seeded = await seed(page);
 			await page.goto('/');
 			const sidebar = layout.touch ? page.locator('body') : page.getByTestId('app-sidebar');
-			const plusButton = sidebar.getByTestId('sidebar-new-contract');
-			await expect(plusButton).toBeVisible();
+			// Sprint 051-UI (owner change): new contracts are made in Settings, the heading's + is gone
+			await expect(sidebar.getByTestId('sidebar-notes-heading')).toBeVisible();
+			await expect(page.getByTestId('sidebar-new-contract')).toHaveCount(0);
 			const group = sidebar.locator(`[data-testid="sidebar-client-group"][aria-label="${seeded.clientName}"]`);
 			const chevron = group.getByTestId('sidebar-client-chevron');
 			await expect(chevron).toHaveAttribute('aria-expanded', 'true');
 
-			const plusBox = (await plusButton.boundingBox())!;
+			// The chevron is right of the client's name, at the group's right edge (pr-1 inset)
 			const chevronBox = (await chevron.boundingBox())!;
-			expect(Math.abs(plusBox.x + plusBox.width - (chevronBox.x + chevronBox.width))).toBeLessThanOrEqual(1);
-			expect(Math.abs(plusBox.width - chevronBox.width)).toBeLessThanOrEqual(1);
-			// The chevron is right of the client's name
+			const groupBox = (await group.boundingBox())!;
 			const nameBox = (await group.getByTestId('sidebar-client-name').boundingBox())!;
 			expect(chevronBox.x).toBeGreaterThanOrEqual(nameBox.x + nameBox.width - 1);
+			expect(Math.abs(groupBox.x + groupBox.width - 4 - (chevronBox.x + chevronBox.width))).toBeLessThanOrEqual(1);
 			if (layout.touch) {
-				expect(plusBox.height).toBeGreaterThanOrEqual(32);
-				expect(plusBox.width).toBeGreaterThanOrEqual(32);
+				expect(chevronBox.height).toBeGreaterThanOrEqual(32);
+				expect(chevronBox.width).toBeGreaterThanOrEqual(32);
 				expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
 				await page.setViewportSize({ width: 320, height: 640 });
 				expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
-				const narrowPlus = (await plusButton.boundingBox())!;
-				const narrowChevron = (await chevron.boundingBox())!;
-				expect(Math.abs(narrowPlus.x - narrowChevron.x)).toBeLessThanOrEqual(1);
 				await page.setViewportSize(layout.viewport);
 			}
 			if (browserName === 'chromium') {
@@ -194,19 +191,6 @@ for (const layout of [
 			await expect(chevron).toHaveAttribute('aria-expanded', 'false');
 			await page.keyboard.press('Enter');
 			await expect(chevron).toHaveAttribute('aria-expanded', 'true');
-
-			await plusButton.click();
-			const dialog = page.getByRole('dialog', { name: 'Create new contract' });
-			await expect(dialog).toBeVisible();
-			if (browserName === 'chromium') await page.screenshot({ path: path.join(SCREENSHOTS, `05-new-contract-${layout.name}.png`) });
-			await dialog.locator('#client-select').selectOption({ label: seeded.clientName });
-			const newContractName = `Phase two ${Date.now().toString(36)}`;
-			await dialog.locator('#contract-name').fill(newContractName);
-			await dialog.getByRole('button', { name: 'Create' }).click();
-			await expect(dialog).toBeHidden();
-			await page.waitForURL((url) => url.pathname.startsWith('/notes/'));
-			await page.goto('/');
-			await expect(group.getByRole('button', { name: new RegExp(newContractName) })).toBeVisible();
 		});
 	});
 }

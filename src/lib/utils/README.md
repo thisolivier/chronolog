@@ -18,6 +18,7 @@ Pure utility modules with no server or framework dependencies. Usable on both cl
 - **sidebar-sections.ts** — Splits the sidebar's contracts into active client groups and the Archived section (a contract is archived when it or its client is); used by the contract directory store.
 - **search-snippet.ts** — Search snippets (sprint 042-CL): `findMatchRanges` (case-insensitive), `plainTextFromMarkdown`, `buildSearchSnippet` (an excerpt around the first match, cut at words, with match offsets) and `snippetParts` for rendering `<mark>`s. Shared by `GET /api/search` and the results page.
 - **task-items.ts** — `extractTaskItems(markdown)`: the `- [ ]` / `- [x]` items of a note (text, checked, depth, line), skipping fenced code and empty items. Used by `GET /api/notes/todos` (sprint 040-CL).
+- **copy-text.ts** — `copyText(text)`: the Clipboard API, then a hidden-textarea `execCommand('copy')` fallback (Safari/WebKit, the Tauri webview); resolves to whether it copied, never throws (the note code in the editor header, sprint 051-UI).
 - **uuid.ts** — `isUuid()`, used by the `[clientId=uuid]` / `[contractId=uuid]` route matchers so malformed IDs return 404 rather than a database error.
 
 ## Testing

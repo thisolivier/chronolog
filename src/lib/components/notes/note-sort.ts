@@ -2,18 +2,22 @@ import type { NoteSummary } from '$lib/services/types';
 
 /**
  * Note list order: pinned notes first, most recently pinned on top (sprint 039-CL), then newest by
- * modification or creation time.
+ * modification or creation time. `floatPinned: false` (all notes, sprint 051-UI) ignores pins.
  */
 export type NoteSortOrder = 'modified' | 'created';
 
 const SORT_STORAGE_KEY = 'chronolog.noteSortOrder';
 
-export function sortNotes(notesList: NoteSummary[], order: NoteSortOrder): NoteSummary[] {
+export function sortNotes(
+	notesList: NoteSummary[],
+	order: NoteSortOrder,
+	{ floatPinned = true }: { floatPinned?: boolean } = {}
+): NoteSummary[] {
 	const timestampOf = (note: NoteSummary) =>
 		new Date(order === 'created' ? note.createdAt : note.updatedAt).getTime();
 	// A pinned note without `pinnedAt` (an older answer) counts as pinned long ago
 	const pinnedTimeOf = (note: NoteSummary) =>
-		note.isPinned ? (note.pinnedAt ? new Date(note.pinnedAt).getTime() : 0) : -1;
+		!floatPinned ? 0 : note.isPinned ? (note.pinnedAt ? new Date(note.pinnedAt).getTime() : 0) : -1;
 	return [...notesList].sort(
 		(left, right) => pinnedTimeOf(right) - pinnedTimeOf(left) || timestampOf(right) - timestampOf(left)
 	);

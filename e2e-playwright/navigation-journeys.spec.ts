@@ -122,7 +122,7 @@ test('J1: settings and back keeps the note; a moved note stays open under its ne
 	await expect.poll(() => openNoteId(page)).toBe(data.noteA);
 	await expect(sidebarItem(page, data.contractA)).toHaveAttribute('aria-current', 'page');
 
-	await page.getByRole('button', { name: 'Move ▾' }).click();
+	await page.getByRole('button', { name: 'Move', exact: true }).click();
 	await page.locator('[data-move-menu]').getByRole('button', { name: new RegExp(data.nameB) }).click();
 	await expect(page).toHaveURL(`/notes/${data.contractB}/${data.noteA}`);
 	await expect(sidebarItem(page, data.contractB)).toHaveAttribute('aria-current', 'page');
