@@ -58,10 +58,13 @@ export class NotePanelState {
 
 	/**
 	 * A note opened by following a link takes keyboard focus at its top (A-11), except on touch
-	 * screens, where focusing would pop up the on-screen keyboard over the note.
+	 * screens, where focusing would pop up the on-screen keyboard over the note. A note just made
+	 * to be written in (Attach note, 049-UI) takes focus everywhere, as a New Note draft does.
 	 */
-	private takeEditorFocus(noteId: string): 'start' | false {
-		if (!this.navigation.takeEditorFocus(noteId)) return false;
+	private takeEditorFocus(noteId: string): boolean | 'start' {
+		const focusRequest = this.navigation.takeEditorFocus(noteId);
+		if (!focusRequest) return false;
+		if (focusRequest === 'new-note') return true;
 		const isTouchScreen = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 		return isTouchScreen ? false : 'start';
 	}

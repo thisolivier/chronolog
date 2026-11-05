@@ -332,7 +332,8 @@
 	}
 
 	/** A [[noteId]] link in a card was clicked: switch to notes mode and open that note */
-	async function handleNoteLinkClick(noteId: string) {
+	/** Open a note from a card: a followed link, or a note just attached ('new-note', 049-UI) */
+	async function openNoteFromEntry(noteId: string, focusEditor: true | 'new-note') {
 		try {
 			const note = await dataService.getNoteById(noteId);
 			// The sidebar's directory includes archived contracts (033); the selectable list does not
@@ -340,7 +341,7 @@
 				contractDirectory.labels[note.contractId]?.clientId ??
 				(await dataService.getContracts()).find((contract) => contract.id === note.contractId)?.clientId ??
 				'';
-			navigation.openNote(noteId, note.contractId, clientId, { focusEditor: true });
+			navigation.openNote(noteId, note.contractId, clientId, { focusEditor });
 		} catch (error) {
 			console.error(`Could not open note ${noteId}:`, error);
 		}
@@ -451,7 +452,12 @@
 		{#if entries.length > 0}
 			<div class="flex flex-col">
 				{#each entries as entry (entry.id)}
-					<TimeEntryCard {entry} onUpdated={refreshWeeks} onNoteLinkClick={handleNoteLinkClick} />
+					<TimeEntryCard
+						{entry}
+						onUpdated={refreshWeeks}
+						onNoteLinkClick={(noteId) => openNoteFromEntry(noteId, true)}
+						onNoteAttached={(noteId) => openNoteFromEntry(noteId, 'new-note')}
+					/>
 				{/each}
 			</div>
 		{:else if !expandedAddEntry[dayDate]}

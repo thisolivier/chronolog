@@ -114,16 +114,17 @@ export interface NavigationContext {
 	selectNote: (noteId: string, contractId?: string) => void;
 	/**
 	 * Switch to notes mode for the note's contract and open the note in one step. `focusEditor`
-	 * asks the editor to take keyboard focus once the note is loaded (following a link, A-11).
+	 * asks the editor to take keyboard focus once the note is loaded (following a link, A-11);
+	 * `'new-note'` is a note just made to be typed in (Attach note, 049-UI), focused on touch too.
 	 */
 	openNote: (
 		noteId: string,
 		contractId: string,
 		clientId: string,
-		options?: { replace?: boolean; focusEditor?: boolean }
+		options?: { replace?: boolean; focusEditor?: boolean | 'new-note' }
 	) => void;
-	/** True once for the note an `openNote(…, { focusEditor: true })` asked to focus; then forgotten */
-	takeEditorFocus: (noteId: string) => boolean;
+	/** Once for the note an `openNote(…, { focusEditor })` asked to focus, its `focusEditor`; then false */
+	takeEditorFocus: (noteId: string) => boolean | 'new-note';
 	/** Open a new-note draft for the selected contract (in the client view: the contract given) */
 	openDraft: (contractId?: string) => void;
 	clearSelectedNote: () => void;
@@ -193,6 +194,7 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 	let focusDay: string | null = null;
 	/** The note whose editor should take focus when it loads (set by openNote's focusEditor) */
 	let editorFocusNoteId: string | null = null;
+	let editorFocusKind: true | 'new-note' = true;
 	/** True while a deep link gets the app root put under it (its two navigations are not user moves) */
 	let isAddingRootEntry = false;
 	/** A user move made while the root entry was being added; written once that is done */
@@ -392,10 +394,11 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		noteId: string,
 		contractId: string,
 		clientId: string,
-		actionOptions: { replace?: boolean; focusEditor?: boolean } = {}
+		actionOptions: { replace?: boolean; focusEditor?: boolean | 'new-note' } = {}
 	) => {
 		if (clientId) clientHints[contractId] = clientId;
 		editorFocusNoteId = actionOptions.focusEditor ? noteId : null;
+		editorFocusKind = actionOptions.focusEditor === 'new-note' ? 'new-note' : true;
 		go(noteRoute(contractId, noteId, false, clientId), { replace: actionOptions.replace ?? false });
 	};
 
@@ -429,7 +432,7 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 	const takeEditorFocus = (noteId: string) => {
 		if (editorFocusNoteId !== noteId) return false;
 		editorFocusNoteId = null;
-		return true;
+		return editorFocusKind;
 	};
 
 	const takeFocusDay = () => {

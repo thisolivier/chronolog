@@ -18,6 +18,8 @@
 	import WikiLinkRenderer from './WikiLinkRenderer.svelte';
 	import OutboxMarker from '$lib/offline/OutboxMarker.svelte';
 	import WikiLinkInput from './WikiLinkInput.svelte';
+	import AttachNoteButton from './AttachNoteButton.svelte';
+	import { attachNewNoteToEntry, attachNoteBlockedReason } from './attach-note';
 	import { splitFormerlyLines } from './formerly-lines';
 	import type { TimeEntryFields } from '$lib/services/types';
 
@@ -46,11 +48,14 @@
 	let {
 		entry,
 		onUpdated,
-		onNoteLinkClick
+		onNoteLinkClick,
+		onNoteAttached
 	}: {
 		entry: EntryData;
 		onUpdated?: () => void;
 		onNoteLinkClick?: (noteId: string) => void;
+		/** A note was made and linked by Attach note: open it, ready to type */
+		onNoteAttached?: (noteId: string) => void;
 	} = $props();
 
 	// Inline editing states. Every editor: Enter saves, Escape cancels.
@@ -311,6 +316,28 @@
 		}
 	}
 
+	// --- Attach note (049-UI): new note on the entry's contract, linked at the end of the description ---
+	async function attachNewNote() {
+		// An open description editor: its text is what gets the link; its pending blur must not save
+		const baseDescription = isEditingDescription ? descriptionInputValue : entry.description;
+		if (isEditingDescription) {
+			isDescriptionCancelled = true;
+			isEditingDescription = false;
+		}
+		cardError = '';
+		try {
+			const { noteId } = await attachNewNoteToEntry(dataService, {
+				entryId: entry.id,
+				contractId: entry.contractId,
+				description: baseDescription
+			});
+			onUpdated?.();
+			onNoteAttached?.(noteId);
+		} catch (error) {
+			cardError = describeSaveError(error).replace("Couldn't save", "Couldn't attach a note");
+		}
+	}
+
 	// --- Delete ---
 	async function handleDelete() {
 		isDeleting = true;
@@ -333,7 +360,7 @@
 	tabindex="-1"
 	role="group"
 	aria-label="{splitDescription.body || 'Time entry'}, {contractLabel}, {durationDisplay}"
-	class="group relative mb-2 flex rounded-lg border border-stone-200 border-l-[3px] bg-white p-3 transition-colors hover:bg-stone-50/50 focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:outline-none {clientBorderClass}"
+	class="group relative mb-2 flex rounded-lg pointer-coarse:min-h-[92px] border border-stone-200 border-l-[3px] bg-white p-3 transition-colors hover:bg-stone-50/50 focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:outline-none {clientBorderClass}"
 	data-testid="time-entry-card"
 	data-entry-id={entry.id}
 >
@@ -343,7 +370,7 @@
 	</div>
 
 	<!-- Delete: on hover, on keyboard focus and always on touch screens -->
-	<div class="absolute right-1.5 top-1.5">
+	<div class="absolute right-1.5 top-1.5 pointer-coarse:right-0.5 pointer-coarse:top-0.5">
 		{#if isConfirmingDelete}
 			<div class="flex items-center gap-1 rounded bg-white">
 				<span class="text-xs text-stone-500">Delete?</span>
@@ -366,6 +393,11 @@
 				aria-label="Delete entry"
 			>&times;</button>
 		{/if}
+	</div>
+
+	<!-- Attach note, under Delete, shown the same way (049-UI) -->
+	<div class="absolute right-1.5 bottom-1.5 pointer-coarse:right-0.5 pointer-coarse:bottom-0.5">
+		<AttachNoteButton blockedReason={attachNoteBlockedReason(entry.contractId)} onAttach={attachNewNote} />
 	</div>
 
 	<!-- Left content column -->
@@ -501,7 +533,7 @@
 	</div>
 
 	<!-- Right column: Duration + time range -->
-	<!-- mr leaves room for the delete button in the top-right corner -->
+	<!-- mr leaves room for the delete and attach buttons in the right corners -->
 	<div class="mr-6 ml-2 flex shrink-0 flex-col items-end justify-center pointer-coarse:mr-8">
 		{#if isEditingTime}
 			<div class="w-36">

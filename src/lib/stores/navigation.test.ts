@@ -215,6 +215,15 @@ describe('focus follows a followed link (A-11)', () => {
 		nav.openNote('ACME.1', CONTRACT_A, CLIENT_A);
 		expect(nav.takeEditorFocus('ACME.1')).toBe(false);
 	});
+
+	it("a note just attached asks for 'new-note' focus, once (049-UI)", () => {
+		const { nav } = setup('/time/2026-W45');
+		nav.openNote('ACME.2', CONTRACT_A, CLIENT_A, { focusEditor: 'new-note' });
+		expect(nav.takeEditorFocus('ACME.2')).toBe('new-note');
+		expect(nav.takeEditorFocus('ACME.2')).toBe(false);
+		nav.openNote('ACME.1', CONTRACT_A, CLIENT_A, { focusEditor: true });
+		expect(nav.takeEditorFocus('ACME.1')).toBe(true);
+	});
 });
 
 describe('rule 5: the week is sticky across modes', () => {

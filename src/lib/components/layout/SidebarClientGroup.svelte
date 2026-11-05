@@ -1,8 +1,9 @@
 <!--
 	SidebarClientGroup — one client in the contracts sidebar (sprint 026 grouping, 033 collapse).
-	Two or more contracts: the client heading with the contracts indented under it. The heading is a
-	chevron (collapse; sprint 039-CL) and the client's name with its colour dot, which opens the
-	client view (`/notes/client/<id>`). A collapsed client still shows its open contract.
+	Two or more contracts: the client heading with the contracts indented under it. The heading is the
+	client's name with its colour dot, which opens the client view (`/notes/client/<id>`), and at the
+	right edge a chevron (collapse; sprint 039-CL), lined up under the Contracts heading's + (049-UI).
+	A collapsed client still shows its open contract.
 	Exactly one contract: a single row at the client's indent with the dot, the contract name and
 	the client name beneath it in small muted text, so a scan down the dots still reads by client.
 	`muted` draws the same grammar greyed for the Archived section (no chevron, no client view).
@@ -127,7 +128,7 @@
 		</button>
 	{:else}
 		<div
-			class="flex items-center gap-1 pt-1 pb-0.5 text-xs font-semibold {canCollapse ? 'pl-1' : 'px-3'} {holdsSelection ||
+			class="flex items-center gap-1 pt-1 pb-0.5 text-xs font-semibold {canCollapse ? 'pr-1 pl-1.5' : 'px-3'} {holdsSelection ||
 			isViewedClient
 				? 'text-blue-700'
 				: muted
@@ -135,28 +136,6 @@
 					: 'text-stone-500'}"
 			data-testid="sidebar-client-heading"
 		>
-			{#if canCollapse}
-				<button
-					type="button"
-					class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-stone-400 hover:bg-stone-100 hover:text-stone-600 pointer-coarse:-my-3 pointer-coarse:h-11 pointer-coarse:w-8"
-					aria-expanded={!isCollapsed}
-					aria-controls={contractListId}
-					aria-label="{isCollapsed ? 'Expand' : 'Collapse'} {group.clientName}"
-					data-testid="sidebar-client-chevron"
-					onclick={() => onToggleCollapse?.(group.clientId)}
-				>
-					<svg
-						class="h-3 w-3 transition-transform {isCollapsed ? '' : 'rotate-90'}"
-						viewBox="0 0 12 12"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.75"
-						aria-hidden="true"
-					>
-						<path d="M4.5 2.5 8 6l-3.5 3.5" stroke-linecap="round" stroke-linejoin="round" />
-					</svg>
-				</button>
-			{/if}
 			{#if onOpenClient && !muted}
 				<button
 					type="button"
@@ -175,6 +154,28 @@
 			{:else}
 				<span class="inline-block h-2 w-2 flex-shrink-0 rounded-full {dotClass}" aria-hidden="true"></span>
 				<span class="ml-1 truncate">{group.clientName}</span>
+			{/if}
+			{#if canCollapse}
+				<button
+					type="button"
+					class="ml-auto flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-stone-400 hover:bg-stone-100 hover:text-stone-600 pointer-coarse:-my-3 pointer-coarse:h-11 pointer-coarse:w-8"
+					aria-expanded={!isCollapsed}
+					aria-controls={contractListId}
+					aria-label="{isCollapsed ? 'Expand' : 'Collapse'} {group.clientName}"
+					data-testid="sidebar-client-chevron"
+					onclick={() => onToggleCollapse?.(group.clientId)}
+				>
+					<svg
+						class="h-3 w-3 transition-transform {isCollapsed ? '' : 'rotate-90'}"
+						viewBox="0 0 12 12"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.75"
+						aria-hidden="true"
+					>
+						<path d="M4.5 2.5 8 6l-3.5 3.5" stroke-linecap="round" stroke-linejoin="round" />
+					</svg>
+				</button>
 			{/if}
 		</div>
 		<div id={contractListId}>
