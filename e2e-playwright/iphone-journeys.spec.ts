@@ -74,9 +74,11 @@ test('sign in, then the week: add, edit and delete an entry @iphone', async ({ p
 	const editedCard = page.getByTestId('time-entry-card').filter({ hasText: 'Phone entry edited' });
 	await expect(editedCard).toBeVisible();
 
-	// Delete: the × is always shown on touch and is finger-sized, and so are Yes / No
+	// Delete: the × is always shown on touch at a compact 32px (owner: tight is fine); Yes / No are finger-sized
 	const deleteButton = editedCard.getByRole('button', { name: 'Delete entry' });
-	await expectTouchSized(deleteButton);
+	const deleteBox = await deleteButton.boundingBox();
+	expect(deleteBox!.width).toBeGreaterThanOrEqual(32);
+	expect(deleteBox!.height).toBeGreaterThanOrEqual(32);
 	await deleteButton.click();
 	const confirmYes = editedCard.getByRole('button', { name: 'Yes' });
 	await expectTouchSized(confirmYes);

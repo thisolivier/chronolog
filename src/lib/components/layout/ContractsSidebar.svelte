@@ -214,12 +214,6 @@
 
 	<!-- Action buttons just above the timer -->
 	<div class="flex-shrink-0 border-t border-stone-200 px-3 py-1.5">
-		<button
-			onclick={() => (showCreateModal = true)}
-			class="block w-full px-3 py-1 text-left text-xs text-stone-500 hover:text-stone-700 pointer-coarse:py-3.5"
-		>
-			New Contract
-		</button>
 		<a
 			href="/settings"
 			class="block w-full px-3 py-1 text-left text-xs text-stone-500 hover:text-stone-700 pointer-coarse:py-3.5"

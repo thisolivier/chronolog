@@ -360,7 +360,7 @@
 	tabindex="-1"
 	role="group"
 	aria-label="{splitDescription.body || 'Time entry'}, {contractLabel}, {durationDisplay}"
-	class="group relative mb-2 flex rounded-lg pointer-coarse:min-h-[92px] border border-stone-200 border-l-[3px] bg-white p-3 transition-colors hover:bg-stone-50/50 focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:outline-none {clientBorderClass}"
+	class="group relative mb-2 flex rounded-lg border border-stone-200 border-l-[3px] bg-white p-3 transition-colors hover:bg-stone-50/50 focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:outline-none {clientBorderClass}"
 	data-testid="time-entry-card"
 	data-entry-id={entry.id}
 >
@@ -388,7 +388,7 @@
 		{:else}
 			<button
 				onclick={() => (isConfirmingDelete = true)}
-				class="flex h-6 w-6 items-center justify-center rounded text-stone-400 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100"
+				class="flex h-6 w-6 items-center justify-center rounded text-stone-400 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 pointer-coarse:h-8 pointer-coarse:w-8 pointer-coarse:opacity-100"
 				title="Delete entry"
 				aria-label="Delete entry"
 			>&times;</button>

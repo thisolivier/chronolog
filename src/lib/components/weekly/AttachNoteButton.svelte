@@ -42,7 +42,7 @@
 	class="flex h-6 w-6 items-center justify-center rounded text-stone-400 transition-opacity
 		hover:bg-blue-50 hover:text-blue-600 focus-visible:opacity-100
 		aria-disabled:cursor-not-allowed aria-disabled:hover:bg-transparent aria-disabled:hover:text-stone-400
-		pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100
+		pointer-coarse:h-8 pointer-coarse:w-8 pointer-coarse:opacity-100
 		{isAttaching ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'}
 		{blockedReason ? 'text-stone-300' : ''}"
 >

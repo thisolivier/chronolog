@@ -58,7 +58,7 @@ Offline banner, rendered by AppShell and by `SettingsShell`. It reads `src/lib/s
 
 ### ContractsSidebar.svelte
 
-Panel 1 sidebar content. Shows Time Entries, the contracts (a `+` right of the "Contracts" heading opens New Contract, `ContractCreateModal`; sprint 049-UI), and the Archived item, then New Contract, Settings and the timer widget pinned to the bottom. It loads the contracts (archived ones included) into the contract directory store, which splits them into the active clients and the Archived section; the sidebar only draws them. Note counts refresh on `notes-changed` and `note-moved` window events, and the list reloads whenever the sidebar mounts again (coming back from Settings).
+Panel 1 sidebar content. Shows Time Entries, the contracts (a `+` right of the "Contracts" heading opens New Contract, `ContractCreateModal`; sprint 049-UI), and the Archived item, then Settings and the timer widget pinned to the bottom. It loads the contracts (archived ones included) into the contract directory store, which splits them into the active clients and the Archived section; the sidebar only draws them. Note counts refresh on `notes-changed` and `note-moved` window events, and the list reloads whenever the sidebar mounts again (coming back from Settings).
 
 Hierarchy (sprint 033-CL):
 - A client with two or more active contracts is a heading (colour dot + name) with its contracts indented under it.
