@@ -45,3 +45,8 @@ Branch `sprint-049-UI/attach-note-sidebar`, on `main` (`1d13459`, unchanged sinc
 - Touched-area specs green on chromium, webkit, iphone-se and iphone-15: `sidebar-client-view`, `sidebar-archive-collapse`, `timesheet-polish`, `work-type-consistency`, `navigation-journeys`, `iphone-journeys` (62 passed, 13 skipped as designed).
 - API e2e (`npm run test:e2e`): 128 / 129; the one failure, `note-changes-cli` "note new --date yesterday", expects a 3-digit sequence and the shared dev DB has reached `INTL.20261104.2047` (test-data volume, unrelated to this sprint).
 - Screenshots (chromium) in `docs/review/screenshots/sprint-049/`: `01-entry-card-attach-{desktop,phone}`, `02-note-opened-{desktop,phone}`, `03-entry-linked-{desktop,phone}`, `04-sidebar-{desktop,phone}`, `05-new-contract-{desktop,phone}`.
+
+### Follow-up (2026-11-05, owner)
+
+- Footer "New Contract" link removed; the delete × and Attach note are 32 px on touch (no card min-height).
+- Attach note on the running timer: shown beside "Description" once the timer has a contract; it creates a note on that contract, appends `[[NOTE_ID]]` to the timer's description (saved at once, or to the pending timer in storage) and opens the note with the editor focused. Playwright: `running timer: attach note…` (desktop and phone, chromium and webkit); screenshots `06-timer-attach-*`.

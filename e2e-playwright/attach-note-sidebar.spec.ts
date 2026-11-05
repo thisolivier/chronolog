@@ -4,6 +4,8 @@
  *   `[[NOTE_ID]]` at the end of the description, saves the entry and opens the note with the
  *   editor focused; the note lists the entry under Linked Time Entries; the card renders the link.
  * - With the description editor open, the typed text is kept and gets the link.
+ * - The running timer shows Attach note once it has a contract; it links the note in the timer's
+ *   description and opens the note.
  * - The `+` right of "Contracts" opens New Contract; the client chevrons sit at the right edge,
  *   in one column under the `+` (same right edge, same box size), and still collapse.
  * Desktop (1280) and phone (390, touch) runs; each test signs up its own user
@@ -122,6 +124,33 @@ for (const layout of [
 			await page.waitForURL((url) => /\/notes\/.+\/[A-Z0-9]+\.\d{8}\.\d+$/.test(url.pathname));
 			const noteId = decodeURIComponent(new URL(page.url()).pathname.split('/').pop()!);
 			await expect.poll(async () => (await serverState(page, seeded)).description).toBe(`${seeded.description} and agenda [[${noteId}]]`);
+			expect((await serverState(page, seeded)).noteIds).toEqual([noteId]);
+		});
+
+		test('running timer: attach note appears once a contract is picked, links it and opens the note', async ({ page, baseURL, browserName }) => {
+			await signInAsFreshUser(page, baseURL, `timer-attach-${layout.name}`);
+			const seeded = await seed(page);
+			await page.goto('/time');
+			const widget = page.locator('[data-testid^="timer-widget-"]').first();
+			await widget.getByRole('button', { name: 'Start Timer' }).click();
+			await expect(widget.locator('#draft-description')).toBeVisible();
+			// No contract yet: no button
+			await expect(widget.getByRole('button', { name: 'Attach note' })).toHaveCount(0);
+			await widget.locator('#draft-description').fill('Timer work');
+			await widget.locator('#draft-contract').selectOption(seeded.contractId);
+			await expect
+				.poll(async () => page.evaluate(async () => (await (await fetch('/api/timer/status')).json()).timer?.id ?? null))
+				.not.toBeNull();
+			const attachButton = widget.getByRole('button', { name: 'Attach note' });
+			await expect(attachButton).toBeVisible();
+			if (browserName === 'chromium') await widget.screenshot({ path: path.join(SCREENSHOTS, `06-timer-attach-${layout.name}.png`) });
+			await attachButton.click();
+			await page.waitForURL((url) => /\/notes\/.+\/[A-Z0-9]+\.\d{8}\.\d+$/.test(url.pathname));
+			const noteId = decodeURIComponent(new URL(page.url()).pathname.split('/').pop()!);
+			await expect(editor(page)).toBeVisible();
+			await expect
+				.poll(async () => page.evaluate(async () => (await (await fetch('/api/timer/status')).json()).timer?.description ?? null))
+				.toBe(`Timer work [[${noteId}]]`);
 			expect((await serverState(page, seeded)).noteIds).toEqual([noteId]);
 		});
 

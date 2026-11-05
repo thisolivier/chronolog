@@ -1,13 +1,17 @@
 <!--
-	AttachNoteButton — the time entry card's "Attach note" icon (sprint 049-UI). The card does the
+	AttachNoteButton — the "Attach note" icon on a time entry card (sprint 049-UI) and on the
+	running timer (`alwaysVisible`). The card does the
 	work (`onAttach`); this button shows it, refuses a second press while one is running (one note
 	per click) and, when the entry cannot have a note, stays focusable with the reason as its tooltip.
 -->
 <script lang="ts">
 	let {
 		blockedReason = null,
+		alwaysVisible = false,
 		onAttach
 	}: {
+		/** Show it at all times (the running timer), not only on hover/focus as on a card */
+		alwaysVisible?: boolean;
 		/** Why a note cannot be attached (no contract); null when it can */
 		blockedReason?: string | null;
 		onAttach: () => Promise<void>;
@@ -43,7 +47,7 @@
 		hover:bg-blue-50 hover:text-blue-600 focus-visible:opacity-100
 		aria-disabled:cursor-not-allowed aria-disabled:hover:bg-transparent aria-disabled:hover:text-stone-400
 		pointer-coarse:h-8 pointer-coarse:w-8 pointer-coarse:opacity-100
-		{isAttaching ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'}
+		{isAttaching || alwaysVisible ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'}
 		{blockedReason ? 'text-stone-300' : ''}"
 >
 	<!-- A page with a plus: a new note -->

@@ -22,6 +22,8 @@
 	import { dispatchTimeEntrySaved } from '$lib/components/weekly/time-entry-events';
 	import { getWeekDates } from '$lib/utils/iso-week';
 	import type { ContractOption } from '$lib/services/types';
+	import AttachNoteButton from '$lib/components/weekly/AttachNoteButton.svelte';
+	import { appendWikiLinkToDescription } from '$lib/components/weekly/attach-note';
 
 	let {
 		placement = 'sidebar',
@@ -248,6 +250,28 @@
 		}, 1500);
 	}
 
+	/**
+	 * Attach note while running: a new note on the timer's contract, `[[NOTE_ID]]` added to the
+	 * description (saved now, not debounced), then the main view moves to the note, ready to type.
+	 */
+	async function attachNoteToRunningTimer() {
+		const contractId = draftContractId;
+		if (!contractId) return;
+		errorMessage = '';
+		try {
+			const note = await dataService.createNote(contractId, {});
+			draftDescription = appendWikiLinkToDescription(draftDescription, note.id);
+			if (descriptionDebounceTimer) clearTimeout(descriptionDebounceTimer);
+			if (entryId) await dataService.updateTimeEntry(entryId, { description: draftDescription });
+			else savePendingTimer();
+			const clientId = findSelectedContract()?.clientId ?? '';
+			navigation.openNote(note.id, contractId, clientId, { focusEditor: 'new-note' });
+		} catch (error) {
+			console.error('Could not attach a note to the timer:', error);
+			errorMessage = "Couldn't attach a note";
+		}
+	}
+
 	async function handleStart() {
 		errorMessage = '';
 		// Only a contract the user is looking at counts as chosen; never the first in a list
@@ -446,9 +470,14 @@
 					{/if}
 				</div>
 				<div>
-					<label for="draft-description" class="block text-xs font-medium text-stone-600">
-						Description
-					</label>
+					<div class="flex items-center justify-between">
+						<label for="draft-description" class="block text-xs font-medium text-stone-600">
+							Description
+						</label>
+						{#if draftContractId}
+							<AttachNoteButton alwaysVisible onAttach={attachNoteToRunningTimer} />
+						{/if}
+					</div>
 					<textarea
 						id="draft-description"
 						bind:value={draftDescription}
