@@ -1,6 +1,6 @@
 # Sprint 051 — UI: Sidebar tidy, all-notes view, note header polish
 
-**Status:** ready for review
+**Status:** merged
 **Branch:** `sprint-051-UI/sidebar-notes-header` · **Worktree:** `.claude/worktrees/sprint-051-UI` · **Port:** 5225
 **Sources:** owner requests 2026-11-05 (verbatim): "Archives should have a left hand chevron, same alignment as the contracts chevron. Settings should move into the same list as archives and trash, part of the scrolling sidebar content. The Contracts heading should read 'Notes' and you should be able to click on it to see the combined view of all notes in time order (no pinning). The saved/unsaved changes status in the note edit window can cause the line to overflow and jump back as the user types and it saves, change to saved/saving and force fixed width with enough padding with the green/amber so it looks good either way. Move and export in the bar don't need chevrons. Click on the note code in the heading to copy." Wave rules in `docs/sprints/_wave-rules.md` apply (no migration).
 
