@@ -7,8 +7,10 @@
  * components that read the store right after calling it see the new value; several actions
  * in the same tick become one navigation.
  *
- * History: mode, contract and note changes push an entry; week changes inside the timesheet,
- * closing a note and a draft turning into a saved note replace the current one.
+ * History: every navigation is a step (sprint 050-UI): mode, contract, client and note changes
+ * and each week paged or picked push an entry. Closing a note, a draft turning into a saved note,
+ * a note getting its real ID or moving contract, and URL corrections replace the current one.
+ * `goBack` / `goForward` walk this tab's in-app entries (the top bar's ‹ › buttons).
  * Rules enforced here are listed in docs/ux/09-navigation-state.md.
  *
  * Usage:
@@ -52,10 +54,11 @@ export interface NavigationState {
 	mobileNavigationLevel: MobileNavigationLevel;
 }
 
-/** Where the store sends URL changes; the root layout passes SvelteKit's `goto` and `history.back` */
+/** Where the store sends URL changes; the root layout passes SvelteKit's `goto`, `history.back` and `history.forward` */
 export interface NavigationAdapter {
 	navigate: (path: string, options: { replace: boolean }) => Promise<void> | void;
 	back: () => void;
+	forward: () => void;
 }
 
 /** A remembered timesheet position: the day at the top and how far past its heading */
@@ -103,6 +106,12 @@ export interface NavigationContext {
 	layoutMode: LayoutMode;
 	/** Where the phone's "← Back" goes: an in-app history entry, or one level up */
 	backTarget: { path: string; isHistory: boolean };
+	/** An in-app history entry is behind / ahead of this one (the top bar's ‹ › buttons, 050-UI) */
+	canGoBack: boolean;
+	canGoForward: boolean;
+	/** The in-app entries Back and Forward go to (null when there is none), for their labels */
+	previousPath: string | null;
+	nextPath: string | null;
 
 	// Actions
 	selectTimeEntries: (options?: { replace?: boolean }) => void;
@@ -111,7 +120,7 @@ export interface NavigationContext {
 	selectClient: (clientId: string) => void;
 	selectWeek: (weekStart: string) => void;
 	/** Open a note of the current list; in the client view pass the note's contract */
-	selectNote: (noteId: string, contractId?: string) => void;
+	selectNote: (noteId: string, contractId?: string, options?: { replace?: boolean }) => void;
 	/**
 	 * Switch to notes mode for the note's contract and open the note in one step. `focusEditor`
 	 * asks the editor to take keyboard focus once the note is loaded (following a link, A-11);
@@ -140,6 +149,9 @@ export interface NavigationContext {
 	setLayoutMode: (mode: LayoutMode) => void;
 	navigateMobile: (level: MobileNavigationLevel) => void;
 	goBackMobile: () => void;
+	/** One step back / forward through this tab's in-app history; nothing when there is none */
+	goBack: () => void;
+	goForward: () => void;
 	/** Read the URL after a navigation (afterNavigate); `loadType` is the document load type on enter */
 	syncFromUrl: (url: URL, kind: NavigationKind, delta?: number, loadType?: string) => Promise<void> | void;
 }
@@ -370,24 +382,25 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 
 	const selectWeek = (weekStart: string) => {
 		state.lastWeek = weekStart;
-		// Inside the timesheet a week change replaces the entry; elsewhere it only sets the week
+		// Inside the timesheet each week paged is a step (050-UI); elsewhere it only sets the week
 		// the timesheet opens on (e.g. selectTimeEntries() then selectWeek() = one navigation)
 		if (state.route.kind === 'time' || state.route.kind === 'home') {
-			go({ kind: 'time', week: weekStart }, { replace: true });
+			go({ kind: 'time', week: weekStart }, { replace: false });
 		}
 	};
 
-	const selectNote = (noteId: string, contractId?: string) => {
+	const selectNote = (noteId: string, contractId?: string, actionOptions: { replace?: boolean } = {}) => {
 		const route = state.route;
+		// A draft that was just saved becomes that note in place (Back skips the empty draft)
+		const replace = actionOptions.replace ?? (isNoteListRoute(route) && route.draft);
 		if (route.kind === 'client') {
 			const noteContractId = contractId ?? route.contractId;
 			if (!noteContractId) return;
-			go({ ...route, contractId: noteContractId, noteId, draft: false }, { replace: route.draft });
+			go({ ...route, contractId: noteContractId, noteId, draft: false }, { replace });
 			return;
 		}
 		if (route.kind !== 'notes') return;
-		// A draft that was just saved becomes that note in place (Back skips the empty draft)
-		go({ kind: 'notes', contractId: route.contractId, noteId, draft: false }, { replace: route.draft });
+		go({ kind: 'notes', contractId: route.contractId, noteId, draft: false }, { replace });
 	};
 
 	const openNote = (
@@ -426,7 +439,8 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		state.focusDayToken++;
 		const week = getMondayOfWeek(date);
 		if (state.route.kind === 'time' && state.route.week === week) return;
-		go({ kind: 'time', week }, { replace: state.route.kind === 'time' });
+		// Another week is a step, also from inside the timesheet (Today, a search hit; 050-UI)
+		go({ kind: 'time', week }, { replace: false });
 	};
 
 	const takeEditorFocus = (noteId: string) => {
@@ -474,11 +488,34 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 	const goBackMobile = () => {
 		if (state.route.kind === 'home') return;
 		if (history.previous && adapter) {
-			adapter.back();
+			moveThroughHistory(-1);
 			return;
 		}
 		// Nothing in the app before this entry: go one level up in place
 		go(parentRoute(state.route), { replace: true });
+	};
+
+	/** Ask the browser for one step; counted as pending until it lands, so quick presses stay in the app */
+	function moveThroughHistory(delta: -1 | 1) {
+		if (!adapter) return;
+		history.expectMove(delta);
+		state.historyVersion++;
+		if (delta < 0) adapter.back();
+		else adapter.forward();
+	}
+
+	const goBack = () => {
+		if (history.canGoBack) moveThroughHistory(-1);
+	};
+
+	const goForward = () => {
+		if (history.canGoForward) moveThroughHistory(1);
+	};
+
+	/** Read the in-app history with its version, so components re-render when it moves */
+	const readHistory = <T>(read: (inAppHistory: InAppHistory) => T): T => {
+		void state.historyVersion;
+		return read(history);
 	};
 
 	return {
@@ -533,6 +570,18 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		get backTarget() {
 			return backTarget();
 		},
+		get canGoBack() {
+			return readHistory((inAppHistory) => inAppHistory.canGoBack);
+		},
+		get canGoForward() {
+			return readHistory((inAppHistory) => inAppHistory.canGoForward);
+		},
+		get previousPath() {
+			return readHistory((inAppHistory) => inAppHistory.previous);
+		},
+		get nextPath() {
+			return readHistory((inAppHistory) => inAppHistory.next);
+		},
 		get focusDayToken() {
 			return state.focusDayToken;
 		},
@@ -554,6 +603,8 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		setLayoutMode,
 		navigateMobile,
 		goBackMobile,
+		goBack,
+		goForward,
 		syncFromUrl
 	};
 }

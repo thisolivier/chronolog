@@ -77,7 +77,8 @@ export function createNotePanelActions({ panel, noteNavigation, getEditor, showM
 				toContractName: targetContract.name ?? null,
 				toClientName: targetContract.clientName ?? null
 			});
-			navigation.openNote(noteId, targetContract.id, targetContract.clientId);
+			// An edit, not a step (050-UI): the old URL would only be corrected back to this one
+			navigation.openNote(noteId, targetContract.id, targetContract.clientId, { replace: true });
 		} catch (moveError) {
 			console.error('Error moving note:', moveError);
 			showMessage('Failed to move note');

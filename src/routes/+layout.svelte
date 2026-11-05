@@ -24,7 +24,8 @@
 		initialUrl: page.url,
 		adapter: {
 			navigate: (path, { replace }) => goto(path, { replaceState: replace, noScroll: true, keepFocus: true }),
-			back: () => history.back()
+			back: () => history.back(),
+			forward: () => history.forward()
 		},
 		sessionStorage: browser ? safeStorage(() => window.sessionStorage) : null,
 		localStorage: browser ? safeStorage(() => window.localStorage) : null

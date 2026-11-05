@@ -2,7 +2,7 @@
  * Human labels for workspace places: the phone's "← Back" names where it goes, and the phone
  * title bar names where you are (sprint 027-CL, journey review rule 4).
  */
-import { parseWorkspacePath, type WorkspaceRoute } from '$lib/stores/navigation-routes';
+import { parseWorkspacePath, TRASH_PATH, type WorkspaceRoute } from '$lib/stores/navigation-routes';
 import { contractDirectory } from '$lib/stores/contract-directory.svelte';
 import { getCachedNoteTitle } from '$lib/components/notes/note-titles.svelte';
 import { getIsoWeekNumber } from '$lib/utils/iso-week';
@@ -23,12 +23,20 @@ export function labelForRoute(route: WorkspaceRoute): string {
 	return shorten(contractDirectory.labels[route.contractId]?.name ?? 'Notes');
 }
 
-/** Label for any in-app path (the previous history entry may be settings or admin) */
+/** Label for any in-app path (a history entry may be settings, admin, search or the trash) */
 export function labelForPath(path: string, fallbackWeek: string): string {
+	if (path === TRASH_PATH) return 'Trash';
 	const route = parseWorkspacePath(path, fallbackWeek);
 	if (route) return labelForRoute(route);
 	if (path.startsWith('/settings') || path.startsWith('/admin')) return 'Settings';
+	if (path.startsWith('/search')) return 'Search';
 	return 'Back';
+}
+
+/** The note a history entry shows, so its title can be fetched for the label */
+export function noteIdOfPath(path: string | null): string | null {
+	const route = path ? parseWorkspacePath(path, '') : null;
+	return route && (route.kind === 'notes' || route.kind === 'client') ? route.noteId : null;
 }
 
 /** Phone title bar: where you are */

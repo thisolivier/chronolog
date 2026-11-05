@@ -1,10 +1,11 @@
 <!--
 	The global search field (sprint 042-CL): in the shell's top bar and on /search. Enter opens
-	`/search?q=…` (the URL is the state); Cmd+K / Ctrl+K focuses it from anywhere; ArrowDown moves
+	`/search?q=…` (the URL is the state; typing adds no history step, submitting adds one); Cmd+K / Ctrl+K focuses it from anywhere; ArrowDown moves
 	into the results on /search (`onArrowDown`).
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { isSearchShortcut, shortcutLabel } from '$lib/components/find/shortcuts';
 
 	interface Props {
@@ -30,6 +31,8 @@
 		event.preventDefault();
 		const trimmed = query.trim();
 		if (!trimmed) return;
+		// Typing is not a step; submitting is one (050-UI), unless it is the search already shown
+		if (page.url.pathname === '/search' && page.url.searchParams.get('q') === trimmed) return;
 		void goto(`/search?q=${encodeURIComponent(trimmed)}`, { keepFocus: true });
 	}
 

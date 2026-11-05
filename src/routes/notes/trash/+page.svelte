@@ -7,6 +7,7 @@
 <script lang="ts">
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import ConnectionStatus from '$lib/components/layout/ConnectionStatus.svelte';
+	import HistoryButtons from '$lib/components/layout/HistoryButtons.svelte';
 	import TrashList from '$lib/components/notes/TrashList.svelte';
 	import { fetchTrashedNotes, type TrashedNote } from '$lib/components/notes/trash-view';
 
@@ -36,6 +37,7 @@
 	<header class="border-b border-stone-200 bg-white shadow-sm">
 		<div class="mx-auto flex max-w-3xl items-center gap-3 px-4 py-2.5">
 			<a href={navigation.workspaceHref} class="hidden text-lg font-bold text-stone-900 sm:block">Chronolog</a>
+			<div class="hidden md:block"><HistoryButtons /></div>
 			<h1 class="min-w-0 flex-1 text-base font-semibold text-stone-800 sm:text-lg">Trash</h1>
 			<a
 				href={navigation.workspaceHref}

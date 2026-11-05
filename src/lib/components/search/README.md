@@ -7,7 +7,9 @@ backed by `GET /api/search` (`src/lib/server/db/queries/global-search.ts`). The 
 ## Components
 
 - **GlobalSearchField.svelte** — the field in the shell's top bar (desktop and tablet, in
-  `AppShell.svelte`) and in the /search header. Enter goes to `/search?q=`; Cmd+K / Ctrl+K focuses
+  `AppShell.svelte`, right after the ‹ › history buttons, sprint 050-UI) and in the /search header.
+  Typing never adds a history step; Enter goes to `/search?q=` (a step, skipped when that search is
+  already shown); Cmd+K / Ctrl+K focuses
   the visible field from anywhere (capture phase, so the editor never sees it); Escape blurs;
   ArrowDown on /search moves into the results. On a phone the shell header has a search icon
   linking to `/search`, where the field takes focus.

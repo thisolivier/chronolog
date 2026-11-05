@@ -5,6 +5,7 @@
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
 | 018-QA | QA | Manual testing backlog | superseded by docs/review/2026-11-03-qa-state.md |
+| 050-UI | Client | Back and forward through the user's journey (top bar ‹ ›, phone ›, every navigation a step) | ready for review |
 
 ## Completed Sprints
 
