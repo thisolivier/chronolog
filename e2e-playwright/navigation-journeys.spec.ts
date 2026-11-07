@@ -254,7 +254,10 @@ test.describe('J8: phone', () => {
 	test('a note opened from the timesheet goes Back to the timesheet; a fresh deep link Backs into the app', async ({ page, context }) => {
 		const data = await seed(page);
 		await open(page, `/time/${await currentWeekParam(page)}`);
+		const thisWeekPath = pathOf(page);
 		await page.getByRole('button', { name: 'Previous week' }).click();
+		// The week URL is set by a client navigation: wait for it rather than read it at once
+		await expect.poll(() => pathOf(page)).not.toBe(thisWeekPath);
 		const weekPath = pathOf(page);
 		await page.getByTitle(data.noteA).first().click();
 		await expect(editor(page)).toBeVisible();

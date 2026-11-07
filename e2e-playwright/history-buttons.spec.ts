@@ -1,8 +1,9 @@
 /**
  * Sprint 050-UI: Back and Forward through the user's journey, for the Mac app and the installed
  * PWA (no browser buttons there). Every navigation is a step, paging weeks included; typing is
- * not. Desktop: ‹ › by the app name, global search at the far right of the app bar (053-DR; the
- * /search page keeps its own header with ‹ › left of the field), Cmd/Ctrl+[ ] and Alt+arrows. Phone: "← Back" and a ›
+ * not. Desktop: ‹ › by the app name, global search at the far right of the app bar (053-DR; since
+ * 059-DR /search is inside the shell: the same ‹ ›, no header field, one large field above the
+ * results), Cmd/Ctrl+[ ] and Alt+arrows. Phone: "← Back" and a ›
  * that shows only when there is a step ahead. Each test signs up its own user.
  * Screenshots: `UPDATE_SPRINT_SCREENSHOTS=1` writes them to docs/review/screenshots/sprint-050/.
  */
@@ -160,7 +161,7 @@ test.describe('desktop 1280', () => {
 		await expect(page).toHaveURL(journey.at(-2)!);
 	});
 
-	test('search: submitting is a step; the buttons sit left of the field on the results page', async ({ page, baseURL }) => {
+	test('search: submitting is a step; the shell buttons stay on the results page, above its one field', async ({ page, baseURL }) => {
 		await signInAsFreshUser(page, baseURL, 'history-search');
 		const data = await seed(page);
 		const start = pathOf(page);
@@ -172,9 +173,12 @@ test.describe('desktop 1280', () => {
 		await expect(page).toHaveURL(`/notes/${data.contractId}/${data.noteId}`);
 		await backButton(page).click();
 		await expect(page).toHaveURL(/\/search\?q=Journey/);
-		const buttonsBox = await page.getByTestId('history-buttons').boundingBox();
+		// 059-DR (SR-01): the app bar keeps ‹ ›; its search field gives way to one large field above the results
+		await expect(page.getByTestId('global-search-input')).toHaveCount(1);
+		await expect(page.getByTestId('app-top-bar').getByTestId('global-search-input')).toHaveCount(0);
+		const buttonsBox = await page.getByTestId('app-top-bar').getByTestId('history-buttons').boundingBox();
 		const fieldBox = await page.getByTestId('global-search-input').boundingBox();
-		expect(buttonsBox!.x + buttonsBox!.width).toBeLessThanOrEqual(fieldBox!.x);
+		expect(buttonsBox!.y + buttonsBox!.height).toBeLessThanOrEqual(fieldBox!.y);
 		await expect(forwardButton(page)).toHaveAttribute('aria-label', /^Forward to /);
 		await page.screenshot({ path: path.join(SCREENSHOTS, 'desktop-03-search-page.png') });
 		await backButton(page).click();

@@ -56,11 +56,13 @@ Mode-aware layout container. It picks the branch from the breakpoints above. On 
 
 ### shell-presentation.svelte.ts
 
+**The /search page (sprint 059-DR, SR-01).** An optional `searchPage` snippet (passed by the workspace layout on `/search`) replaces the note list and content panels, or the whole phone panel. The top bar then renders no header search field (the page has one large field); the phone bar shows "← Back to app" and the timer pill only (no Find, no search icon). The sidebar stays, and the timer rule applies unchanged; `ContractsSidebar` highlights no place while the page is shown.
+
 Read-only (outside AppShell) record of what the shell presents: `sidebarOnScreen` is false with the desktop sidebar hidden, the tablet overlay closed, or a phone screen other than home; `timerWidgetOnScreen` mirrors the SH-04 rule. Written by AppShell only.
 
 ### HistoryButtons.svelte
 
-Back / Forward through this tab's journey (sprint 050-UI), for the Mac app and the installed PWA, which have no browser buttons. `variant="desktop"` (AppShell's top bar, and on md+ screens the Search, Trash and Settings headers) shows ‹ › right before the search field, the unavailable one disabled, with "Back to {label}" / "Forward to {label}" as accessible label and tooltip (labels from `navigation-labels.ts`, note titles from the title cache). `variant="phone"` shows only a › next to the phone's labelled "← Back", and only when a step is ahead (at home, next to the app name). Both call `navigation.goBack()` / `goForward()` and listen for Cmd+[ / Cmd+] (Ctrl elsewhere) and Alt+← / Alt+→ through `history-shortcuts.ts`, which ignores keys typed in a field or the editor.
+Back / Forward through this tab's journey (sprint 050-UI), for the Mac app and the installed PWA, which have no browser buttons. `variant="desktop"` (AppShell's top bar, /search included since 059-DR, and on md+ screens the Trash and Settings headers) shows ‹ › right before the search field, the unavailable one disabled, with "Back to {label}" / "Forward to {label}" as accessible label and tooltip (labels from `navigation-labels.ts`, note titles from the title cache). `variant="phone"` shows only a › next to the phone's labelled "← Back", and only when a step is ahead (at home, next to the app name). Both call `navigation.goBack()` / `goForward()` and listen for Cmd+[ / Cmd+] (Ctrl elsewhere) and Alt+← / Alt+→ through `history-shortcuts.ts`, which ignores keys typed in a field or the editor.
 
 ### ConnectionStatus.svelte
 

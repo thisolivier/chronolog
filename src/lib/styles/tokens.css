@@ -168,4 +168,11 @@
 	--size-mark-md: 1.25rem;
 	--size-mark-lg: 1.75rem;
 	--spacing-mark-gap: 5px;
+
+	/* Time review rows (sprint 057-DR, TR-03 / TR-04). The identity column (mark + contract name) is
+	   one stable width so rows of one contract line up. Entry separators start at the contract
+	   name's left edge (row inset 0.75rem + small mark + mark gap) and run to the right edge, open at
+	   the left. One token so the owner's layout review (O04) can move the start point. */
+	--size-entry-identity: 11rem;
+	--spacing-entry-rule-start: calc(0.75rem + var(--size-mark-sm) + var(--spacing-mark-gap));
 }

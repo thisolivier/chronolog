@@ -4,6 +4,25 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 `chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
 030, 033 and 035 changed nothing in the CLI and are not listed.
 
+## 1.5.0 (sprints 055-DR, 056-DR UI, 057-DR, 059-DR, 2026-11-07): capture, split, time review, search in the shell
+
+- Design r1 checkpoint B/C: stable completion form with Save/Discard and sole-option auto-selection,
+  phone capture screen, desktop two-card split, weekly review with sticky day headings and the
+  calendar-year week rule (below), search inside the app shell and one shared note picker. The CLI
+  output is unchanged apart from the week numbering described next.
+
+### Week numbering (sprint 057-DR)
+
+- **Weeks count from 1 January.** `week`, `status` and `me` use Chronolog's week rule: Week 1 is the
+  Monday-start week containing 1 January (owner decision 2026-11-07), not ISO 8601. The two agree
+  through 2026; `2027-W01` is now 28 Dec 2026 – 3 Jan 2027 (ISO's 2026-W53), and `2026-W53` is
+  refused (2026 has 52 weeks). `GET /api/me` returns `week` (older servers: `isoWeek`, read as a fallback).
+- **Update every installed CLI before 28 Dec 2026.** An older CLI computes week ranges with ISO
+  rules and reads `isoWeek` from the server: from 28 Dec 2026 to 3 Jan 2027 `chronolog week` would
+  show the wrong week and `chronolog status current …` would post the status for a different week
+  (and throughout 2027 a `2027-Wnn` argument means a different week to it). Run `git pull` on each
+  machine; the version drift notice (044-CL) prompts it.
+
 ## 1.4.0 (sprints 052–054-DR, 056-DR-api, 058-DR-api, 2026-11-07): earth-tone redesign, safer timer saves, smarter search
 
 - Design r1 checkpoint A: the app has a new earth-tone look (tokens, system font, contract marks in

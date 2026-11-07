@@ -23,6 +23,24 @@ on a branch `design-r1-<stage>`, gets a sprint doc under `docs/sprints/`, is rev
 | **C** | | **Checkpoint merge** | 6, 7, QA | |
 | 8 | 059-QA | Cross-surface regression against the spec 08 acceptance matrix in browser, PWA and Tauri | all | Matrix passes or deviations recorded |
 
+## Status (2026-11-07, after the checkpoint B/C QA pass)
+
+| Stage | State |
+| --- | --- |
+| 1 source maps | done |
+| 2 (052-DR) | merged; live at v1.4.0 |
+| 3a (053-DR), 3b (054-DR) | merged; live at v1.4.0 |
+| A | deployed 2026-11-07 as v1.4.0; pre-deploy dump `~/Backups/chronolog/pre-session/pre-checkpoint-a-*.dump`; no migrations |
+| 056-DR-api, 058-DR-api | merged; live at v1.4.0 |
+| 4 (055-DR) | merged into design-r1 after review (three blockers fixed) |
+| 6 (057-DR) | merged into design-r1 after review (renumber guard, shared week fixtures) |
+| 5 (056-DR UI) | merged into design-r1 after review |
+| 7 (059-DR) | merged into design-r1 after review |
+| B + C | QA pass done on `design-r1-qa-bc` (`docs/review/2026-11-07-checkpoint-bc.md`): suites green, shared cascade adopted in weekly/, one phone Start timer path, WikiLinkInput on the shared picker; awaiting owner look, then merge and deploy |
+| 8 | after B/C |
+
+Owner rule added 2026-11-07: any database migration needs a halt-and-ask first. None so far.
+
 Parallelism: 3a and 3b run side by side (different files; 3b reads the sidebar-hidden state from 3a's
 AppShell, so 3b merges second). 4 and 6 can run side by side, then 5 and 7.
 

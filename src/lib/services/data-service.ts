@@ -81,7 +81,7 @@ export interface DataService {
 	/** Creates the server draft; the contract is required (never guessed) */
 	startTimer(contractId: string, localStart?: TimerLocalStart): Promise<TimerEntry>;
 	/** Move the running timer's start (PATCH /api/timer); a 409 `start_overlaps_entry` needs `confirmed` */
-	adjustTimerStart(start: TimerLocalStart, options?: { confirmed?: boolean }): Promise<TimerEntry>;
+	adjustTimerStart(start: TimerLocalStart, options?: { confirmed?: boolean; expectedStartedAt?: string }): Promise<TimerEntry>;
 	stopTimer(): Promise<TimerEntry>;
 	/** 409 `not_a_draft` when it was saved or discarded elsewhere, `timer_changed` when `expectedStartedAt` is stale */
 	saveTimer(data: SaveTimerInput): Promise<void>;

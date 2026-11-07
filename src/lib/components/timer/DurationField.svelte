@@ -17,6 +17,7 @@
 		compact = false,
 		autofocus = false,
 		align = 'left',
+		measuredText = undefined,
 		onkeydown = undefined,
 		onblur = undefined,
 		oninput = undefined
@@ -27,6 +28,11 @@
 		compact?: boolean;
 		autofocus?: boolean;
 		align?: 'left' | 'right';
+		/**
+		 * The timer's measured text: while the field still shows it, no "= …" preview, since an
+		 * untouched field saves the measured seconds (rounded up), not the whole-minute range
+		 */
+		measuredText?: string;
 		onkeydown?: (event: KeyboardEvent) => void;
 		onblur?: (event: FocusEvent) => void;
 		oninput?: (event: Event) => void;
@@ -41,6 +47,7 @@
 	const parsedValue = $derived(value.trim() ? parseDuration(value) : null);
 	const previewText = $derived.by(() => {
 		if (!parsedValue || !parsedValue.ok) return '';
+		if (measuredText !== undefined && value.trim() === measuredText) return '';
 		const formatted = formatMinutes(parsedValue.durationMinutes);
 		// Only worth showing when it says something the user did not type
 		return formatted.replace(' ', '') === value.trim().replace(/\s/g, '') ? '' : `= ${formatted}`;

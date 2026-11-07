@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import { getDataService } from '$lib/services/context';
 	import { tick } from 'svelte';
@@ -24,7 +25,10 @@
 	const sections = $derived(contractDirectory.sections);
 	const selectedContractId = $derived(navigationContext.selectedContractId);
 	const selectionIsArchived = $derived(contractDirectory.isArchived(selectedContractId));
-	const viewedClientId = $derived(navigationContext.listClientId);
+	// On /search (059-DR) the results replace the list and editor: no sidebar place is "open"
+	const onSearchPage = $derived(page.route.id === '/(workspace)/search');
+	const viewedClientId = $derived(onSearchPage ? null : navigationContext.listClientId);
+	const highlightedContractId = $derived(onSearchPage ? null : selectedContractId);
 
 	// Collapsed clients, remembered per browser (039-CL); never collapsed by default
 	let collapsedClientIds = $state<string[]>(readCollapsedClientIds(browserLocalStorage()));
@@ -104,6 +108,7 @@
 	// home (this list itself) nothing is open, so nothing is highlighted.
 	const isTimeEntriesHighlighted = $derived(
 		navigationContext.isTimeEntriesMode &&
+			!onSearchPage &&
 			!(navigationContext.isHome && navigationContext.layoutMode === 'mobile')
 	);
 
@@ -120,7 +125,7 @@
 	}
 
 	// The "Notes" heading opens all notes (051-UI); highlighted while that list is shown
-	const isAllNotesHighlighted = $derived(navigationContext.isAllNotesView);
+	const isAllNotesHighlighted = $derived(navigationContext.isAllNotesView && !onSearchPage);
 
 	// SH-03: reviewing time mutes the whole Notes section (and Archived, Trash, Settings) to 50%
 	// with one wrapper. Emphasis only: everything inside stays enabled, clickable and focusable.
@@ -185,7 +190,7 @@
 				{#each sections.activeGroups as group (group.clientId)}
 					<SidebarClientGroup
 						{group}
-						{selectedContractId}
+						selectedContractId={highlightedContractId}
 						{viewedClientId}
 						onSelect={handleContractClick}
 						onOpenClient={handleClientClick}
@@ -199,7 +204,7 @@
 					<SidebarArchivedSection
 						groups={sections.archivedGroups}
 						contractCount={sections.archivedContractCount}
-						{selectedContractId}
+						selectedContractId={highlightedContractId}
 						{selectionIsArchived}
 						onSelect={handleContractClick}
 						sectionMuted={isNotesSectionMuted}

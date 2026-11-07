@@ -1,53 +1,15 @@
 /**
- * ISO week utilities.
+ * Week date utilities: Mondays, the seven dates of a week and display formats.
  *
- * ISO 8601 defines weeks as starting on Monday, with week 1 being
- * the week that contains the first Thursday of the year.
+ * Week NUMBERS are not computed here: they follow Chronolog's own rule (Week 1 contains
+ * 1 January, owner decision 2026-11-07) in `calendar-week.ts`. The file keeps its old name
+ * because many modules import its formatters.
  */
-
-/** Get the ISO week number for a given date string (YYYY-MM-DD). */
-export function getIsoWeekNumber(dateString: string): number {
-	const date = new Date(dateString + 'T00:00:00');
-	const dayOfWeek = date.getDay() || 7; // Convert Sunday=0 to 7
-	// Set to nearest Thursday (current date + 4 - current day number)
-	date.setDate(date.getDate() + 4 - dayOfWeek);
-	const yearStart = new Date(date.getFullYear(), 0, 1);
-	const weekNumber = Math.ceil(((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-	return weekNumber;
-}
-
-/** Get the ISO year for a given date string (accounts for year boundary weeks). */
-export function getIsoYear(dateString: string): number {
-	const date = new Date(dateString + 'T00:00:00');
-	const dayOfWeek = date.getDay() || 7;
-	date.setDate(date.getDate() + 4 - dayOfWeek);
-	return date.getFullYear();
-}
-
-/**
- * Get the Monday (start) of the ISO week for a given year and week number.
- * Returns a date string in YYYY-MM-DD format.
- */
-export function getMondayOfIsoWeek(year: number, weekNumber: number): string {
-	// January 4th is always in week 1
-	const january4th = new Date(year, 0, 4);
-	const dayOfWeek = january4th.getDay() || 7; // Convert Sunday=0 to 7
-	// Monday of week 1
-	const mondayOfWeek1 = new Date(january4th);
-	mondayOfWeek1.setDate(january4th.getDate() - (dayOfWeek - 1));
-	// Add (weekNumber - 1) * 7 days
-	const targetMonday = new Date(mondayOfWeek1);
-	targetMonday.setDate(mondayOfWeek1.getDate() + (weekNumber - 1) * 7);
-	return formatDateString(targetMonday);
-}
+import { mondayOnOrBefore } from './calendar-week';
 
 /** Get the Monday of the week containing the given date string. */
 export function getMondayOfWeek(dateString: string): string {
-	const date = new Date(dateString + 'T00:00:00');
-	const dayOfWeek = date.getDay() || 7; // Convert Sunday=0 to 7
-	const monday = new Date(date);
-	monday.setDate(date.getDate() - (dayOfWeek - 1));
-	return formatDateString(monday);
+	return mondayOnOrBefore(dateString);
 }
 
 /** Get the Sunday (end) of the week starting on the given Monday. */

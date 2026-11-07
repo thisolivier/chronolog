@@ -51,7 +51,7 @@ export async function init({ print, flags }) {
 	writeConfigFile(config, path);
 	const result = await createApiClient(config).get('/api/me');
 	print(
-		`Saved ${path} (mode 600). Connected to ${config.baseUrl} as ${result.user.email}; today is ${result.today}, week ${result.isoWeek}.`,
-		{ configPath: path, baseUrl: config.baseUrl, user: result.user, today: result.today, isoWeek: result.isoWeek }
+		`Saved ${path} (mode 600). Connected to ${config.baseUrl} as ${result.user.email}; today is ${result.today}, week ${result.week ?? result.isoWeek}.`,
+		{ configPath: path, baseUrl: config.baseUrl, user: result.user, today: result.today, week: result.week ?? result.isoWeek }
 	);
 }

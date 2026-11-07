@@ -161,9 +161,10 @@ test.describe('Sprint 030 timesheet polish', () => {
 		await expect(notice).toBeVisible();
 		await expect(notice).toHaveText(`Cleared “Phase Two > Build”: it belongs to ${seeded.sourceLabel}.`);
 		const deliverablePicker = card.locator('select').first();
-		await expect(deliverablePicker).toHaveValue('');
+		await expect(deliverablePicker).toHaveValue('none'); // "No deliverable" (CASCADE_NONE)
 		await expect(deliverablePicker.locator('option')).toContainText(['No deliverable', 'Target Phase']);
-		await expect(card).toContainText(seeded.targetLabel);
+		// The row shows the contract name with the client beneath (057-DR), not "Client / Contract"
+		await expect(card.getByRole('button', { name: `Contract: ${seeded.targetLabel}. Change contract` })).toBeVisible();
 		// The old "Phase Two > Build" label is gone (it is named only in the notice)
 		await expect(card.getByTitle('Click to change deliverable / work type')).toHaveCount(0);
 
@@ -179,7 +180,7 @@ test.describe('Sprint 030 timesheet polish', () => {
 		await page.reload();
 		await page.waitForLoadState('networkidle');
 		const reloadedCard = page.locator(`[data-entry-id="${seeded.entryId}"]`);
-		await expect(reloadedCard).toContainText(seeded.targetLabel);
+		await expect(reloadedCard.getByRole('button', { name: `Contract: ${seeded.targetLabel}. Change contract` })).toBeVisible();
 		await expect(reloadedCard).not.toContainText('Phase Two');
 	});
 

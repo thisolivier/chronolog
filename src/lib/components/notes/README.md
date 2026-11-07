@@ -20,7 +20,7 @@ Main editor component with toolbar and content area. Notes have no title field: 
 - Save status (`saved` / `saving` / `unsaved` / `error` / `conflict`) is reported through `onSaveStatusChange`; a 409 conflict halts autosave
 - Dual format support: markdown and JSON
 - Read-only mode support
-- WikiLink inline nodes with `[[syntax]]` autocomplete (current note excluded; an empty `[[` lists recent notes)
+- WikiLink inline nodes with `[[syntax]]` autocomplete through the shared link picker (059-DR: `search/LinkPicker.svelte`; title, contract mark and client/contract per row, code secondary; current note excluded; an empty `[[` lists recent notes of every contract; Escape or a press outside closes it and keeps the typed text)
 - AnchoredHeading nodes with auto-generated slug IDs
 - Click-to-navigate on wiki-link nodes
 - Code blocks with syntax highlighting (CodeBlockLowlight + lowlight, github-light theme)
@@ -151,7 +151,7 @@ Lists the note's attachments: an image or document icon, the filename (a button 
 
 ## Custom Extensions
 
-See `extensions/README.md` for documentation on WikiLink, AnchoredHeading, MarkdownText, AttachmentImage, SuggestionDropdown, and the attachment URL resolver.
+See `extensions/README.md` for documentation on WikiLink, AnchoredHeading, MarkdownText, AttachmentImage, the `[[` picker renderer (`wiki-link-picker.svelte.ts`), and the attachment URL resolver.
 
 ## Svelte 5 Integration
 

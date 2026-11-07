@@ -106,6 +106,37 @@ test('global search from the shell opens a note hit and an entry hit', async ({ 
 	await expect(noteHits).toHaveCount(1);
 });
 
+test('an entry hit from the week the search started on opens that week (059-DR review)', async ({ page, browserName }) => {
+	const word = `numbat${Date.now().toString(36)}${browserName.slice(0, 2)}`;
+	await page.goto('/');
+	const contractName = await createContract(page, `Today ${Date.now().toString(36)}${browserName.slice(0, 2)}`);
+	const entryId = await page.evaluate(
+		async ({ word, contractName }) => {
+			const contracts = await (await fetch('/api/contracts')).json();
+			const contract = contracts.find((candidate: { name: string }) => candidate.name === contractName);
+			const now = new Date();
+			const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+			const response = await fetch('/api/time-entries', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ contractId: contract.id, date, durationMinutes: 30, description: `Planned the ${word} launch` })
+			});
+			return (await response.json()).entry.id as string;
+		},
+		{ word, contractName }
+	);
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('sidebar-time-entries').click();
+	await expect(page).toHaveURL(/\/time\/\d{4}-W\d{2}$/);
+	const weekUrl = page.url();
+	await page.getByTestId('global-search-input').fill(word);
+	await page.getByTestId('global-search-input').press('Enter');
+	await expect(page).toHaveURL(/\/search\?q=/);
+	await page.getByTestId('search-hit-entry').filter({ hasText: 'Planned the' }).click();
+	await expect(page).toHaveURL(weekUrl);
+	await expect(page.locator(`[data-entry-id="${entryId}"]`)).toBeFocused();
+});
+
 test('Cmd/Ctrl+F in a note highlights matches without editing the note', async ({ page, browserName }) => {
 	const seeded = await seed(page, browserName);
 	await page.goto(`/notes/${seeded.contractId}/${seeded.noteId}`);

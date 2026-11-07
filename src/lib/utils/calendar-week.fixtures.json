@@ -1,0 +1,16 @@
+{
+	"description": "Worked examples of Chronolog's week rule (Week 1 is the Monday-start week containing 1 January; decision 2026-11-07). Read by src/lib/utils/calendar-week.test.ts and cli/lib/cli-lib.test.mjs so the app's and the CLI's copies of the rule cannot drift.",
+	"weeks": [
+		{ "date": "2026-12-28", "year": 2027, "weekNumber": 1, "weekStart": "2026-12-28", "note": "ISO 2026-W53" },
+		{ "date": "2027-01-01", "year": 2027, "weekNumber": 1, "weekStart": "2026-12-28", "note": "ISO 2026-W53" },
+		{ "date": "2027-01-04", "year": 2027, "weekNumber": 2, "weekStart": "2027-01-04", "note": "ISO 2027-W01" },
+		{ "date": "2025-12-29", "year": 2026, "weekNumber": 1, "weekStart": "2025-12-29", "note": "ISO agrees" },
+		{ "date": "2024-12-30", "year": 2025, "weekNumber": 1, "weekStart": "2024-12-30", "note": "ISO agrees" },
+		{ "date": "2026-11-07", "year": 2026, "weekNumber": 45, "weekStart": "2026-11-02" },
+		{ "date": "2026-12-27", "year": 2026, "weekNumber": 52, "weekStart": "2026-12-21" },
+		{ "date": "2022-12-26", "year": 2023, "weekNumber": 1, "weekStart": "2022-12-26", "note": "1 Jan on a Sunday" },
+		{ "date": "2023-12-31", "year": 2023, "weekNumber": 53, "weekStart": "2023-12-25" },
+		{ "date": "2024-01-01", "year": 2024, "weekNumber": 1, "weekStart": "2024-01-01", "note": "1 Jan on a Monday" }
+	],
+	"weeksInYear": { "2023": 53, "2024": 52, "2025": 52, "2026": 52, "2027": 52, "2028": 53, "2100": 52 }
+}

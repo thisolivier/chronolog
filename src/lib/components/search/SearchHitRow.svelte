@@ -1,75 +1,75 @@
 <!--
-	One search hit, note or time entry (sprint 046-CL). A two-column grid:
-	- desktop/tablet (md, ≥ 768 px): the type icon fills a fixed left column; to its right the
-	  client/contract line (date, and duration, at its end), then the title or description, then
-	  the snippet.
-	- phone: the icon stays in the first cell of the client/contract line, which names the client by
-	  its short code so the contract fits; the title and snippet below span both columns, so the meta
-	  takes one line and nothing scrolls sideways at 320 px.
+	One search hit, note or time entry (sprint 046-CL; design r1 SR-02, sprint 059-DR).
+	Reading order: the type icon and the note title (an entry's description) first, then the
+	contract mark with "Client / Contract", then the matching excerpt with the server's highlight
+	ranges. A metadata-only hit names why it matched ("Matches client Amplitude") and shows no
+	highlighted excerpt.
+	- desktop/tablet (md, ≥ 768 px): a quiet date at the right, with an entry's duration under it;
+	  the title keeps to one line.
+	- phone: text wraps; the date (and duration) sit beneath the excerpt.
+	The active row (keyboard focus) has the sage fill and pine edge used for selection elsewhere.
 -->
 <script lang="ts">
 	import HighlightedText from './HighlightedText.svelte';
 	import SearchTypeIcon from './SearchTypeIcon.svelte';
+	import ContractMark from '$lib/components/identity/ContractMark.svelte';
 	import { formatSmartDate } from '$lib/utils/format-date';
-	import { formatDayHeader } from '$lib/utils/iso-week';
 	import { formatMinutes } from '$lib/utils/duration';
-	import { getClientDotClass } from '$lib/utils/client-colors';
 	import { formatEntryDateShort, type SearchListItem } from './search-interleave';
+	import { matchReason } from './search-match-reason';
 
 	interface Props {
 		item: SearchListItem;
-		/** Undefined while the client list loads (grey dot) */
-		clientColorIndex: number | undefined;
 		onOpen: () => void;
 	}
 
-	let { item, clientColorIndex, onOpen }: Props = $props();
+	let { item, onOpen }: Props = $props();
 
-	const hasNoteSnippet = $derived(item.kind === 'note' && item.hit.snippet.text.length > 0);
-	const dotClass = $derived(clientColorIndex === undefined ? 'bg-chalk-300' : getClientDotClass(clientColorIndex));
-	const belowClass = 'col-span-2 min-w-0 md:col-span-1 md:col-start-2';
+	const reason = $derived(matchReason(item.hit));
+	const showNoteExcerpt = $derived(item.kind === 'note' && !reason && item.hit.snippet.text.length > 0);
+	const dateLabel = $derived(item.kind === 'note' ? formatSmartDate(item.hit.updatedAt) : formatEntryDateShort(item.hit.date));
+	const textColumn = 'col-start-2 min-w-0';
 </script>
 
 <button
 	type="button"
-	class="grid w-full grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-0.5 rounded-md border border-transparent px-3 py-2.5 text-left hover:border-divider hover:bg-surface focus:border-pine-400 focus:bg-surface focus:outline-none md:items-start md:gap-x-3"
+	class="grid w-full grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 border-l-2 border-transparent px-3 py-3 text-left hover:bg-moss-50 focus:border-selection-edge focus:bg-moss-100 focus:outline-none md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-x-4"
 	onclick={onOpen}
 	data-search-hit={item.kind}
+	data-hit-id={item.hit.id}
 	data-testid={item.kind === 'note' ? 'search-hit-note' : 'search-hit-entry'}
 >
-	<SearchTypeIcon
-		kind={item.kind}
-		class="col-start-1 row-start-1 h-5 w-5 md:mt-0.5 md:h-8 md:w-8 {hasNoteSnippet ? 'md:row-span-3' : 'md:row-span-2'}"
-	/>
+	<SearchTypeIcon kind={item.kind} class="col-start-1 row-start-1 mt-0.5 h-6 w-6" />
 
-	<div class="col-start-2 row-start-1 flex min-w-0 items-center gap-2 text-sm text-ink-soft" data-testid="search-hit-context">
-		<span class="h-2 w-2 flex-shrink-0 rounded-full {dotClass}" aria-hidden="true"></span>
-		<span class="min-w-0 flex-1 truncate font-medium"
-			><span class="md:hidden" title={item.hit.clientName}>{item.hit.clientShortCode}</span><span class="hidden md:inline">{item.hit.clientName}</span>
-			/ {item.hit.contractName}</span
-		>
-		<span class="flex-shrink-0 text-xs whitespace-nowrap text-ink-faint tabular-nums" data-testid="search-hit-date">
-			{#if item.kind === 'note'}
-				{formatSmartDate(item.hit.updatedAt)}
-			{:else}
-				<span class="hidden md:inline">{formatDayHeader(item.hit.date)}</span><span class="md:hidden">{formatEntryDateShort(item.hit.date)}</span>
-				· {formatMinutes(item.hit.durationMinutes)}
-			{/if}
-		</span>
+	<div class="{textColumn} font-semibold text-ink {item.kind === 'note' ? 'md:truncate' : 'line-clamp-2'}">
+		{#if item.kind === 'note'}
+			<HighlightedText text={item.hit.title} matches={item.hit.titleMatches} />
+		{:else}
+			<HighlightedText text={item.hit.snippet.text} matches={item.hit.snippet.matches} />
+		{/if}
 	</div>
 
-	{#if item.kind === 'note'}
-		<div class="{belowClass} truncate text-sm font-semibold text-ink">
-			<HighlightedText text={item.hit.title} matches={item.hit.titleMatches} />
-		</div>
-		{#if hasNoteSnippet}
-			<div class="{belowClass} line-clamp-1 text-xs text-ink-muted md:line-clamp-2">
-				<HighlightedText text={item.hit.snippet.text} matches={item.hit.snippet.matches} />
-			</div>
-		{/if}
-	{:else}
-		<div class="{belowClass} line-clamp-2 text-sm text-ink">
+	<div class="{textColumn} flex items-center gap-mark-gap text-sm text-ink-soft" data-testid="search-hit-context">
+		<ContractMark contractName={item.hit.contractName} colorIndex={item.hit.clientColorIndex} size="sm" />
+		<span class="min-w-0 truncate">{item.hit.clientName} / {item.hit.contractName}</span>
+	</div>
+
+	{#if reason}
+		<div class="{textColumn} text-sm text-ink-muted italic" data-testid="search-hit-reason">{reason}</div>
+	{:else if showNoteExcerpt && item.kind === 'note'}
+		<div class="{textColumn} text-sm text-ink-muted md:line-clamp-2">
 			<HighlightedText text={item.hit.snippet.text} matches={item.hit.snippet.matches} />
 		</div>
 	{/if}
+
+	<div
+		class="{textColumn} flex items-baseline gap-1 text-xs whitespace-nowrap text-ink-faint tabular-nums md:col-start-3 md:row-span-2 md:row-start-1 md:flex-col md:items-end md:gap-0.5"
+		data-testid="search-hit-date"
+	>
+		<span>{dateLabel}</span>
+		{#if item.kind === 'entry'}
+			<span class="md:hidden" aria-hidden="true">·</span>
+			<span class="text-sm font-medium text-ink-soft">{formatMinutes(item.hit.durationMinutes)}</span>
+		{/if}
+	</div>
 </button>

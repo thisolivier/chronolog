@@ -16,20 +16,3 @@ export async function fetchGlobalSearch(query: string, signal?: AbortSignal): Pr
 	if (!response.ok) throw new Error(`Search failed (${response.status})`);
 	return response.json();
 }
-
-/**
- * Client colour indexes by client id (sprint 046-CL), for the colour dot on each hit. Read from
- * `GET /api/clients` so the search response keeps its shape; an empty map (grey dots) on failure.
- */
-export async function fetchClientColorIndexes(signal?: AbortSignal): Promise<Map<string, number>> {
-	try {
-		const response = await fetch('/api/clients?includeArchived=true', {
-			signal
-		});
-		if (!response.ok) return new Map();
-		const body: { clients: { id: string; colorIndex: number }[] } = await response.json();
-		return new Map(body.clients.map((client) => [client.id, client.colorIndex]));
-	} catch {
-		return new Map();
-	}
-}

@@ -239,11 +239,16 @@ export class FetchDataService implements DataService {
 		});
 	}
 
-	async adjustTimerStart(start: TimerLocalStart, options: { confirmed?: boolean } = {}): Promise<TimerEntry> {
+	async adjustTimerStart(
+		start: TimerLocalStart,
+		options: { confirmed?: boolean; expectedStartedAt?: string } = {}
+	): Promise<TimerEntry> {
 		return patchJson<TimerEntry>('/api/timer', {
 			date: start.date,
 			startTime: start.startTime,
-			confirmed: options.confirmed === true
+			confirmed: options.confirmed === true,
+			// The start the caller shows: a draft moved or split elsewhere answers 409 timer_changed
+			...(options.expectedStartedAt ? { expectedStartedAt: options.expectedStartedAt } : {})
 		});
 	}
 

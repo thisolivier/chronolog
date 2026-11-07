@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { captureScreen } from '$lib/components/timer/capture-screen.svelte';
 	import FindBar from '$lib/components/find/FindBar.svelte';
 	import { onMount, tick } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
@@ -7,16 +8,13 @@
 	import WeekStrip from '$lib/components/weekly/WeekStrip.svelte';
 	import TimeEntryCard from '$lib/components/weekly/TimeEntryCard.svelte';
 	import NewEntryRow from '$lib/components/weekly/NewEntryRow.svelte';
-	import TimerWidget from '$lib/components/timer/TimerWidget.svelte';
-	import { isSidebarTimerWidgetMounted } from '$lib/components/timer/timer-widget-registry.svelte';
-	import {
-		getMondayOfWeek,
-		getIsoWeekNumber,
-		getIsoYear,
-		getWeekDates,
-		formatDayHeader,
-		formatWeekRange
-	} from '$lib/utils/iso-week';
+	import AddTimeEntryModal from '$lib/components/timer/AddTimeEntryModal.svelte';
+	import { getTimerStateContext } from '$lib/stores/timer-state.svelte';
+	import { dispatchTimeEntrySaved } from '$lib/components/weekly/time-entry-events';
+	import { getMondayOfWeek, getWeekDates, formatDayHeader } from '$lib/utils/iso-week';
+	import { calendarWeekOf } from '$lib/utils/calendar-week';
+	import { formatDayHeading, formatWeekHeading } from '$lib/components/weekly/week-labels';
+	import { dayJumpScrollTop } from '$lib/components/weekly/day-jump';
 	import { formatMinutes } from '$lib/utils/duration';
 	import { SvelteDate } from 'svelte/reactivity';
 	import { TIME_ENTRY_SAVED_EVENT, readTimeEntrySavedDetail } from '$lib/components/weekly/time-entry-events';
@@ -27,6 +25,7 @@
 
 	const navigation = getNavigationContext();
 	const dataService = getDataService();
+	const timer = getTimerStateContext();
 
 	let loadedWeeks = $state<WeekData[]>([]);
 	let isLoading = $state(false);
@@ -35,18 +34,21 @@
 	let scrollContainer: HTMLElement | undefined = $state();
 
 	/**
-	 * Scroll the day list so a day sits at the top. Sets scrollTop on the panel's own
-	 * scroller instead of calling scrollIntoView, which in Chromium also moves the
-	 * sequential focus starting point (the first Tab then landed on today's "+").
+	 * Scroll the day list so a day's heading sits at the top. Sets scrollTop on the panel's own
+	 * scroller instead of calling scrollIntoView, which in Chromium also moves the sequential focus
+	 * starting point (the first Tab then landed on today's "+"). The week controls are outside the
+	 * scroller; anything pinned inside it is declared as its `scroll-padding-top` (057-DR, TR-01).
 	 */
 	function scrollDayToTop(dateString: string, behavior: 'auto' | 'smooth') {
 		const dayElement = daySectionRefs[dateString];
 		if (!dayElement || !scrollContainer) return;
-		const offsetWithinContainer =
-			dayElement.getBoundingClientRect().top -
-			scrollContainer.getBoundingClientRect().top +
-			scrollContainer.scrollTop;
-		scrollContainer.scrollTo({ top: Math.max(0, offsetWithinContainer - 8), behavior });
+		const top = dayJumpScrollTop({
+			dayTop: dayElement.getBoundingClientRect().top,
+			scrollerTop: scrollContainer.getBoundingClientRect().top,
+			scrollTop: scrollContainer.scrollTop,
+			stickyInsetPixels: Number.parseFloat(getComputedStyle(scrollContainer).scrollPaddingTop) || 0
+		});
+		scrollContainer.scrollTo({ top, behavior });
 	}
 
 	// --- Returning restores (rule 7): each week remembers the day at the top of the list ---
@@ -181,10 +183,23 @@
 			: []
 	);
 
-	// The Add Entry modal in the phone footer opens on today when today is in view
+	// The phone's Add Entry opens on today when today is in view
 	let addEntryDate = $derived(displayDays.includes(todayString) ? todayString : selectedWeekStart);
 
-	let showFooterTimer = $derived(!isSidebarTimerWidgetMounted());
+	// Phone (TR-08): no footer timer bar. A running or stopped capture is in the header pill (053-DR);
+	// with no capture, Start timer (the capture screen, the same path as the pill) and Add Entry
+	// stay in the week controls.
+	let showPhoneCaptureAccess = $derived(navigation.layoutMode === 'mobile' && timer.status === 'idle');
+	let showAddEntryModal = $state(false);
+
+	function handlePhoneEntryCreated(created: { entryId: string; date: string }) {
+		showAddEntryModal = false;
+		dispatchTimeEntrySaved(created);
+		navigation.showTimeEntryDay(created.date);
+	}
+
+	// A failed week-status save, shown at the status (TR-07); cleared by the next attempt
+	let statusError = $state('');
 
 	function formatDate(date: Date): string {
 		const year = date.getFullYear();
@@ -276,10 +291,11 @@
 		}
 	}
 
+	/** Recordkeeping only: the week's status changes and nothing is sent (TR-07) */
 	async function handleStatusChange(weekStart: string, newStatus: string) {
-		const year = getIsoYear(weekStart);
-		const weekNumber = getIsoWeekNumber(weekStart);
-
+		// Week 1 contains 1 January (calendar-week.ts); the server stores the status by its Monday
+		const { year, weekNumber } = calendarWeekOf(weekStart);
+		statusError = '';
 		try {
 			await dataService.updateWeeklyStatus(year, weekNumber, newStatus);
 
@@ -289,6 +305,7 @@
 			}
 		} catch (error) {
 			console.error('Error updating status:', error);
+			statusError = `Couldn't save “${newStatus}”. Try again.`;
 		}
 	}
 
@@ -355,6 +372,12 @@
 
 	// --- Week navigation handlers ---
 
+	// A status error belongs to the week it was made on
+	$effect(() => {
+		void selectedWeekStart;
+		statusError = '';
+	});
+
 	function navigateToPrevWeek() {
 		const previousWeekStart = shiftWeek(selectedWeekStart, -1);
 		navigation.selectWeek(previousWeekStart);
@@ -397,60 +420,69 @@
 </script>
 
 <!--
-	Day section snippet used for each day in the selected week.
-	"+" button always in the heading row; NewEntryRow expands below heading, above entries.
+	Day section (057-DR, TR-02): a bark-brown heading bar (date, local Add entry, day total) that
+	sticks to the top of the scroller while the day's entries scroll and is replaced by the next
+	day's heading at the boundary (sticky inside its own section). Square ends. Today carries an
+	ochre marker on its bar, with no tint across the day. Entries keep their chronological order.
 -->
 {#snippet daySection(dayDate: string, entries: TimeEntryDisplay[], totalMinutes: number)}
 	{@const isToday = dayDate === todayString}
-	<div
-		class={[
-			'mb-3 transition-shadow',
-			// Today's tint bleeds 12 px into the gutter so its cards keep the same left edge as other days
-			isToday && '-mx-3 rounded-lg bg-ochre-50/60 px-3 py-3',
-			highlightedDay === dayDate && 'rounded-lg ring-2 ring-pine-300'
-		]
-			.filter(Boolean)
-			.join(' ')}
+	{@const isQuiet = entries.length === 0 && !isToday}
+	<section
+		class={['mb-4 transition-shadow', highlightedDay === dayDate && 'ring-2 ring-pine-300']}
 		bind:this={daySectionRefs[dayDate]}
 		data-day={dayDate}
+		aria-label={formatDayHeader(dayDate)}
 	>
-		<div class="mb-1 flex items-center justify-between px-1">
-			<div class="flex items-center gap-2">
-				<h2 class="text-sm font-semibold text-ink-soft">
-					{formatDayHeader(dayDate)}
-				</h2>
-				{#if isToday}
-					<span class="rounded-full bg-ochre-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-ochre-700">Today</span>
-				{/if}
-				{#if !expandedAddEntry[dayDate]}
-					<button
-						onclick={() => toggleAddEntry(dayDate)}
-						data-add-entry={dayDate}
-						class="rounded px-1.5 text-sm leading-none text-ink-faint hover:text-pine-500 pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:text-lg"
-						title="Add entry"
-						aria-label="Add entry for {formatDayHeader(dayDate)}"
-					>
-						+
-					</button>
-				{/if}
-			</div>
-			{#if totalMinutes > 0}
-				<span class="text-sm font-medium tabular-nums text-ink-faint">
-					{formatMinutes(totalMinutes)}
-				</span>
+		<div
+			class={['day-heading flex min-h-9 items-center gap-3 px-3 py-1', isQuiet ? 'bg-bark-100 text-bark-800' : 'bg-bark-600 text-on-accent']}
+			data-testid="day-heading"
+			data-today={isToday ? 'true' : undefined}
+		>
+			{#if isToday}
+				<span class="-ml-3 self-stretch border-l-4 border-ochre-300" aria-hidden="true"></span>
 			{/if}
+			<h2 class="min-w-0 text-sm font-semibold whitespace-nowrap sm:text-base">
+				<span class="hidden sm:inline">{formatDayHeading(dayDate)}</span>
+				<span class="sm:hidden">{formatDayHeading(dayDate, 'short')}</span>
+			</h2>
+			{#if isToday}
+				<span class="rounded-sm bg-ochre-300 px-1.5 py-px text-[11px] font-bold tracking-wide text-ochre-900 uppercase">Today</span>
+			{/if}
+			{#if !expandedAddEntry[dayDate]}
+				<span class="h-4 border-l {isQuiet ? 'border-bark-300' : 'border-bark-400'}" aria-hidden="true"></span>
+				<button
+					onclick={() => toggleAddEntry(dayDate)}
+					data-add-entry={dayDate}
+					class={[
+						'flex items-center gap-1 rounded-control px-1.5 py-0.5 text-sm whitespace-nowrap focus-visible:ring-2 focus-visible:outline-none pointer-coarse:min-h-11 pointer-coarse:min-w-11',
+						isQuiet ? 'text-bark-700 hover:bg-bark-200 focus-visible:ring-bark-600' : 'text-bark-50 hover:bg-bark-500 focus-visible:ring-ochre-300'
+					]}
+					title="Add entry"
+					aria-label="Add entry for {formatDayHeader(dayDate)}"
+				>
+					<span aria-hidden="true" class="text-base leading-none">+</span>
+					<span>Add entry</span>
+				</button>
+			{/if}
+			<span class="ml-auto text-sm font-semibold whitespace-nowrap tabular-nums sm:text-base" data-testid="day-total">
+				{totalMinutes > 0 ? formatMinutes(totalMinutes) : ''}
+			</span>
 		</div>
 
 		{#if expandedAddEntry[dayDate]}
-			<NewEntryRow
-				date={dayDate}
-				onEntryCreated={(entryId) => handleEntryCreated(dayDate, entryId)}
-				onCancel={() => handleAddEntryCancelled(dayDate)}
-			/>
+			<div class="mt-2">
+				<NewEntryRow
+					date={dayDate}
+					onEntryCreated={(entryId) => handleEntryCreated(dayDate, entryId)}
+					onCancel={() => handleAddEntryCancelled(dayDate)}
+				/>
+			</div>
 		{/if}
 
 		{#if entries.length > 0}
-			<div class="flex flex-col">
+			<!-- @container: the rows reflow on the panel's width, not the window's -->
+			<div class="@container flex flex-col">
 				{#each entries as entry (entry.id)}
 					<TimeEntryCard
 						{entry}
@@ -461,26 +493,18 @@
 				{/each}
 			</div>
 		{:else if !expandedAddEntry[dayDate]}
-			<div class="flex items-center justify-between rounded-lg border border-dashed border-line px-4 py-3">
-				<span class="text-sm italic text-ink-faint">No entries</span>
-				<button
-					onclick={() => toggleAddEntry(dayDate)}
-					class="text-sm font-medium text-pine-500 hover:text-pine-700"
-				>
-					+ Add
-				</button>
-			</div>
+			<p class="px-3 py-2 text-sm text-ink-faint italic">No entries</p>
 		{/if}
-	</div>
+	</section>
 {/snippet}
 
 {#snippet olderWeekSection(weekStart: string)}
 	{@const weekData = findWeekData(weekStart)}
 	{@const daysWithEntries = weekData?.days.filter((day) => day.entries.length > 0) ?? []}
-	<section class="mt-6" aria-label="Week {getIsoWeekNumber(weekStart)}">
+	<section class="mt-6" aria-label={formatWeekHeading(weekStart)}>
 		<div class="mb-2 flex items-center gap-3">
 			<h2 class="text-xs font-semibold tracking-widest whitespace-nowrap text-ink-faint uppercase">
-				Week {getIsoWeekNumber(weekStart)} &middot; {formatWeekRange(weekStart)}
+				{formatWeekHeading(weekStart)}
 			</h2>
 			<div class="h-px flex-1 bg-chalk-200"></div>
 			<span class="text-xs font-medium tabular-nums text-ink-faint">
@@ -499,38 +523,44 @@
 	</section>
 {/snippet}
 
-<div class="flex h-full flex-col overflow-hidden bg-chalk-50">
+{#snippet phoneCaptureAccess()}
+	{#if showPhoneCaptureAccess}
+		<button
+			type="button"
+			onclick={() => captureScreen.open()}
+			class="flex items-center gap-1.5 rounded-control px-3 py-1.5 text-sm font-medium btn-primary pointer-coarse:min-h-11"
+			title="Open the timer to start it"
+			data-testid="phone-start-timer"
+		><span aria-hidden="true">&#9654;</span> Start timer</button>
+		<button
+			type="button"
+			onclick={() => (showAddEntryModal = true)}
+			class="rounded-control px-3 py-1.5 text-sm font-medium btn-secondary pointer-coarse:min-h-11"
+		>Add Entry</button>
+	{/if}
+{/snippet}
+
+<div class="flex h-full flex-col overflow-hidden bg-surface">
 	<FindBar mode="dom" />
-	<!-- WeekStrip: sticky at the top of the panel -->
-	{#if selectedWeekData}
+	<!-- WeekStrip: sticky at the top of the panel (a zeroed shell while the week loads) -->
+	{#if selectedWeekData || !isLoading}
 		<WeekStrip
 			weekStart={selectedWeekStart}
 			days={weekStripDays}
-			weeklyTotalMinutes={selectedWeekData.weeklyTotalMinutes}
-			currentStatus={selectedWeekData.status}
+			weeklyTotalMinutes={selectedWeekData?.weeklyTotalMinutes ?? 0}
+			currentStatus={selectedWeekData?.status ?? 'Unsubmitted'}
+			{statusError}
 			onStatusChange={(newStatus) => handleStatusChange(selectedWeekStart, newStatus)}
 			onPrevWeek={navigateToPrevWeek}
 			onNextWeek={navigateToNextWeek}
 			onDayClick={handleDayClick}
 			onToday={() => navigation.showTimeEntryDay(todayString)}
-		/>
-	{:else if !isLoading}
-		<!-- Show WeekStrip shell with zeroed-out data while week is loading -->
-		<WeekStrip
-			weekStart={selectedWeekStart}
-			days={weekStripDays}
-			weeklyTotalMinutes={0}
-			currentStatus="Unsubmitted"
-			onStatusChange={(newStatus) => handleStatusChange(selectedWeekStart, newStatus)}
-			onPrevWeek={navigateToPrevWeek}
-			onNextWeek={navigateToNextWeek}
-			onDayClick={handleDayClick}
-			onToday={() => navigation.showTimeEntryDay(todayString)}
+			phoneActions={showPhoneCaptureAccess ? phoneCaptureAccess : undefined}
 		/>
 	{/if}
 
 	<!-- Scrollable content: the selected week's seven days, then any older weeks loaded -->
-	<div bind:this={scrollContainer} onscroll={handleScroll} class="flex-1 overflow-y-auto px-4 py-4 sm:px-6" data-testid="timesheet-scroll">
+	<div bind:this={scrollContainer} onscroll={handleScroll} class="flex-1 overflow-y-auto px-3 pb-4 sm:px-6" data-testid="timesheet-scroll">
 		{#if isLoading && loadedWeeks.length === 0}
 			<div class="flex items-center justify-center py-12">
 				<p class="text-ink-faint">Loading weeks...</p>
@@ -556,11 +586,19 @@
 			</div>
 		{/if}
 	</div>
-
-	<!-- Phone: the sidebar (and its timer) is off screen inside the timesheet -->
-	{#if showFooterTimer}
-		<div class="flex-shrink-0">
-			<TimerWidget placement="footer" {addEntryDate} />
-		</div>
-	{/if}
 </div>
+
+{#if showAddEntryModal}
+	<AddTimeEntryModal initialDate={addEntryDate} onCreated={handlePhoneEntryCreated} onClose={() => (showAddEntryModal = false)} />
+{/if}
+
+<style>
+	/* Sticky inside its own day section: pinned to the top of the scroller while the day's entries
+	   scroll, pushed out by the section's end so the next day's heading takes over. Square ends. */
+	.day-heading {
+		position: sticky;
+		top: 0;
+		z-index: 2;
+		border-radius: 0;
+	}
+</style>

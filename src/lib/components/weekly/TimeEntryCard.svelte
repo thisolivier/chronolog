@@ -7,18 +7,19 @@
 		formatDurationInput
 	} from '$lib/utils/duration';
 	import { getDataService } from '$lib/services/context';
-	import { getClientBorderClass, getClientDotClass } from '$lib/utils/client-colors';
 	import ContractSelect from '$lib/components/timer/ContractSelect.svelte';
-	import DeliverableSelect from '$lib/components/timer/DeliverableSelect.svelte';
-	import WorkTypeSelect from '$lib/components/timer/WorkTypeSelect.svelte';
 	import DurationField from '$lib/components/timer/DurationField.svelte';
 	import { formatContractLabel } from '$lib/components/timer/contract-label';
 	import { contractHasDeliverables } from '$lib/components/timer/deliverable-cache';
+	import ContractMark from '$lib/components/identity/ContractMark.svelte';
+	import { deliverableHasWorkTypes } from './work-type-options';
+	import { missingDetailAction, missingDetailFor } from './missing-detail';
 	import { describeSaveError } from '$lib/components/timer/save-error';
 	import WikiLinkRenderer from './WikiLinkRenderer.svelte';
 	import OutboxMarker from '$lib/offline/OutboxMarker.svelte';
 	import WikiLinkInput from './WikiLinkInput.svelte';
 	import AttachNoteButton from './AttachNoteButton.svelte';
+	import EntryClassificationEditor from './EntryClassificationEditor.svelte';
 	import { attachNewNoteToEntry, attachNoteBlockedReason } from './attach-note';
 	import { splitFormerlyLines } from './formerly-lines';
 	import type { TimeEntryFields } from '$lib/services/types';
@@ -70,8 +71,6 @@
 	let timeInputValue = $state('');
 	let timeInputError = $state('');
 	let selectedContractId = $state('');
-	let selectedDeliverableId = $state('');
-	let selectedWorkTypeId = $state('');
 	let descriptionInputValue = $state('');
 	// Set by Escape so the blur that follows the editor closing does not save
 	let isDescriptionCancelled = false;
@@ -85,28 +84,42 @@
 	let isDescriptionExpanded = $state(false);
 	let isDescriptionOverflowing = $state(false);
 
-	// Whether the contract has deliverables; decides if "Add deliverable…" is always shown
+	// Whether the contract has deliverables / the deliverable has work types: decides the local
+	// missing-detail cue (TR-05), shown whenever there are options and the field is empty
 	let contractOffersDeliverables = $state(false);
+	let deliverableOffersWorkTypes = $state(false);
+	// Reopen an editor after a failed save without pulling focus from where the user went
+	let focusReopenedEditor = $state(true);
 
 	// After a contract change cleared the deliverable chain: the pickers open on the new
 	// contract, set to none, with a one-line notice of what was cleared
 	let contractChangeNotice = $state('');
 	let deliverablePickerContractId = $state('');
+	// What the classification editor opens on (the entry's values, or none after a contract change)
+	let editorDeliverableId = $state<string | null>(null);
+	let editorWorkTypeId = $state<string | null>(null);
 
 	// Controls that take focus back when an editor is closed from the keyboard (A-11)
 	let cardElement: HTMLElement | undefined = $state();
 	let descriptionButton: HTMLButtonElement | undefined = $state();
 	let contractButton: HTMLButtonElement | undefined = $state();
 	let deliverableButton: HTMLButtonElement | undefined = $state();
+	let missingDetailButton: HTMLButtonElement | undefined = $state();
 	let timeButton: HTMLButtonElement | undefined = $state();
 	let deliverableEditorElement: HTMLElement | undefined = $state();
 
-	let clientBorderClass = $derived(getClientBorderClass(entry.clientColorIndex));
-	let clientDotClass = $derived(getClientDotClass(entry.clientColorIndex));
 	let durationDisplay = $derived(formatMinutes(entry.durationMinutes));
 	let timeRangeDisplay = $derived(formatTimeRange(entry.startTime, entry.endTime));
 	let contractLabel = $derived(formatContractLabel(entry.clientName, entry.contractName));
 	let hasDeliverableOrWorkType = $derived(Boolean(entry.deliverableName || entry.workTypeName));
+	let missingDetail = $derived(
+		missingDetailFor({
+			contractHasDeliverables: contractOffersDeliverables,
+			deliverableId: entry.deliverableId,
+			deliverableHasWorkTypes: deliverableOffersWorkTypes,
+			workTypeId: entry.workTypeId
+		})
+	);
 	let deliverableWorkTypeLabel = $derived(
 		[entry.deliverableName, entry.workTypeName].filter(Boolean).join(' > ')
 	);
@@ -125,6 +138,23 @@
 			if (contractId === entry.contractId) contractOffersDeliverables = hasDeliverables;
 		});
 	});
+
+	$effect(() => {
+		const deliverableId = entry.deliverableId;
+		if (!deliverableId) {
+			deliverableOffersWorkTypes = false;
+			return;
+		}
+		deliverableHasWorkTypes(dataService, deliverableId).then((hasWorkTypes) => {
+			if (deliverableId === entry.deliverableId) deliverableOffersWorkTypes = hasWorkTypes;
+		});
+	});
+
+	/** Is focus somewhere it can be taken from (lost to <body>, or still in this row)? */
+	function focusIsFree(): boolean {
+		const activeElement = document.activeElement;
+		return !activeElement || activeElement === document.body || Boolean(cardElement?.contains(activeElement));
+	}
 
 	// Re-measure when the text, the element or the card width changes
 	$effect(() => {
@@ -154,6 +184,7 @@
 
 	// --- Time ---
 	function startEditingTime() {
+		focusReopenedEditor = true;
 		timeInputValue = formatDurationInput(entry.durationMinutes, entry.startTime, entry.endTime);
 		timeInputError = '';
 		isTimeCancelled = false;
@@ -171,11 +202,17 @@
 		const unchanged =
 			formatDurationInput(entry.durationMinutes, entry.startTime, entry.endTime) === timeInputValue.trim();
 		if (unchanged) return;
-		await saveFields(
+		const saved = await saveFields(
 			parsed.kind === 'range'
 				? { startTime: parsed.startTime, endTime: parsed.endTime, durationMinutes: parsed.durationMinutes }
 				: { startTime: null, endTime: null, durationMinutes: parsed.durationMinutes }
 		);
+		// A failed save keeps what was typed: the editor opens again with it and the error below
+		if (!saved) {
+			focusReopenedEditor = focusIsFree();
+			isTimeCancelled = false;
+			isEditingTime = true;
+		}
 	}
 
 	function cancelTimeEdit() {
@@ -235,12 +272,13 @@
 			refocus(() => contractButton);
 			return;
 		}
-		selectedDeliverableId = '';
-		selectedWorkTypeId = '';
+		editorDeliverableId = null;
+		editorWorkTypeId = null;
 		deliverablePickerContractId = nextContractId;
 		contractChangeNotice = `Cleared “${clearedLabel}”: it belongs to ${previousContractLabel}.`;
 		isEditingDeliverable = true;
-		refocus(() => deliverableEditorElement?.querySelector('select') ?? undefined);
+		// (the editor itself while its options are still loading)
+		refocus(() => deliverableEditorElement?.querySelector<HTMLElement>('select:not(:disabled)') ?? deliverableEditorElement);
 	}
 
 	function handleContractKeydown(event: KeyboardEvent) {
@@ -253,39 +291,28 @@
 
 	// --- Deliverable / work type: each pick is saved immediately; Done, Enter or Escape closes ---
 	function startEditingDeliverable() {
-		selectedDeliverableId = entry.deliverableId ?? '';
-		selectedWorkTypeId = entry.workTypeId ?? '';
+		editorDeliverableId = entry.deliverableId ?? null;
+		editorWorkTypeId = entry.workTypeId ?? null;
 		deliverablePickerContractId = '';
 		contractChangeNotice = '';
 		isEditingDeliverable = true;
+		// Focus the picker so Escape / Enter (and a screen reader) are in the editor
+		// (the editor itself while its options are still loading)
+		refocus(() => deliverableEditorElement?.querySelector<HTMLElement>('select:not(:disabled)') ?? deliverableEditorElement);
 	}
 
 	function closeDeliverableEditor(returnFocus: boolean) {
 		isEditingDeliverable = false;
 		contractChangeNotice = '';
 		deliverablePickerContractId = '';
-		if (returnFocus) refocus(() => deliverableButton);
+		if (returnFocus) refocus(() => deliverableButton ?? missingDetailButton);
 	}
 
-	function handleDeliverableChange(nextDeliverableId: string) {
-		// Work types belong to a deliverable, so changing the deliverable clears the work type
-		selectedWorkTypeId = '';
-		saveFields({ deliverableId: nextDeliverableId || null, workTypeId: null });
-	}
-
-	function handleWorkTypeChange(nextWorkTypeId: string) {
-		saveFields({ deliverableId: selectedDeliverableId || null, workTypeId: nextWorkTypeId || null });
-	}
-
-	function handleDeliverableKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape' || event.key === 'Enter') {
-			event.preventDefault();
-			closeDeliverableEditor(true);
-		}
-	}
+	// (the picks themselves are saved by EntryClassificationEditor through saveFields)
 
 	// --- Description ---
 	function startEditingDescription() {
+		focusReopenedEditor = true;
 		descriptionInputValue = entry.description ?? '';
 		isDescriptionCancelled = false;
 		isEditingDescription = true;
@@ -295,18 +322,25 @@
 		descriptionInputValue = newValue;
 	}
 
-	function commitDescription() {
+	async function commitDescription() {
 		if (isDescriptionCancelled || !isEditingDescription) return;
 		isEditingDescription = false;
-		if (descriptionInputValue !== (entry.description ?? '')) {
-			saveFields({ description: descriptionInputValue });
+		if (descriptionInputValue === (entry.description ?? '')) return;
+		const typedValue = descriptionInputValue;
+		const saved = await saveFields({ description: typedValue });
+		// A failed save keeps what was typed: the editor opens again with it and the error below
+		if (!saved && !isEditingDescription) {
+			focusReopenedEditor = focusIsFree();
+			descriptionInputValue = typedValue;
+			isDescriptionCancelled = false;
+			isEditingDescription = true;
 		}
 	}
 
 	function handleDescriptionKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
 			event.preventDefault();
-			commitDescription();
+			void commitDescription();
 			refocus(() => descriptionButton);
 		} else if (event.key === 'Escape') {
 			event.preventDefault();
@@ -354,76 +388,78 @@
 	}
 </script>
 
+<!--
+	One entry row of the time review (design r1 TR-03..TR-06, sprint 057-DR). A grid: identity
+	(ContractMark + contract name, client smaller beneath), description with its classification
+	beneath, duration and time range on the right, then the row actions. Narrow (the panel, not the
+	viewport, via a container query): identity and time on the first line, description and
+	classification full width beneath. Separators run from the contract name's left edge to the right
+	edge (`--spacing-entry-rule-start`), so rows of one contract line up; open at the left.
+	Editing keeps the row's footprint: the classification line and the time column reserve their
+	editor heights, the time preview / error line is positioned in reserved space, and the
+	description editor grows to its text.
+-->
 <!-- Focusable (not in the Tab order) so a save can hand focus to the card it saved -->
 <div
 	bind:this={cardElement}
 	tabindex="-1"
 	role="group"
 	aria-label="{splitDescription.body || 'Time entry'}, {contractLabel}, {durationDisplay}"
-	class="group relative mb-2 flex rounded-lg border border-divider border-l-[3px] bg-surface p-3 transition-colors hover:bg-chalk-50/50 focus-visible:ring-2 focus-visible:ring-pine-400 focus-visible:outline-none {clientBorderClass}"
+	class="entry-row group relative py-2.5 pl-3 focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none"
 	data-testid="time-entry-card"
 	data-entry-id={entry.id}
 >
-	<!-- Offline outbox state: queued, held or replayed (sprint 045-CL) -->
-	<div class="pointer-events-none absolute right-9 top-2">
-		<OutboxMarker resourceKey="entry:{entry.id}" otherKey={entry.clientRequestId ? `entry:${entry.clientRequestId}` : null} />
-	</div>
-
-	<!-- Delete: on hover, on keyboard focus and always on touch screens -->
-	<div class="absolute right-1.5 top-1.5 pointer-coarse:right-0.5 pointer-coarse:top-0.5">
-		{#if isConfirmingDelete}
-			<div class="flex items-center gap-1 rounded bg-surface">
-				<span class="text-xs text-ink-faint">Delete?</span>
-				<button
-					onclick={handleDelete}
-					disabled={isDeleting}
-					class="rounded px-1.5 py-0.5 text-xs text-rust-600 hover:bg-rust-50 disabled:opacity-50 pointer-coarse:min-h-11 pointer-coarse:px-3"
-				>{isDeleting ? '…' : 'Yes'}</button>
-				<button
-					onclick={() => (isConfirmingDelete = false)}
-					disabled={isDeleting}
-					class="rounded px-1.5 py-0.5 text-xs text-ink-faint hover:bg-chalk-100 disabled:opacity-50 pointer-coarse:min-h-11 pointer-coarse:px-3"
-				>No</button>
+	<!-- Identity: mark + contract name, client beneath (DS-02 / DS-04: compact mark, readable context) -->
+	<div class="entry-identity flex min-w-0 items-start gap-mark-gap">
+		<span class="mt-0.5"><ContractMark contractName={entry.contractName} colorIndex={entry.clientColorIndex} size="sm" /></span>
+		{#if isEditingContract}
+			<div
+				class="entry-compact-select min-w-0 flex-1"
+				onfocusout={(event) => {
+					if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node)) {
+						closeContractEditor();
+					}
+				}}
+			>
+				<ContractSelect bind:selectedContractId compact={true} autofocus={true} onkeydown={handleContractKeydown} />
 			</div>
 		{:else}
 			<button
-				onclick={() => (isConfirmingDelete = true)}
-				class="flex h-6 w-6 items-center justify-center rounded text-ink-faint opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-rust-50 hover:text-rust-600 focus-visible:opacity-100 pointer-coarse:h-8 pointer-coarse:w-8 pointer-coarse:opacity-100"
-				title="Delete entry"
-				aria-label="Delete entry"
-			>&times;</button>
+				bind:this={contractButton}
+				onclick={startEditingContract}
+				class="entry-field min-w-0 text-left"
+				title="Click to change contract"
+				aria-label="Contract: {contractLabel}. Change contract"
+			>
+				<span class="block text-sm leading-5 font-semibold break-words text-ink" data-testid="entry-contract-name">{entry.contractName}</span>
+				<span class="block text-xs leading-4 break-words text-ink-faint" data-testid="entry-client-name">{entry.clientName}</span>
+			</button>
 		{/if}
 	</div>
 
-	<!-- Attach note, under Delete, shown the same way (049-UI) -->
-	<div class="absolute right-1.5 bottom-1.5 pointer-coarse:right-0.5 pointer-coarse:bottom-0.5">
-		<AttachNoteButton blockedReason={attachNoteBlockedReason(entry.contractId)} onAttach={attachNewNote} />
-	</div>
-
-	<!-- Left content column -->
-	<div class="min-w-0 flex-1">
-		<!-- Row 1: Description (hero text) -->
+	<!-- Description, with "Formerly" lines and the classification beneath -->
+	<div class="entry-body min-w-0">
 		{#if isEditingDescription}
 			<WikiLinkInput
 				bind:value={descriptionInputValue}
+				multiline
+				ariaLabel="Description"
+				fieldClass="entry-description-editor text-sm leading-5 font-medium text-ink"
 				placeholder="What did you work on? (type [[ to link a note)"
 				onInput={handleDescriptionInputValue}
 				onBlur={commitDescription}
 				onKeydown={handleDescriptionKeydown}
-				autofocus
+				autofocus={focusReopenedEditor}
 			/>
 		{:else}
 			<button
 				bind:this={descriptionButton}
 				onclick={startEditingDescription}
-				class="block w-full text-left text-sm font-medium text-ink hover:text-pine-600"
+				class="entry-field block w-full text-left text-sm leading-5 font-medium text-ink"
 				title="Click to edit description"
 			>
 				{#if splitDescription.body}
-					<span
-						bind:this={descriptionElement}
-						class="break-words whitespace-pre-line {isDescriptionExpanded ? 'block' : 'line-clamp-3'}"
-					>
+					<span bind:this={descriptionElement} class="break-words whitespace-pre-line {isDescriptionExpanded ? 'block' : 'line-clamp-3'}">
 						<WikiLinkRenderer text={splitDescription.body} {onNoteLinkClick} />
 					</span>
 				{:else}
@@ -434,115 +470,74 @@
 				<button
 					type="button"
 					onclick={() => (isDescriptionExpanded = !isDescriptionExpanded)}
-					class="mt-0.5 text-xs text-pine-600 hover:text-pine-800"
+					class="text-xs text-primary hover:text-primary-hover"
 					aria-expanded={isDescriptionExpanded}
 				>{isDescriptionExpanded ? 'Show less' : 'Show more'}</button>
 			{/if}
 			{#each splitDescription.formerlyLines as formerlyLine, lineIndex (lineIndex)}
-				<p class="mt-0.5 text-xs break-words text-ink-faint" data-testid="formerly-line">{formerlyLine}</p>
+				<p class="text-xs break-words text-ink-faint" data-testid="formerly-line">{formerlyLine}</p>
 			{/each}
 		{/if}
 
-		<!-- Row 2: Client / Contract with colour dot -->
-		<div class="mt-1">
-			{#if isEditingContract}
-				<div
-					class="max-w-xs"
-					onfocusout={(event) => {
-						if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node)) {
-							closeContractEditor();
-						}
-					}}
-				>
-					<ContractSelect
-						bind:selectedContractId
-						compact={true}
-						autofocus={true}
-						onkeydown={handleContractKeydown}
-					/>
-				</div>
-			{:else}
-				<button
-					bind:this={contractButton}
-					onclick={startEditingContract}
-					class="flex items-center gap-1.5 text-left text-xs text-ink-faint hover:text-pine-600"
-					title="Click to change contract"
-				>
-					<span class="inline-block h-2 w-2 shrink-0 rounded-full {clientDotClass}"></span>
-					{contractLabel}
-				</button>
-			{/if}
-		</div>
-
-		<!-- Row 3: Deliverable > Work Type -->
-		<div class="mt-0.5 pl-3.5">
-			{#if isEditingDeliverable}
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<div
-					bind:this={deliverableEditorElement}
-					class="flex max-w-md items-center gap-1.5"
-					onkeydown={handleDeliverableKeydown}
-				>
-					<DeliverableSelect
+		<!-- Classification: deliverable › work type, or the local missing-detail cue (TR-05) -->
+		{#if isEditingDeliverable || hasDeliverableOrWorkType || missingDetail}
+			<div class="entry-classification flex min-h-6 min-w-0 items-center gap-1.5">
+				{#if isEditingDeliverable}
+					<!-- Keyed by contract: a contract change while open starts a fresh cascade -->
+					{#key deliverablePickerContractId || entry.contractId}
+					<EntryClassificationEditor
+						bind:element={deliverableEditorElement}
 						contractId={deliverablePickerContractId || entry.contractId}
-						bind:selectedDeliverableId
-						compact={true}
-						alwaysRender={true}
-						onChange={handleDeliverableChange}
+						deliverableId={editorDeliverableId}
+						workTypeId={editorWorkTypeId}
+						onSave={(fields) => saveFields(fields)}
+						onDone={() => closeDeliverableEditor(true)}
 					/>
-					<WorkTypeSelect
-						deliverableId={selectedDeliverableId}
-						bind:selectedWorkTypeId
-						compact={true}
-						onChange={handleWorkTypeChange}
-					/>
-					<button
-						onclick={() => closeDeliverableEditor(true)}
-						class="shrink-0 rounded px-1.5 py-0.5 text-xs text-ink-faint hover:bg-chalk-100"
-						type="button"
-					>Done</button>
-				</div>
-				{#if contractChangeNotice}
-					<p class="mt-1 text-xs text-ochre-700" role="status" data-testid="contract-change-notice">
-						{contractChangeNotice}
-					</p>
+					{/key}
+				{:else}
+					{#if hasDeliverableOrWorkType}
+						<button
+							bind:this={deliverableButton}
+							onclick={startEditingDeliverable}
+							class="entry-field min-w-0 text-left text-xs break-words text-ink-muted"
+							title="Click to change deliverable / work type"
+						>{deliverableWorkTypeLabel}</button>
+					{/if}
+					{#if missingDetail}
+						<button
+							bind:this={missingDetailButton}
+							onclick={startEditingDeliverable}
+							class="inline-flex shrink-0 items-center gap-1 rounded-control text-xs font-medium text-warning underline decoration-ochre-300 underline-offset-2 hover:decoration-ochre-600 focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none"
+							data-testid="missing-detail-cue"
+							data-missing={missingDetail}
+						>
+							<span class="inline-flex size-3.5 items-center justify-center rounded-full bg-ochre-400 text-[9px] leading-none font-bold text-on-accent no-underline" aria-hidden="true">!</span>
+							{missingDetailAction(missingDetail)}
+						</button>
+					{/if}
 				{/if}
-			{:else if hasDeliverableOrWorkType}
-				<button
-					bind:this={deliverableButton}
-					onclick={startEditingDeliverable}
-					class="block text-left text-xs text-ink-faint hover:text-pine-600"
-					title="Click to change deliverable / work type"
-				>{deliverableWorkTypeLabel}</button>
-			{:else}
-				<!-- Prompt only where it is useful: the contract has deliverables, or on hover/focus -->
-				<button
-					bind:this={deliverableButton}
-					onclick={startEditingDeliverable}
-					class="block text-left text-xs italic text-ink-faint hover:text-pine-600 {contractOffersDeliverables
-						? ''
-						: 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100'}"
-					title="Click to add a deliverable"
-				>Add deliverable…</button>
+			</div>
+			{#if contractChangeNotice}
+				<!-- The notice takes the place of nothing: one truncated line, the full text on hover and for screen readers -->
+				<p class="truncate text-xs text-warning" role="status" title={contractChangeNotice} data-testid="contract-change-notice">{contractChangeNotice}</p>
 			{/if}
-		</div>
+		{/if}
 
 		{#if cardError}
-			<p class="mt-1 text-xs text-rust-600" role="alert">{cardError}</p>
+			<p class="mt-0.5 text-xs text-danger" role="alert">{cardError}</p>
 		{/if}
 	</div>
 
-	<!-- Right column: Duration + time range -->
-	<!-- mr leaves room for the delete and attach buttons in the right corners -->
-	<div class="mr-6 ml-2 flex shrink-0 flex-col items-end justify-center pointer-coarse:mr-8">
+	<!-- Duration and time range, right-aligned (a duration-only entry shows no invented range) -->
+	<div class="entry-time flex min-h-10 flex-col items-end">
 		{#if isEditingTime}
-			<div class="w-36">
+			<div class="entry-time-editor relative w-32">
 				<DurationField
 					bind:value={timeInputValue}
 					errorMessage={timeInputError}
 					compact={true}
 					align="right"
-					autofocus={true}
+					autofocus={focusReopenedEditor}
 					onkeydown={handleTimeKeydown}
 					onblur={handleTimeBlur}
 				/>
@@ -551,14 +546,134 @@
 			<button
 				bind:this={timeButton}
 				onclick={startEditingTime}
-				class="text-right text-sm font-medium tabular-nums text-ink-faint hover:text-pine-600"
+				class="entry-field text-right text-sm leading-5 font-semibold tabular-nums text-ink"
 				title="Click to edit time"
-			>
-				{durationDisplay}
-			</button>
+			>{durationDisplay}</button>
 			{#if timeRangeDisplay}
-				<div class="mt-0.5 text-xs tabular-nums text-ink-faint">{timeRangeDisplay}</div>
+				<div class="text-xs leading-4 tabular-nums text-ink-faint" data-testid="entry-time-range">{timeRangeDisplay}</div>
 			{/if}
 		{/if}
 	</div>
+
+	<!-- Row actions: Delete (hover, keyboard focus, always on touch), Attach note, outbox state -->
+	<div class="entry-actions">
+		{#if isConfirmingDelete}
+			<div class="absolute top-1.5 right-1 z-10 flex items-center gap-1 rounded-control bg-surface px-1 shadow-menu">
+				<span class="text-xs text-ink-faint">Delete?</span>
+				<button
+					onclick={handleDelete}
+					disabled={isDeleting}
+					class="rounded px-1.5 py-0.5 text-xs text-danger hover:bg-danger-wash disabled:opacity-50 pointer-coarse:min-h-11 pointer-coarse:px-3"
+				>{isDeleting ? '…' : 'Yes'}</button>
+				<button
+					onclick={() => (isConfirmingDelete = false)}
+					disabled={isDeleting}
+					class="rounded px-1.5 py-0.5 text-xs text-ink-faint hover:bg-sunken disabled:opacity-50 pointer-coarse:min-h-11 pointer-coarse:px-3"
+				>No</button>
+			</div>
+		{/if}
+		<button
+			onclick={() => (isConfirmingDelete = true)}
+			class="flex h-6 w-6 items-center justify-center rounded text-ink-faint opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-danger-wash hover:text-danger focus-visible:opacity-100 pointer-coarse:h-8 pointer-coarse:w-8 pointer-coarse:opacity-100"
+			title="Delete entry"
+			aria-label="Delete entry"
+		>&times;</button>
+		<AttachNoteButton blockedReason={attachNoteBlockedReason(entry.contractId)} onAttach={attachNewNote} />
+		<div class="pointer-events-none">
+			<OutboxMarker resourceKey="entry:{entry.id}" otherKey={entry.clientRequestId ? `entry:${entry.clientRequestId}` : null} />
+		</div>
+	</div>
 </div>
+
+<style>
+	/* Narrow panel (phone): identity and time on one line, description full width beneath */
+	.entry-row {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto auto;
+		grid-template-areas:
+			'identity time actions'
+			'body body body';
+		column-gap: 0.75rem;
+		row-gap: 0.25rem;
+		align-items: start;
+	}
+	.entry-identity {
+		grid-area: identity;
+	}
+	.entry-body {
+		grid-area: body;
+	}
+	.entry-time {
+		grid-area: time;
+	}
+	.entry-actions {
+		grid-area: actions;
+		display: flex;
+		flex-direction: row;
+		align-items: flex-start;
+	}
+	/* Wide panel: one line of columns; the identity column is stable so same-contract rows align */
+	@container (min-width: 36rem) {
+		.entry-row {
+			grid-template-columns: var(--size-entry-identity) minmax(0, 1fr) auto auto;
+			grid-template-areas: 'identity body time actions';
+			column-gap: 1rem;
+		}
+		.entry-actions {
+			flex-direction: column;
+			align-items: center;
+		}
+	}
+
+	/* Separator: from the contract name's left edge to the right edge; open at the left (TR-04, O04) */
+	.entry-row::after {
+		content: '';
+		position: absolute;
+		left: var(--spacing-entry-rule-start);
+		right: 0;
+		bottom: 0;
+		border-bottom: 1px solid var(--color-divider);
+		pointer-events: none;
+	}
+
+	/* Field-level edit cue: subtle on hover / focus, works without hover on touch */
+	.entry-field {
+		border-radius: var(--radius-mark);
+		transition: background-color 120ms;
+	}
+	.entry-field:hover {
+		background-color: var(--color-sunken);
+	}
+	.entry-field:focus-visible {
+		outline: 2px solid var(--color-focus);
+		outline-offset: 1px;
+	}
+
+	/* The editors keep the row's footprint: compact selects fit the reserved line */
+	.entry-compact-select :global(select) {
+		height: 1.5rem;
+		padding-block: 0;
+		line-height: 1.25rem;
+	}
+	.entry-time-editor :global(input) {
+		height: 1.5rem;
+		padding-block: 0;
+	}
+	/* Preview / warning / error line: in the time column's reserved space, never pushing the row */
+	.entry-time-editor :global(p) {
+		position: absolute;
+		top: 100%;
+		right: 0;
+		margin-top: 0;
+		width: max-content;
+		max-width: 16rem;
+		text-align: right;
+		line-height: 1rem;
+		background-color: var(--color-surface);
+		z-index: 1;
+	}
+	:global(.entry-description-editor) {
+		box-shadow: 0 0 0 1px var(--color-focus);
+		border-radius: var(--radius-mark);
+	}
+</style>

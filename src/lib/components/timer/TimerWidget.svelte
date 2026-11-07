@@ -1,10 +1,8 @@
 <script lang="ts">
 	import { isOfflineError } from '$lib/offline/replay-transport';
-	import TimerDisplay from './TimerDisplay.svelte';
-	import TimerStartField from './TimerStartField.svelte';
 	import { startChangeResultFromError, type StartChangeResult } from './timer-start-edit';
 	import TimerCompletionForm from './TimerCompletionForm.svelte';
-	import ContractSelect from './ContractSelect.svelte';
+	import TimerRunningPanel from './TimerRunningPanel.svelte';
 	import AddTimeEntryModal from './AddTimeEntryModal.svelte';
 	import { getDataService } from '$lib/services/context';
 	import { getTimerStateContext } from '$lib/stores/timer-state.svelte';
@@ -15,10 +13,20 @@
 	} from './timer-api';
 	import { clearPendingTimer, readPendingTimer, writePendingTimer } from './pending-timer';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
-	import { untrack } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import { formatContractLabel } from './contract-label';
 	import { localDateString, localTimeString } from './local-date';
-	import { registerTimerWidget } from './timer-widget-registry.svelte';
+	import {
+		announceCaptureChange,
+		latestCaptureChange,
+		registerTimerWidget,
+		type TimerWidgetPlacement
+	} from './timer-widget-registry.svelte';
+	import { describeTimerConflict, timerConflictFrom } from './save-error';
+	import { splitEntryFor } from './split-entry';
+	import { splitSession } from './split-session.svelte';
+	import { reconcileOnLoad } from './split-reconcile';
+	import SplitTimeOverlay from './SplitTimeOverlay.svelte';
 	import TimerIdentityHeader from './TimerIdentityHeader.svelte';
 	import { captureDraft } from '$lib/stores/capture-draft.svelte';
 	import { captureKeyFor, intervalKeyFor } from '$lib/stores/capture-draft';
@@ -27,20 +35,48 @@
 	import { dispatchTimeEntrySaved } from '$lib/components/weekly/time-entry-events';
 	import { getWeekDates } from '$lib/utils/iso-week';
 	import type { ContractOption } from '$lib/services/types';
-	import AttachNoteButton from '$lib/components/weekly/AttachNoteButton.svelte';
 	import { appendWikiLinkToDescription } from '$lib/components/weekly/attach-note';
 
 	let {
 		placement = 'sidebar',
-		addEntryDate = undefined
+		addEntryDate = undefined,
+		onLeave = undefined
 	}: {
-		/** 'footer' is the phone timesheet's copy, shown only while the sidebar is not mounted */
-		placement?: 'sidebar' | 'footer';
+		/**
+		 * 'footer' is the phone timesheet's copy, shown only while the sidebar is not mounted;
+		 * 'screen' is the phone's focused capture screen (PhoneCaptureScreen, sprint 055-DR)
+		 */
+		placement?: TimerWidgetPlacement;
 		/** Date the Add Entry modal opens on (the timesheet passes the selected day) */
 		addEntryDate?: string;
+		/** The capture screen closes when the user leaves it: Save, Discard, Add note's navigation */
+		onLeave?: () => void;
 	} = $props();
 
 	$effect(() => registerTimerWidget(placement));
+
+	// Another mounted widget changed the capture (the phone capture screen over the timesheet
+	// footer): re-read it, so the copy underneath never shows a stale state (sprint 055-DR)
+	const widgetId = Math.random().toString(36).slice(2);
+	let lastSeenChangeVersion = untrack(() => latestCaptureChange().version);
+	$effect(() => {
+		const change = latestCaptureChange();
+		if (change.version === lastSeenChangeVersion) return;
+		lastSeenChangeVersion = change.version;
+		if (change.sourceWidgetId !== widgetId) untrack(() => reloadFromServer());
+	});
+	function announceChange() {
+		lastSeenChangeVersion += 1;
+		announceCaptureChange(widgetId);
+	}
+
+	// Answers that arrive after unmount must not navigate or close a screen reopened since
+	let isMounted = true;
+	$effect(() => () => {
+		isMounted = false;
+	});
+
+	const isScreen = $derived(placement === 'screen');
 
 	const dataService = getDataService();
 	const sharedTimerState = getTimerStateContext();
@@ -81,7 +117,6 @@
 	function startChangingContract() {
 		isChangingContract = true;
 	}
-	const showContractSelect = $derived(!draftContractId || isChangingContract);
 
 	// Rule 5, create from context: the modal opens on the contract being viewed (notes mode) and,
 	// in the timesheet, on the week being viewed (today when today is in that week)
@@ -143,7 +178,13 @@
 	 */
 	let isCreatingServerDraft = false;
 
-	async function checkExistingTimer() {
+	/** Read the capture; false when the status could not be read and `keepOnFailure` left state alone */
+	async function checkExistingTimer(keepOnFailure = false): Promise<boolean> {
+		// A split whose answer never arrived (reload, lost connection) is settled first (SP-08)
+		if (!splitSession.isOpen) {
+			const reconciled = await reconcileOnLoad(dataService);
+			if (reconciled.kind === 'split' || reconciled.kind === 'abandoned') splitSession.notice = reconciled.message;
+		}
 		try {
 			const data = await dataService.getTimerStatus();
 			if (data.timer) {
@@ -169,9 +210,14 @@
 				captureDraft.clear();
 			}
 		} catch {
+			if (keepOnFailure) {
+				isLoading = false;
+				return false;
+			}
 			restorePendingTimer();
 		}
 		isLoading = false;
+		return true;
 	}
 
 	/** Restore the browser-only timer; false when there is none */
@@ -314,6 +360,7 @@
 			else savePendingTimer();
 			const clientId = findSelectedContract()?.clientId ?? '';
 			navigation.openNote(note.id, contractId, clientId, { focusEditor: 'new-note' });
+			onLeave?.();
 		} catch (error) {
 			console.error('Could not attach a note to the timer:', error);
 			errorMessage = "Couldn't attach a note";
@@ -338,6 +385,7 @@
 		} else {
 			savePendingTimer();
 		}
+		announceChange();
 	}
 
 	/**
@@ -374,6 +422,7 @@
 			timerState = 'stopped';
 			savePendingTimer();
 			openCompletion();
+			announceChange();
 			return;
 		}
 
@@ -400,6 +449,7 @@
 			timerState = 'stopped';
 			isChangingContract = false;
 			openCompletion();
+			announceChange();
 		} catch {
 			errorMessage = 'Failed to stop timer';
 		}
@@ -410,12 +460,40 @@
 	}
 
 	/** Throws on failure so the completion form can show the message next to its buttons */
-	async function handleSave(data: TimerSaveData) {
+	/**
+	 * Save or Discard: one at a time across every mounted widget (captureDraft.isResolving), so a
+	 * Back and reopen mid-save cannot resolve the same capture twice
+	 */
+	async function resolveCapture(resolve: () => Promise<void>) {
+		if (captureDraft.isResolving) return;
+		captureDraft.isResolving = true;
+		try {
+			await resolve();
+		} finally {
+			captureDraft.isResolving = false;
+		}
+	}
+
+	/** Throws on failure so the completion form can show the message next to its buttons */
+	function handleSave(data: TimerSaveData) {
+		return resolveCapture(() => saveCapture(data));
+	}
+
+	async function saveCapture(data: TimerSaveData) {
 		const savedDate = timerDate || localDateString();
 		let savedEntryId = entryId;
 		if (entryId) {
 			// The start this widget shows: the server refuses the save if the draft moved or was split elsewhere
-			await dataService.saveTimer({ entryId, ...data, expectedStartedAt: expectedStartedAt() });
+			try {
+				await dataService.saveTimer({ entryId, ...data, expectedStartedAt: expectedStartedAt() });
+			} catch (caughtError) {
+				const conflict = timerConflictFrom(caughtError);
+				if (!conflict) throw caughtError;
+				// Stale capture: never retry blindly; show the server's current state and say why
+				await reloadFromServer(describeTimerConflict(conflict, 'save'));
+				announceChange();
+				return;
+			}
 		} else {
 			// Never reached the server: create the entry from the browser's timer
 			const timeWasAdjusted = data.durationMinutes !== undefined;
@@ -434,20 +512,77 @@
 			savedEntryId = created.id;
 		}
 		resetTimer();
+		announceChange();
 		// A timer entry is dated the local day it was started; the view follows it there
 		dispatchTimeEntrySaved({ entryId: savedEntryId, date: savedDate });
+		if (!isMounted) return;
 		navigation.showTimeEntryDay(savedDate);
+		onLeave?.();
 	}
 
-	async function handleDiscard() {
+	function handleDiscard() {
+		return resolveCapture(discardCapture);
+	}
+
+	async function discardCapture() {
 		if (entryId) {
 			try {
 				await dataService.discardTimer(entryId, { expectedStartedAt: expectedStartedAt() });
-			} catch {
-				// Best effort discard
+			} catch (caughtError) {
+				const conflict = timerConflictFrom(caughtError);
+				if (conflict) {
+					await reloadFromServer(describeTimerConflict(conflict, 'discard'));
+					announceChange();
+					return;
+				}
+				// Otherwise best effort, as before: a draft left on the server comes back on the next load
 			}
 		}
 		resetTimer();
+		announceChange();
+		if (isMounted) onLeave?.();
+	}
+
+	/**
+	 * Forget this widget's copy and read the capture again (server draft, else pending timer). The
+	 * capture store keeps the typed fields for the same capture; a changed interval resets only the
+	 * time text (sprint 053-DR). `message` explains why, after a refused save or discard.
+	 */
+	async function reloadFromServer(message = '') {
+		if (descriptionDebounceTimer) clearTimeout(descriptionDebounceTimer);
+		const previous = {
+			timerState,
+			entryId,
+			startTime,
+			timerDate,
+			endTime,
+			elapsedSeconds,
+			draftContractId,
+			draftDescription
+		};
+		isLoading = true;
+		timerState = 'idle';
+		entryId = '';
+		startTime = '';
+		timerDate = '';
+		endTime = '';
+		elapsedSeconds = 0;
+		draftContractId = '';
+		draftDescription = '';
+		isChangingContract = false;
+		errorMessage = '';
+		const reloaded = await checkExistingTimer(true);
+		if (!reloaded) {
+			// No connection: keep what this widget showed (a stopped capture stays stopped) and say so
+			({ timerState, entryId, startTime, timerDate, endTime, elapsedSeconds, draftContractId, draftDescription } = previous);
+			if (timerState === 'stopped') openCompletion();
+			errorMessage = message
+				? 'This timer changed or was resolved on another device, and it could not be reloaded. Check your connection, then try again.'
+				: 'The timer could not be reloaded. Check your connection.';
+			return;
+		}
+		errorMessage = message;
+		await returnFocusAfterSplit();
 	}
 
 	function resetTimer() {
@@ -469,6 +604,59 @@
 		}
 	}
 
+	/*
+	 * Split time (SP-01, sprint 056-DR UI): desktop only (the button is not drawn on a phone), a
+	 * server draft only (split-entry.ts). The description's debounced save is flushed first, so the
+	 * draft holds what the user typed (source map risk d4); the overlay starts from this content.
+	 */
+	const splitEntry = $derived(
+		splitEntryFor({ hasServerDraft: entryId !== '', isSplitOpen: splitSession.isOpen }, () => void openSplit())
+	);
+
+	async function openSplit() {
+		if (!entryId || splitSession.isOpen) return;
+		if (timerState === 'running' && descriptionDebounceTimer) {
+			clearTimeout(descriptionDebounceTimer);
+			descriptionDebounceTimer = undefined;
+			await dataService.updateTimeEntry(entryId, { description: draftDescription }).catch(() => undefined);
+		}
+		const content =
+			timerState === 'stopped'
+				? {
+						contractId: captureDraft.fields.contractId,
+						deliverableId: captureDraft.fields.deliverableId,
+						workTypeId: captureDraft.fields.workTypeId,
+						description: captureDraft.fields.description
+					}
+				: { contractId: draftContractId, deliverableId: '', workTypeId: '', description: draftDescription };
+		splitSession.open(
+			{ entryId, date: timerDate, startTime, endTime: timerState === 'stopped' ? endTime : null },
+			content,
+			dataService,
+			widgetId
+		);
+	}
+
+	// Focus goes back to Split (or the widget's first button) once the closed split has reloaded
+	let widgetElement: HTMLDivElement | undefined = $state();
+	let focusAfterSplit = false;
+	$effect(() => {
+		if (splitSession.isOpen && splitSession.ownerWidgetId === widgetId) focusAfterSplit = true;
+	});
+	async function returnFocusAfterSplit() {
+		if (!focusAfterSplit || splitSession.isOpen) return;
+		focusAfterSplit = false;
+		await tick();
+		const target =
+			widgetElement?.querySelector<HTMLElement>('[data-testid="timer-split-button"]:not([disabled])') ??
+			widgetElement?.querySelector<HTMLElement>('button:not([disabled])');
+		target?.focus();
+	}
+
+	const showSplitOverlay = $derived(
+		splitSession.isOpen && splitSession.ownerWidgetId === widgetId && !splitSession.isCollapsing
+	);
+
 	function handleAddEntryCreated(created: { entryId: string; date: string }) {
 		showAddEntryModal = false;
 		dispatchTimeEntrySaved(created);
@@ -477,16 +665,22 @@
 </script>
 
 <div
-	class="relative {placement === 'footer'
-		? 'border-t border-divider bg-surface px-4 py-3'
-		: 'rounded-lg border border-divider bg-surface p-3 shadow-sm'} {isCompact ? '!py-2' : ''}"
+	bind:this={widgetElement}
+	class="relative {isScreen
+		? 'flex min-h-0 flex-1 flex-col bg-surface'
+		: placement === 'footer'
+			? 'border-t border-divider bg-surface px-4 py-3'
+			: 'rounded-lg border border-divider bg-surface p-3 shadow-sm'} {isCompact ? '!py-2' : ''}"
 	data-testid="timer-widget-{placement}"
 	data-compact={isCompact ? 'true' : undefined}
 >
-	{#if isLoading}
+	{#if splitSession.isOpen}
+		<!-- One visible capture (SH-04): the split overlay holds it; no Stop here for the tray to press -->
+		<p class="py-2 text-center text-sm text-ink-faint" data-testid="timer-split-in-progress">Splitting this time…</p>
+	{:else if isLoading}
 		<div class="py-2 text-center text-sm text-ink-faint">Loading timer...</div>
 	{:else if timerState === 'idle'}
-		<div class="flex gap-2">
+		<div class="flex gap-2 {isScreen ? 'px-4 pt-3' : ''}">
 			<button
 				onclick={handleStart}
 				class="flex-1 rounded-md bg-leaf-600 px-2 py-2.5 text-sm font-medium whitespace-nowrap text-on-accent hover:bg-leaf-700"
@@ -512,85 +706,63 @@
 			onToggleCompact={toggleCompact}
 			onChangeContract={timerState === 'running' ? startChangingContract : undefined}
 			{isChangingContract}
-			bleedClass={placement === 'footer' ? '-mx-4 -mt-3' : '-mx-3 -mt-3 rounded-t-[7px]'}
+			bleedClass={isScreen ? 'mx-4 mt-3 rounded-panel shrink-0' : placement === 'footer' ? '-mx-4 -mt-3' : '-mx-3 -mt-3 rounded-t-[7px]'}
 		/>
+		{#if isScreen && errorMessage}
+			<div class="mx-4 mb-2 rounded-control bg-rust-50 p-2 text-xs text-rust-600" role="alert" data-testid="timer-error">
+				{errorMessage}
+			</div>
+		{/if}
 		<!-- Collapsed: the body stays mounted and is only hidden, so nothing typed is lost -->
-		<div hidden={isCompact} data-testid="timer-widget-body">
+		<div hidden={isCompact} class={isScreen ? 'flex min-h-0 flex-1 flex-col' : ''} data-testid="timer-widget-body">
 			{#if timerState === 'running'}
-				<div class="space-y-3">
-					<div class="flex items-center justify-between gap-2">
-						<TimerDisplay {elapsedSeconds} isPaused={false} />
-						<button
-							onclick={handleStop}
-							class="rounded-md btn-danger px-3 py-1 text-sm font-medium whitespace-nowrap pointer-coarse:min-h-11 pointer-coarse:px-5"
-						>
-							Stop
-						</button>
-					</div>
-					<TimerStartField {startTime} startDate={timerDate} onChangeStart={handleChangeStart} />
-
-					<!-- Contract (shown until one is chosen, then behind "Change") and description -->
-					<div class="space-y-2">
-						{#if showContractSelect}
-							<div>
-								<label for="draft-contract" class="block text-xs font-medium text-ink-muted">
-									Contract
-								</label>
-								<div class="mt-0.5">
-									<ContractSelect
-										id="draft-contract"
-										bind:selectedContractId={draftContractId}
-										compact
-										autofocus={isChangingContract}
-									/>
-								</div>
-								{#if !draftContractId}
-									<p class="mt-1 text-xs text-ink-faint" data-testid="timer-no-contract-hint">
-										No contract yet: pick one now or when you stop
-									</p>
-								{:else}
-									<button
-										type="button"
-										class="mt-1 text-xs text-ink-faint underline underline-offset-2 hover:text-ink"
-										onclick={() => (isChangingContract = false)}
-									>
-										Keep this contract
-									</button>
-								{/if}
-							</div>
-						{/if}
-						<div>
-							<div class="flex items-center justify-between">
-								<label for="draft-description" class="block text-xs font-medium text-ink-muted">
-									Description
-								</label>
-								{#if draftContractId}
-									<AttachNoteButton alwaysVisible onAttach={attachNoteToRunningTimer} />
-								{/if}
-							</div>
-							<textarea
-								id="draft-description"
-								bind:value={draftDescription}
-								oninput={handleDescriptionInput}
-								rows="2"
-								class="mt-0.5 block w-full rounded input-base px-1.5 py-1 text-xs"
-								placeholder="What are you working on?"
-							></textarea>
-						</div>
-					</div>
-				</div>
+				<TimerRunningPanel
+					{elapsedSeconds}
+					{startTime}
+					startDate={timerDate}
+					onChangeStart={handleChangeStart}
+					onStop={handleStop}
+					bind:draftContractId
+					bind:draftDescription
+					bind:isChangingContract
+					onDescriptionInput={handleDescriptionInput}
+					onAttachNote={attachNoteToRunningTimer}
+					onSplit={splitEntry.onSplit}
+					splitDisabledReason={splitEntry.disabledReason}
+					layout={isScreen ? 'screen' : 'panel'}
+				/>
 			{:else if timerState === 'stopped'}
-				<TimerCompletionForm onSave={handleSave} onDiscard={handleDiscard} />
+				<TimerCompletionForm
+					onSave={handleSave}
+					onDiscard={handleDiscard}
+					frozenMinutes={Math.max(1, Math.ceil(elapsedSeconds / 60))}
+					{startTime}
+					{endTime}
+					onSplit={splitEntry.onSplit}
+					splitDisabledReason={splitEntry.disabledReason}
+					layout={isScreen ? 'screen' : 'panel'}
+				/>
 			{/if}
 		</div>
 	{/if}
 
-	{#if errorMessage}
-		<div class="mt-2 rounded-md bg-rust-50 p-2 text-xs text-rust-600">
+	{#if splitSession.notice && !splitSession.isOpen}
+		<div class="mt-2 flex items-start gap-2 rounded-md bg-warning-wash p-2 text-xs text-ink {isScreen ? 'mx-4' : ''}" role="status" data-testid="split-notice">
+			<span class="flex-1">{splitSession.notice}</span>
+			<button type="button" class="text-ink-muted underline underline-offset-2 hover:text-ink" onclick={() => (splitSession.notice = '')}>Dismiss</button>
+		</div>
+	{/if}
+
+	{#if errorMessage && !(isScreen && timerState !== 'idle')}
+		<div class="mt-2 rounded-md bg-rust-50 p-2 text-xs text-rust-600 {isScreen ? 'mx-4' : ''}" role="alert" data-testid="timer-error">
 			{errorMessage}
 		</div>
 	{/if}
 </div>
+
+{#if showSplitOverlay}
+	<SplitTimeOverlay />
+{/if}
 
 {#if showAddEntryModal}
 	<AddTimeEntryModal
