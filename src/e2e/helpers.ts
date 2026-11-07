@@ -121,6 +121,18 @@ export async function authPut(path: string, body?: unknown): Promise<Response> {
 }
 
 /**
+ * Make an authenticated PATCH request to the API.
+ */
+export async function authPatch(path: string, body?: unknown): Promise<Response> {
+	return fetch(`${BASE_URL}${path}`, {
+		method: 'PATCH',
+		headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+		body: body !== undefined ? JSON.stringify(body) : undefined,
+		redirect: 'manual'
+	});
+}
+
+/**
  * Make an authenticated DELETE request to the API.
  */
 export async function authDelete(path: string, body?: unknown): Promise<Response> {
