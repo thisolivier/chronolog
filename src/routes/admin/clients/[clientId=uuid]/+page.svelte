@@ -78,7 +78,7 @@
 							type="text"
 							required
 							value={data.client.name}
-							class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+							class="mt-1 block w-full rounded-md input-base px-3 py-2"
 						/>
 					</div>
 					<div>
@@ -91,15 +91,15 @@
 							type="text"
 							required
 							value={data.client.shortCode}
-							class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+							class="mt-1 block w-full rounded-md input-base px-3 py-2"
 						/>
 					</div>
 				</div>
 				<div class="flex justify-end gap-2">
-					<button type="button" onclick={() => (isEditingClient = false)} class="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm text-stone-700 hover:bg-stone-50">
+					<button type="button" onclick={() => (isEditingClient = false)} class="rounded-md btn-secondary px-4 py-2 text-sm">
 						Cancel
 					</button>
-					<button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+					<button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium">
 						Save
 					</button>
 				</div>
@@ -114,7 +114,7 @@
 				</div>
 				<button
 					onclick={() => (isEditingClient = true)}
-					class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
+					class="rounded-md btn-secondary px-3 py-1.5 text-sm"
 				>
 					Edit Client
 				</button>
@@ -129,7 +129,7 @@
 			{#if !showCreateContractForm}
 				<button
 					onclick={() => (showCreateContractForm = true)}
-					class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+					class="rounded-md btn-primary px-4 py-2 text-sm font-medium"
 				>
 					Add Contract
 				</button>
@@ -155,7 +155,7 @@
 							name="name"
 							type="text"
 							required
-							class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+							class="mt-1 block w-full rounded-md input-base px-3 py-2"
 							placeholder="Q1 2025 Consulting"
 						/>
 					</div>
@@ -167,7 +167,7 @@
 							id="new-contract-description"
 							name="description"
 							rows="2"
-							class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+							class="mt-1 block w-full rounded-md input-base px-3 py-2"
 							placeholder="Optional description"
 						></textarea>
 					</div>
@@ -176,10 +176,10 @@
 						<label for="new-contract-active" class="text-sm text-stone-700">Active</label>
 					</div>
 					<div class="flex justify-end gap-2">
-						<button type="button" onclick={() => (showCreateContractForm = false)} class="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm text-stone-700 hover:bg-stone-50">
+						<button type="button" onclick={() => (showCreateContractForm = false)} class="rounded-md btn-secondary px-4 py-2 text-sm">
 							Cancel
 						</button>
-						<button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+						<button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium">
 							Create Contract
 						</button>
 					</div>

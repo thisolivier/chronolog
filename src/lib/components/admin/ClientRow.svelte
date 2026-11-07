@@ -38,7 +38,7 @@
 
 	const cancelEditing = () => (isEditing = false);
 	const inputClass =
-		'w-full rounded-md border border-stone-300 px-2 py-1 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none';
+		'w-full rounded-md input-base px-2 py-1 text-sm';
 </script>
 
 {#if isEditing}
@@ -67,8 +67,8 @@
 		<td class="px-6 py-2 text-right" data-stack-full>
 			<form id={editFormId} method="POST" action="/admin/clients?/update" use:enhance={closeOnSuccess(cancelEditing)} class="flex justify-end gap-2">
 				<input type="hidden" name="client_id" value={client.id} />
-				<button type="button" onclick={cancelEditing} class="rounded-md border border-stone-300 bg-white px-3 py-1 text-sm text-stone-700 hover:bg-stone-50">Cancel</button>
-				<button type="submit" class="rounded-md bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700">Save</button>
+				<button type="button" onclick={cancelEditing} class="rounded-md btn-secondary px-3 py-1 text-sm">Cancel</button>
+				<button type="submit" class="rounded-md btn-primary px-3 py-1 text-sm font-medium">Save</button>
 			</form>
 		</td>
 	</tr>

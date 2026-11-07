@@ -49,17 +49,17 @@
 					autofocus
 					aria-label="Deliverable name"
 					bind:value={editName}
-					class="rounded-md border border-stone-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="rounded-md input-base px-3 py-1.5 text-sm"
 				/>
 				<input
 					name="sort_order"
 					type="number"
 					aria-label="Sort order"
 					bind:value={editSortOrder}
-					class="w-20 rounded-md border border-stone-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="w-20 rounded-md input-base px-3 py-1.5 text-sm"
 				/>
-				<button type="button" onclick={cancelEditing} class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50">Cancel</button>
-				<button type="submit" class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">Save</button>
+				<button type="button" onclick={cancelEditing} class="rounded-md btn-secondary px-3 py-1.5 text-sm">Cancel</button>
+				<button type="submit" class="rounded-md btn-primary px-3 py-1.5 text-sm font-medium">Save</button>
 			</form>
 		{:else}
 			<div class="flex items-center justify-between">
@@ -96,7 +96,7 @@
 						name="name"
 						type="text"
 						required
-						class="mt-1 block rounded-md border border-stone-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-1 block rounded-md input-base px-3 py-1.5 text-sm"
 						placeholder="Design Review"
 					/>
 				</div>
@@ -107,11 +107,11 @@
 						name="sort_order"
 						type="number"
 						value="0"
-						class="mt-1 block w-20 rounded-md border border-stone-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-1 block w-20 rounded-md input-base px-3 py-1.5 text-sm"
 					/>
 				</div>
-				<button type="button" onclick={() => (showAddWorkType = false)} class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50">Cancel</button>
-				<button type="submit" class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">Add</button>
+				<button type="button" onclick={() => (showAddWorkType = false)} class="rounded-md btn-secondary px-3 py-1.5 text-sm">Cancel</button>
+				<button type="submit" class="rounded-md btn-primary px-3 py-1.5 text-sm font-medium">Add</button>
 			</form>
 		</div>
 	{/if}

@@ -97,7 +97,7 @@
 			tabindex="-1"
 			aria-label="Week status"
 			onkeydown={handleMenuKeydown}
-			class="absolute right-0 top-full z-30 mt-1 w-48 rounded-md border border-stone-200 bg-white py-1 shadow-lg"
+			class="absolute right-0 top-full z-30 mt-1 w-48 rounded-md menu-panel py-1"
 		>
 			{#each WEEK_STATUSES as status (status.value)}
 				<button

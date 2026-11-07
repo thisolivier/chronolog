@@ -41,7 +41,7 @@
 			<h1 class="min-w-0 flex-1 text-base font-semibold text-stone-800 sm:text-lg">Trash</h1>
 			<a
 				href={navigation.workspaceHref}
-				class="flex-shrink-0 rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
+				class="flex-shrink-0 rounded-md btn-secondary px-3 py-1.5 text-sm"
 				data-testid="trash-back-to-app"
 			>
 				Back<span class="hidden sm:inline">&nbsp;to app</span>

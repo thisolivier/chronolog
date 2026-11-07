@@ -22,12 +22,12 @@
 			{#if !isNotFound}
 				<button
 					onclick={() => location.reload()}
-					class="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+					class="rounded-md btn-secondary px-4 py-2 text-sm"
 				>
 					Try again
 				</button>
 			{/if}
-			<a href="/" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+			<a href="/" class="rounded-md btn-primary px-4 py-2 text-sm font-medium">
 				Back to Chronolog
 			</a>
 		</div>

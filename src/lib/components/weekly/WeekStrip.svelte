@@ -72,7 +72,7 @@
 		<div class="flex items-center gap-1.5">
 			<button
 				onclick={onPrevWeek}
-				class="rounded px-1.5 py-0.5 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-700 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+				class="rounded px-1.5 py-0.5 text-sm btn-quiet pointer-coarse:min-h-11 pointer-coarse:min-w-11"
 				aria-label="Previous week"
 			>&#9664;<span class="ml-1 hidden sm:inline">Week {prevWeekNumber}</span></button>
 			<span class="text-sm font-medium text-stone-700">
@@ -85,13 +85,13 @@
 					onclick={onToday}
 					disabled={isCurrentWeek}
 					title={isCurrentWeek ? 'Already on this week' : 'Go to today'}
-					class="rounded border border-stone-300 px-2 py-0.5 text-xs font-medium pointer-coarse:py-2 text-stone-600 hover:bg-stone-100 hover:text-stone-800 disabled:cursor-default disabled:border-stone-200 disabled:text-stone-300 disabled:hover:bg-transparent"
+					class="rounded border border-stone-300 px-2 py-0.5 text-xs font-medium pointer-coarse:py-2 btn-quiet disabled:cursor-default disabled:border-stone-200 disabled:text-stone-300 disabled:hover:bg-transparent"
 					data-testid="week-today-button"
 				>Today</button>
 			{/if}
 			<button
 				onclick={onNextWeek}
-				class="rounded px-1.5 py-0.5 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-700 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+				class="rounded px-1.5 py-0.5 text-sm btn-quiet pointer-coarse:min-h-11 pointer-coarse:min-w-11"
 				aria-label="Next week"
 			><span class="mr-1 hidden sm:inline">Week {nextWeekNumber}</span>&#9654;</button>
 		</div>

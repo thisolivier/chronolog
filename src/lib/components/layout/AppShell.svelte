@@ -164,7 +164,7 @@
 				<button
 					type="button"
 					onclick={requestFindInPage}
-					class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+					class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md btn-quiet"
 					aria-label="Find in page"
 					data-testid="mobile-find-button"
 				>
@@ -174,7 +174,7 @@
 			<!-- Global search (sprint 042-CL): the field gets the whole page on a phone -->
 			<a
 				href="/search"
-				class="ml-1 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+				class="ml-1 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md btn-quiet"
 				aria-label="Search"
 				data-testid="mobile-search-link"
 			>

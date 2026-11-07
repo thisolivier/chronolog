@@ -187,8 +187,8 @@
 				data-testid="find-input"
 			/>
 			<span class="min-w-[5rem] shrink-0 text-xs max-sm:min-w-0 tabular-nums text-stone-500" aria-live="polite" data-testid="find-count">{countLabel}</span>
-			<button type="button" onclick={() => move(-1)} disabled={matchCount === 0} class="rounded px-2 py-1 text-stone-600 hover:bg-stone-100 disabled:opacity-40 pointer-coarse:min-h-11 pointer-coarse:min-w-11" aria-label="Previous match" title="Previous (Shift+Enter)" data-testid="find-previous">↑</button>
-			<button type="button" onclick={() => move(1)} disabled={matchCount === 0} class="rounded px-2 py-1 text-stone-600 hover:bg-stone-100 disabled:opacity-40 pointer-coarse:min-h-11 pointer-coarse:min-w-11" aria-label="Next match" title="Next (Enter)" data-testid="find-next">↓</button>
+			<button type="button" onclick={() => move(-1)} disabled={matchCount === 0} class="rounded px-2 py-1 btn-quiet disabled:opacity-40 pointer-coarse:min-h-11 pointer-coarse:min-w-11" aria-label="Previous match" title="Previous (Shift+Enter)" data-testid="find-previous">↑</button>
+			<button type="button" onclick={() => move(1)} disabled={matchCount === 0} class="rounded px-2 py-1 btn-quiet disabled:opacity-40 pointer-coarse:min-h-11 pointer-coarse:min-w-11" aria-label="Next match" title="Next (Enter)" data-testid="find-next">↓</button>
 			<button type="button" onclick={() => close()} class="rounded px-2 py-1 text-stone-500 hover:bg-stone-100 pointer-coarse:min-h-11 pointer-coarse:min-w-11" aria-label="Close find" title="Close (Escape)" data-testid="find-close">✕</button>
 		</div>
 	{/if}

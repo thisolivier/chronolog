@@ -146,12 +146,12 @@
 				bind:value={newTokenName}
 				maxlength="80"
 				placeholder="MacBook CLI"
-				class="block min-w-0 flex-1 rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+				class="block min-w-0 flex-1 rounded-md input-base px-3 py-2"
 			/>
 			<button
 				type="submit"
 				disabled={isBusy || newTokenName.trim() === ''}
-				class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+				class="rounded-md btn-primary px-4 py-2 disabled:opacity-50"
 			>
 				Create token
 			</button>

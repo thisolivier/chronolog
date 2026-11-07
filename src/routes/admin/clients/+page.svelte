@@ -42,7 +42,7 @@
 		{#if !showCreateForm}
 			<button
 				onclick={() => (showCreateForm = true)}
-				class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+				class="rounded-md btn-primary px-4 py-2 text-sm font-medium"
 			>
 				Add Client
 			</button>
@@ -84,7 +84,7 @@
 							type="text"
 							required
 							value={form?.name ?? ''}
-							class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+							class="mt-1 block w-full rounded-md input-base px-3 py-2"
 							placeholder="Acme Corporation"
 						/>
 					</div>
@@ -98,7 +98,7 @@
 							type="text"
 							required
 							value={form?.shortCode ?? ''}
-							class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+							class="mt-1 block w-full rounded-md input-base px-3 py-2"
 							placeholder="ACME"
 						/>
 					</div>
@@ -110,7 +110,7 @@
 							id="new-client-emoji"
 							name="emoji"
 							type="text"
-							class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+							class="mt-1 block w-full rounded-md input-base px-3 py-2"
 							placeholder=""
 						/>
 					</div>
@@ -122,7 +122,7 @@
 							id="new-client-color"
 							name="color_index"
 							value={suggestedColorIndex}
-							class="mt-1 block w-full rounded-md border border-stone-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+							class="mt-1 block w-full rounded-md input-base bg-white px-3 py-2"
 						>
 							{#each CLIENT_COLORS as color, colorIndex (colorIndex)}
 								<option value={colorIndex}>{color.name}</option>
@@ -134,13 +134,13 @@
 					<button
 						type="button"
 						onclick={() => (showCreateForm = false)}
-						class="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+						class="rounded-md btn-secondary px-4 py-2 text-sm"
 					>
 						Cancel
 					</button>
 					<button
 						type="submit"
-						class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+						class="rounded-md btn-primary px-4 py-2 text-sm font-medium"
 					>
 						Create Client
 					</button>

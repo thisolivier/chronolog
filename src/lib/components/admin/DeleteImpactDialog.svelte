@@ -93,7 +93,7 @@
 			<button
 				type="button"
 				onclick={onClose}
-				class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
+				class="rounded-md btn-secondary px-3 py-1.5 text-sm"
 			>
 				Cancel
 			</button>
@@ -114,7 +114,7 @@
 						type="submit"
 						bind:this={defaultButton}
 						disabled={isSubmitting}
-						class="w-full rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 sm:w-auto"
+						class="w-full rounded-md btn-danger px-3 py-1.5 text-sm font-medium disabled:opacity-50 sm:w-auto"
 					>
 						{hasWork ? deleteWithWorkLabel : 'Delete'}
 					</button>
@@ -129,7 +129,7 @@
 						type="submit"
 						bind:this={defaultButton}
 						disabled={isSubmitting}
-						class="w-full rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 sm:w-auto"
+						class="w-full rounded-md btn-primary px-3 py-1.5 text-sm font-medium disabled:opacity-50 sm:w-auto"
 					>
 						Archive
 					</button>

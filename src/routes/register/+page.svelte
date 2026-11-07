@@ -85,7 +85,7 @@
 						type="text"
 						bind:value={name}
 						required
-						class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-1 block w-full rounded-md input-base px-3 py-2"
 						placeholder="Your name"
 					/>
 				</div>
@@ -97,7 +97,7 @@
 						type="email"
 						bind:value={email}
 						required
-						class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-1 block w-full rounded-md input-base px-3 py-2"
 						placeholder="you@example.com"
 					/>
 				</div>
@@ -110,7 +110,7 @@
 						bind:value={password}
 						required
 						minlength="8"
-						class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-1 block w-full rounded-md input-base px-3 py-2"
 						placeholder="At least 8 characters"
 					/>
 				</div>
@@ -125,7 +125,7 @@
 						bind:value={confirmPassword}
 						required
 						minlength="8"
-						class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-1 block w-full rounded-md input-base px-3 py-2"
 						placeholder="Repeat your password"
 					/>
 					{#if confirmPassword && !passwordsMatch}
@@ -136,7 +136,7 @@
 				<button
 					type="submit"
 					disabled={isLoading || !passwordsMatch || !isHydrated}
-					class="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+					class="w-full rounded-md btn-primary px-4 py-2 disabled:opacity-50"
 				>
 					{isLoading ? 'Creating account...' : 'Create account'}
 				</button>

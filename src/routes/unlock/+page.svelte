@@ -31,14 +31,14 @@
 					type="password"
 					autocomplete="off"
 					required
-					class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-1 block w-full rounded-md input-base px-3 py-2"
 					placeholder="Paste the key"
 				/>
 			</div>
 
 			<button
 				type="submit"
-				class="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+				class="w-full rounded-md btn-primary px-4 py-2"
 			>
 				Unlock
 			</button>

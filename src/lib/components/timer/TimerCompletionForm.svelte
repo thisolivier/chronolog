@@ -116,7 +116,7 @@
 			bind:value={description}
 			onkeydown={handleFieldKeydown}
 			rows="2"
-			class="mt-0.5 block w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+			class="mt-0.5 block w-full rounded-md input-base px-2 py-1.5 text-sm"
 			placeholder="What did you work on?"
 		></textarea>
 	</div>
@@ -181,7 +181,7 @@
 		<button
 			type="button"
 			onclick={onDiscard}
-			class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm whitespace-nowrap text-stone-700 hover:bg-stone-50"
+			class="rounded-md btn-secondary px-3 py-1.5 text-sm whitespace-nowrap"
 		>
 			Discard
 		</button>
@@ -189,7 +189,7 @@
 			type="button"
 			onclick={handleSave}
 			disabled={isSaving}
-			class="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium whitespace-nowrap text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-70"
+			class="rounded-md btn-primary px-4 py-1.5 text-sm font-medium whitespace-nowrap disabled:cursor-wait disabled:opacity-70"
 		>
 			{isSaving ? 'Saving…' : saveError ? 'Retry' : 'Save'}
 		</button>

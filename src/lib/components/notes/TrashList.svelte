@@ -57,7 +57,7 @@
 				<button
 					type="button"
 					onclick={() => openRestored(note)}
-					class="flex-shrink-0 rounded-md border border-stone-300 px-3 py-1 text-sm text-stone-700 hover:bg-stone-50"
+					class="flex-shrink-0 rounded-md btn-secondary px-3 py-1 text-sm"
 					data-testid="trash-open"
 				>
 					Open

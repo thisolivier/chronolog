@@ -166,7 +166,7 @@
     />
 
     {#if showDropdown}
-        <div class="absolute left-0 top-full z-50 mt-1 w-72 rounded-md border border-stone-200 bg-white py-1 shadow-lg">
+        <div class="absolute left-0 top-full z-50 mt-1 w-72 rounded-md menu-panel py-1">
             {#if searchResults.length === 0}
                 <div class="px-3 py-2 text-xs text-stone-400">
                     {searchQuery.length > 0 ? 'No matching notes' : 'Type to search notes...'}

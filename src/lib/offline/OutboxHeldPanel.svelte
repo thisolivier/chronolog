@@ -168,14 +168,14 @@
 					{/if}
 					<div class="mt-2 flex flex-wrap gap-2">
 						{#if item.hold?.reason === 'conflict'}
-							<button type="button" class="{buttonClass} border-blue-600 bg-blue-600 text-white hover:bg-blue-700" disabled={busySequence !== null} onclick={() => resolve(item, 'mine')}>Keep mine</button>
+							<button type="button" class="{buttonClass} border-blue-600 btn-primary" disabled={busySequence !== null} onclick={() => resolve(item, 'mine')}>Keep mine</button>
 							<button type="button" class="{buttonClass} border-stone-300 text-stone-700 hover:bg-stone-50" disabled={busySequence !== null} onclick={() => resolve(item, 'server')}>Keep the server’s</button>
 							{#if mine}
 								<button type="button" class="{buttonClass} border-stone-300 text-stone-700 hover:bg-stone-50" disabled={busySequence !== null} onclick={() => keepBoth(item)}>Keep both (mine as a new note)</button>
 							{/if}
 						{:else}
 							{#if mine && server === null}
-								<button type="button" class="{buttonClass} border-blue-600 bg-blue-600 text-white hover:bg-blue-700" disabled={busySequence !== null} onclick={() => keepBoth(item)}>Save mine as a new note</button>
+								<button type="button" class="{buttonClass} border-blue-600 btn-primary" disabled={busySequence !== null} onclick={() => keepBoth(item)}>Save mine as a new note</button>
 							{/if}
 							<button type="button" class="{buttonClass} border-stone-300 text-stone-700 hover:bg-stone-50" disabled={busySequence !== null} onclick={() => resolve(item, 'retry')}>Try again</button>
 							<button type="button" class="{buttonClass} border-red-300 text-red-700 hover:bg-red-50" disabled={busySequence !== null} onclick={() => resolve(item, 'server')}>Discard mine</button>

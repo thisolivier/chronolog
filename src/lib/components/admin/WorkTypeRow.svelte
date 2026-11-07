@@ -49,17 +49,17 @@
 				autofocus
 				aria-label="Work type name"
 				bind:value={editName}
-				class="rounded-md border border-stone-300 px-2 py-1 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+				class="rounded-md input-base px-2 py-1 text-sm"
 			/>
 			<input
 				name="sort_order"
 				type="number"
 				aria-label="Sort order"
 				bind:value={editSortOrder}
-				class="w-16 rounded-md border border-stone-300 px-2 py-1 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+				class="w-16 rounded-md input-base px-2 py-1 text-sm"
 			/>
-			<button type="button" onclick={cancelEditing} class="rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700 hover:bg-stone-50">Cancel</button>
-			<button type="submit" class="rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700">Save</button>
+			<button type="button" onclick={cancelEditing} class="rounded btn-secondary px-2 py-1 text-xs">Cancel</button>
+			<button type="submit" class="rounded btn-primary px-2 py-1 text-xs font-medium">Save</button>
 		</form>
 	{:else}
 		<div class="flex items-center gap-2">

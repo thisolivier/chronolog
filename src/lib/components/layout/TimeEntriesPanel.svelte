@@ -549,7 +549,7 @@
 				<button
 					onclick={loadOlderWeek}
 					disabled={isLoadingOlderWeek}
-					class="rounded px-2 py-1 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-700 disabled:opacity-50"
+					class="rounded px-2 py-1 text-sm btn-quiet disabled:opacity-50"
 				>
 					{isLoadingOlderWeek ? 'Loading…' : 'Show the week before'}
 				</button>

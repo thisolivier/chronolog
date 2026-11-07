@@ -113,7 +113,7 @@
 				type="button"
 				onclick={() => saveStart(false)}
 				disabled={isSaving}
-				class="rounded bg-blue-600 px-2 py-0.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+				class="rounded btn-primary px-2 py-0.5 text-xs font-medium disabled:opacity-50"
 			>Save</button>
 			<button type="button" onclick={cancelEditing} class="px-1 text-xs text-stone-500 hover:text-stone-700">Cancel</button>
 		{/if}
@@ -131,7 +131,7 @@
 					disabled={isSaving}
 					class="rounded bg-amber-600 px-2 py-0.5 font-medium text-white hover:bg-amber-700 disabled:opacity-50"
 				>Save anyway</button>
-				<button type="button" onclick={cancelEditing} class="rounded border border-stone-300 bg-white px-2 py-0.5 text-stone-700 hover:bg-stone-50">Cancel</button>
+				<button type="button" onclick={cancelEditing} class="rounded btn-secondary px-2 py-0.5">Cancel</button>
 			</div>
 		</div>
 	{/if}

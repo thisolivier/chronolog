@@ -215,7 +215,7 @@
 					id="disable-password"
 					type="password"
 					bind:value={disablePassword}
-					class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-1 block w-full rounded-md input-base px-3 py-2"
 					placeholder="Enter your password"
 				/>
 			</div>
@@ -223,7 +223,7 @@
 			<button
 				onclick={disableTwoFactor}
 				disabled={isLoading || !disablePassword}
-				class="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+				class="rounded-md btn-danger px-4 py-2 disabled:opacity-50"
 			>
 				{isLoading ? 'Disabling...' : 'Disable 2FA'}
 			</button>
@@ -246,7 +246,7 @@
 					id="current-password"
 					type="password"
 					bind:value={currentPassword}
-					class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-1 block w-full rounded-md input-base px-3 py-2"
 					placeholder="Enter your password to begin"
 				/>
 			</div>
@@ -254,7 +254,7 @@
 			<button
 				onclick={startEnrollment}
 				disabled={isLoading || !currentPassword}
-				class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+				class="rounded-md btn-primary px-4 py-2 disabled:opacity-50"
 			>
 				{isLoading ? 'Setting up...' : 'Enable 2FA'}
 			</button>
@@ -297,7 +297,7 @@
 					autocomplete="one-time-code"
 					maxlength="6"
 					bind:value={verificationCode}
-					class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-1 block w-full rounded-md input-base px-3 py-2"
 					placeholder="Enter 6-digit code"
 				/>
 			</div>
@@ -306,14 +306,14 @@
 				<button
 					onclick={verifySetup}
 					disabled={isLoading || verificationCode.length !== 6}
-					class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+					class="rounded-md btn-primary px-4 py-2 disabled:opacity-50"
 				>
 					{isLoading ? 'Verifying...' : 'Verify & Enable'}
 				</button>
 
 				<button
 					onclick={resetFlow}
-					class="rounded-md border border-stone-300 bg-white px-4 py-2 text-stone-700 hover:bg-stone-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+					class="rounded-md btn-secondary px-4 py-2"
 				>
 					Cancel
 				</button>
@@ -339,7 +339,7 @@
 
 		<button
 			onclick={resetFlow}
-			class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+			class="rounded-md btn-primary px-4 py-2"
 		>
 			I have saved my codes
 		</button>

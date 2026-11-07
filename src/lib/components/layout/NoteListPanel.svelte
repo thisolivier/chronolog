@@ -270,7 +270,7 @@
 			<button
 				type="button"
 				onclick={toggleSortOrder}
-				class="-ml-2 rounded px-2 py-1 text-xs whitespace-nowrap text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+				class="-ml-2 rounded px-2 py-1 text-xs whitespace-nowrap btn-quiet"
 				title="Change sort order"
 				data-testid="note-sort-toggle"
 			>

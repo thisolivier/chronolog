@@ -45,7 +45,7 @@
 	}
 
 	const desktopButtonClass =
-		'flex h-8 w-8 items-center justify-center rounded-md text-stone-600 hover:bg-stone-100 hover:text-stone-900 disabled:cursor-default disabled:text-stone-300 disabled:hover:bg-transparent';
+		'flex h-8 w-8 items-center justify-center rounded-md btn-quiet hover:text-stone-900 disabled:cursor-default disabled:text-stone-300 disabled:hover:bg-transparent';
 </script>
 
 <svelte:window onkeydown={handleWindowKeydown} />

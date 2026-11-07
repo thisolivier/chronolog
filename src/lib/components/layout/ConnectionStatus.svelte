@@ -48,7 +48,7 @@
 	{#if heldCount > 0}
 		<button
 			type="button"
-			class="rounded bg-red-600 px-2 py-0.5 text-white hover:bg-red-700 pointer-coarse:py-2"
+			class="rounded btn-danger px-2 py-0.5 pointer-coarse:py-2"
 			onclick={() => (isHeldPanelOpen = true)}
 			data-testid="outbox-review-held"
 		>

@@ -207,7 +207,7 @@
 		{/if}
 		<button
 			onclick={onCancel}
-			class="rounded-md px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-100 hover:text-stone-800"
+			class="rounded-md px-3 py-1.5 text-sm btn-quiet"
 			type="button"
 		>
 			Cancel
@@ -215,7 +215,7 @@
 		<button
 			onclick={handleSubmit}
 			disabled={isSubmitting}
-			class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-70"
+			class="rounded-md btn-primary px-3 py-1.5 text-sm font-medium disabled:cursor-wait disabled:opacity-70"
 			type="button"
 		>
 			{isSubmitting ? 'Saving…' : saveError ? 'Retry' : 'Save'}

@@ -436,7 +436,7 @@
 			</button>
 			<button
 				onclick={() => (showAddEntryModal = true)}
-				class="flex-1 rounded-md border border-stone-300 bg-white px-2 py-2.5 text-sm font-medium whitespace-nowrap text-stone-700 hover:bg-stone-50"
+				class="flex-1 rounded-md btn-secondary px-2 py-2.5 text-sm font-medium whitespace-nowrap"
 			>
 				Add Entry
 			</button>
@@ -447,7 +447,7 @@
 				<TimerDisplay {elapsedSeconds} isPaused={false} />
 				<button
 					onclick={handleStop}
-					class="rounded-md bg-red-600 px-3 py-1 text-sm font-medium whitespace-nowrap text-white hover:bg-red-700 pointer-coarse:min-h-11 pointer-coarse:px-5"
+					class="rounded-md btn-danger px-3 py-1 text-sm font-medium whitespace-nowrap pointer-coarse:min-h-11 pointer-coarse:px-5"
 				>
 					Stop
 				</button>
@@ -483,7 +483,7 @@
 						bind:value={draftDescription}
 						oninput={handleDescriptionInput}
 						rows="2"
-						class="mt-0.5 block w-full rounded border border-stone-300 px-1.5 py-1 text-xs shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-0.5 block w-full rounded input-base px-1.5 py-1 text-xs"
 						placeholder="What are you working on?"
 					></textarea>
 				</div>

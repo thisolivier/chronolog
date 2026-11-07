@@ -114,7 +114,7 @@
 						maxlength="6"
 						bind:value={totpCode}
 						required
-						class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-1 block w-full rounded-md input-base px-3 py-2"
 						placeholder="Enter 6-digit code"
 					/>
 				</div>
@@ -122,7 +122,7 @@
 				<button
 					type="submit"
 					disabled={isLoading || !isHydrated}
-					class="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+					class="w-full rounded-md btn-primary px-4 py-2 disabled:opacity-50"
 				>
 					{isLoading ? 'Verifying...' : 'Verify'}
 				</button>
@@ -136,7 +136,7 @@
 						type="email"
 						bind:value={email}
 						required
-						class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-1 block w-full rounded-md input-base px-3 py-2"
 						placeholder="you@example.com"
 					/>
 				</div>
@@ -150,7 +150,7 @@
 						type="password"
 						bind:value={password}
 						required
-						class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-1 block w-full rounded-md input-base px-3 py-2"
 						placeholder="Your password"
 					/>
 				</div>
@@ -158,7 +158,7 @@
 				<button
 					type="submit"
 					disabled={isLoading || !isHydrated}
-					class="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+					class="w-full rounded-md btn-primary px-4 py-2 disabled:opacity-50"
 				>
 					{isLoading ? 'Signing in...' : 'Sign in'}
 				</button>

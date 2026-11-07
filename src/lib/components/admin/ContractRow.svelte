@@ -42,7 +42,7 @@
 	}
 	const cancelEditing = () => (isEditing = false);
 	const inputClass =
-		'mt-1 block w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none';
+		'mt-1 block w-full rounded-md input-base px-3 py-1.5 text-sm';
 	const arrowClass =
 		'flex h-6 w-6 items-center justify-center rounded text-stone-400 hover:bg-stone-100 hover:text-stone-700 disabled:invisible';
 </script>
@@ -73,8 +73,8 @@
 				<label for="edit-contract-active-{contract.id}" class="text-sm text-stone-700">Active</label>
 			</div>
 			<div class="flex justify-end gap-2">
-				<button type="button" onclick={cancelEditing} class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50">Cancel</button>
-				<button type="submit" class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">Save</button>
+				<button type="button" onclick={cancelEditing} class="rounded-md btn-secondary px-3 py-1.5 text-sm">Cancel</button>
+				<button type="submit" class="rounded-md btn-primary px-3 py-1.5 text-sm font-medium">Save</button>
 			</div>
 		</form>
 	{:else}
