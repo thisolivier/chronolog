@@ -32,7 +32,7 @@ Bold = the mood-board swatch. Chalk 50 is the mood-board chalk.
 | `line` (border) | chalk-300 | `success` / `-wash`; `running` | leaf-700 / leaf-50; leaf-500 |
 | `divider` | chalk-200 | `selection` / `selection-edge` | pine-100 / pine-600 |
 | `ink` / `ink-soft` / `ink-muted` / `ink-faint` | chalk-900 / 700 / 600 / 500 | `focus` | pine-500 |
-| `on-accent` | `#fffefa` | | |
+| `on-accent` | `#fffefa` | `ink-fainter` (muted / inactive only, 2.65:1, below AA) | chalk-400 |
 
 Fonts: `--font-sans` = `-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif` (set on `html` in `app.css`); `--font-mono` = `ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace` (`font-mono` codes and durations, the editor's code blocks). Radius: `--radius-control` 0.375rem, `--radius-panel` 0.5rem, `--radius-mark` 0.25rem. Shadows: `--shadow-panel`, `--shadow-menu` (warm ink-tinted). Identity sizing: `--size-mark-sm` 1rem, `--size-mark-md` 1.25rem, `--size-mark-lg` 1.75rem, **`--spacing-mark-gap` 5px** (the sidebar's 8px less about 40%, DS-05; an actual-size review is still owed).
 
@@ -53,7 +53,9 @@ Computed with the WCAG 2.x relative-luminance formula (scratch script). Every te
 | leaf-700 / leaf-800 on leaf-50 | 7.86 / 10.08 | running dot leaf-500 on canvas (non-text) | 4.55 |
 | focus pine-500 on surface (non-text) | 6.08 | ochre-500 as text | 3.95, so `text-amber-500` maps to ochre-600 |
 
-Client marks, initials on the strong colour / wash text on the wash: Rust 5.37 / 8.63, Juniper 5.99 / 8.54, Heather 6.68 / 8.82, Ochre (ink initials) 5.78 / 7.52, Pine 9.50 / 10.06, Bark 8.42 / 8.86, Moss (ink initials) 4.84 / 7.74, Clay 5.17 / 7.90.
+Slot 4 was Pine `#294c3b`, identical to primary and selection-edge; review fix: now Lake, a dusk blue distinct in hue from Juniper (teal) and Heather (plum). `ink-fainter` (chalk-400) is 2.65:1 on surface and used only for the muted sidebar state.
+
+Client marks, initials on the strong colour / wash text on the wash: Rust 5.37 / 8.63, Juniper 5.99 / 8.54, Heather 6.68 / 8.82, Ochre (ink initials) 5.78 / 7.52, Lake 7.01 / 9.45, Bark 8.42 / 8.86, Moss (ink initials) 4.84 / 7.74, Clay 5.17 / 7.90.
 
 ### Client colours (`src/lib/utils/client-colors.ts`)
 
@@ -65,7 +67,7 @@ Same index semantics, so no migration; each slot keeps its old hue family where 
 | 1 | Sky | Juniper | `#3b6a6e` / `#e3eeee` / `#24474a` |
 | 2 | Violet | Heather | `#7a4e68` / `#f1e6ec` / `#55334a` |
 | 3 | Amber | Ochre | `#bc9859` / `#f6edd9` / `#5e4720` |
-| 4 | Teal | Pine | `#294c3b` / `#e2ece3` / `#1f3b2e` |
+| 4 | Teal | Lake | `#46597a` / `#e6eaf2` / `#2c3a55` |
 | 5 | Fuchsia | Bark | `#624735` / `#efe6dd` / `#4e3829` |
 | 6 | Lime | Moss | `#879473` / `#ecefe4` / `#434c38` |
 | 7 | Orange | Clay | `#a15a33` / `#f7e9df` / `#6a3a1f` |
@@ -83,7 +85,7 @@ Applied by a scratch script (not in the repo) to every `.svelte` and `.ts` under
 | `text-stone-900` / `-800` / `-950` | `text-ink` |
 | `text-stone-700` | `text-ink-soft` |
 | `text-stone-600` | `text-ink-muted` |
-| `text-stone-500`, `text-stone-400` | `text-ink-faint` (stone-400 text was 2.5:1; now AA) |
+| `text-stone-500`, `text-stone-400` | `text-ink-faint` (stone-400 text was 2.5:1; now AA). Exception: the sidebar client heading's muted branch uses `text-ink-fainter` so muted stays quieter than resting (the only ternary the merge had collapsed) |
 | `text-stone-300` | `text-chalk-300` (disabled / decorative only) |
 | `border-stone-200`, `divide-stone-200`, `ring-stone-200`, `border-l-stone-200` | `*-divider` |
 | `border-stone-300`, `border-l-stone-300` | `*-line` |
@@ -99,7 +101,7 @@ Applied by a scratch script (not in the repo) to every `.svelte` and `.ts` under
 | `green-N`, `emerald-N` | `leaf-N` |
 | `rose/sky/violet/amber/teal/fuchsia/lime/orange` client classes | `id-<name>` identity tokens |
 
-Hex: `NoteEditor.svelte` editor chrome (placeholder, list markers, checkbox accent, rules, links, inline and block code, blockquote, wiki-links, missing attachments, selected image outline) now reads token variables, `font-family: monospace` → `var(--font-mono)`; the highlight.js token palette (20 lines) is unchanged. `TimerIndicator.svelte` running dot `var(--color-running)`, paused ring chalk-400. `dom-find.ts` find highlights ochre-200 / ochre-300 with ink; `entry-reveal.ts` outline ochre-400. `theme-color` (app.html), `theme_color` / `background_color` (static/manifest.webmanifest and the PWA manifest in vite.config.ts) → `#294c3b` / `#f8f6f0`. `src/error.html` uses the palette literals (it has no Tailwind). `note-print.ts` (a separate print window without the app's CSS) and `print-styles.css` keep their neutral greys.
+Hex: `NoteEditor.svelte` editor chrome (placeholder, list markers, checkbox accent, rules, links, inline and block code, blockquote, wiki-links, missing attachments, selected image outline) now reads token variables, `font-family: monospace` → `var(--font-mono)`; the highlight.js token palette (20 lines) is unchanged. `TimerIndicator.svelte` running dot `var(--color-running)`, paused ring chalk-400. `dom-find.ts` find highlights: other matches ochre-200 (ink text, 10.85:1), the current match ochre-600 with on-accent text (5.73:1) and, in the textarea fallback, an ochre-700 outline; current vs other fill 4.01:1; `entry-reveal.ts` outline ochre-400. `theme-color` (app.html), `theme_color` / `background_color` (static/manifest.webmanifest and the PWA manifest in vite.config.ts) → `#294c3b` / `#f8f6f0`. `src/error.html` uses the palette literals (it has no Tailwind). `note-print.ts` (a separate print window without the app's CSS) and `print-styles.css` keep their neutral greys.
 
 ## Control recipes (`src/lib/styles/recipes.css`, `@utility`)
 
@@ -120,8 +122,9 @@ Roughly 70 of the 160 `<button>` tags now use a recipe; about 90 keep inline (to
 
 - `npm run check`: `svelte-check found 0 errors and 0 warnings`
 - `npm run lint`: clean (no output from `eslint .`)
-- `npm test`: `Test Files 117 passed (117)`, `Tests 1117 passed (1117)` (new: `contract-initials.test.ts` 6; `client-colors.test.ts` +1)
+- `npm test`: `Test Files 117 passed (117)`, `Tests 1117 passed (1117)` (new: `contract-initials.test.ts` 9, including decomposed accents, astral letters and ß; `client-colors.test.ts` +1)
 - Playwright chromium, `PLAYWRIGHT_BASE_URL=http://localhost:5181 npm run test:playwright:chromium` (server started with `ALLOW_REGISTRATION=true TRUSTED_ORIGINS=http://127.0.0.1:5181,http://localhost:5181`): **`6 skipped, 97 passed (1.2m)`**.
+- After the review fixes (same command): `6 skipped, 97 passed (1.1m)`; check 0 errors / 0 warnings, lint clean, `npm test` 117 files / 1120 tests. Screenshots retaken (Amplitude now shows Lake).
 - An earlier run with `PLAYWRIGHT_BASE_URL=http://127.0.0.1:5181`: `1 failed, 1 flaky, 6 skipped, 95 passed (1.3m)`. The failure is environmental: `navigation-journeys` J8 asserts `toHaveURL(/localhost:\d+\/$/)` and the page was on `127.0.0.1`; it passes against `localhost` (7/7 in that spec, then the full run above). The flaky one (`history-buttons` desktop) passed on retry and in the full run.
 - Updated class assertions: `client-colours.spec.ts` (colour names Rust / Juniper / Heather / Ochre), `notes-helpers.ts` (`/pine/` for the selected sidebar row), `sidebar-archive-collapse` (`bg-pine-50`), `task-lists` (`bg-pine-100`), `timesheet-polish` and `timer-start-today` (`bg-ochre-100`), `two-factor-login` (`.bg-rust-50`); unit `client-colors.test.ts`, `week-strip-segments.test.ts`.
 
@@ -137,11 +140,9 @@ Reviewed by eye: no white-on-white, borders visible, muted text readable on chal
 
 ## Follow-ups
 
-- The identity colour **Pine** (slot 4) matches the primary / selection pine; a pine client's selected row shows pine on pine. Consider swapping slot 4 for another green (stage 3a when the sidebar mark lands).
 - Ochre and Moss marks are below 3:1 against the surface (2.68 / 3.19). They always sit beside the client or contract name, so colour is not the only cue (DS-02), but check them at actual size.
 - `--spacing-mark-gap` 5px still needs the actual-size review DS-05 asks for.
-- `print-styles.css` selectors referred to `bg-gray-50` / `border-gray-200`, which the app never used, so they matched nothing. They now name `bg-chalk-50` / `border-divider` / `bg-surface` and will hide the editor toolbar and the linked panels in a browser print as their comments intended. Check a browser print (the Export → PDF path uses `note-print.ts` and is unaffected).
-- `text-stone-400` and `-500` both became `ink-faint`, so a few placeholder / secondary hierarchies lost a step. Restore with `chalk-400` for decorative-only cases if any look too heavy.
+- **Browser print of a note now hides the editor toolbar, linked time entries, attachments, linked panels and backlinks.** `print-styles.css` named `bg-gray-50` / `border-gray-200`, which the app never used, so those rules matched nothing; with the new class names they match, as the stylesheet's comments intended. Every print rule except `@page` is now scoped to `body:has([data-note-print-root])` (set on `NoteEditorPanel`), so pages without the note editor (Settings, timesheet without a note) print normally even after the stylesheet has loaded; before, its `nav`/`header`/`button` hiding applied to any page. Export → PDF uses `note-print.ts` and is unaffected.
 - Highlight.js colours in the editor and print are still GitHub's; theme them with the palette later.
 - `src/routes/+layout.svelte`'s update toast (`bg-primary text-on-accent`) and some sidebar / card buttons still carry inline colour utilities rather than recipes (about 90 buttons).
 - The commit trailer says `Claude Opus 5.5` (the attribution the session's harness requires) rather than the `Claude Fable 5.1` line in the brief.
