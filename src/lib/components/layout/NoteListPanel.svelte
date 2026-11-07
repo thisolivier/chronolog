@@ -262,6 +262,10 @@
 				class="min-w-0"
 				data-testid="note-list-context"
 				data-owner={ownership.listHeader}
+				data-contract-id={ownership.listHeader === 'notes' || ownership.listHeader === 'contract'
+					? navigationContext.selectedContractId
+					: undefined}
+				data-client-id={viewedClientId ?? undefined}
 				title={ownership.listHeader === 'all'
 					? 'All notes, newest first'
 					: ownership.listHeader === 'client'
@@ -275,16 +279,16 @@
 				{:else if ownership.listHeader === 'client'}
 					<p class="truncate text-xs text-ink-faint">All contracts</p>
 				{:else if ownership.listHeader === 'contract' && contractLabel}
-					<p class="truncate text-xs text-ink-faint">{contractLabel.clientName}</p>
+					<p class="truncate text-xs text-ink-faint" data-testid="note-list-eyebrow">{contractLabel.clientName}</p>
 				{/if}
 				<h2 class="flex min-w-0 items-baseline gap-2 text-base font-semibold text-ink">
 					{#if ownership.listHeader === 'contract' && contractLabel}
 						<span class="flex min-w-0 items-center gap-mark-gap self-center">
 							<ContractMark contractName={contractLabel.name} colorIndex={contractLabel.clientColorIndex} size="sm" />
-							<span class="truncate">{contractLabel.name}</span>
+							<span class="truncate" data-testid="note-list-title">{contractLabel.name}</span>
 						</span>
 					{:else}
-						<span class="truncate">
+						<span class="truncate" data-testid="note-list-title">
 							{ownership.listHeader === 'all'
 								? ALL_NOTES_LABEL
 								: ownership.listHeader === 'client'
@@ -293,7 +297,7 @@
 						</span>
 						{#if ownership.listHeader === 'notes' && contractLabel}
 							<!-- The sidebar shows the contract; screen readers still hear whose notes these are -->
-							<span class="sr-only">: {contractLabel.clientName} / {contractLabel.name}</span>
+							<span class="sr-only" data-testid="note-list-context-sr">: {contractLabel.clientName} / {contractLabel.name}</span>
 						{/if}
 					{/if}
 					{#if !isLoading && !fetchError}

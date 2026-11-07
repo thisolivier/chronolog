@@ -7,7 +7,7 @@
 	Keyboard: the first item takes focus, arrows move, Escape closes and returns to the button.
 -->
 <script lang="ts">
-	import { tick } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import { getDataService } from '$lib/services/context';
 	import type { ContractOption } from '$lib/services/types';
 
@@ -48,6 +48,15 @@
 		void focusFirstItem();
 	}
 
+	// A different note (Back by swipe or shortcut, a wiki-link): drop a menu built for the old one
+	$effect(() => {
+		void noteId;
+		void contractId;
+		untrack(() => {
+			if (isOpen) close();
+		});
+	});
+
 	function close({ returnFocus = false } = {}) {
 		isOpen = false;
 		view = 'actions';
@@ -82,7 +91,8 @@
 			return;
 		}
 		if (event.key === 'Tab') {
-			close();
+			// Back to the button first, so Tab moves on from there rather than from a removed item
+			close({ returnFocus: true });
 			return;
 		}
 		if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
@@ -102,13 +112,15 @@
 	/** Close on any click outside the menu */
 	$effect(() => {
 		if (!isOpen) return;
-		const handleClick = (event: MouseEvent) => {
-			if (!rootElement?.contains(event.target as Node)) close();
+		// pointerdown, not click: a click that swaps the menu's view (‹ Move to) detaches its target
+		// before a document click listener runs, which would read as an outside click
+		const handlePointerDown = (event: PointerEvent) => {
+			if (rootElement && !event.composedPath().includes(rootElement)) close();
 		};
-		const timer = setTimeout(() => document.addEventListener('click', handleClick), 0);
+		const timer = setTimeout(() => document.addEventListener('pointerdown', handlePointerDown), 0);
 		return () => {
 			clearTimeout(timer);
-			document.removeEventListener('click', handleClick);
+			document.removeEventListener('pointerdown', handlePointerDown);
 		};
 	});
 
@@ -166,7 +178,7 @@
 					{noteId ? 'Delete' : 'Discard'}
 				</button>
 			{:else}
-				<button type="button" role="menuitem" class="{itemClass} text-ink-faint" onclick={showActions}>
+				<button type="button" role="menuitem" class="{itemClass} text-ink-faint" onclick={showActions} data-testid="move-menu-back">
 					<span aria-hidden="true">‹</span> Move to
 				</button>
 				{#if moveContracts.length === 0}

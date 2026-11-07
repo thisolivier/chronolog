@@ -29,6 +29,17 @@ export async function moveOpenNote(page: Page, contract: string | RegExp) {
 	await page.getByRole('menu', { name: 'Move note to' }).getByRole('menuitem', { name: contract }).click();
 }
 
+/**
+ * The note list and editor are scoped to `contractId` (054-DR). With the sidebar beside them the
+ * contract's name is only screen-reader text there, so check the scope by ID and the visible title.
+ */
+export async function expectNotesScopedTo(page: Page, contractId: string, { editorToo = true } = {}) {
+	await expect(page.getByTestId('note-list-context')).toHaveAttribute('data-contract-id', contractId);
+	await expect(page.getByTestId('note-list-context')).toHaveAttribute('data-owner', 'notes');
+	await expect(page.getByTestId('note-list-title')).toHaveText('Notes');
+	if (editorToo) await expect(page.getByTestId('note-editor-context')).toHaveAttribute('data-contract-id', contractId);
+}
+
 export const openNoteId = async (page: Page) =>
 	(await page.getByTestId('note-editor-header').locator('span.font-mono').innerText()).trim();
 

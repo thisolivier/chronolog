@@ -189,8 +189,25 @@ test.describe('desktop 1280', () => {
 		await page.getByRole('menuitem', { name: 'Export as Markdown' }).click();
 		expect((await downloadPromise).suggestedFilename()).toMatch(/\.md$/);
 
-		// Move to another client's contract: the note follows (sidebar, list, editor)
+		// Tab from an item leaves through the button, not from a removed item
+		await actions.press('Enter');
+		await expect(menu.getByRole('menuitem').first()).toBeFocused();
+		await page.keyboard.press('Tab');
+		await expect(menu).toHaveCount(0);
+		// Focus moved on from the button to the next control, not to the page body
+		expect(await page.evaluate(() => document.activeElement !== document.body && document.activeElement?.tagName)).toBeTruthy();
+		await expect(actions).not.toBeFocused();
+
+		// "‹ Move to" goes back to the action list without closing the menu
 		await actions.click();
+		await page.getByRole('menuitem', { name: 'Move' }).click();
+		const moveMenu = page.getByRole('menu', { name: 'Move note to' });
+		await expect(moveMenu).toBeVisible();
+		await page.getByTestId('move-menu-back').click();
+		await expect(menu.getByRole('menuitem')).toHaveText([/^Move/, 'Export as Markdown', 'Export as PDF', 'Delete']);
+		await expect(menu.getByRole('menuitem').first()).toBeFocused();
+
+		// Move to another client's contract: the note follows (sidebar, list, editor)
 		await page.getByRole('menuitem', { name: 'Move' }).click();
 		await page.getByRole('menuitem', { name: new RegExp(data.otherContractName) }).click();
 		await expect(page.getByTestId('move-feedback')).toContainText(data.otherContractName);
@@ -200,11 +217,28 @@ test.describe('desktop 1280', () => {
 		// Delete asks first, then offers Undo
 		await actions.click();
 		await page.getByRole('menuitem', { name: 'Delete' }).click();
+		// Focus lands on the confirmation, not the page body
+		await expect(page.getByTestId('delete-confirm').getByRole('button', { name: 'Delete' })).toBeFocused();
 		await page.getByTestId('delete-confirm').getByRole('button', { name: 'Delete' }).click();
 		const toast = page.getByTestId('note-trash-toast');
 		await expect(toast).toBeVisible();
 		await toast.getByRole('button', { name: 'Undo' }).click();
 		await expect(editor(page)).toContainText('First call plan');
+	});
+
+	test('an open Note actions menu closes when the note changes by history', async ({ page, baseURL }) => {
+		await signInAsFreshUser(page, baseURL, 'qa-054-menu-switch');
+		const data = await seed(page);
+		await openNote(page, data, data.longNoteId);
+		await row(page, data.shortNoteId).locator('> button').first().click();
+		await expect(editor(page)).toContainText('First call plan');
+		await page.getByRole('button', { name: 'Note actions' }).click();
+		await page.getByRole('menuitem', { name: 'Move' }).click();
+		await expect(page.getByRole('menu', { name: 'Move note to' })).toBeVisible();
+		// Back without a click (shortcut / swipe)
+		await page.evaluate(() => history.back());
+		await expect(editor(page)).toContainText('Specific response to Brent');
+		await expect(page.getByRole('menu', { name: 'Move note to' })).toHaveCount(0);
 	});
 
 	test('Back to a long note restores where it was scrolled to', async ({ page, baseURL }) => {

@@ -10,6 +10,7 @@
  * others ("Zeta 033 …"): other specs add contracts to the user's first client.
  */
 import { test, expect, type Page } from '@playwright/test';
+import { expectNotesScopedTo } from './notes-helpers';
 
 // In order, in one worker: the archive journeys change the shared sidebar
 test.describe.configure({ mode: 'default' });
@@ -137,8 +138,8 @@ test('task 3: a client with one active contract is one row; a second contract br
 	await expect(page).toHaveURL(`/notes/${retainer}`);
 	await expect(soloRow).toHaveAttribute('aria-current', 'page');
 	await expect(soloRow).toHaveClass(/bg-pine-50/);
-	await expect(page.getByTestId('note-list-context')).toContainText(soloName);
-	await expect(page.getByTestId('note-list-context')).toContainText('Retainer');
+	// 054-DR: the sidebar row names the contract; the list is scoped to it
+	await expectNotesScopedTo(page, retainer, { editorToo: false });
 
 	// A second active contract: the client expands back on the next directory refresh
 	await patch(page, `/api/contracts/${oldPhase}`, { archived: false });
@@ -216,8 +217,8 @@ test('task 4: landing on a single-contract note by URL highlights its row', asyn
 	await expect(row).toHaveAttribute('data-testid', 'sidebar-single-contract-row');
 	await expect(row).toHaveAttribute('aria-current', 'page');
 	await expect(row).toBeInViewport();
-	await expect(page.getByTestId('note-editor-context')).toContainText(clientName);
-	await expect(page.getByTestId('note-editor-context')).toContainText('Advisory');
+	await expect(page.getByTestId('note-editor-context')).toHaveAttribute('data-contract-id', advisory);
+	await expect(page.getByTestId('note-editor-context')).toHaveAttribute('data-visible', 'false');
 });
 
 test('task 4: a timesheet wiki-link to a note on an archived contract opens it and expands Archived', async ({ page }) => {
@@ -251,8 +252,7 @@ test('task 4: a timesheet wiki-link to a note on an archived contract opens it a
 	const row = archivedSection(page).locator(`[data-contract-id="${closedOut}"]`);
 	await expect(row).toHaveAttribute('aria-current', 'page');
 	await expect(row).toBeInViewport();
-	await expect(page.getByTestId('note-list-context')).toContainText(goneName);
-	await expect(page.getByTestId('note-list-context')).toContainText('Closed Out');
+	await expectNotesScopedTo(page, closedOut, { editorToo: false });
 
 	// The expansion is for this selection only: the remembered choice is still collapsed
 	expect(await page.evaluate((key) => localStorage.getItem(key), ARCHIVED_STORAGE_KEY)).toBeNull();

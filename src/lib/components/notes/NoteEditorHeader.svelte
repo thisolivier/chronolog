@@ -9,6 +9,7 @@
 	the deferred contract repeat (NT-03).
 -->
 <script lang="ts">
+	import { tick } from 'svelte';
 	import SaveStatusIndicator from './SaveStatusIndicator.svelte';
 	import NoteCodeCopyButton from './NoteCodeCopyButton.svelte';
 	import NoteActionsMenu from './NoteActionsMenu.svelte';
@@ -52,10 +53,14 @@
 	const contextText = $derived(contractLabel ? `${contractLabel.clientName} / ${contractLabel.name}` : '');
 
 	let isConfirmingDelete = $state(false);
+	let confirmDeleteButton = $state<HTMLButtonElement | null>(null);
 
-	function requestDelete() {
-		if (noteId) isConfirmingDelete = true;
-		else onDelete();
+	async function requestDelete() {
+		if (!noteId) return onDelete();
+		isConfirmingDelete = true;
+		// The menu that held Delete is gone: put focus on the confirmation instead of the page body
+		await tick();
+		confirmDeleteButton?.focus();
 	}
 </script>
 
@@ -66,6 +71,7 @@
 			<span
 				class={showContextText ? 'min-w-0 truncate text-sm text-ink-muted' : 'sr-only'}
 				data-testid="note-editor-context"
+				data-contract-id={contractId}
 				data-visible={showContextText ? 'true' : 'false'}
 			>
 				{contractLabel.clientName} <span class="text-ink-faint">/</span>
@@ -104,6 +110,7 @@
 			<span class="text-ink-muted">Delete this note?</span>
 			<button
 				type="button"
+				bind:this={confirmDeleteButton}
 				onclick={() => {
 					isConfirmingDelete = false;
 					onDelete();

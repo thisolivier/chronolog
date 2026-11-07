@@ -4,7 +4,7 @@
  * history, and the sidebar, list and editor agree on the note's client and contract.
  */
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { editor, moveOpenNote, openNoteId } from './notes-helpers';
+import { editor, expectNotesScopedTo, moveOpenNote, openNoteId } from './notes-helpers';
 import { signInAsFreshUser } from './fresh-user';
 
 // In order, in one worker: parallel API note creates under one user race for note IDs
@@ -125,8 +125,8 @@ test('J1: settings and back keeps the note; a moved note stays open under its ne
 	await moveOpenNote(page, new RegExp(data.nameB));
 	await expect(page).toHaveURL(`/notes/${data.contractB}/${data.noteA}`);
 	await expect(sidebarItem(page, data.contractB)).toHaveAttribute('aria-current', 'page');
-	await expect(page.getByTestId('note-list-context')).toContainText(data.nameB);
-	await expect(page.getByTestId('note-editor-context')).toContainText(data.nameB);
+	// 054-DR: the sidebar names the contract; list and editor are scoped to it (names are screen-reader text)
+	await expectNotesScopedTo(page, data.contractB);
 
 	await reloadApp(page);
 	await expect.poll(() => openNoteId(page)).toBe(data.noteA);
@@ -173,7 +173,7 @@ test('J2: timesheet card link, cross-contract link, then Back to the same week a
 		await expect(page).toHaveURL(`/notes/${data.contractB}/${data.noteB}`, { timeout: 2000 });
 	}).toPass();
 	await expect(sidebarItem(page, data.contractB)).toHaveAttribute('aria-current', 'page');
-	await expect(page.getByTestId('note-list-context')).toContainText(data.nameB);
+	await expectNotesScopedTo(page, data.contractB);
 
 	await page.goBack();
 	await expect(page).toHaveURL(`/notes/${data.contractA}/${data.noteA}`);
@@ -306,7 +306,7 @@ test('J10: reload at every distinct URL returns to the same place', async ({ pag
 			path: `/notes/${data.contractA}`,
 			check: async () => {
 				await expect(sidebarItem(page, data.contractA)).toHaveAttribute('aria-current', 'page');
-				await expect(page.getByTestId('note-list-context')).toContainText(data.nameA);
+				await expectNotesScopedTo(page, data.contractA, { editorToo: false });
 			}
 		},
 		{
