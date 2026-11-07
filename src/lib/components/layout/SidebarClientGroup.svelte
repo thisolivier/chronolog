@@ -1,17 +1,24 @@
 <!--
-	SidebarClientGroup — one client in the contracts sidebar (sprint 026 grouping, 033 collapse).
-	Two or more contracts: the client heading with the contracts indented under it. The heading is the
-	client's name with its colour dot, which opens the client view (`/notes/client/<id>`), and at the
-	right edge a chevron (collapse; sprint 039-CL), in one column with the Archived chevron (051-UI).
-	A collapsed client still shows its open contract.
-	Exactly one contract: a single row at the client's indent with the dot, the contract name and
-	the client name beneath it in small muted text, so a scan down the dots still reads by client.
-	`muted` draws the same grammar greyed for the Archived section (no chevron, no client view).
+	SidebarClientGroup — one client in the contracts sidebar (sprint 026 grouping, 033 collapse,
+	design r1 SH-02 restyle in 053-DR).
+	Two or more contracts: a pale tinted section (the `sunken` token) holding the client heading and
+	its contracts. The heading is the client's name (no colour dot: colour lives in the contract
+	marks), which opens the client view (`/notes/client/<id>`), and at the right edge a chevron
+	(collapse; sprint 039-CL) in one column with the Archived chevron (051-UI). A collapsed client
+	still shows its open contract. Each contract row is a ContractMark (client colour + initials),
+	the name at the mark-gap token, and the note count at the right. The selected contract is a
+	punch-out in the surface colour, not a blue wash.
+	Exactly one contract: a single flattened row at the outer inset (the owner-selected looser
+	alignment: it does not line up with the marks inside the tinted groups), with the mark, the
+	contract name and the client name beneath it in small muted text.
+	`muted` draws the same grammar quieter for the Archived section (no chevron, no client view).
+	Inactive and archived contracts are muted by colour, never by opacity, so the Time Entries
+	mute (one 50% wrapper, SH-03) never stacks to 25%; `sectionMuted` says that wrapper is on.
 	`reorder` (active clients only) makes the heading or single row draggable and moves it with
 	Alt+ArrowUp / Alt+ArrowDown.
 -->
 <script lang="ts">
-	import { getClientDotClass } from '$lib/utils/client-colors';
+	import ContractMark from '$lib/components/identity/ContractMark.svelte';
 	import type { ClientGroup } from '$lib/utils/group-contracts-by-client';
 	import type { ContractsByClientResult } from '$lib/services/types';
 	import type { ClientReorderController } from './client-reorder.svelte';
@@ -26,7 +33,8 @@
 		onOpenClient,
 		isCollapsed = false,
 		onToggleCollapse,
-		reorder
+		reorder,
+		sectionMuted = false
 	}: {
 		group: ClientGroup<ContractsByClientResult>;
 		selectedContractId: string | null;
@@ -39,15 +47,22 @@
 		isCollapsed?: boolean;
 		onToggleCollapse?: (clientId: string) => void;
 		reorder?: ClientReorderController;
+		/** The whole Notes section is at 50% (Time Entries selected): no extra opacity inside it */
+		sectionMuted?: boolean;
 	} = $props();
 
 	let groupElement = $state<HTMLElement | null>(null);
 
 	const isSingleContract = $derived(group.contracts.length === 1);
-	const holdsSelection = $derived(group.contracts.some((contract) => contract.id === selectedContractId));
 	const isViewedClient = $derived(viewedClientId === group.clientId);
-	const dotClass = $derived(`${getClientDotClass(group.clientColorIndex)} ${muted ? 'opacity-50' : ''}`);
-	const restingRowClass = $derived(muted ? 'text-stone-500 hover:bg-stone-100' : 'text-stone-700 hover:bg-stone-100');
+	// Resting rows sit on the tint (grouped) or the sidebar canvas (flattened); hover darkens a step
+	const restingRowClass = $derived(muted ? 'text-ink-faint hover:bg-chalk-200/70' : 'text-ink-soft hover:bg-chalk-200/70');
+	// The punch-out: the surface colour with a soft edge, so it reads on the tint and on the canvas
+	const selectedRowClass = 'bg-surface font-medium text-ink shadow-panel ring-1 ring-divider';
+	/** Archived or inactive marks are quieter, unless the whole section is already muted */
+	const markMuted = (isActive: boolean) => (muted || !isActive) && !sectionMuted;
+	const rowTextClass = (isActive: boolean, isSelected: boolean) =>
+		isSelected ? selectedRowClass : isActive ? restingRowClass : `${muted ? '' : 'hover:bg-chalk-200/70'} text-ink-fainter`;
 	const canCollapse = $derived(!muted && !isSingleContract && Boolean(onToggleCollapse));
 	// Collapsed: only the open contract stays visible, so the selection is never hidden
 	const visibleContracts = $derived(
@@ -78,7 +93,7 @@
 {#snippet noteCount(count: number)}
 	{#if count > 0}
 		<span
-			class="flex-shrink-0 text-[11px] tabular-nums text-stone-400"
+			class="flex-shrink-0 text-[11px] tabular-nums text-ink-faint"
 			title="{count} {count === 1 ? 'note' : 'notes'}"
 			data-testid="sidebar-note-count"
 		>
@@ -89,14 +104,14 @@
 
 {#snippet inactiveMark(isActive: boolean)}
 	{#if !isActive}
-		<span class="ml-1 text-xs text-stone-400">(inactive)</span>
+		<span class="ml-1 text-xs text-ink-faint">(inactive)</span>
 	{/if}
 {/snippet}
 
 <div
-	class="mb-2 border-y-2 border-transparent {dropPlacement === 'before' ? '!border-t-blue-500' : ''} {dropPlacement === 'after'
-		? '!border-b-blue-500'
-		: ''} {reorder?.draggedClientId === group.clientId ? 'opacity-50' : ''}"
+	class="mb-2 border-y-2 border-transparent {isSingleContract ? '' : 'rounded-panel bg-sunken px-1 pb-1'} {dropPlacement === 'before' ? '!border-t-pine-500' : ''} {dropPlacement === 'after'
+		? '!border-b-pine-500'
+		: ''} {reorder?.draggedClientId === group.clientId ? 'outline-2 outline-offset-1 outline-pine-400 outline-dashed' : ''}"
 	role="group"
 	aria-label={group.clientName}
 	data-testid={testId}
@@ -110,37 +125,36 @@
 		{@const isSelected = selectedContractId === contract.id}
 		<button
 			onclick={() => onSelect(contract.id, contract.clientId)}
-			class="flex w-full items-start gap-2 rounded-md px-3 py-1.5 text-left text-sm transition-colors pointer-coarse:py-3 {isSelected
-				? 'bg-blue-50 text-blue-700'
-				: restingRowClass}"
-			class:opacity-50={!contract.isActive}
+			class="flex w-full items-start gap-mark-gap rounded-control px-3 py-1.5 text-left text-sm transition-colors pointer-coarse:py-3 {rowTextClass(
+				contract.isActive,
+				isSelected
+			)}"
 			data-contract-id={contract.id}
 			data-testid="sidebar-single-contract-row"
 			aria-current={isSelected ? 'page' : undefined}
 			{...reorderHandlers()}
 		>
-			<span class="mt-1.5 inline-block h-2 w-2 flex-shrink-0 rounded-full {dotClass}" aria-hidden="true"></span>
+			<span class="mt-0.5 flex">
+				<ContractMark contractName={contract.name} colorIndex={group.clientColorIndex} size="sm" muted={markMuted(contract.isActive)} />
+			</span>
 			<span class="min-w-0 flex-1 truncate">{contract.name}{@render inactiveMark(contract.isActive)}<span
-					class="block truncate text-[11px] leading-4 {isSelected ? 'text-blue-600' : 'text-stone-400'}"
+					class="block truncate text-[11px] leading-4 font-normal {isSelected ? 'text-ink-muted' : 'text-ink-faint'}"
 					data-testid="sidebar-row-client-name">{group.clientName}</span
 				></span>
 			<span class="mt-0.5">{@render noteCount(contract.noteCount)}</span>
 		</button>
 	{:else}
 		<div
-			class="flex items-center gap-1 pt-1 pb-0.5 text-xs font-semibold {canCollapse ? 'pr-1 pl-1.5' : 'px-3'} {holdsSelection ||
-			isViewedClient
-				? 'text-blue-700'
-				: muted
-					? 'text-stone-400'
-					: 'text-stone-500'}"
+			class="flex items-center gap-1 pt-1 pb-0.5 text-sm font-semibold {canCollapse ? 'pl-2' : 'px-3.5'} {muted
+				? 'text-ink-faint'
+				: 'text-ink'}"
 			data-testid="sidebar-client-heading"
 		>
 			{#if onOpenClient && !muted}
 				<button
 					type="button"
-					class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-0.5 text-left hover:bg-stone-100 pointer-coarse:py-3.5 {isViewedClient
-						? 'bg-blue-50'
+					class="flex min-w-0 flex-1 items-center gap-2 rounded-control px-1.5 py-0.5 text-left hover:bg-chalk-200/70 pointer-coarse:py-3.5 {isViewedClient
+						? selectedRowClass
 						: ''}"
 					aria-current={isViewedClient ? 'page' : undefined}
 					title="All {group.clientName} notes"
@@ -148,17 +162,15 @@
 					onclick={() => onOpenClient(group.clientId)}
 					{...reorderHandlers()}
 				>
-					<span class="inline-block h-2 w-2 flex-shrink-0 rounded-full {dotClass}" aria-hidden="true"></span>
 					<span class="truncate">{group.clientName}</span>
 				</button>
 			{:else}
-				<span class="inline-block h-2 w-2 flex-shrink-0 rounded-full {dotClass}" aria-hidden="true"></span>
-				<span class="ml-1 truncate">{group.clientName}</span>
+				<span class="truncate">{group.clientName}</span>
 			{/if}
 			{#if canCollapse}
 				<button
 					type="button"
-					class="ml-auto flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-stone-400 hover:bg-stone-100 hover:text-stone-600 pointer-coarse:-my-3 pointer-coarse:h-11 pointer-coarse:w-8"
+					class="ml-auto flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-chalk-200/70 hover:text-ink-muted pointer-coarse:-my-3 pointer-coarse:h-11 pointer-coarse:w-8"
 					aria-expanded={!isCollapsed}
 					aria-controls={contractListId}
 					aria-label="{isCollapsed ? 'Expand' : 'Collapse'} {group.clientName}"
@@ -183,13 +195,14 @@
 				{@const isSelected = selectedContractId === contract.id}
 				<button
 					onclick={() => onSelect(contract.id, contract.clientId)}
-					class="flex w-full items-center gap-2 rounded-md py-1.5 pr-3 pl-7 text-left text-sm transition-colors pointer-coarse:py-3 {isSelected
-						? 'bg-blue-50 text-blue-700'
-						: restingRowClass}"
-					class:opacity-50={!contract.isActive}
+					class="flex w-full items-center gap-mark-gap rounded-control py-1.5 pr-2 pl-3.5 text-left text-sm transition-colors pointer-coarse:py-3 {rowTextClass(
+						contract.isActive,
+						isSelected
+					)}"
 					data-contract-id={contract.id}
 					aria-current={isSelected ? 'page' : undefined}
 				>
+					<ContractMark contractName={contract.name} colorIndex={group.clientColorIndex} size="sm" muted={markMuted(contract.isActive)} />
 					<span class="min-w-0 flex-1 truncate">{contract.name}{@render inactiveMark(contract.isActive)}</span>
 					{@render noteCount(contract.noteCount)}
 				</button>

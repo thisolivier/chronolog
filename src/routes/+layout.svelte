@@ -10,7 +10,9 @@
 	import { DelegatingDataService } from '$lib/services/delegating-data-service';
 	import { OfflineDataService } from '$lib/offline/offline-data-service';
 	import { startOfflineSession } from '$lib/offline/offline-session.svelte';
+	import { captureDraft } from '$lib/stores/capture-draft.svelte';
 	import { registerServiceWorker, watchServiceWorkerUpdates } from '$lib/offline/service-worker-updates';
+	import { historyReturns } from '$lib/components/notes/note-scroll-memory';
 
 	let { children, data } = $props();
 
@@ -37,6 +39,8 @@
 			navigation.type === 'enter'
 				? (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type
 				: undefined;
+		// Back / Forward to a note restores where it was read (054-DR, SH-07)
+		historyReturns.record(navigation.type, navigation.to.url.pathname);
 		void navState.syncFromUrl(navigation.to.url, navigation.type, navigation.delta, loadType);
 	});
 
@@ -74,6 +78,13 @@
 		if (data.user?.id) startOfflineSession(data.user.id);
 	});
 
+	// The unfinished capture's completion fields are kept per user (sprint 053-DR). Configured
+	// before the panels mount, so the first TimerWidget finds them.
+	if (browser) untrack(() => captureDraft.configure(data.user?.id ?? '', safeStorage(() => window.localStorage)));
+	$effect(() => {
+		captureDraft.configure(data.user?.id ?? '', safeStorage(() => window.localStorage));
+	});
+
 	// A new version of the app's service worker is waiting (src/service-worker.ts, sprint 045-CL)
 	let showUpdatePrompt = $state(false);
 	let activateUpdate: (() => void) | null = null;
@@ -104,20 +115,20 @@
 
 {#if showUpdatePrompt}
 	<div
-		class="safe-area-bottom-offset fixed right-4 bottom-4 z-50 flex items-center gap-3 rounded-lg bg-blue-600 px-4 py-3 text-sm text-white shadow-lg"
+		class="safe-area-bottom-offset fixed right-4 bottom-4 z-50 flex items-center gap-3 rounded-lg bg-primary px-4 py-3 text-sm text-on-accent shadow-lg"
 		role="alert"
 		data-testid="pwa-update-prompt"
 	>
 		<span>A new version is available</span>
 		<button
 			onclick={handleUpdateAccept}
-			class="rounded bg-white px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
+			class="rounded bg-surface px-3 py-1 text-xs font-medium text-pine-600 hover:bg-pine-50"
 		>
 			Update
 		</button>
 		<button
 			onclick={handleUpdateDismiss}
-			class="text-blue-200 hover:text-white"
+			class="text-pine-200 hover:text-on-accent"
 			aria-label="Dismiss update"
 		>
 			&times;

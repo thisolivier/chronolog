@@ -114,49 +114,49 @@
 
 <svelte:window onkeydown={(event) => event.key === 'Escape' && onClose()} />
 
-<div class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/30 p-4 sm:p-8" role="presentation">
+<div class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-chalk-950/30 p-4 sm:p-8" role="presentation">
 	<div
-		class="w-full max-w-3xl rounded-lg bg-white p-4 shadow-xl"
+		class="w-full max-w-3xl rounded-lg bg-surface p-4 shadow-xl"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="outbox-held-title"
 		data-testid="outbox-held-panel"
 	>
 		<div class="mb-3 flex items-center justify-between gap-2">
-			<h2 id="outbox-held-title" class="text-base font-semibold text-stone-900">Changes that need your decision</h2>
-			<button type="button" class="rounded px-2 py-1 text-sm text-stone-500 hover:bg-stone-100" onclick={onClose} aria-label="Close">&times;</button>
+			<h2 id="outbox-held-title" class="text-base font-semibold text-ink">Changes that need your decision</h2>
+			<button type="button" class="rounded px-2 py-1 text-sm text-ink-faint hover:bg-chalk-100" onclick={onClose} aria-label="Close">&times;</button>
 		</div>
 		{#if actionError}
-			<p class="mb-2 text-sm text-red-600" role="alert">{actionError}</p>
+			<p class="mb-2 text-sm text-rust-600" role="alert">{actionError}</p>
 		{/if}
 		{#if outbox.heldItems.length === 0}
-			<p class="text-sm text-stone-600">Nothing is waiting for a decision.</p>
+			<p class="text-sm text-ink-muted">Nothing is waiting for a decision.</p>
 		{/if}
 		<ul class="space-y-4">
 			{#each outbox.heldItems as item (item.sequence)}
 				{@const mine = myNoteText(item)}
 				{@const server = item.hold?.server as Record<string, unknown> | null | undefined}
-				<li class="rounded border border-stone-200 p-3" data-testid="outbox-held-item">
-					<h3 class="truncate text-sm font-semibold text-stone-900">{heading(item)}</h3>
-					<p class="mb-2 text-xs text-stone-600">{item.hold?.message}</p>
+				<li class="rounded border border-divider p-3" data-testid="outbox-held-item">
+					<h3 class="truncate text-sm font-semibold text-ink">{heading(item)}</h3>
+					<p class="mb-2 text-xs text-ink-muted">{item.hold?.message}</p>
 					{#if item.hold?.reason === 'conflict' && mine}
 						<div class="grid gap-2 sm:grid-cols-2">
 							<div>
-								<p class="mb-1 text-xs font-medium text-stone-500">On the server</p>
-								<pre class="max-h-60 overflow-auto rounded bg-stone-50 p-2 text-xs whitespace-pre-wrap" data-testid="held-server-version">{versionText(server, item.hold?.conflictFields)}</pre>
+								<p class="mb-1 text-xs font-medium text-ink-faint">On the server</p>
+								<pre class="max-h-60 overflow-auto rounded bg-chalk-50 p-2 text-xs whitespace-pre-wrap" data-testid="held-server-version">{versionText(server, item.hold?.conflictFields)}</pre>
 							</div>
 							<div>
-								<p class="mb-1 text-xs font-medium text-stone-500">Yours (this device)</p>
-								<pre class="max-h-60 overflow-auto rounded bg-amber-50 p-2 text-xs whitespace-pre-wrap" data-testid="held-my-version">{versionText(mine.fields, item.hold?.conflictFields)}</pre>
+								<p class="mb-1 text-xs font-medium text-ink-faint">Yours (this device)</p>
+								<pre class="max-h-60 overflow-auto rounded bg-ochre-50 p-2 text-xs whitespace-pre-wrap" data-testid="held-my-version">{versionText(mine.fields, item.hold?.conflictFields)}</pre>
 							</div>
 						</div>
 					{:else if item.hold?.reason === 'conflict'}
 						<table class="w-full text-left text-xs">
-							<thead><tr class="text-stone-500"><th class="py-1 pr-2 font-medium"></th><th class="py-1 pr-2 font-medium">On the server</th><th class="py-1 font-medium">Yours</th></tr></thead>
+							<thead><tr class="text-ink-faint"><th class="py-1 pr-2 font-medium"></th><th class="py-1 pr-2 font-medium">On the server</th><th class="py-1 font-medium">Yours</th></tr></thead>
 							<tbody>
 								{#each item.hold.conflictFields ?? [] as group (group)}
-									<tr class="border-t border-stone-100">
-										<td class="py-1 pr-2 text-stone-500">{GROUP_LABELS[group] ?? group}</td>
+									<tr class="border-t border-chalk-100">
+										<td class="py-1 pr-2 text-ink-faint">{GROUP_LABELS[group] ?? group}</td>
 										<td class="py-1 pr-2">{entryValue(server, group)}</td>
 										<td class="py-1">{item.kind === 'entry-delete' ? 'deleted' : entryValue(myEntryValues(item), group)}</td>
 									</tr>
@@ -164,21 +164,21 @@
 							</tbody>
 						</table>
 					{:else if mine}
-						<pre class="max-h-60 overflow-auto rounded bg-amber-50 p-2 text-xs whitespace-pre-wrap" data-testid="held-my-version">{mine.fields.content ?? ''}</pre>
+						<pre class="max-h-60 overflow-auto rounded bg-ochre-50 p-2 text-xs whitespace-pre-wrap" data-testid="held-my-version">{mine.fields.content ?? ''}</pre>
 					{/if}
 					<div class="mt-2 flex flex-wrap gap-2">
 						{#if item.hold?.reason === 'conflict'}
-							<button type="button" class="{buttonClass} border-blue-600 bg-blue-600 text-white hover:bg-blue-700" disabled={busySequence !== null} onclick={() => resolve(item, 'mine')}>Keep mine</button>
-							<button type="button" class="{buttonClass} border-stone-300 text-stone-700 hover:bg-stone-50" disabled={busySequence !== null} onclick={() => resolve(item, 'server')}>Keep the server’s</button>
+							<button type="button" class="{buttonClass} border-pine-600 btn-primary" disabled={busySequence !== null} onclick={() => resolve(item, 'mine')}>Keep mine</button>
+							<button type="button" class="{buttonClass} border-line text-ink-soft hover:bg-chalk-50" disabled={busySequence !== null} onclick={() => resolve(item, 'server')}>Keep the server’s</button>
 							{#if mine}
-								<button type="button" class="{buttonClass} border-stone-300 text-stone-700 hover:bg-stone-50" disabled={busySequence !== null} onclick={() => keepBoth(item)}>Keep both (mine as a new note)</button>
+								<button type="button" class="{buttonClass} border-line text-ink-soft hover:bg-chalk-50" disabled={busySequence !== null} onclick={() => keepBoth(item)}>Keep both (mine as a new note)</button>
 							{/if}
 						{:else}
 							{#if mine && server === null}
-								<button type="button" class="{buttonClass} border-blue-600 bg-blue-600 text-white hover:bg-blue-700" disabled={busySequence !== null} onclick={() => keepBoth(item)}>Save mine as a new note</button>
+								<button type="button" class="{buttonClass} border-pine-600 btn-primary" disabled={busySequence !== null} onclick={() => keepBoth(item)}>Save mine as a new note</button>
 							{/if}
-							<button type="button" class="{buttonClass} border-stone-300 text-stone-700 hover:bg-stone-50" disabled={busySequence !== null} onclick={() => resolve(item, 'retry')}>Try again</button>
-							<button type="button" class="{buttonClass} border-red-300 text-red-700 hover:bg-red-50" disabled={busySequence !== null} onclick={() => resolve(item, 'server')}>Discard mine</button>
+							<button type="button" class="{buttonClass} border-line text-ink-soft hover:bg-chalk-50" disabled={busySequence !== null} onclick={() => resolve(item, 'retry')}>Try again</button>
+							<button type="button" class="{buttonClass} border-rust-300 text-rust-700 hover:bg-rust-50" disabled={busySequence !== null} onclick={() => resolve(item, 'server')}>Discard mine</button>
 						{/if}
 					</div>
 				</li>

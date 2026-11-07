@@ -1,14 +1,18 @@
 /**
- * Sprint 046-CL: the /search page shows notes and time entries as one list, newest first. The API
- * still returns them in two groups (the CLI reads that shape), so the interleave happens here.
+ * Sprint 046-CL: the /search page shows notes and time entries as one list. The API still returns
+ * them in two groups (the CLI reads that shape), so the interleave happens here.
  *
- * Sort key, compared as text in local time: a note by its last modified moment (as the page shows
- * it), an entry by its date then start time. An entry without a start time sorts as the start of
- * its day. Ties keep the server's order (notes first, each group in its own ranking).
+ * Since 058-DR the list follows the server's shared rank (`rank`, one scale for notes and entries,
+ * lower first), so a query orders notes as the `[[` picker does; recency only breaks ties.
+ * Recency key, compared as text in local time: a note by its last modified moment (as the page
+ * shows it), an entry by its date then start time. An entry without a start time sorts as the
+ * start of its day. Remaining ties keep the server's order (notes first, each group ranked).
  */
 import type { GlobalSearchResponse, NoteHit, TimeEntryHit } from './search-types';
 
-export type SearchListItem = { kind: 'note'; hit: NoteHit; sortKey: string } | { kind: 'entry'; hit: TimeEntryHit; sortKey: string };
+export type SearchListItem =
+	| { kind: 'note'; hit: NoteHit; rank: number; sortKey: string }
+	| { kind: 'entry'; hit: TimeEntryHit; rank: number; sortKey: string };
 
 function padTwo(value: number): string {
 	return String(value).padStart(2, '0');
@@ -24,22 +28,27 @@ export function entrySortKey(hit: Pick<TimeEntryHit, 'date' | 'startTime'>): str
 	return `${hit.date}T${(hit.startTime ?? '00:00').slice(0, 5)}`;
 }
 
-/** Notes and entries in one list, newest first */
+/** Notes and entries in one list: best rank first, newest first within a rank */
 export function interleaveSearchHits(result: Pick<GlobalSearchResponse, 'notes' | 'timeEntries'>): SearchListItem[] {
 	const items: SearchListItem[] = [
 		...result.notes.hits.map((hit) => ({
 			kind: 'note' as const,
 			hit,
+			rank: hit.rank,
 			sortKey: localSortKey(hit.updatedAt)
 		})),
 		...result.timeEntries.hits.map((hit) => ({
 			kind: 'entry' as const,
 			hit,
+			rank: hit.rank,
 			sortKey: entrySortKey(hit)
 		}))
 	];
 	// Array.prototype.sort is stable, so equal keys keep the server's order
-	return items.sort((first, second) => (first.sortKey < second.sortKey ? 1 : first.sortKey > second.sortKey ? -1 : 0));
+	return items.sort(
+		(first, second) =>
+			first.rank - second.rank || (first.sortKey < second.sortKey ? 1 : first.sortKey > second.sortKey ? -1 : 0)
+	);
 }
 
 function countLabel(shown: number, total: number, singular: string, plural: string): string {

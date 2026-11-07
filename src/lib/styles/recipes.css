@@ -1,0 +1,35 @@
+/*
+ * Shared control recipes (sprint 052-DR, DS-06). Colour, border, radius-free and focus only:
+ * each call site keeps its own padding, size and radius so swapping a recipe in never moves
+ * layout. Registered with `@utility`, so call-site utilities still override them and variants
+ * (`sm:btn-primary`) work.
+ */
+@utility btn-primary {
+	@apply bg-primary text-on-accent hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:outline-none;
+}
+
+@utility btn-secondary {
+	@apply border border-line bg-surface text-ink-soft hover:bg-chalk-50 focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:outline-none;
+}
+
+@utility btn-danger {
+	@apply bg-danger text-on-accent hover:bg-danger-hover focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2 focus-visible:outline-none;
+}
+
+/* Text-only action (Discard, Cancel links): quiet until hovered */
+@utility btn-quiet {
+	@apply text-ink-muted hover:bg-sunken hover:text-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none;
+}
+
+@utility input-base {
+	@apply border border-line shadow-sm focus:border-focus focus:ring-1 focus:ring-focus focus:outline-none;
+}
+
+/* Dropdown menus (note Move / Export / More, week status) */
+@utility menu-panel {
+	@apply border border-divider bg-surface shadow-menu;
+}
+
+@utility menu-item {
+	@apply text-ink-soft hover:bg-sunken hover:text-ink focus-visible:bg-sunken focus-visible:outline-none;
+}

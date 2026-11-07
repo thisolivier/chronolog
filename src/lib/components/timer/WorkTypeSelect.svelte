@@ -27,6 +27,7 @@
 	let lastLoadedDeliverableId = $state('');
 
 	async function loadWorkTypes(targetDeliverableId: string) {
+		let loadFailed = false;
 		if (!targetDeliverableId) {
 			workTypeList = [];
 		} else {
@@ -34,9 +35,12 @@
 				workTypeList = await dataService.getWorkTypes(targetDeliverableId);
 			} catch {
 				workTypeList = [];
+				loadFailed = true;
 			}
 		}
 		lastLoadedDeliverableId = targetDeliverableId;
+		// A failed load says nothing about validity: keep the existing value (TC-05, sprint 053-DR)
+		if (loadFailed) return;
 		// A work type belongs to one deliverable: drop a selection that no longer applies
 		const selectionStillValid = workTypeList.some((workType) => workType.id === selectedWorkTypeId);
 		if (selectedWorkTypeId && !selectionStillValid) {
@@ -68,8 +72,8 @@
 
 	const selectClasses = $derived(
 		compact
-			? 'block w-full min-w-0 rounded border border-stone-300 bg-white px-1.5 py-1 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none'
-			: 'block w-full min-w-0 rounded-md border border-stone-300 bg-white px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none'
+			? 'block w-full min-w-0 rounded border border-line bg-surface px-1.5 py-1 text-sm focus:border-focus focus:ring-1 focus:ring-focus focus:outline-none'
+			: 'block w-full min-w-0 rounded-md input-base bg-surface px-2 py-1.5 text-sm'
 	);
 
 	function handleChange(event: Event) {

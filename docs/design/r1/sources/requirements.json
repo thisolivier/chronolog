@@ -1,0 +1,356 @@
+[
+  {
+    "id": "DS-01",
+    "title": "Visual direction",
+    "spec": "specs/01-design-system.md",
+    "evidence": "Agreed · D26 §§15–16."
+  },
+  {
+    "id": "DS-02",
+    "title": "Give identity and state different meanings",
+    "spec": "specs/01-design-system.md",
+    "evidence": "Agreed · D26 §§15, 24–25."
+  },
+  {
+    "id": "DS-03",
+    "title": "Square base and continuous repeats",
+    "spec": "specs/01-design-system.md",
+    "evidence": "Agreed · D26 §31."
+  },
+  {
+    "id": "DS-04",
+    "title": "Approved and requested placements",
+    "spec": "specs/01-design-system.md",
+    "evidence": "Current instruction · C01–C04; D26 §§24, 31."
+  },
+  {
+    "id": "DS-05",
+    "title": "Relative sizing and spacing",
+    "spec": "specs/01-design-system.md",
+    "evidence": "Current instruction · C01–C04."
+  },
+  {
+    "id": "DS-06",
+    "title": "Typography and control consistency",
+    "spec": "specs/01-design-system.md",
+    "evidence": "Direction agreed; measurements open · D26 §§15, 24, 29."
+  },
+  {
+    "id": "DS-07",
+    "title": "Production pattern library is deferred",
+    "spec": "specs/01-design-system.md",
+    "evidence": "Deferred · D26 §§26, 31."
+  },
+  {
+    "id": "SH-01",
+    "title": "Shell and layouts",
+    "spec": "specs/02-shell-and-navigation.md",
+    "evidence": "Agreed / existing behaviour retained · D26 §§4, 24."
+  },
+  {
+    "id": "SH-02",
+    "title": "Sidebar hierarchy and selection",
+    "spec": "specs/02-shell-and-navigation.md",
+    "evidence": "Agreed with current spacing amendment · D26 §§21, 24; C01, C04."
+  },
+  {
+    "id": "SH-03",
+    "title": "Mute Notes while reviewing time",
+    "spec": "specs/02-shell-and-navigation.md",
+    "evidence": "Agreed · D26 §21."
+  },
+  {
+    "id": "SH-04",
+    "title": "One visible timer representation",
+    "spec": "specs/02-shell-and-navigation.md",
+    "evidence": "Agreed · D26 §§21, 28."
+  },
+  {
+    "id": "SH-05",
+    "title": "Search entry and search route",
+    "spec": "specs/02-shell-and-navigation.md",
+    "evidence": "Agreed · D26 §30."
+  },
+  {
+    "id": "SH-06",
+    "title": "Collapse and return are presentation actions",
+    "spec": "specs/02-shell-and-navigation.md",
+    "evidence": "Agreed · D26 §28."
+  },
+  {
+    "id": "SH-07",
+    "title": "Preserve orientation through history",
+    "spec": "specs/02-shell-and-navigation.md",
+    "evidence": "Agreed · D26 §§15, 24, 27–28."
+  },
+  {
+    "id": "SH-08",
+    "title": "Browsing scope is independent",
+    "spec": "specs/02-shell-and-navigation.md",
+    "evidence": "Agreed · D26 §§3, 15, 24."
+  },
+  {
+    "id": "TC-01",
+    "title": "Start and running state",
+    "spec": "specs/03-time-capture.md",
+    "evidence": "Agreed / retained · D26 §§7, 16."
+  },
+  {
+    "id": "TC-02",
+    "title": "Current identity treatment",
+    "spec": "specs/03-time-capture.md",
+    "evidence": "Current instruction · C01–C04."
+  },
+  {
+    "id": "TC-03",
+    "title": "Create a note from capture",
+    "spec": "specs/03-time-capture.md",
+    "evidence": "Agreed / retained · D26 §§3, 7, 15."
+  },
+  {
+    "id": "TC-04",
+    "title": "Stop freezes time immediately",
+    "spec": "specs/03-time-capture.md",
+    "evidence": "Agreed · D26 §16."
+  },
+  {
+    "id": "TC-05",
+    "title": "Dependent choices without layout jumps",
+    "spec": "specs/03-time-capture.md",
+    "evidence": "Agreed · D26 §16."
+  },
+  {
+    "id": "TC-06",
+    "title": "Save, Discard and unfinished capture",
+    "spec": "specs/03-time-capture.md",
+    "evidence": "Agreed · D26 §§16, 28."
+  },
+  {
+    "id": "TC-07",
+    "title": "Split entry points",
+    "spec": "specs/03-time-capture.md",
+    "evidence": "Agreed · D26 §§17, 20."
+  },
+  {
+    "id": "TC-08",
+    "title": "Mobile presentation",
+    "spec": "specs/03-time-capture.md",
+    "evidence": "Behaviour agreed; composition draft · D26 §§27–28."
+  },
+  {
+    "id": "TC-09",
+    "title": "Manual entry",
+    "spec": "specs/03-time-capture.md",
+    "evidence": "Retained workflow with shared styling · D26 §§7, 27."
+  },
+  {
+    "id": "SP-01",
+    "title": "Desktop-only single split",
+    "spec": "specs/04-split-time.md",
+    "evidence": "Agreed · D26 §20."
+  },
+  {
+    "id": "SP-02",
+    "title": "Time slots and shared boundary",
+    "spec": "specs/04-split-time.md",
+    "evidence": "Agreed · D26 §20."
+  },
+  {
+    "id": "SP-03",
+    "title": "Flip content, not chronology",
+    "spec": "specs/04-split-time.md",
+    "evidence": "Agreed · D26 §20."
+  },
+  {
+    "id": "SP-04",
+    "title": "Resolve the left first",
+    "spec": "specs/04-split-time.md",
+    "evidence": "Agreed · D26 §20."
+  },
+  {
+    "id": "SP-05",
+    "title": "Right Stop, Save, Discard and Resume",
+    "spec": "specs/04-split-time.md",
+    "evidence": "Agreed · D26 §20."
+  },
+  {
+    "id": "SP-06",
+    "title": "Cancel and dismissal",
+    "spec": "specs/04-split-time.md",
+    "evidence": "Agreed · D26 §20."
+  },
+  {
+    "id": "SP-07",
+    "title": "Resize from large to small",
+    "spec": "specs/04-split-time.md",
+    "evidence": "Agreed with recorded partial-commit interpretation · D26 §20."
+  },
+  {
+    "id": "SP-08",
+    "title": "Persistence boundary",
+    "spec": "specs/04-split-time.md",
+    "evidence": "Agreed implementation requirement · D26 §20."
+  },
+  {
+    "id": "TR-01",
+    "title": "Compact week overview",
+    "spec": "specs/05-time-review.md",
+    "evidence": "Banked direction · D26 §§15, 21."
+  },
+  {
+    "id": "TR-02",
+    "title": "Sticky day headings",
+    "spec": "specs/05-time-review.md",
+    "evidence": "Agreed direction and amendment · D26 §§21–22."
+  },
+  {
+    "id": "TR-03",
+    "title": "Aligned desktop entries",
+    "spec": "specs/05-time-review.md",
+    "evidence": "Banked direction · D26 §21."
+  },
+  {
+    "id": "TR-04",
+    "title": "Divider refinement remains partly open",
+    "spec": "specs/05-time-review.md",
+    "evidence": "Owner instruction; geometry open · D26 §21."
+  },
+  {
+    "id": "TR-05",
+    "title": "Missing detail is local",
+    "spec": "specs/05-time-review.md",
+    "evidence": "Agreed · D26 §§15, 21."
+  },
+  {
+    "id": "TR-06",
+    "title": "Preserve field-level inline editing",
+    "spec": "specs/05-time-review.md",
+    "evidence": "Agreed; control details delegated to engineering · D26 §29."
+  },
+  {
+    "id": "TR-07",
+    "title": "Week status and numbering",
+    "spec": "specs/05-time-review.md",
+    "evidence": "Agreed / retained · D26 §§8, 21."
+  },
+  {
+    "id": "TR-08",
+    "title": "Mobile review",
+    "spec": "specs/05-time-review.md",
+    "evidence": "Responsive draft with agreed constraints · D26 §22."
+  },
+  {
+    "id": "NT-01",
+    "title": "Context ownership across layouts",
+    "spec": "specs/06-notes-workspace.md",
+    "evidence": "Agreed · D26 §24."
+  },
+  {
+    "id": "NT-02",
+    "title": "Notes list",
+    "spec": "specs/06-notes-workspace.md",
+    "evidence": "Agreed · D26 §24."
+  },
+  {
+    "id": "NT-03",
+    "title": "Inline identity repeats",
+    "spec": "specs/06-notes-workspace.md",
+    "evidence": "Current instruction · C02."
+  },
+  {
+    "id": "NT-04",
+    "title": "Metadata and note actions",
+    "spec": "specs/06-notes-workspace.md",
+    "evidence": "Agreed · D26 §24."
+  },
+  {
+    "id": "NT-05",
+    "title": "Formatting and raw mode",
+    "spec": "specs/06-notes-workspace.md",
+    "evidence": "Agreed · D26 §24."
+  },
+  {
+    "id": "NT-06",
+    "title": "Linked time and quiet writing",
+    "spec": "specs/06-notes-workspace.md",
+    "evidence": "Agreed · D26 §24."
+  },
+  {
+    "id": "NT-07",
+    "title": "Mobile note layout and return",
+    "spec": "specs/06-notes-workspace.md",
+    "evidence": "Agreed · D26 §§24, 28."
+  },
+  {
+    "id": "SR-01",
+    "title": "One query field on the search route",
+    "spec": "specs/07-search-and-linking.md",
+    "evidence": "Agreed · D26 §30."
+  },
+  {
+    "id": "SR-02",
+    "title": "Mixed results with recognisable identity",
+    "spec": "specs/07-search-and-linking.md",
+    "evidence": "Agreed · D26 §30."
+  },
+  {
+    "id": "SR-03",
+    "title": "One shared query algorithm",
+    "spec": "specs/07-search-and-linking.md",
+    "evidence": "Agreed · D26 §25."
+  },
+  {
+    "id": "SR-04",
+    "title": "Entry point, query and candidate types",
+    "spec": "specs/07-search-and-linking.md",
+    "evidence": "Agreed · D26 §25."
+  },
+  {
+    "id": "SR-05",
+    "title": "Result hierarchy",
+    "spec": "specs/07-search-and-linking.md",
+    "evidence": "Agreed · D26 §25."
+  },
+  {
+    "id": "SR-06",
+    "title": "Insertion and dismissal",
+    "spec": "specs/07-search-and-linking.md",
+    "evidence": "Agreed · D26 §25."
+  },
+  {
+    "id": "SR-07",
+    "title": "Placement and async states",
+    "spec": "specs/07-search-and-linking.md",
+    "evidence": "Agreed · D26 §25."
+  },
+  {
+    "id": "IN-01",
+    "title": "Work within the supplied stack",
+    "spec": "specs/08-integration-and-verification.md",
+    "evidence": "Supplied baseline · D26 §2."
+  },
+  {
+    "id": "IN-02",
+    "title": "Inspect source-dependent behaviour first",
+    "spec": "specs/08-integration-and-verification.md",
+    "evidence": "Engineering follow-through · D26 §§12, 20, 29."
+  },
+  {
+    "id": "IN-03",
+    "title": "Share behaviour across surfaces",
+    "spec": "specs/08-integration-and-verification.md",
+    "evidence": "Implementation consequence of agreed requirements."
+  },
+  {
+    "id": "IN-04",
+    "title": "Preserve unrelated workflows",
+    "spec": "specs/08-integration-and-verification.md",
+    "evidence": "Scope constraint · D26 §§10, 23."
+  },
+  {
+    "id": "IN-05",
+    "title": "Verify transitions, not only screenshots",
+    "spec": "specs/08-integration-and-verification.md",
+    "evidence": "Engineering follow-through."
+  }
+]

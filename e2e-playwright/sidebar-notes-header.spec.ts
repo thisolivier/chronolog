@@ -208,10 +208,11 @@ test.describe('desktop 1280', () => {
 		const noteId = data.noteIds[3];
 		await page.goto(`/notes/${data.firstContractId}/${noteId}`);
 		await expect(editor(page)).toContainText('Newest of all');
-		await expect(page.getByRole('button', { name: 'Move', exact: true })).toHaveAttribute('aria-haspopup', 'menu');
-		await expect(page.getByRole('button', { name: 'Export', exact: true })).toHaveAttribute('aria-haspopup', 'menu');
-		await page.getByRole('button', { name: 'Export', exact: true }).click();
-		await expect(page.getByRole('button', { name: 'Export as Markdown' })).toBeVisible();
+		// 054-DR: Move / Export / Delete moved into the one "Note actions" menu (no chevrons either)
+		const noteActions = page.getByRole('button', { name: 'Note actions' });
+		await expect(noteActions).toHaveAttribute('aria-haspopup', 'menu');
+		await noteActions.click();
+		await expect(page.getByRole('menuitem', { name: 'Export as Markdown' })).toBeVisible();
 		await page.keyboard.press('Escape');
 		await page.locator('body').click({ position: { x: 700, y: 600 } });
 

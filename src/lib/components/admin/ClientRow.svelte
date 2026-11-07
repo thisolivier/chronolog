@@ -38,12 +38,12 @@
 
 	const cancelEditing = () => (isEditing = false);
 	const inputClass =
-		'w-full rounded-md border border-stone-300 px-2 py-1 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none';
+		'w-full rounded-md input-base px-2 py-1 text-sm';
 </script>
 
 {#if isEditing}
 	<!-- Inputs sit in the same cells as the values they edit; they join the form via `form=`. -->
-	<tr class="bg-blue-50" use:escapeCancels={cancelEditing}>
+	<tr class="bg-pine-50" use:escapeCancels={cancelEditing}>
 		<td class="px-6 py-2" data-stack-full>
 			<!-- svelte-ignore a11y_autofocus -->
 			<input form={editFormId} name="name" type="text" required aria-label="Client name" autofocus bind:value={editName} class={inputClass} />
@@ -57,7 +57,7 @@
 		<td class="px-6 py-2" data-stack-full>
 			<span class="flex items-center gap-2">
 				<span class="inline-block h-3 w-3 flex-shrink-0 rounded-full {getClientDotClass(editColorIndex)}" aria-hidden="true"></span>
-				<select form={editFormId} name="color_index" bind:value={editColorIndex} aria-label="Client colour" class="{inputClass} bg-white">
+				<select form={editFormId} name="color_index" bind:value={editColorIndex} aria-label="Client colour" class="{inputClass} bg-surface">
 					{#each CLIENT_COLORS as color, colorIndex (colorIndex)}
 						<option value={colorIndex}>{color.name}</option>
 					{/each}
@@ -67,27 +67,27 @@
 		<td class="px-6 py-2 text-right" data-stack-full>
 			<form id={editFormId} method="POST" action="/admin/clients?/update" use:enhance={closeOnSuccess(cancelEditing)} class="flex justify-end gap-2">
 				<input type="hidden" name="client_id" value={client.id} />
-				<button type="button" onclick={cancelEditing} class="rounded-md border border-stone-300 bg-white px-3 py-1 text-sm text-stone-700 hover:bg-stone-50">Cancel</button>
-				<button type="submit" class="rounded-md bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700">Save</button>
+				<button type="button" onclick={cancelEditing} class="rounded-md btn-secondary px-3 py-1 text-sm">Cancel</button>
+				<button type="submit" class="rounded-md btn-primary px-3 py-1 text-sm font-medium">Save</button>
 			</form>
 		</td>
 	</tr>
 {:else}
-	<tr class="hover:bg-stone-50 {isArchived ? 'text-stone-400' : ''}" data-client-id={client.id}>
-		<td class="px-6 py-3 text-sm font-medium text-stone-900" data-stack-full>
+	<tr class="hover:bg-chalk-50 {isArchived ? 'text-ink-faint' : ''}" data-client-id={client.id}>
+		<td class="px-6 py-3 text-sm font-medium text-ink" data-stack-full>
 			<span class="flex items-center gap-2">
 				<span class="inline-block h-2 w-2 flex-shrink-0 rounded-full {getClientDotClass(client.colorIndex ?? 0)}" aria-hidden="true"></span>
-				<a href="/admin/clients/{client.id}" class="text-blue-600 hover:text-blue-800 hover:underline {isArchived ? 'opacity-60' : ''}">{client.name}</a>
+				<a href="/admin/clients/{client.id}" class="text-pine-600 hover:text-pine-800 hover:underline {isArchived ? 'opacity-60' : ''}">{client.name}</a>
 				{#if isArchived}
-					<span class="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-normal text-stone-600">Archived</span>
+					<span class="rounded-full bg-chalk-100 px-2 py-0.5 text-xs font-normal text-ink-muted">Archived</span>
 				{/if}
 			</span>
 		</td>
-		<td class="px-6 py-3 text-sm text-stone-500">
-			<span class="rounded bg-stone-100 px-2 py-0.5 font-mono text-xs">{client.shortCode}</span>
+		<td class="px-6 py-3 text-sm text-ink-faint">
+			<span class="rounded bg-chalk-100 px-2 py-0.5 font-mono text-xs">{client.shortCode}</span>
 		</td>
 		<td class="px-6 py-3 text-sm">{client.emoji ?? ''}</td>
-		<td class="px-6 py-3 text-sm text-stone-600">
+		<td class="px-6 py-3 text-sm text-ink-muted">
 			<span class="flex items-center gap-2" data-client-color-index={client.colorIndex ?? 0}>
 				<span class="inline-block h-3 w-3 flex-shrink-0 rounded-full {getClientDotClass(client.colorIndex ?? 0)}" aria-hidden="true"></span>
 				{colorName}
@@ -95,13 +95,13 @@
 		</td>
 		<td class="px-6 py-3 text-right text-sm" data-stack-full>
 			<div class="flex items-center justify-end gap-3">
-				<button onclick={startEditing} class="text-stone-500 hover:text-blue-600 pointer-coarse:min-h-11">Edit</button>
+				<button onclick={startEditing} class="text-ink-faint hover:text-pine-600 pointer-coarse:min-h-11">Edit</button>
 				<!-- Direct Archive / Activate (sprint 041-CL); Delete still offers Archive too -->
 				<form method="POST" action="/admin/clients?/{isArchived ? 'unarchive' : 'archive'}" use:enhance class="inline">
 					<input type="hidden" name="client_id" value={client.id} />
-					<button type="submit" aria-label="{isArchived ? 'Activate' : 'Archive'} {client.name}" class="text-stone-500 hover:text-blue-600 pointer-coarse:min-h-11">{isArchived ? 'Activate' : 'Archive'}</button>
+					<button type="submit" aria-label="{isArchived ? 'Activate' : 'Archive'} {client.name}" class="text-ink-faint hover:text-pine-600 pointer-coarse:min-h-11">{isArchived ? 'Activate' : 'Archive'}</button>
 				</form>
-				<button onclick={() => (isConfirmingDelete = true)} class="text-red-500 hover:text-red-700 pointer-coarse:min-h-11">Delete</button>
+				<button onclick={() => (isConfirmingDelete = true)} class="text-rust-500 hover:text-rust-700 pointer-coarse:min-h-11">Delete</button>
 			</div>
 			{#if isConfirmingDelete}
 				<DeleteImpactDialog

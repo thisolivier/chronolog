@@ -4,7 +4,7 @@
  * deliverable, so a work type without a deliverable is an error too.
  *
  * Every write path (`POST /api/time-entries`, `PUT`/`PATCH /api/time-entries/[id]`,
- * `POST /api/timer/start`, `POST /api/timer/save`) calls `assertEntryReferences`; the API layer
+ * `POST /api/timer/start`, `POST /api/timer/save`, `POST /api/timer/split`) calls `assertEntryReferences`; the API layer
  * turns an `EntryReferenceError` into its status and code (`entryReferenceProblem` in
  * `src/routes/api/time-entries/entry-input.ts`).
  *

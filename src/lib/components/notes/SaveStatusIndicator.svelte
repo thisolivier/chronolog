@@ -15,16 +15,16 @@
 	let { status, isDraft = false }: Props = $props();
 
 	const toneClasses: Record<SaveStatusTone, string> = {
-		saved: 'w-[4.75rem] justify-center bg-green-50 text-green-700 ring-green-200',
-		saving: 'w-[4.75rem] justify-center bg-amber-50 text-amber-700 ring-amber-200',
-		draft: 'w-[4.75rem] justify-center bg-stone-100 text-stone-500 ring-stone-200',
-		failed: 'bg-red-50 text-red-700 ring-red-200'
+		saved: 'w-[4.75rem] justify-center bg-leaf-50 text-leaf-700 ring-leaf-200',
+		saving: 'w-[4.75rem] justify-center bg-ochre-50 text-ochre-700 ring-ochre-200',
+		draft: 'w-[4.75rem] justify-center bg-chalk-100 text-ink-faint ring-divider',
+		failed: 'bg-rust-50 text-rust-700 ring-rust-200'
 	};
 	const dotClasses: Record<SaveStatusTone, string> = {
-		saved: 'bg-green-500',
-		saving: 'bg-amber-400 animate-pulse',
-		draft: 'bg-stone-300',
-		failed: 'bg-red-500'
+		saved: 'bg-leaf-500',
+		saving: 'bg-ochre-400 animate-pulse',
+		draft: 'bg-chalk-300',
+		failed: 'bg-rust-500'
 	};
 
 	let display = $derived(saveStatusDisplay(status, isDraft));

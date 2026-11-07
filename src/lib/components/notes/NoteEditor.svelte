@@ -12,6 +12,8 @@
 	import Placeholder from '@tiptap/extension-placeholder';
 	import { Markdown } from 'tiptap-markdown';
 	import EditorToolbar from './EditorToolbar.svelte';
+	import './NoteEditor.css';
+	import { attachNoteScrollMemory } from './note-scroll-memory';
 	import { WikiLink, type WikiLinkStorage } from './extensions/wiki-link.js';
 	import { AnchoredHeading } from './extensions/anchored-heading.js';
 	import { AttachmentImage } from './extensions/attachment-image.js';
@@ -53,6 +55,8 @@
 		/** Focus once mounted: true or 'end' puts the caret at the end, 'start' at the top */
 		autofocus?: boolean | 'start' | 'end';
 		readonly?: boolean;
+		/** Phone layout: the toolbar keeps core formatting and moves the rest into menus (054-DR) */
+		compactToolbar?: boolean;
 	}
 
 	let {
@@ -64,7 +68,8 @@
 		onWikiLinkClick,
 		onFileUpload,
 		autofocus = false,
-		readonly = false
+		readonly = false,
+		compactToolbar = false
 	}: Props = $props();
 
 	// The editor mount point stays in the DOM for the lifetime of the component (it is
@@ -80,6 +85,9 @@
 	let editorMode: 'rendered' | 'raw' = $state('rendered');
 	let rawMarkdownContent: string = $state('');
 	let isSyncingFromRaw = false;
+	/** Scroll and caret memory for Back / Forward (054-DR, SH-07) */
+	let positionMemory: ReturnType<typeof attachNoteScrollMemory> | null = null;
+	let selectionMemoryTimer: ReturnType<typeof setTimeout> | undefined;
 
 	// The save callbacks are bound once: a flush during teardown must save to the note
 	// this editor was opened for, even if the parent has already moved on.
@@ -288,6 +296,10 @@
 			},
 			onUpdate: () => {
 				markChanged();
+			},
+			onSelectionUpdate: () => {
+				clearTimeout(selectionMemoryTimer);
+				selectionMemoryTimer = setTimeout(() => positionMemory?.remember(), 300);
 			}
 		});
 
@@ -297,6 +309,15 @@
 		if (autofocus && !readonly) {
 			editor.commands.focus(autofocus === 'start' ? 'start' : 'end');
 		}
+
+		const editorInstance = editor;
+		positionMemory = attachNoteScrollMemory({
+			element: mountElement,
+			getNoteId,
+			getSelection: () => ({ from: editorInstance.state.selection.from, to: editorInstance.state.selection.to }),
+			setSelection: (selection) => editorInstance.commands.setTextSelection(selection),
+			getDocumentSize: () => editorInstance.state.doc.content.size
+		});
 
 		// Attachment links (PDFs) open the decrypted file in a new tab; wiki-links navigate
 		mountElement.addEventListener('click', (event) => {
@@ -327,6 +348,8 @@
 		document.removeEventListener('visibilitychange', handleVisibilityChange);
 		window.removeEventListener('pagehide', handlePageHide);
 		window.removeEventListener('beforeunload', handleBeforeUnload);
+		clearTimeout(selectionMemoryTimer);
+		positionMemory?.destroy();
 		// Capture and save anything typed since the last save BEFORE the editor goes away
 		// (note switch, contract switch, layout change, navigation).
 		// keepalive: the user may be reloading or closing right after leaving the note.
@@ -353,12 +376,17 @@
 		}
 	}
 
+	/** The toolbar's Rich / Raw choice (054-DR): switch only when it differs */
+	function setEditorMode(mode: 'rendered' | 'raw') {
+		if (mode !== editorMode) toggleEditorMode();
+	}
+
 	function handleRawInput() {
 		markChanged();
 	}
 </script>
 
-<div class="flex flex-col h-full border border-stone-200 rounded-lg overflow-hidden bg-white">
+<div class="flex flex-col h-full border border-divider rounded-lg overflow-hidden bg-surface">
 	<!-- Hidden file input for the toolbar Attach button -->
 	<input
 		bind:this={fileInput}
@@ -371,21 +399,17 @@
 
 	<!-- Toolbar -->
 	{#if !readonly}
-		<!-- One bottom rule under the toolbar and the Rich toggle; the toolbar scrolls
-		     sideways on narrow screens instead of wrapping. -->
-		<div class="flex items-center border-b border-stone-200 bg-stone-50">
-			<div class="min-w-0 flex-grow overflow-x-auto">
-				<EditorToolbar {editor} {transactionCount} onAttachFile={handleAttachFileClick} />
-			</div>
-			<button
-				type="button"
-				onclick={toggleEditorMode}
-				class="px-3 py-1.5 text-xs rounded transition-colors mx-2 whitespace-nowrap border pointer-coarse:min-h-11
-					{editorMode === 'raw' ? 'bg-blue-100 text-blue-700 border-blue-200 font-semibold' : 'text-stone-500 hover:bg-stone-100 border-stone-200'}"
-				title="Toggle raw markdown view"
-			>
-				{editorMode === 'raw' ? '◆ Raw' : '◇ Rich'}
-			</button>
+		<!-- One bottom rule under the toolbar; Rich / Raw sits at its right (054-DR, NT-05). Desktop
+		     groups wrap on a narrow panel; the phone's compact toolbar fits and uses menus. -->
+		<div class="border-b border-divider bg-chalk-50">
+			<EditorToolbar
+				{editor}
+				{transactionCount}
+				onAttachFile={handleAttachFileClick}
+				{editorMode}
+				onSetEditorMode={setEditorMode}
+				compact={compactToolbar}
+			/>
 		</div>
 	{/if}
 
@@ -396,7 +420,7 @@
 				bind:value={rawMarkdownContent}
 				oninput={handleRawInput}
 				data-raw-markdown
-				class="w-full h-full min-h-[300px] p-4 font-mono text-sm resize-none outline-none bg-white"
+				class="w-full h-full min-h-[300px] p-4 font-mono text-sm resize-none outline-none bg-surface"
 				placeholder="Write markdown here..."
 			></textarea>
 		{/if}
@@ -409,302 +433,3 @@
 	</div>
 </div>
 
-<style>
-	:global(.tiptap) {
-		outline: none;
-		min-height: 300px;
-		padding: 1rem;
-	}
-
-	:global(.tiptap p.is-editor-empty:first-child::before) {
-		color: #adb5bd;
-		content: attr(data-placeholder);
-		float: left;
-		height: 0;
-		pointer-events: none;
-	}
-
-	/* Ensure proper prose styling */
-	:global(.tiptap.ProseMirror) {
-		outline: none;
-	}
-
-	/* Headings stay modest so a long first line does not become a three-line banner */
-	:global(.tiptap h1) {
-		font-size: 1.5em;
-		line-height: 1.25;
-		font-weight: 700;
-		margin-top: 0.5em;
-		margin-bottom: 0.5em;
-	}
-
-	:global(.tiptap h2) {
-		font-size: 1.25em;
-		line-height: 1.3;
-		font-weight: 600;
-		margin-top: 0.5em;
-		margin-bottom: 0.5em;
-	}
-
-	:global(.tiptap h3) {
-		font-size: 1.1em;
-		font-weight: 600;
-		margin-top: 0.5em;
-		margin-bottom: 0.5em;
-	}
-
-	:global(.tiptap p) {
-		margin-top: 0.5em;
-		margin-bottom: 0.5em;
-	}
-
-	/* Tailwind's preflight removes list markers; restore them (nested lists vary the marker) */
-	:global(.tiptap ul),
-	:global(.tiptap ol) {
-		padding-left: 1.5em;
-		margin-top: 0.5em;
-		margin-bottom: 0.5em;
-	}
-
-	:global(.tiptap ul) {
-		list-style-type: disc;
-	}
-
-	:global(.tiptap ul ul) {
-		list-style-type: circle;
-	}
-
-	:global(.tiptap ul ul ul) {
-		list-style-type: square;
-	}
-
-	:global(.tiptap ol) {
-		list-style-type: decimal;
-	}
-
-	:global(.tiptap ol ol) {
-		list-style-type: lower-alpha;
-	}
-
-	:global(.tiptap li) {
-		margin-top: 0.25em;
-		margin-bottom: 0.25em;
-	}
-
-	:global(.tiptap li::marker) {
-		color: #78716c;
-	}
-
-	:global(.tiptap li > p) {
-		margin-top: 0;
-		margin-bottom: 0;
-	}
-
-	/* Task lists (sprint 040-CL): a checkbox instead of the bullet; done items are muted */
-	:global(.tiptap ul[data-type='taskList']) {
-		list-style: none;
-		padding-left: 0.25em;
-	}
-
-	:global(.tiptap ul[data-type='taskList'] ul[data-type='taskList']) {
-		padding-left: 1.5em;
-	}
-
-	:global(.tiptap ul[data-type='taskList'] > li) {
-		display: flex;
-		align-items: flex-start;
-		gap: 0.5em;
-	}
-
-	:global(.tiptap ul[data-type='taskList'] > li > label) {
-		flex: 0 0 auto;
-		user-select: none;
-		margin-top: 0.05em;
-	}
-
-	:global(.tiptap ul[data-type='taskList'] > li > label input[type='checkbox']) {
-		width: 1em;
-		height: 1em;
-		cursor: pointer;
-		accent-color: #2563eb;
-	}
-
-	:global(.tiptap ul[data-type='taskList'] > li > div) {
-		flex: 1 1 auto;
-		min-width: 0;
-	}
-
-	/* the item's text sits in a <div>, so `li > p` above does not reach it */
-	:global(.tiptap ul[data-type='taskList'] > li > div > p) {
-		margin-top: 0;
-		margin-bottom: 0;
-	}
-
-	:global(.tiptap ul[data-type='taskList'] > li > div > ul) {
-		margin-top: 0.25em;
-		margin-bottom: 0;
-	}
-
-	:global(.tiptap ul[data-type='taskList'] > li[data-checked='true'] > div > p) {
-		color: #a8a29e;
-		text-decoration: line-through;
-	}
-
-	:global(.tiptap hr) {
-		border: none;
-		border-top: 2px solid #e5e7eb;
-		margin: 1.5em 0;
-	}
-
-	:global(.tiptap a) {
-		color: #3b82f6;
-		text-decoration: underline;
-		cursor: pointer;
-	}
-
-	:global(.tiptap a:hover) {
-		color: #2563eb;
-	}
-
-	:global(.tiptap code) {
-		background-color: #f3f4f6;
-		padding: 0.2em 0.4em;
-		border-radius: 0.25em;
-		font-family: monospace;
-		font-size: 0.9em;
-	}
-
-	:global(.tiptap pre) {
-		position: relative;
-		background-color: #f6f8fa;
-		color: #24292e;
-		padding: 0.75rem 1rem;
-		border-radius: 0.5em;
-		overflow-x: auto;
-		border: 1px solid #e1e4e8;
-	}
-
-	:global(.tiptap pre code) {
-		display: block;
-		background-color: transparent;
-		padding: 0;
-		color: inherit;
-		font-size: 0.875rem;
-		line-height: 1.5;
-	}
-
-	/* highlight.js github-light theme tokens */
-	:global(.tiptap pre code .hljs-keyword) { color: #d73a49; }
-	:global(.tiptap pre code .hljs-string) { color: #032f62; }
-	:global(.tiptap pre code .hljs-comment) { color: #6a737d; font-style: italic; }
-	:global(.tiptap pre code .hljs-function) { color: #6f42c1; }
-	:global(.tiptap pre code .hljs-number) { color: #005cc5; }
-	:global(.tiptap pre code .hljs-title) { color: #6f42c1; }
-	:global(.tiptap pre code .hljs-built_in) { color: #e36209; }
-	:global(.tiptap pre code .hljs-attr) { color: #005cc5; }
-	:global(.tiptap pre code .hljs-selector-tag) { color: #22863a; }
-	:global(.tiptap pre code .hljs-selector-class) { color: #6f42c1; }
-	:global(.tiptap pre code .hljs-selector-id) { color: #005cc5; }
-	:global(.tiptap pre code .hljs-meta) { color: #005cc5; }
-	:global(.tiptap pre code .hljs-type) { color: #d73a49; }
-	:global(.tiptap pre code .hljs-params) { color: #24292e; }
-	:global(.tiptap pre code .hljs-literal) { color: #005cc5; }
-	:global(.tiptap pre code .hljs-symbol) { color: #005cc5; }
-	:global(.tiptap pre code .hljs-variable) { color: #e36209; }
-	:global(.tiptap pre code .hljs-template-variable) { color: #005cc5; }
-	:global(.tiptap pre code .hljs-addition) { color: #22863a; background: #f0fff4; }
-	:global(.tiptap pre code .hljs-deletion) { color: #b31d28; background: #ffeef0; }
-
-	:global(.tiptap blockquote) {
-		border-left: 4px solid #e5e7eb;
-		padding-left: 1em;
-		margin-left: 0;
-		font-style: italic;
-		color: #6b7280;
-	}
-
-	:global(.tiptap .wiki-link) {
-		color: #6366f1;
-		background: #eef2ff;
-		padding: 1px 4px;
-		border-radius: 3px;
-		cursor: pointer;
-		text-decoration: none;
-		font-weight: 500;
-	}
-
-	:global(.tiptap .wiki-link:hover) {
-		background: #e0e7ff;
-		color: #4f46e5;
-	}
-
-	/* A link to a note in the trash (sprint 037-CL): muted and struck through; click offers a restore */
-	:global(.tiptap .wiki-link.wiki-link-deleted) {
-		color: #a8a29e;
-		background: #f5f5f4;
-		text-decoration: line-through;
-		font-weight: 400;
-	}
-
-	:global(.tiptap .wiki-link.wiki-link-deleted::after) {
-		content: ' (deleted)';
-		font-size: 0.85em;
-		text-decoration: none;
-		display: inline-block;
-		margin-left: 0.15em;
-	}
-
-	/* Inline images */
-	:global(.tiptap img) {
-		max-width: 100%;
-		height: auto;
-		border-radius: 0.375rem;
-		margin: 0.5em 0;
-	}
-
-	/* An attachment that could not be loaded: a visible placeholder instead of a broken icon */
-	:global(.tiptap img.attachment-missing) {
-		display: inline-block;
-		min-width: 8rem;
-		min-height: 2rem;
-		border: 1px dashed #d6d3d1;
-		background: #fafaf9;
-	}
-
-	/* An attached file (PDF): a link with a document icon; clicking opens it in a new tab */
-	:global(.tiptap a[href^='chronolog://attachment/']) {
-		cursor: pointer;
-		white-space: nowrap;
-	}
-	:global(.tiptap a[href^='chronolog://attachment/']::before) {
-		content: '';
-		display: inline-block;
-		width: 0.9em;
-		height: 0.9em;
-		margin-right: 0.2em;
-		vertical-align: -0.1em;
-		background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpath d='M14 2v6h6'/%3E%3C/svg%3E") no-repeat center / contain;
-	}
-
-	/* A link to a deleted attachment (sprint 043-CL): the missing-image placeholder look, no click */
-	:global(.tiptap .attachment-link-missing) {
-		color: #a8a29e;
-		border: 1px dashed #d6d3d1;
-		background: #fafaf9;
-		border-radius: 3px;
-		padding: 0 3px;
-		text-decoration: line-through;
-		cursor: not-allowed;
-	}
-	:global(.tiptap .attachment-link-missing::after) {
-		content: ' (deleted)';
-		font-size: 0.85em;
-		display: inline-block;
-		margin-left: 0.15em;
-		text-decoration: none;
-	}
-
-	:global(.tiptap img.ProseMirror-selectednode) {
-		outline: 2px solid #3b82f6;
-	}
-</style>

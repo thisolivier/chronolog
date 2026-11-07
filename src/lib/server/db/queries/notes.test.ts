@@ -8,7 +8,7 @@ import {
 	updateNoteForUser,
 	NoteConflictError
 } from './notes';
-import { rankNoteMatch } from './note-search';
+import { matchNote, parseSearchQuery } from '$lib/server/search/record-matcher';
 
 describe('Note ID Generation', () => {
 	let testUserId: string;
@@ -218,14 +218,22 @@ describe('searchNotesForUser', () => {
 	});
 });
 
-describe('rankNoteMatch', () => {
-	it('orders exact id, id prefix, title, id substring, body', () => {
-		const rank = (needle: string) => rankNoteMatch(needle, 'ACME.20261103.002', 'Kickoff plan', 'body text');
+describe('note ranks (shared matcher, was rankNoteMatch)', () => {
+	it('orders exact id, id prefix, title, id substring, body (body is rank 5 since 058-DR)', () => {
+		const rank = (query: string) =>
+			matchNote(parseSearchQuery(query), {
+				id: 'ACME.20261103.002',
+				title: 'Kickoff plan',
+				body: 'body text',
+				clientName: 'Acme Corp',
+				clientShortCode: 'ACME',
+				contractName: 'Retainer'
+			})?.rank ?? null;
 		expect(rank('acme.20261103.002')).toBe(0);
 		expect(rank('acme.2026')).toBe(1);
 		expect(rank('kickoff')).toBe(2);
 		expect(rank('1103.002')).toBe(3);
-		expect(rank('body')).toBe(4);
+		expect(rank('body')).toBe(5);
 		expect(rank('nothing')).toBeNull();
 	});
 });

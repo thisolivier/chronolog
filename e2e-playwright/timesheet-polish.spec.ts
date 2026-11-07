@@ -251,7 +251,7 @@ test.describe('Sprint 030 task 7: timer and week header agree on today (Europe/L
 			// Week header: the ISO week in the URL, the highlighted strip day and the "Today" badge
 			await expect(page).toHaveURL(new RegExp(`/time(/${timezoneCase.isoWeek})?$`));
 			await expect(page.getByText(`Week ${Number(timezoneCase.isoWeek.slice(-2))} ·`)).toBeVisible();
-			await expect(page.getByRole('button', { name: `Go to ${timezoneCase.localDate}` })).toHaveClass(/bg-amber-100/);
+			await expect(page.getByRole('button', { name: `Go to ${timezoneCase.localDate}` })).toHaveClass(/bg-ochre-100/);
 			await expect(page.locator(`[data-day="${timezoneCase.localDate}"]`)).toContainText('Today');
 
 			// Timer: started now, on the same local day

@@ -1,96 +1,94 @@
+<!--
+	TimerIndicator — the app bar's reflection of the capture (design r1 SH-04, sprint 053-DR).
+	The shell decides whether it shows (`reflection`, from `timer-visibility.ts`): only while no
+	TimerWidget is on screen. It names the capture's own contract (contract first, client under
+	it, ContractMark), never the contract being browsed. Running: the clock and the pulsing dot at
+	the top right. Stopped and unfinished: "Finish entry" with the frozen duration, no running
+	light. Clicking it opens the same capture (the shell passes the action).
+	`showIdleAccess` keeps the pre-053 "Timer" button when the desktop sidebar is hidden and no
+	capture exists (the existing Start timer / Add entry access, SH-02 matrix last row).
+-->
 <script lang="ts">
-	import { getClientBorderClass } from '$lib/utils/client-colors';
-	import { getNavigationContext } from '$lib/stores/navigation.svelte';
-	import { isSidebarTimerWidgetMounted } from '$lib/components/timer/timer-widget-registry.svelte';
-	import { formatElapsedClock } from '$lib/components/timer/timer-api';
+	import { getTimerStateContext } from '$lib/stores/timer-state.svelte';
+	import { calculateElapsedFromStartTime, formatElapsedClock } from '$lib/components/timer/timer-api';
+	import { formatMinutes } from '$lib/utils/duration';
+	import type { HeaderReflection } from '$lib/components/timer/timer-visibility';
+	import ContractMark from '$lib/components/identity/ContractMark.svelte';
+	import TimerPulseDot from '$lib/components/timer/TimerPulseDot.svelte';
 
 	interface Props {
-		timerState: 'idle' | 'running' | 'paused' | 'stopped';
-		elapsedSeconds: number;
-		description: string;
-		contractName: string;
-		clientColorIndex: number;
+		reflection: HeaderReflection;
+		showIdleAccess?: boolean;
 		onIndicatorClick: () => void;
 	}
 
-	let { timerState, elapsedSeconds, description, contractName, clientColorIndex, onIndicatorClick }: Props = $props();
+	let { reflection, showIdleAccess = false, onIndicatorClick }: Props = $props();
 
-	let formattedTime = $derived(formatElapsedClock(elapsedSeconds));
-	// No contract yet: a neutral edge, not the colour of whichever client sits in slot 0
-	let borderClass = $derived(contractName ? getClientBorderClass(clientColorIndex) : 'border-l-stone-300');
-	let truncatedDescription = $derived(
-		description.length > 30 ? description.slice(0, 30) + '…' : description
+	const timer = getTimerStateContext();
+
+	// The widget may be unmounted (a phone note screen): tick from the capture's own start
+	let now = $state(Date.now());
+	$effect(() => {
+		if (reflection !== 'running') return;
+		const intervalId = setInterval(() => (now = Date.now()), 1000);
+		return () => clearInterval(intervalId);
+	});
+
+	const runningSeconds = $derived(
+		timer.startTime ? calculateElapsedFromStartTime(timer.startTime, timer.startDate, new Date(now)) : timer.elapsedSeconds
 	);
-	let isVisible = $derived(timerState === 'running' || timerState === 'paused');
-
-	// With the desktop sidebar collapsed its TimerWidget is out of sight: keep a way to reach it
-	const navigationContext = getNavigationContext();
-	let isSidebarTimerHidden = $derived(
-		navigationContext.panel1Collapsed && isSidebarTimerWidgetMounted()
+	const clockText = $derived(formatElapsedClock(runningSeconds));
+	const frozenText = $derived(formatMinutes(Math.max(1, Math.ceil(timer.elapsedSeconds / 60))));
+	const hasContract = $derived(Boolean(timer.contractTitle));
+	const contractText = $derived(hasContract ? timer.contractTitle : 'No contract yet');
+	const accessibleName = $derived(
+		reflection === 'finish'
+			? `Finish entry: ${contractText}, ${frozenText}`
+			: `Timer running: ${contractText}, ${clockText}. Open the timer`
 	);
 </script>
 
-{#if isVisible}
+{#if reflection !== 'none'}
 	<button
+		type="button"
 		data-testid="timer-indicator"
-		class="flex items-center gap-2 rounded bg-stone-100 px-3 py-1.5 border-l-2 cursor-pointer hover:bg-stone-200 transition-colors {borderClass}"
+		data-state={reflection}
+		class="relative flex h-9 max-w-[22rem] min-w-0 items-center gap-mark-gap rounded-control border border-divider bg-sunken py-1 pr-3 pl-1.5 text-left transition-colors hover:bg-chalk-200 sm:pr-4"
+		aria-label={accessibleName}
+		title={reflection === 'finish' ? 'Finish this entry' : 'Open the running timer'}
 		onclick={onIndicatorClick}
 	>
-		{#if timerState === 'running'}
-			<span class="timer-dot-running"></span>
+		{#if hasContract}
+			<ContractMark contractName={timer.contractTitle} colorIndex={timer.clientColorIndex} size="md" />
 		{:else}
-			<span class="timer-dot-paused"></span>
+			<span class="size-(--size-mark-md) shrink-0 rounded-mark border border-dashed border-line" aria-hidden="true"></span>
 		{/if}
-
-		<span class="text-sm font-medium text-stone-700 tabular-nums">{formattedTime}</span>
-
-		{#if timerState === 'paused'}
-			<span class="text-xs text-stone-400">(paused)</span>
-		{/if}
-
-		<span class="hidden max-w-[200px] truncate text-sm text-stone-500 sm:inline">{truncatedDescription}</span>
-
-		{#if timerState === 'running' && contractName}
-			<span class="hidden text-sm text-stone-400 md:inline">·</span>
-			<span class="hidden text-sm text-stone-400 md:inline">{contractName}</span>
+		<span class="hidden min-w-0 flex-col leading-tight sm:flex" data-testid="timer-indicator-identity">
+			<span class="truncate text-xs font-semibold text-ink">{contractText}</span>
+			{#if timer.clientName}
+				<span class="truncate text-[11px] text-ink-faint">{timer.clientName}</span>
+			{/if}
+		</span>
+		{#if reflection === 'finish'}
+			<!-- Phone: the mark and the frozen duration only (the words stay for screen readers) -->
+			<span class="ml-1 flex flex-shrink-0 flex-col items-end leading-tight">
+				<span class="sr-only text-xs font-semibold whitespace-nowrap text-warning sm:not-sr-only">Finish entry</span>
+				<span class="text-sm font-medium tabular-nums text-warning sm:text-[11px] sm:font-normal sm:text-ink-muted" data-testid="timer-indicator-frozen">{frozenText}</span>
+			</span>
+		{:else}
+			<span class="ml-1 flex-shrink-0 text-sm font-medium tabular-nums text-ink-soft" data-testid="timer-indicator-clock">{clockText}</span>
+			<TimerPulseDot class="absolute top-1 right-1" />
 		{/if}
 	</button>
-{:else if isSidebarTimerHidden}
+{:else if showIdleAccess}
 	<button
-		class="flex items-center gap-2 rounded border-l-2 border-l-stone-300 bg-stone-100 px-3 py-1.5 text-sm text-stone-600 transition-colors hover:bg-stone-200"
+		type="button"
+		class="flex items-center gap-2 rounded-control border border-divider bg-sunken px-3 py-1.5 text-sm text-ink-muted transition-colors hover:bg-chalk-200"
 		onclick={onIndicatorClick}
 		title="Open the sidebar timer"
 		data-testid="timer-indicator-collapsed"
 	>
-		{#if timerState === 'stopped'}
-			<span class="timer-dot-paused"></span>
-			Timer stopped: save entry
-		{:else}
-			<span aria-hidden="true">&#9654;</span>
-			Timer
-		{/if}
+		<span aria-hidden="true">&#9654;</span>
+		Timer
 	</button>
 {/if}
-
-<style>
-	.timer-dot-running {
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
-		background-color: #22c55e;
-		animation: pulse-dot 2s ease-in-out infinite;
-	}
-
-	@keyframes pulse-dot {
-		0%, 100% { opacity: 1; transform: scale(1); }
-		50% { opacity: 0.5; transform: scale(0.8); }
-	}
-
-	.timer-dot-paused {
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
-		border: 1.5px solid #a8a29e;
-		background: transparent;
-	}
-</style>

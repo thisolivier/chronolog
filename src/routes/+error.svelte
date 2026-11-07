@@ -13,21 +13,21 @@
 
 <svelte:head><title>Chronolog · {isNotFound ? 'Not found' : 'Error'}</title></svelte:head>
 
-<div class="flex min-h-dvh items-center justify-center bg-stone-50 p-4">
-	<div class="w-full max-w-md rounded-lg border border-stone-200 bg-white p-8 text-center shadow-sm" data-testid="error-page">
-		<p class="text-sm font-semibold text-stone-400">{page.status}</p>
-		<h1 class="mt-2 text-2xl font-semibold text-stone-900">{heading}</h1>
-		<p class="mt-3 text-sm text-stone-600">{explanation}</p>
+<div class="flex min-h-dvh items-center justify-center bg-chalk-50 p-4">
+	<div class="w-full max-w-md rounded-lg border border-divider bg-surface p-8 text-center shadow-sm" data-testid="error-page">
+		<p class="text-sm font-semibold text-ink-faint">{page.status}</p>
+		<h1 class="mt-2 text-2xl font-semibold text-ink">{heading}</h1>
+		<p class="mt-3 text-sm text-ink-muted">{explanation}</p>
 		<div class="mt-6 flex justify-center gap-3">
 			{#if !isNotFound}
 				<button
 					onclick={() => location.reload()}
-					class="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+					class="rounded-md btn-secondary px-4 py-2 text-sm"
 				>
 					Try again
 				</button>
 			{/if}
-			<a href="/" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+			<a href="/" class="rounded-md btn-primary px-4 py-2 text-sm font-medium">
 				Back to Chronolog
 			</a>
 		</div>

@@ -52,11 +52,11 @@ Notes and time entries are linked via the `note_time_entries` join table.
 
 Deleting a note sets `notes.deleted_at` (partial index `notes_trash_user_id_idx` on `user_id` where it is set, migration `0009`). The row keeps its ID, `note_links` and `note_time_entries`, so a restore clears one column. Reads skip trashed rows unless a caller passes `includeDeleted`: `listNotesForContract`, `listNotesForUser`, `getNoteForUser`, `updateNoteForUser`, `searchNotesForUser`, `getNoteTitlesForUser`, `getBacklinksForNote` (sources) and the contract note counts in `listContractsByClientWithNoteCount`. `queries/note-trash.ts` holds delete, restore, the trash list and `purgeExpiredTrash` (30 days, run inside every delete). Note ID allocation still sees trashed rows, so an ID is never reused while its note can come back. Safe deletion of a contract moves trashed notes too (the foreign key needs it) and counts them.
 
-## Global search (sprint 042-CL)
+## Search (sprints 042-CL, 058-DR)
 
 `queries/wiki-link-titles.ts` (sprint 043-CL): `wikiLinkPreviewOptions(userId, notes)` loads, in one query, the titles of every note the given notes link to (trashed targets included), so `GET /api/notes`, `getNoteTitlesForUser` and the trash list read wiki-links as their target's title in titles and previews. `getNoteTitlesForUser` also names a note that only has markdown by its first line.
 
-`queries/global-search.ts` (`searchEverythingForUser`) backs `GET /api/search` and `chronolog search`: the user's notes (ID, title, body; never the trash) and time entries (description), decrypted and matched in memory like `note-search.ts` (the columns are encrypted, so no SQL `ILIKE`). Notes rank with `rankNoteMatch` (exact ID, ID prefix, title, ID substring, body; newest first within a rank); entries are newest first. Each hit carries client, contract, a date and a snippet with match offsets (`$lib/utils/search-snippet.ts`); the limit is per group and `total` counts every match.
+`queries/global-search.ts` (`searchEverythingForUser`) backs `GET /api/search` and `chronolog search`; `queries/note-search.ts` (`searchNotesForUser`) backs the `[[` picker's `GET /api/notes/search`. Since sprint 058-DR both use the shared matcher in `$lib/server/search/` (see its README): every query word must match a record's own text (note ID, title, body; entry description) or its client/contract identity (plus deliverable and work type for entries), ranked on one scale (exact ID, ID prefix, title, ID substring, content plus identity, body, identity only; newest first within a rank). Rows are decrypted and matched in memory (the columns are encrypted, so no SQL `ILIKE`); trashed notes are never returned. Each hit carries client, contract, `clientColorIndex`, `rank`, `matchedIn`, `matchedContext` and a snippet with match offsets (`$lib/utils/search-snippet.ts`); the `/api/search` limit is per group and `total` counts every match.
 
 ## Pinned notes and client order (sprint 039-CL)
 
@@ -77,6 +77,27 @@ Client names are encrypted, so the migration cannot number clients by name: ever
 - **Usage counts**: `getContractUsage` and `getEntryCountsBy` feed the confirm dialogs.
 
 `queries/entry-references.ts` (`assertEntryReferences`) is the one rule for what an entry may point at: the contract is the user's, the deliverable is on that contract, the work type is under that deliverable (so never without one). Every entry write route calls it (through `entryReferenceProblem` in `src/routes/api/time-entries/entry-input.ts`); `scripts/check-entry-references.mjs` reports existing rows that break it.
+
+## Timer draft: save, discard, split, resume (sprint 056-DR)
+
+The running or stopped timer is the user's one `time_entries` row with `is_draft = true`.
+`queries/timer-draft.ts` saves or discards it in a transaction that locks the row
+(`SELECT ... FOR UPDATE`) and refuses a row that is no longer a draft (`not_a_draft`) or whose start
+is not the one the client saw (`timer_changed`). `queries/timer-split.ts` splits it in one
+transaction: lock the draft, replay check, validation, insert the saved left part (with
+`client_request_id` = the request's id), then advance the draft to the boundary (marked
+`<id>:remainder`) or delete it when the remainder has no contract. A retry or a concurrent duplicate
+waits on the lock and then finds the marks, so it answers the first outcome without writing. No
+migration: the marks use migration `0011`'s `client_request_id` column and unique index; a save
+clears the remainder mark. Save and discard of a marked remainder, and a save that overrides the
+times, need the start the client saw (`expected_start_required`); `queries/timer-draft-rules.ts`
+compares it at the precision sent. A split that discards the left and hands back a contractless
+remainder leaves no row to mark, so its retry is a 404 (would need a table and a migration). `queries/timer-start.ts` also moves a stopped draft's start and resumes
+it (clears `end_time`); each update re-checks the start and end it read in its `WHERE` clause.
+
+`reconcileTimeEntryLinksInTransaction` (`queries/time-entries-batch.ts`) is the one sync from
+description `[[links]]` to `note_time_entries` for an existing entry (`PUT /api/time-entries/[id]`,
+timer save, both parts of a split); new entries in a batch use `linkTimeEntryToNotesInTransaction`.
 
 `queries/formerly-line.ts` builds the appended `Formerly: ...` line on its own line so the original description is untouched.
 

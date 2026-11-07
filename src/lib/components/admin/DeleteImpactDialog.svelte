@@ -56,27 +56,27 @@
 <svelte:window onkeydown={(event) => event.key === 'Escape' && onClose()} />
 
 <div
-	class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+	class="fixed inset-0 z-50 flex items-center justify-center bg-chalk-950/40 p-4"
 	role="presentation"
 	onclick={(event) => event.target === event.currentTarget && onClose()}
 >
 	<div
-		class="max-h-full w-full max-w-md overflow-y-auto rounded-lg bg-white p-5 text-left shadow-xl"
+		class="max-h-full w-full max-w-md overflow-y-auto rounded-lg bg-surface p-5 text-left shadow-xl"
 		role="alertdialog"
 		aria-modal="true"
 		aria-labelledby="delete-impact-title"
 		aria-describedby="delete-impact-body"
 		data-testid="delete-impact-dialog"
 	>
-		<h2 id="delete-impact-title" class="text-base font-semibold text-stone-900">{title}</h2>
-		<div id="delete-impact-body" class="mt-2 space-y-2 text-sm text-stone-600">
+		<h2 id="delete-impact-title" class="text-base font-semibold text-ink">{title}</h2>
+		<div id="delete-impact-body" class="mt-2 space-y-2 text-sm text-ink-muted">
 			{#if hasWork}
 				<p data-testid="delete-impact-counts">
-					It has <strong class="text-stone-900">{usageText}</strong>.
+					It has <strong class="text-ink">{usageText}</strong>.
 				</p>
 				{#if offerArchive}
 					<p>
-						<strong class="text-stone-800">Archive</strong> moves it to Archived at the bottom of the
+						<strong class="text-ink">Archive</strong> moves it to Archived at the bottom of the
 						sidebar and out of selects, and keeps everything; you can restore it later.
 					</p>
 				{/if}
@@ -93,7 +93,7 @@
 			<button
 				type="button"
 				onclick={onClose}
-				class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
+				class="rounded-md btn-secondary px-3 py-1.5 text-sm"
 			>
 				Cancel
 			</button>
@@ -105,7 +105,7 @@
 					<button
 						type="submit"
 						disabled={isSubmitting}
-						class="w-full rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 sm:w-auto"
+						class="w-full rounded-md border border-rust-300 bg-surface px-3 py-1.5 text-sm font-medium text-rust-700 hover:bg-rust-50 disabled:opacity-50 sm:w-auto"
 					>
 						{deleteWithWorkLabel}
 					</button>
@@ -114,7 +114,7 @@
 						type="submit"
 						bind:this={defaultButton}
 						disabled={isSubmitting}
-						class="w-full rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 sm:w-auto"
+						class="w-full rounded-md btn-danger px-3 py-1.5 text-sm font-medium disabled:opacity-50 sm:w-auto"
 					>
 						{hasWork ? deleteWithWorkLabel : 'Delete'}
 					</button>
@@ -129,7 +129,7 @@
 						type="submit"
 						bind:this={defaultButton}
 						disabled={isSubmitting}
-						class="w-full rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 sm:w-auto"
+						class="w-full rounded-md btn-primary px-3 py-1.5 text-sm font-medium disabled:opacity-50 sm:w-auto"
 					>
 						Archive
 					</button>

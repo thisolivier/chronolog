@@ -5,9 +5,14 @@
  * not exist is skipped (the single route ignores that failure; inside a transaction a failed
  * insert would abort everything). A non-atomic batch calls the usual functions directly. A note in
  * the trash (sprint 037-CL) counts as not existing for both the `noteId` check and the links.
+ *
+ * `reconcileTimeEntryLinksInTransaction` (sprint 056-DR) is the one "description `[[links]]` →
+ * `note_time_entries`" sync for an existing entry: `PUT /api/time-entries/[id]`, timer save and
+ * the timer split all call it.
  */
 
 import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { extractDescriptionLinks, reconcileLinks } from '$lib/utils/reconcile-description-links';
 import { noteTimeEntries, notes, timeEntries } from '$lib/server/db';
 import { decryptNullable, encryptNullable } from '$lib/server/crypto/server-cipher';
 import type { BatchTransaction } from '$lib/server/batch/run-batch';
@@ -58,4 +63,29 @@ export async function linkTimeEntryToNotesInTransaction(
 		.filter((link) => existingIds.has(link.noteId))
 		.map((link) => ({ noteId: link.noteId, timeEntryId, headingAnchor: link.headingAnchor ?? null }));
 	if (rows.length > 0) await transaction.insert(noteTimeEntries).values(rows).onConflictDoNothing();
+}
+
+/**
+ * Makes the entry's note links match the `[[links]]` in `description`: adds the missing ones
+ * (skipping unknown and trashed notes) and removes those no longer mentioned.
+ */
+export async function reconcileTimeEntryLinksInTransaction(
+	transaction: BatchTransaction,
+	timeEntryId: string,
+	description: string | null
+) {
+	const currentLinks = await transaction
+		.select({ noteId: noteTimeEntries.noteId, headingAnchor: noteTimeEntries.headingAnchor })
+		.from(noteTimeEntries)
+		.where(eq(noteTimeEntries.timeEntryId, timeEntryId));
+	const { toAdd, toRemove } = reconcileLinks(currentLinks, extractDescriptionLinks(description ?? ''));
+	if (toRemove.length > 0) {
+		await transaction.delete(noteTimeEntries).where(
+			and(
+				eq(noteTimeEntries.timeEntryId, timeEntryId),
+				inArray(noteTimeEntries.noteId, toRemove.map((link) => link.noteId))
+			)
+		);
+	}
+	await linkTimeEntryToNotesInTransaction(transaction, timeEntryId, toAdd);
 }

@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "checks": {
+    "raw_byte_identity": 27,
+    "exact_crop_pixels": 25,
+    "source_snapshot_bytes": 105963,
+    "html_local_links": 522,
+    "markdown_local_links": 256,
+    "requirement_ids": 59,
+    "feature_specs": 8,
+    "reader_pages": 15,
+    "all_crops_used_by_specs": true,
+    "correction_markers": 17
+  },
+  "errors": []
+}

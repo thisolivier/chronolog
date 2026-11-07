@@ -360,7 +360,7 @@
 	tabindex="-1"
 	role="group"
 	aria-label="{splitDescription.body || 'Time entry'}, {contractLabel}, {durationDisplay}"
-	class="group relative mb-2 flex rounded-lg border border-stone-200 border-l-[3px] bg-white p-3 transition-colors hover:bg-stone-50/50 focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:outline-none {clientBorderClass}"
+	class="group relative mb-2 flex rounded-lg border border-divider border-l-[3px] bg-surface p-3 transition-colors hover:bg-chalk-50/50 focus-visible:ring-2 focus-visible:ring-pine-400 focus-visible:outline-none {clientBorderClass}"
 	data-testid="time-entry-card"
 	data-entry-id={entry.id}
 >
@@ -372,23 +372,23 @@
 	<!-- Delete: on hover, on keyboard focus and always on touch screens -->
 	<div class="absolute right-1.5 top-1.5 pointer-coarse:right-0.5 pointer-coarse:top-0.5">
 		{#if isConfirmingDelete}
-			<div class="flex items-center gap-1 rounded bg-white">
-				<span class="text-xs text-stone-500">Delete?</span>
+			<div class="flex items-center gap-1 rounded bg-surface">
+				<span class="text-xs text-ink-faint">Delete?</span>
 				<button
 					onclick={handleDelete}
 					disabled={isDeleting}
-					class="rounded px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 pointer-coarse:min-h-11 pointer-coarse:px-3"
+					class="rounded px-1.5 py-0.5 text-xs text-rust-600 hover:bg-rust-50 disabled:opacity-50 pointer-coarse:min-h-11 pointer-coarse:px-3"
 				>{isDeleting ? '…' : 'Yes'}</button>
 				<button
 					onclick={() => (isConfirmingDelete = false)}
 					disabled={isDeleting}
-					class="rounded px-1.5 py-0.5 text-xs text-stone-500 hover:bg-stone-100 disabled:opacity-50 pointer-coarse:min-h-11 pointer-coarse:px-3"
+					class="rounded px-1.5 py-0.5 text-xs text-ink-faint hover:bg-chalk-100 disabled:opacity-50 pointer-coarse:min-h-11 pointer-coarse:px-3"
 				>No</button>
 			</div>
 		{:else}
 			<button
 				onclick={() => (isConfirmingDelete = true)}
-				class="flex h-6 w-6 items-center justify-center rounded text-stone-400 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 pointer-coarse:h-8 pointer-coarse:w-8 pointer-coarse:opacity-100"
+				class="flex h-6 w-6 items-center justify-center rounded text-ink-faint opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-rust-50 hover:text-rust-600 focus-visible:opacity-100 pointer-coarse:h-8 pointer-coarse:w-8 pointer-coarse:opacity-100"
 				title="Delete entry"
 				aria-label="Delete entry"
 			>&times;</button>
@@ -416,7 +416,7 @@
 			<button
 				bind:this={descriptionButton}
 				onclick={startEditingDescription}
-				class="block w-full text-left text-sm font-medium text-stone-900 hover:text-blue-600"
+				class="block w-full text-left text-sm font-medium text-ink hover:text-pine-600"
 				title="Click to edit description"
 			>
 				{#if splitDescription.body}
@@ -427,19 +427,19 @@
 						<WikiLinkRenderer text={splitDescription.body} {onNoteLinkClick} />
 					</span>
 				{:else}
-					<span class="italic text-stone-400">What did you work on?</span>
+					<span class="italic text-ink-faint">What did you work on?</span>
 				{/if}
 			</button>
 			{#if isDescriptionOverflowing || isDescriptionExpanded}
 				<button
 					type="button"
 					onclick={() => (isDescriptionExpanded = !isDescriptionExpanded)}
-					class="mt-0.5 text-xs text-blue-600 hover:text-blue-800"
+					class="mt-0.5 text-xs text-pine-600 hover:text-pine-800"
 					aria-expanded={isDescriptionExpanded}
 				>{isDescriptionExpanded ? 'Show less' : 'Show more'}</button>
 			{/if}
 			{#each splitDescription.formerlyLines as formerlyLine, lineIndex (lineIndex)}
-				<p class="mt-0.5 text-xs break-words text-stone-400" data-testid="formerly-line">{formerlyLine}</p>
+				<p class="mt-0.5 text-xs break-words text-ink-faint" data-testid="formerly-line">{formerlyLine}</p>
 			{/each}
 		{/if}
 
@@ -465,7 +465,7 @@
 				<button
 					bind:this={contractButton}
 					onclick={startEditingContract}
-					class="flex items-center gap-1.5 text-left text-xs text-stone-500 hover:text-blue-600"
+					class="flex items-center gap-1.5 text-left text-xs text-ink-faint hover:text-pine-600"
 					title="Click to change contract"
 				>
 					<span class="inline-block h-2 w-2 shrink-0 rounded-full {clientDotClass}"></span>
@@ -498,12 +498,12 @@
 					/>
 					<button
 						onclick={() => closeDeliverableEditor(true)}
-						class="shrink-0 rounded px-1.5 py-0.5 text-xs text-stone-500 hover:bg-stone-100"
+						class="shrink-0 rounded px-1.5 py-0.5 text-xs text-ink-faint hover:bg-chalk-100"
 						type="button"
 					>Done</button>
 				</div>
 				{#if contractChangeNotice}
-					<p class="mt-1 text-xs text-amber-700" role="status" data-testid="contract-change-notice">
+					<p class="mt-1 text-xs text-ochre-700" role="status" data-testid="contract-change-notice">
 						{contractChangeNotice}
 					</p>
 				{/if}
@@ -511,7 +511,7 @@
 				<button
 					bind:this={deliverableButton}
 					onclick={startEditingDeliverable}
-					class="block text-left text-xs text-stone-400 hover:text-blue-600"
+					class="block text-left text-xs text-ink-faint hover:text-pine-600"
 					title="Click to change deliverable / work type"
 				>{deliverableWorkTypeLabel}</button>
 			{:else}
@@ -519,7 +519,7 @@
 				<button
 					bind:this={deliverableButton}
 					onclick={startEditingDeliverable}
-					class="block text-left text-xs italic text-stone-400 hover:text-blue-600 {contractOffersDeliverables
+					class="block text-left text-xs italic text-ink-faint hover:text-pine-600 {contractOffersDeliverables
 						? ''
 						: 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100'}"
 					title="Click to add a deliverable"
@@ -528,7 +528,7 @@
 		</div>
 
 		{#if cardError}
-			<p class="mt-1 text-xs text-red-600" role="alert">{cardError}</p>
+			<p class="mt-1 text-xs text-rust-600" role="alert">{cardError}</p>
 		{/if}
 	</div>
 
@@ -551,13 +551,13 @@
 			<button
 				bind:this={timeButton}
 				onclick={startEditingTime}
-				class="text-right text-sm font-medium tabular-nums text-stone-500 hover:text-blue-600"
+				class="text-right text-sm font-medium tabular-nums text-ink-faint hover:text-pine-600"
 				title="Click to edit time"
 			>
 				{durationDisplay}
 			</button>
 			{#if timeRangeDisplay}
-				<div class="mt-0.5 text-xs tabular-nums text-stone-400">{timeRangeDisplay}</div>
+				<div class="mt-0.5 text-xs tabular-nums text-ink-faint">{timeRangeDisplay}</div>
 			{/if}
 		{/if}
 	</div>

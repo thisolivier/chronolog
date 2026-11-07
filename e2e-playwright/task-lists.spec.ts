@@ -64,7 +64,7 @@ test('a task list typed in the editor: nested, ticked, still ticked after a relo
 	// the toolbar button makes a second task list from a plain line
 	await page.keyboard.type('Later');
 	await page.locator('[data-toolbar-task-list]').click();
-	await expect(page.locator('[data-toolbar-task-list]')).toHaveClass(/bg-blue-100/);
+	await expect(page.locator('[data-toolbar-task-list]')).toHaveClass(/bg-pine-100/);
 
 	await expect(taskItems(page)).toHaveCount(6);
 	await expect(editor(page).locator('ul[data-type="taskList"] ul[data-type="taskList"] > li')).toHaveCount(2);
@@ -90,8 +90,8 @@ test('a task list typed in the editor: nested, ticked, still ticked after a relo
 
 	// PDF export prints each item as a box showing its state (the print frame's own document)
 	if (browserName === 'chromium') {
-		await page.getByRole('button', { name: /Export/ }).click();
-		await page.getByRole('button', { name: 'Export as PDF' }).click();
+		await page.getByRole('button', { name: 'Note actions' }).click();
+		await page.getByRole('menuitem', { name: 'Export as PDF' }).click();
 		const printFrame = page.locator('iframe[data-note-print-frame]');
 		await expect(printFrame).toHaveCount(1);
 		const printedHtml = await printFrame.evaluate((frame) => (frame as HTMLIFrameElement).contentDocument!.documentElement.outerHTML);

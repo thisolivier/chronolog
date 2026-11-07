@@ -161,25 +161,25 @@
 <svelte:head><title>Chronolog · Settings · Two-factor</title></svelte:head>
 
 <div class="mx-auto max-w-2xl">
-	<nav class="mb-6 flex items-center gap-2 text-sm text-stone-500" aria-label="Breadcrumb">
-		<a href="/settings" class="hover:text-stone-700">Settings</a>
-		<span class="text-stone-400">/</span>
-		<span class="font-medium text-stone-900">Two-factor authentication</span>
+	<nav class="mb-6 flex items-center gap-2 text-sm text-ink-faint" aria-label="Breadcrumb">
+		<a href="/settings" class="hover:text-ink-soft">Settings</a>
+		<span class="text-ink-faint">/</span>
+		<span class="font-medium text-ink">Two-factor authentication</span>
 	</nav>
 
-	<h1 class="mb-2 text-2xl font-bold text-stone-900">Two-Factor Authentication</h1>
-	<p class="mb-8 text-stone-600">
+	<h1 class="mb-2 text-2xl font-bold text-ink">Two-Factor Authentication</h1>
+	<p class="mb-8 text-ink-muted">
 		Add an extra layer of security to your account using a TOTP authenticator app.
 	</p>
 
 	{#if errorMessage}
-		<div class="mb-6 rounded-md bg-red-50 p-4 text-sm text-red-700">
+		<div class="mb-6 rounded-md bg-rust-50 p-4 text-sm text-rust-700">
 			{errorMessage}
 		</div>
 	{/if}
 
 	{#if successMessage}
-		<div class="mb-6 rounded-md bg-green-50 p-4 text-sm text-green-700">
+		<div class="mb-6 rounded-md bg-leaf-50 p-4 text-sm text-leaf-700">
 			{successMessage}
 		</div>
 	{/if}
@@ -196,26 +196,26 @@
 </div>
 
 {#snippet twoFactorEnabledView()}
-	<div class="rounded-lg border border-green-200 bg-green-50 p-6">
+	<div class="rounded-lg border border-leaf-200 bg-leaf-50 p-6">
 		<div class="mb-4 flex items-center gap-2">
-			<span class="inline-block h-3 w-3 rounded-full bg-green-500"></span>
-			<span class="font-medium text-green-800">Two-factor authentication is enabled</span>
+			<span class="inline-block h-3 w-3 rounded-full bg-leaf-500"></span>
+			<span class="font-medium text-leaf-800">Two-factor authentication is enabled</span>
 		</div>
 
-		<p class="mb-6 text-sm text-stone-600">
+		<p class="mb-6 text-sm text-ink-muted">
 			To disable 2FA, enter your password below.
 		</p>
 
 		<div class="space-y-4">
 			<div>
-				<label for="disable-password" class="block text-sm font-medium text-stone-700">
+				<label for="disable-password" class="block text-sm font-medium text-ink-soft">
 					Password
 				</label>
 				<input
 					id="disable-password"
 					type="password"
 					bind:value={disablePassword}
-					class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-1 block w-full rounded-md input-base px-3 py-2"
 					placeholder="Enter your password"
 				/>
 			</div>
@@ -223,7 +223,7 @@
 			<button
 				onclick={disableTwoFactor}
 				disabled={isLoading || !disablePassword}
-				class="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+				class="rounded-md btn-danger px-4 py-2 disabled:opacity-50"
 			>
 				{isLoading ? 'Disabling...' : 'Disable 2FA'}
 			</button>
@@ -232,21 +232,21 @@
 {/snippet}
 
 {#snippet enrollmentStartView()}
-	<div class="rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
-		<p class="mb-6 text-sm text-stone-600">
+	<div class="rounded-lg border border-divider bg-surface p-6 shadow-sm">
+		<p class="mb-6 text-sm text-ink-muted">
 			Use an authenticator app like Google Authenticator, Authy, or 1Password to scan a QR code.
 		</p>
 
 		<div class="space-y-4">
 			<div>
-				<label for="current-password" class="block text-sm font-medium text-stone-700">
+				<label for="current-password" class="block text-sm font-medium text-ink-soft">
 					Password
 				</label>
 				<input
 					id="current-password"
 					type="password"
 					bind:value={currentPassword}
-					class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-1 block w-full rounded-md input-base px-3 py-2"
 					placeholder="Enter your password to begin"
 				/>
 			</div>
@@ -254,7 +254,7 @@
 			<button
 				onclick={startEnrollment}
 				disabled={isLoading || !currentPassword}
-				class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+				class="rounded-md btn-primary px-4 py-2 disabled:opacity-50"
 			>
 				{isLoading ? 'Setting up...' : 'Enable 2FA'}
 			</button>
@@ -263,10 +263,10 @@
 {/snippet}
 
 {#snippet qrCodeView()}
-	<div class="rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
-		<h2 class="mb-4 text-lg font-semibold text-stone-900">Scan the QR Code</h2>
+	<div class="rounded-lg border border-divider bg-surface p-6 shadow-sm">
+		<h2 class="mb-4 text-lg font-semibold text-ink">Scan the QR Code</h2>
 
-		<p class="mb-4 text-sm text-stone-600">
+		<p class="mb-4 text-sm text-ink-muted">
 			Scan this QR code with your authenticator app, then enter the 6-digit code below to verify.
 		</p>
 
@@ -277,17 +277,17 @@
 		</div>
 
 		<details class="mb-6">
-			<summary class="cursor-pointer text-sm text-stone-500 hover:text-stone-700">
+			<summary class="cursor-pointer text-sm text-ink-faint hover:text-ink-soft">
 				Cannot scan? Enter the URI manually
 			</summary>
-			<code class="mt-2 block break-all rounded-md bg-stone-100 p-3 text-xs text-stone-700">
+			<code class="mt-2 block break-all rounded-md bg-chalk-100 p-3 text-xs text-ink-soft">
 				{totpUri}
 			</code>
 		</details>
 
 		<div class="space-y-4">
 			<div>
-				<label for="verification-code" class="block text-sm font-medium text-stone-700">
+				<label for="verification-code" class="block text-sm font-medium text-ink-soft">
 					Verification Code
 				</label>
 				<input
@@ -297,7 +297,7 @@
 					autocomplete="one-time-code"
 					maxlength="6"
 					bind:value={verificationCode}
-					class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-1 block w-full rounded-md input-base px-3 py-2"
 					placeholder="Enter 6-digit code"
 				/>
 			</div>
@@ -306,14 +306,14 @@
 				<button
 					onclick={verifySetup}
 					disabled={isLoading || verificationCode.length !== 6}
-					class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+					class="rounded-md btn-primary px-4 py-2 disabled:opacity-50"
 				>
 					{isLoading ? 'Verifying...' : 'Verify & Enable'}
 				</button>
 
 				<button
 					onclick={resetFlow}
-					class="rounded-md border border-stone-300 bg-white px-4 py-2 text-stone-700 hover:bg-stone-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+					class="rounded-md btn-secondary px-4 py-2"
 				>
 					Cancel
 				</button>
@@ -323,23 +323,23 @@
 {/snippet}
 
 {#snippet recoveryCodesView()}
-	<div class="rounded-lg border border-yellow-200 bg-yellow-50 p-6">
-		<h2 class="mb-2 text-lg font-semibold text-stone-900">Save Your Recovery Codes</h2>
+	<div class="rounded-lg border border-ochre-200 bg-ochre-50 p-6">
+		<h2 class="mb-2 text-lg font-semibold text-ink">Save Your Recovery Codes</h2>
 
-		<p class="mb-4 text-sm text-stone-600">
+		<p class="mb-4 text-sm text-ink-muted">
 			These recovery codes can be used to access your account if you lose your authenticator device.
 			Each code can only be used once. <strong>Save them in a secure location.</strong>
 		</p>
 
-		<div class="mb-6 rounded-md bg-white p-4 font-mono text-sm">
+		<div class="mb-6 rounded-md bg-surface p-4 font-mono text-sm">
 			{#each recoveryCodes as recoveryCode (recoveryCode)}
-				<div class="py-1 text-stone-800">{recoveryCode}</div>
+				<div class="py-1 text-ink">{recoveryCode}</div>
 			{/each}
 		</div>
 
 		<button
 			onclick={resetFlow}
-			class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+			class="rounded-md btn-primary px-4 py-2"
 		>
 			I have saved my codes
 		</button>

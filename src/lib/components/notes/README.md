@@ -29,6 +29,8 @@ Main editor component with toolbar and content area. Notes have no title field: 
 - File handler for images (jpeg/png/gif/webp/svg) and PDFs
 - Checkbox task lists (`- [ ]` / `- [x]`, nestable with Tab / Shift-Tab): typing `[ ] ` or `[] ` at the start of a list item or line, or the toolbar's ☑ button. A tick is an ordinary edit (autosave, 409 rules unchanged). See `extensions/README.md`
 - `chronolog://attachment/{uuid}` images render through the AttachmentImage node view (the document keeps the `chronolog://` src; the DOM shows a blob URL)
+- Position memory (054-DR, SH-07): `note-scroll-memory.ts` records the note's scroll and caret as it moves and restores them on Back / Forward to the note (including the phone's return from capture)
+- Styles live in `NoteEditor.css` (imported by the component; moved out of its `<style>` block in 054-DR, every rule was already global)
 
 **Props:**
 ```typescript
@@ -42,6 +44,7 @@ interface Props {
   onFileUpload?: (file: File) => Promise<string | null>;  // returns chronolog:// URL
   autofocus?: boolean;
   readonly?: boolean;
+  compactToolbar?: boolean; // phone: core formatting plus menus (054-DR)
 }
 ```
 
@@ -98,21 +101,37 @@ PDF export. `printNote` copies the rendered note into a standalone document with
 
 Markdown export. `exportAsMarkdown` downloads a `.md` file; `buildMarkdownExportContent` prepends a title heading only when the content does not already start with it. Includes `sanitizeFilename`.
 
+### note-scroll-memory.ts (054-DR)
+
+Per-note position memory for SH-07. `rememberNotePosition` / `readNotePosition` keep `{ scrollTop, selectionFrom, selectionTo }` per note in sessionStorage (`chronolog:note-positions`, last 50 notes). `historyReturns` is fed by the root layout's `afterNavigate` and says whether a note was reached through Back / Forward (a popstate; a same-note URL correction right after does not cancel it). `attachNoteScrollMemory` (called by `NoteEditor` on mount) records on scroll of the note's nearest scrolling ancestor and on caret moves, and restores once on a history return, waiting a few frames for layout. A fresh open (list, link, search) still starts at the top. Pure parts are unit tested.
+
+### ToolbarMenu.svelte (054-DR)
+
+Small menu used by the phone toolbar (text style, "Formatting" overflow, Rich / Raw). Its trigger and items prevent mousedown, so the editor keeps focus and selection; a pointer open leaves focus in the editor, a keyboard open focuses the first item; Escape closes.
+
 ### EditorToolbar.svelte
 
-Formatting toolbar with active state indicators (bold, italic, headings, lists, task list, links, code blocks). Receives `transactionCount` from `NoteEditor` (bumped on every TipTap transaction) and reads it inside its `isActive()` and `canRun()` helpers (the disabled states follow the selection too since sprint 043-CL); the `Editor` instance never changes identity, so without that counter Svelte would not re-evaluate the highlights.
+Formatting toolbar (054-DR, NT-05). Desktop groups: B / I | ¶ Normal text, H1, H2, H3 | bullet, numbered, checklist | rule, Link, code block, Attach, then the Rich / Raw switch at the right (`editor-mode-switch`); the groups wrap on a narrow panel. Phone (`compact`): B, I, a "Text style" menu (Normal text, Heading 1–3), bullet list, checklist, a "Formatting" overflow (numbered list, rule, link, code block, attach file) and a "Rich ▾" menu for Rich text / Raw markdown. Buttons keep the editor selection (mousedown prevented, commands through `chain().focus()`). Shows active state indicators (bold, italic, headings, lists, task list, links, code blocks). Receives `transactionCount` from `NoteEditor` (bumped on every TipTap transaction) and reads it inside its `isActive()` and `canRun()` helpers (the disabled states follow the selection too since sprint 043-CL); the `Editor` instance never changes identity, so without that counter Svelte would not re-evaluate the highlights.
 
 ### NoteEditorHeader.svelte
 
-Header above the editor: note ID (`NoteCodeCopyButton`), `SaveStatusIndicator`, Move / Export / Delete actions and a message line. Move and Export open their menus without a chevron (sprint 051-UI; `aria-haspopup="menu"` and `aria-expanded` mark them). Delete asks for confirmation inline (no native `confirm()`, which Tauri can suppress). A `conflict` status offers Reload.
+Header above the editor (054-DR, NT-04): the contract mark, the note code with its copy icon (`NoteCodeCopyButton`), `SaveStatusIndicator`, a message line, free space kept for the deferred contract repeat (NT-03), and one "Note actions" ellipsis menu (`NoteActionsMenu.svelte`). The client / contract text (`note-editor-context`) is visible only when `showContextText` (single-column phone layout, NT-01); elsewhere it stays as screen-reader text and the mark's tooltip. Delete asks for confirmation inline (`delete-confirm`; no native `confirm()`, which Tauri can suppress). A `conflict` status offers Reload. The note title stays in the body.
+
+### NoteActionsMenu.svelte (054-DR)
+
+The "Note actions" menu: Move (switches the menu to "Move note to", a list of the other contracts), Export as Markdown, Export as PDF, Delete (Discard on a draft). The actions are the panel's existing `note-panel-actions.ts` functions (flush before move/export, Undo toast after delete). Arrow keys, Home / End and Escape (back to the button) work inside it.
 
 ### NoteCodeCopyButton.svelte
 
-The note code in the header (sprint 051-UI): a click or tap copies it through `$lib/utils/copy-text.ts` (Clipboard API, then a hidden-textarea `execCommand('copy')` fallback, for Safari/WebKit and the Tauri webview). A "Copied" bubble floats under the code for 1.5 s without moving the header line, and a polite live region announces it; if both ways are refused it says "Couldn't copy" and selects the code. `data-testid="note-code-copy"`, `note-code-copied`.
+The note code in the header (sprint 051-UI): a click or tap copies it through `$lib/utils/copy-text.ts` (Clipboard API, then a hidden-textarea `execCommand('copy')` fallback, for Safari/WebKit and the Tauri webview). A "Copied" bubble floats under the code for 1.5 s without moving the header line, and a polite live region announces it; if both ways are refused it says "Couldn't copy" and selects the code. A small copy icon beside the code (054-DR) runs the same copy. `data-testid="note-code-copy"`, `note-code-copy-icon`, `note-code-copied`.
 
 ### SaveStatusIndicator.svelte
 
-The save pill (sprint 051-UI): "Saved" (green) / "Saving" (amber; also while a change waits for its debounce) / "Draft" (grey), one fixed width (`w-[4.75rem]`) so the header line never shifts or wraps while typing. Failures stay distinct: a red pill sized to its message ("Couldn't save — retrying", or the conflict message with Reload). Labels and tones are `save-status-display.ts` (unit-tested); `data-testid="save-status"` keeps its `data-status` values (`saved`, `saving`, `unsaved`, `error`, `conflict`, `draft`).
+The save pill (sprint 051-UI): "Saved" (leaf green) / "Saving" (ochre; also while a change waits for its debounce) / "Draft" (grey), one fixed width (`w-[4.75rem]`) so the header line never shifts or wraps while typing. Failures stay distinct: a rust pill sized to its message ("Couldn't save — retrying", or the conflict message with Reload). Labels and tones are `save-status-display.ts` (unit-tested); `data-testid="save-status"` keeps its `data-status` values (`saved`, `saving`, `unsaved`, `error`, `conflict`, `draft`).
+
+### LinkedTimeEntries.svelte
+
+"Linked time · N" under the editor: entries whose description links to the note, newest first. Quiet (054-DR, NT-06): muted dates, and a row names its client / contract (with the contract mark) only when the entry is on another contract than the note (`noteContractId`; the API row carries `contractId`). Rows open the day in Time Entries; wiki-links in descriptions stay clickable; × unlinks. No timer controls.
 
 ### NoteBacklinks.svelte
 

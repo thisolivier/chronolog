@@ -10,7 +10,8 @@ import {
 	openNoteId,
 	expectSidebarSelected,
 	createNote,
-	createContract
+	createContract,
+	moveOpenNote
 } from './notes-helpers';
 
 test('wiki-links, "Linked from" chips and search open notes in their own contract', async ({ page }) => {
@@ -64,8 +65,7 @@ test('moving a note keeps it open under its new contract', async ({ page }) => {
 	const title = `Moving ${suffix}`;
 	const noteId = await createNote(page, title);
 
-	await page.getByRole('button', { name: 'Move', exact: true }).click();
-	await page.locator('[data-move-menu]').getByRole('button', { name: new RegExp(destination) }).click();
+	await moveOpenNote(page, new RegExp(destination));
 
 	await expect(page.getByTestId('move-feedback')).toContainText(destination);
 	await expectSidebarSelected(page, destination);

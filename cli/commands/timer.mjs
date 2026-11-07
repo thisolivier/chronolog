@@ -131,7 +131,9 @@ export async function timerStop({ api, print }) {
 		contractId: timer.contractId,
 		deliverableId: timer.deliverableId,
 		workTypeId: timer.workTypeId,
-		description: timer.description
+		description: timer.description,
+		// The start just read: a timer split or changed on another device meanwhile is refused (409)
+		expectedStartedAt: `${timer.date}T${timer.startTime}`
 	});
 	print(
 		`Saved ${formatMinutes(stopped.durationMinutes)} (${timer.startTime.slice(0, 5)}-${String(stopped.endTime).slice(0, 5)}) on ${timer.date} to ${timer.clientShortCode}/${timer.contractName}${timer.description ? `: ${timer.description}` : ''}\nid=${timer.id}`,

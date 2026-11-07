@@ -199,7 +199,7 @@ test.describe('Sprint 041 task 3: Today in the week header', () => {
 		await screenshot(page, testInfo, '04-today-button');
 
 		await todayButton.click();
-		await expect(page.getByRole('button', { name: `Go to ${today}` })).toHaveClass(/bg-amber-100/);
+		await expect(page.getByRole('button', { name: `Go to ${today}` })).toHaveClass(/bg-ochre-100/);
 		await expect(todayButton).toBeDisabled();
 		expect(page.url()).not.toBe(olderWeekUrl);
 		await expect(page.locator(`[data-day="${today}"]`)).toBeInViewport();

@@ -121,6 +121,11 @@
 
 	// The "Notes" heading opens all notes (051-UI); highlighted while that list is shown
 	const isAllNotesHighlighted = $derived(navigationContext.isAllNotesView);
+
+	// SH-03: reviewing time mutes the whole Notes section (and Archived, Trash, Settings) to 50%
+	// with one wrapper. Emphasis only: everything inside stays enabled, clickable and focusable.
+	const isNotesSectionMuted = $derived(isTimeEntriesHighlighted);
+	const selectedNavClass = 'bg-selection text-pine-800';
 </script>
 
 <div class="flex h-full flex-col">
@@ -129,71 +134,85 @@
 		<!-- Time Entries Link -->
 		<button
 			onclick={handleTimeEntriesClick}
-			class="mb-3 w-full rounded-md px-3 py-2 text-left text-sm font-medium transition-colors pointer-coarse:py-3 {isTimeEntriesHighlighted
-				? 'bg-blue-50 text-blue-700'
-				: 'text-stone-700 hover:bg-stone-100'}"
+			class="mb-3 flex w-full items-center gap-2 rounded-control px-3 py-2 text-left text-sm font-semibold transition-colors pointer-coarse:py-3 {isTimeEntriesHighlighted
+				? selectedNavClass
+				: 'text-ink-soft hover:bg-chalk-200/70'}"
 			aria-current={isTimeEntriesHighlighted ? 'page' : undefined}
+			data-testid="sidebar-time-entries"
 		>
+			<svg class="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<rect x="3.5" y="5" width="17" height="15" rx="2" /><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4" />
+			</svg>
 			Time Entries
 		</button>
 
-		<!-- "Notes" heading: opens every note, newest first (051-UI). New contracts are made in
-		     Settings (the 049 `+` was removed at the owner's request) -->
-		<button
-			type="button"
-			onclick={() => navigationContext.selectAllNotes()}
-			class="mb-1 flex w-full items-center rounded-md px-3 py-1 text-left text-xs font-semibold uppercase transition-colors pointer-coarse:py-3 {isAllNotesHighlighted
-				? 'bg-blue-50 text-blue-700'
-				: 'text-stone-400 hover:bg-stone-100 hover:text-stone-600'}"
-			aria-current={isAllNotesHighlighted ? 'page' : undefined}
-			title="All notes, newest first"
-			data-testid="sidebar-notes-heading"
+		<!-- Everything below (Notes to Settings) fades as one group while Time Entries is selected -->
+		<div
+			class="transition-opacity duration-200 {isNotesSectionMuted ? 'opacity-50' : ''}"
+			data-testid="sidebar-notes-section"
+			data-muted={isNotesSectionMuted ? 'true' : 'false'}
 		>
-			Notes
-		</button>
 
-		<!-- Contracts grouped by client; a one-contract client is a single row -->
-		{#if isLoading}
-			<div class="py-4 text-center text-xs text-stone-400">Loading...</div>
-		{:else if errorMessage}
-			<div class="rounded-md bg-red-50 p-2 text-xs text-red-600">
-				{errorMessage}
-			</div>
-		{:else}
-			{#if sections.activeGroups.length === 0}
-				<div class="px-3 py-4 text-xs text-stone-500">
-					No {sections.archivedContractCount > 0 ? 'active ' : ''}contracts yet. Add one in
-					<a href={CLIENTS_SETTINGS_HREF} class="font-medium text-blue-700 underline hover:text-blue-900">Settings → Clients and contracts</a>.
+			<!-- "Notes" heading: opens every note, newest first (051-UI). New contracts are made in
+			     Settings (the 049 `+` was removed at the owner's request) -->
+			<button
+				type="button"
+				onclick={() => navigationContext.selectAllNotes()}
+				class="mb-1 flex w-full items-center rounded-control px-3 py-1 text-left text-xs font-semibold tracking-wide uppercase transition-colors pointer-coarse:py-3 {isAllNotesHighlighted
+					? selectedNavClass
+					: 'text-ink-faint hover:bg-chalk-200/70 hover:text-ink-muted'}"
+				aria-current={isAllNotesHighlighted ? 'page' : undefined}
+				title="All notes, newest first"
+				data-testid="sidebar-notes-heading"
+			>
+				Notes
+			</button>
+
+			<!-- Contracts grouped by client; a one-contract client is a single row -->
+			{#if isLoading}
+				<div class="py-4 text-center text-xs text-ink-faint">Loading...</div>
+			{:else if errorMessage}
+				<div class="rounded-md bg-rust-50 p-2 text-xs text-rust-600">
+					{errorMessage}
 				</div>
+			{:else}
+				{#if sections.activeGroups.length === 0}
+					<div class="px-3 py-4 text-xs text-ink-faint">
+						No {sections.archivedContractCount > 0 ? 'active ' : ''}contracts yet. Add one in
+						<a href={CLIENTS_SETTINGS_HREF} class="font-medium text-pine-700 underline hover:text-pine-900">Settings → Clients and contracts</a>.
+					</div>
+				{/if}
+				{#each sections.activeGroups as group (group.clientId)}
+					<SidebarClientGroup
+						{group}
+						{selectedContractId}
+						{viewedClientId}
+						onSelect={handleContractClick}
+						onOpenClient={handleClientClick}
+						isCollapsed={collapsedClientIds.includes(group.clientId)}
+						onToggleCollapse={toggleClientCollapsed}
+						reorder={clientReorder}
+						sectionMuted={isNotesSectionMuted}
+					/>
+				{/each}
+				{#if sections.archivedContractCount > 0}
+					<SidebarArchivedSection
+						groups={sections.archivedGroups}
+						contractCount={sections.archivedContractCount}
+						{selectedContractId}
+						{selectionIsArchived}
+						onSelect={handleContractClick}
+						sectionMuted={isNotesSectionMuted}
+					/>
+				{/if}
+				<SidebarUtilityLinks withDivider={sections.archivedContractCount === 0} />
 			{/if}
-			{#each sections.activeGroups as group (group.clientId)}
-				<SidebarClientGroup
-					{group}
-					{selectedContractId}
-					{viewedClientId}
-					onSelect={handleContractClick}
-					onOpenClient={handleClientClick}
-					isCollapsed={collapsedClientIds.includes(group.clientId)}
-					onToggleCollapse={toggleClientCollapsed}
-					reorder={clientReorder}
-				/>
-			{/each}
-			{#if sections.archivedContractCount > 0}
-				<SidebarArchivedSection
-					groups={sections.archivedGroups}
-					contractCount={sections.archivedContractCount}
-					{selectedContractId}
-					{selectionIsArchived}
-					onSelect={handleContractClick}
-				/>
-			{/if}
-			<SidebarUtilityLinks withDivider={sections.archivedContractCount === 0} />
-		{/if}
+		</div>
 		<p class="sr-only" aria-live="polite" data-testid="sidebar-reorder-announcement">{clientReorder.announcement}</p>
 	</div>
 
 	<!-- Timer Widget at Bottom -->
-	<div class="flex-shrink-0 border-t border-stone-200 p-3">
+	<div class="flex-shrink-0 border-t border-divider p-3">
 		<TimerWidget />
 	</div>
 </div>

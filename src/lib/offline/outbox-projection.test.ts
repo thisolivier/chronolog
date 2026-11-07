@@ -89,6 +89,14 @@ describe('answers from the read cache', () => {
 		expect(searchCachedNotes('budget', {}, notes, reads).map((result) => result.id)).toEqual(['N.1']);
 		expect(searchCachedNotes('WENT', {}, notes, reads)[0]).toMatchObject({ id: 'N.2', clientName: 'Acme' });
 		expect(searchCachedNotes('', { recent: true }, notes, reads).map((result) => result.id)).toEqual(['N.2', 'N.1']);
+		expect(searchCachedNotes('', {}, notes, reads)).toEqual([]);
+		// Shared matcher offline too (058-DR): client identity counts, words combine, ranks come back
+		expect(searchCachedNotes('acme', {}, notes, reads).map((result) => [result.id, result.rank])).toEqual([
+			['N.2', 6],
+			['N.1', 6]
+		]);
+		expect(searchCachedNotes('acme went', {}, notes, reads)[0]).toMatchObject({ id: 'N.2', rank: 4, matchedContext: ['clientName', 'clientShortCode'] });
+		expect(searchCachedNotes('retro kickoff', {}, notes, reads)).toEqual([]);
 		expect(titlesFromCache(['N.2', 'missing'], notes, reads)).toEqual([{ id: 'N.2', displayTitle: 'Retro', contractId: 'C', clientId: 'K' }]);
 	});
 });

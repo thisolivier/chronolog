@@ -113,32 +113,32 @@
 <svelte:window onkeydown={handleWindowKeydown} />
 
 <div
-	class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+	class="fixed inset-0 z-50 flex items-center justify-center bg-chalk-950/40 p-4"
 	onclick={handleBackdropClick}
 	role="presentation"
 >
 	<div
-		class="max-h-full w-full max-w-md overflow-y-auto rounded-lg bg-white p-6 shadow-xl"
+		class="max-h-full w-full max-w-md overflow-y-auto rounded-lg bg-surface p-6 shadow-xl"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="add-entry-title"
 	>
-		<h2 id="add-entry-title" class="mb-4 text-lg font-semibold text-stone-900">Add Time Entry</h2>
+		<h2 id="add-entry-title" class="mb-4 text-lg font-semibold text-ink">Add Time Entry</h2>
 
 		<div class="space-y-3">
 			<div>
-				<label for="entry-date" class="block text-xs font-medium text-stone-600">Date</label>
+				<label for="entry-date" class="block text-xs font-medium text-ink-muted">Date</label>
 				<input
 					id="entry-date"
 					type="date"
 					bind:value={entryDate}
-					class="mt-0.5 block w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-0.5 block w-full rounded-md input-base px-2 py-1.5 text-sm"
 				/>
-				{#if dateError}<p class="mt-1 text-xs text-red-600" role="alert">{dateError}</p>{/if}
+				{#if dateError}<p class="mt-1 text-xs text-rust-600" role="alert">{dateError}</p>{/if}
 			</div>
 
 			<div>
-				<label for="entry-description" class="block text-xs font-medium text-stone-600">
+				<label for="entry-description" class="block text-xs font-medium text-ink-muted">
 					Description
 				</label>
 				<textarea
@@ -147,13 +147,13 @@
 					bind:value={description}
 					onkeydown={handleFieldKeydown}
 					rows="2"
-					class="mt-0.5 block w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-0.5 block w-full rounded-md input-base px-2 py-1.5 text-sm"
 					placeholder="What did you work on?"
 				></textarea>
 			</div>
 
 			<div>
-				<label for="entry-contract" class="block text-xs font-medium text-stone-600">Contract</label>
+				<label for="entry-contract" class="block text-xs font-medium text-ink-muted">Contract</label>
 				<div class="mt-0.5">
 					<ContractSelect
 						id="entry-contract"
@@ -161,11 +161,11 @@
 						invalid={contractError !== ''}
 					/>
 				</div>
-				{#if contractError}<p class="mt-1 text-xs text-red-600" role="alert">{contractError}</p>{/if}
+				{#if contractError}<p class="mt-1 text-xs text-rust-600" role="alert">{contractError}</p>{/if}
 			</div>
 
 			<div>
-				<label for="deliverable-select" class="block text-xs font-medium text-stone-600">
+				<label for="deliverable-select" class="block text-xs font-medium text-ink-muted">
 					Deliverable
 				</label>
 				<div class="mt-0.5">
@@ -179,7 +179,7 @@
 			</div>
 
 			<div class:hidden={!workTypesAvailable}>
-				<label for="work-type-select" class="block text-xs font-medium text-stone-600">
+				<label for="work-type-select" class="block text-xs font-medium text-ink-muted">
 					Work type
 				</label>
 				<div class="mt-0.5">
@@ -193,7 +193,7 @@
 			</div>
 
 			<div>
-				<label for="entry-duration" class="block text-xs font-medium text-stone-600">Time</label>
+				<label for="entry-duration" class="block text-xs font-medium text-ink-muted">Time</label>
 				<div class="mt-0.5">
 					<DurationField
 						id="entry-duration"
@@ -206,14 +206,14 @@
 		</div>
 
 		{#if saveError}
-			<div class="mt-3 rounded-md bg-red-50 p-2 text-xs text-red-600" role="alert">{saveError}</div>
+			<div class="mt-3 rounded-md bg-rust-50 p-2 text-xs text-rust-600" role="alert">{saveError}</div>
 		{/if}
 
 		<div class="mt-4 flex justify-end gap-2">
 			<button
 				type="button"
 				onclick={onClose}
-				class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
+				class="rounded-md btn-secondary px-3 py-1.5 text-sm"
 			>
 				Cancel
 			</button>
@@ -221,7 +221,7 @@
 				type="button"
 				onclick={handleSave}
 				disabled={isSaving}
-				class="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-70"
+				class="rounded-md btn-primary px-4 py-1.5 text-sm font-medium disabled:cursor-wait disabled:opacity-70"
 			>
 				{isSaving ? 'Saving…' : saveError ? 'Retry' : 'Save'}
 			</button>

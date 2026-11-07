@@ -123,10 +123,15 @@ test('notes: list, editor, wiki-link list, menus, find and Undo @iphone', async 
 	await iphoneScreenshot(page, testInfo, '07-note');
 
 	await expectTouchSized(page.getByRole('button', { name: 'B', exact: true }));
-	// The toolbar scrolls sideways inside itself; its last button can be reached
-	const attachButton = page.getByRole('button', { name: 'Attach' });
-	await attachButton.scrollIntoViewIfNeeded();
-	await expectInsideViewportWidth(page, attachButton);
+	// 054-DR: the phone toolbar fits; Attach and the rest sit in the "Formatting" overflow menu
+	const formattingButton = page.getByTestId('editor-toolbar').getByRole('button', { name: 'Formatting' });
+	await expectTouchSized(formattingButton);
+	await formattingButton.click();
+	const formattingMenu = page.getByRole('menu', { name: 'Formatting' });
+	await expect(formattingMenu.getByRole('menuitem', { name: 'Attach file' })).toBeVisible();
+	await expectInsideViewportWidth(page, formattingMenu);
+	await page.keyboard.press('Escape');
+	await expect(formattingMenu).toHaveCount(0);
 
 	// Wiki-link list stays on screen even with the caret near the right edge
 	await editor(page).getByText('Send the proposal').click();
@@ -138,13 +143,17 @@ test('notes: list, editor, wiki-link list, menus, find and Undo @iphone', async 
 	await iphoneScreenshot(page, testInfo, '08-wiki-link-list');
 	await page.keyboard.press('Escape');
 
-	// Move menu opens on screen (it opened off the left edge before)
-	await page.getByRole('button', { name: /^Move/ }).click();
-	const moveMenu = page.locator('[data-move-menu] > div');
+	// Note actions → Move opens on screen (it opened off the left edge before)
+	const noteActions = page.getByTestId('note-editor-header').getByRole('button', { name: 'Note actions' });
+	await expectTouchSized(noteActions);
+	await noteActions.click();
+	await page.getByRole('menuitem', { name: /^Move/ }).click();
+	const moveMenu = page.getByRole('menu', { name: 'Move note to' });
 	await expect(moveMenu).toBeVisible();
 	await expectInsideViewportWidth(page, moveMenu);
 	await iphoneScreenshot(page, testInfo, '09-move-menu');
-	await page.getByRole('button', { name: /^Move/ }).click();
+	await noteActions.click();
+	await expect(moveMenu).toHaveCount(0);
 
 	// Find in note from the title bar (no Cmd+F on a phone)
 	await page.getByTestId('mobile-find-button').click();
@@ -157,7 +166,8 @@ test('notes: list, editor, wiki-link list, menus, find and Undo @iphone', async 
 	await expect(page.getByTestId('find-bar')).toHaveCount(0);
 
 	// Delete, then Undo from the toast
-	await page.getByRole('button', { name: 'Delete', exact: true }).click();
+	await noteActions.click();
+	await page.getByRole('menuitem', { name: 'Delete' }).click();
 	await page.getByTestId('delete-confirm').getByRole('button', { name: 'Delete' }).click();
 	const toast = page.getByTestId('note-trash-toast');
 	await expect(toast).toBeVisible();

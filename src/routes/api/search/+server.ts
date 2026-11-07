@@ -4,17 +4,22 @@ import { searchEverythingForUser, MINIMUM_QUERY_LENGTH } from '$lib/server/db/qu
 import { apiError } from '$lib/server/api-errors';
 
 const DEFAULT_LIMIT = 20;
-const MAX_LIMIT = 50;
+/** Per group, so one response holds at most 200 hits (058-DR; was 50) */
+const MAX_LIMIT = 100;
 /** Same ceiling as /api/notes/search */
 const MAX_QUERY_LENGTH = 200;
 
 /**
  * GET /api/search?q=&limit=  (sprint 042-CL)
  *
- * Searches the caller's notes (ID, title, body; not the trash) and time entries (description)
- * across every client. `{ query, notes: { hits, total }, timeEntries: { hits, total } }`; each hit
- * carries its client and contract, a date and a snippet with match offsets. `limit` is per group
- * (default 20, at most 50). A query under two characters returns empty groups.
+ * Searches the caller's notes (not the trash) and time entries across every client with the shared
+ * matcher (sprint 058-DR, `$lib/server/search/`): every word must match the record's own text
+ * (note ID, title, body; entry description) or its identity (client name, short code, contract
+ * name; for entries also deliverable and work type). `{ query, notes: { hits, total },
+ * timeEntries: { hits, total } }`; each group is in rank order (rank, then newest). Each hit carries
+ * its client and contract (with `clientColorIndex`), a date, `rank`, `matchedIn`, `matchedContext`
+ * and a snippet with match offsets. `limit` is per group (default 20, at most 100). A query under
+ * two characters returns empty groups.
  */
 export const GET: RequestHandler = async ({ locals, url }) => {
 	const currentUser = locals.user;

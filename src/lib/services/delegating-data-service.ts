@@ -32,6 +32,9 @@ import type { TimerLocalStart,
 	TimerStatus,
 	TimerEntry,
 	SaveTimerInput,
+	SplitTimerInput,
+	SplitTimerResult,
+	ResumeTimerOptions,
 	DeliverableOption,
 	WorkTypeOption
 } from './types';
@@ -202,8 +205,16 @@ export class DelegatingDataService implements DataService {
 		return this.delegate.saveTimer(data);
 	}
 
-	discardTimer(entryId: string): Promise<void> {
-		return this.delegate.discardTimer(entryId);
+	discardTimer(entryId: string, options?: { expectedStartedAt?: string }): Promise<void> {
+		return this.delegate.discardTimer(entryId, options);
+	}
+
+	splitTimer(input: SplitTimerInput): Promise<SplitTimerResult> {
+		return this.delegate.splitTimer(input);
+	}
+
+	resumeTimer(options?: ResumeTimerOptions): Promise<TimerEntry> {
+		return this.delegate.resumeTimer(options);
 	}
 
 	// ── Deliverables & Work Types ─────────────────────────────

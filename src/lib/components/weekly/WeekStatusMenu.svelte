@@ -26,11 +26,11 @@
 	function getStatusClasses(status: string): string {
 		switch (status) {
 			case 'Draft ready':
-				return 'bg-amber-100 text-amber-800';
+				return 'bg-ochre-100 text-ochre-800';
 			case 'Submitted':
-				return 'bg-emerald-100 text-emerald-800';
+				return 'bg-leaf-100 text-leaf-800';
 			default:
-				return 'bg-stone-100 text-stone-600';
+				return 'bg-chalk-100 text-ink-muted';
 		}
 	}
 
@@ -97,19 +97,19 @@
 			tabindex="-1"
 			aria-label="Week status"
 			onkeydown={handleMenuKeydown}
-			class="absolute right-0 top-full z-30 mt-1 w-48 rounded-md border border-stone-200 bg-white py-1 shadow-lg"
+			class="absolute right-0 top-full z-30 mt-1 w-48 rounded-md menu-panel py-1"
 		>
 			{#each WEEK_STATUSES as status (status.value)}
 				<button
 					role="menuitemradio"
 					aria-checked={status.value === currentStatus}
 					onclick={() => chooseStatus(status.value)}
-					class="flex w-full items-start gap-2 px-3 py-1.5 text-left hover:bg-stone-50 focus:bg-stone-100 focus:outline-none"
+					class="flex w-full items-start gap-2 px-3 py-1.5 text-left hover:bg-chalk-50 focus:bg-chalk-100 focus:outline-none"
 				>
-					<span class="mt-0.5 w-3 text-xs text-blue-600">{status.value === currentStatus ? '✓' : ''}</span>
+					<span class="mt-0.5 w-3 text-xs text-pine-600">{status.value === currentStatus ? '✓' : ''}</span>
 					<span>
-						<span class="block text-sm text-stone-800">{status.value}</span>
-						<span class="block text-xs text-stone-400">{status.hint}</span>
+						<span class="block text-sm text-ink">{status.value}</span>
+						<span class="block text-xs text-ink-faint">{status.hint}</span>
 					</span>
 				</button>
 			{/each}

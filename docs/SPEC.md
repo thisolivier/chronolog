@@ -200,6 +200,18 @@ database. If multi-account ever returns, the ID needs a per-user component, not 
 
 Parsed in TipTap via custom WikiLink node with `[[` trigger and Suggestion popup. Backlinks index rebuilt on save.
 
+## Search
+
+One shared matcher (`src/lib/server/search/`, sprint 058-DR, design r1 SR-03) serves global search
+(`GET /api/search`: notes and time entries) and the `[[` link picker (`GET /api/notes/search`: notes,
+the only link target). Every word of the query must match the record's own text (note ID, title,
+body; entry description) or its identity (client name, short code, contract name; for entries also
+deliverable and work type), so "Amplitude" finds a client's notes even when their text never names
+it. Ranked exact ID, ID prefix, title, ID substring, content plus identity, body, identity only;
+newest first within a rank; never scoped to the current contract. Columns are encrypted, so matching
+runs in memory after one decrypt pass per request (note bodies only when needed); the offline
+picker fallback runs the same pure matcher (`src/lib/search/`) over the read cache. Details and the rank table: the module README.
+
 ## UI Principles
 
 - Minimal / functional aesthetic (Linear, Notion-inspired)
