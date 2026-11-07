@@ -84,6 +84,15 @@ The editor always shows the opened note's own contract (`panel.currentNote.contr
 
 Reviewed by eye; fixed during the sprint: the phone Formatting menu opened off the right edge (now right-aligned), and on a narrow desktop panel (900 px) Rich / Raw wrapped to the left (now `ml-auto`).
 
+## Review fixes (independent review, same day)
+
+- **Blocker fixed:** "‹ Move to" closed the whole Note actions menu (the view swap detached the clicked item before the document click listener ran). The outside-close now listens on `pointerdown` and tests `event.composedPath()`.
+- Delete from the menu focuses the confirmation's Delete button (focus no longer drops to the body); Tab from a menu item returns focus to the trigger and closes, so the browser moves on from the button.
+- An open Note actions menu closes whenever the note (or its contract) changes, e.g. Back by shortcut or swipe, so a Move list built for one note cannot move another.
+- Tests no longer pass on screen-reader text: `navigation-journeys` and `sidebar-archive-collapse` check the scope through `data-contract-id` on `note-list-context` / `note-editor-context` and the visible title (`note-list-title` reads "Notes") with the new `expectNotesScopedTo` helper. `notes-headers` gained the "‹ Move to" round trip, focus checks and the history note-switch case (8 tests).
+- Re-run: check `svelte-check found 0 errors and 0 warnings`; lint clean; `Test Files 124 passed (124)`, `Tests 1193 passed (1193)`; chromium `3 failed` (the search-results-layout three, fixed on `design-r1`) `6 skipped` `101 passed (1.3m)`; iPhone projects first run `1 failed` (`iphone-15` week journey, `page.goto: Navigation to "/time" is interrupted by another navigation to "/"`, not a notes path) `2 skipped` `16 passed (22.5s)`, re-run `2 skipped` `17 passed (18.1s)`.
+- Note for after the merge with 3a: 3a exposes `shellPresentation.sidebarOnScreen`, which `isNavigationHidden` in `note-context-ownership.ts` derives on its own; a follow-up stage switches it to read the shell store so there is one source of truth.
+
 ## Follow-ups
 
 - NT-03 inline contract repeats (deferred 2026-11-07): space is kept in both headers (`note-list-header-space`, and the flex gap after the save pill).
