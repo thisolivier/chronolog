@@ -137,6 +137,16 @@ export type NoteSearchResult = {
 	firstLine: string;
 	secondLine: string;
 	updatedAt: string;
+	/**
+	 * Shared-matcher fields (sprint 058-DR), sent by `GET /api/notes/search`; absent on results the
+	 * offline cache builds. `rank` and `matchedIn` are null for the recent list of an empty query.
+	 */
+	clientColorIndex?: number;
+	rank?: number | null;
+	matchedIn?: 'id' | 'title' | 'body' | 'description' | 'context' | null;
+	matchedContext?: Array<'clientName' | 'clientShortCode' | 'contractName' | 'deliverableName' | 'workTypeName'>;
+	titleMatches?: Array<{ start: number; end: number }>;
+	snippet?: { text: string; matches: Array<{ start: number; end: number }> };
 };
 
 export type NoteTitleInfo = {

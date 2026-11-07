@@ -6,31 +6,39 @@ const context = {
 	clientId: 'client-1',
 	clientName: 'Acme',
 	clientShortCode: 'ACM',
+	clientColorIndex: 2,
 	contractId: 'contract-1',
 	contractName: 'Build'
 };
 const emptySnippet = { text: '', matches: [] };
 
 /** A note last modified at a local moment (months are 1-based here) */
-function note(id: string, month: number, day: number, hour: number, minute = 0): NoteHit {
+function note(id: string, month: number, day: number, hour: number, minute = 0, rank = 4): NoteHit {
 	return {
 		...context,
 		id,
 		title: id,
 		matchedIn: 'title',
+		rank,
+		matchedContext: [],
 		titleMatches: [],
 		snippet: emptySnippet,
 		updatedAt: new Date(2026, month - 1, day, hour, minute).toISOString()
 	};
 }
 
-function entry(id: string, date: string, startTime: string | null): TimeEntryHit {
+function entry(id: string, date: string, startTime: string | null, rank = 4): TimeEntryHit {
 	return {
 		...context,
 		id,
 		date,
 		startTime,
 		durationMinutes: 30,
+		deliverableName: null,
+		workTypeName: null,
+		matchedIn: 'description',
+		rank,
+		matchedContext: [],
 		snippet: emptySnippet
 	};
 }
@@ -43,7 +51,15 @@ function idsOf(result: { notes: NoteHit[]; entries: TimeEntryHit[] }): string[] 
 }
 
 describe('interleaveSearchHits', () => {
-	it('merges notes and entries newest first', () => {
+	it('puts the better shared rank first, whatever the dates (058-DR)', () => {
+		const order = idsOf({
+			notes: [note('n-title', 1, 2, 9, 0, 2), note('n-context', 10, 30, 9, 0, 6)],
+			entries: [entry('e-new-context', '2026-10-31', '08:00', 6), entry('e-old-content', '2026-01-01', null, 4)]
+		});
+		expect(order).toEqual(['note:n-title', 'entry:e-old-content', 'entry:e-new-context', 'note:n-context']);
+	});
+
+	it('merges notes and entries of one rank newest first', () => {
 		const order = idsOf({
 			notes: [note('n-oct-21', 10, 21, 9), note('n-oct-19', 10, 19, 15)],
 			entries: [entry('e-oct-22', '2026-10-22', '08:00'), entry('e-oct-20', '2026-10-20', '11:00'), entry('e-oct-18', '2026-10-18', null)]

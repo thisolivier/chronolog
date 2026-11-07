@@ -17,6 +17,7 @@ import type {
 	WeekData
 } from '$lib/services/types';
 import { noteDisplayTitle } from '$lib/utils/note-display-title';
+import { matchNote, parseSearchQuery, rankCandidates, sortByRecency } from '$lib/search/record-matcher';
 
 export type CachedRead = [url: string, body: unknown];
 
@@ -128,26 +129,28 @@ export function titlesFromCache(ids: string[], notes: Map<string, KnownNote>, re
 	});
 }
 
-/** Plain case-insensitive search over what the cache holds (titles, previews, opened notes' text) */
+/**
+ * Search what the cache holds (titles, previews, opened notes' text) with the same shared matcher
+ * and rank order as the server (sprint 058-DR): every word in the note's ID, title, body (or cached
+ * preview lines), client name, short code or contract name. An empty query with `recent` lists the
+ * newest cached notes.
+ */
 export function searchCachedNotes(
 	query: string,
 	options: NoteSearchOptions,
 	notes: Map<string, KnownNote>,
 	reads: CachedRead[]
 ): NoteSearchResult[] {
-	const needle = query.trim().toLowerCase();
-	const results: NoteSearchResult[] = [];
+	const parsed = parseSearchQuery(query);
+	if (parsed.terms.length === 0 && !options.recent) return [];
+	const candidates: NoteSearchResult[] = [];
+	const bodies = new Map<string, string>();
 	for (const [id, note] of notes) {
 		if (id === options.excludeNoteId) continue;
 		const contractId = note.detail?.contractId ?? note.summary?.contractId ?? '';
-		const haystack = [note.detail?.title, note.detail?.content, note.summary?.firstLine, note.summary?.secondLine]
-			.filter(Boolean)
-			.join('\n')
-			.toLowerCase();
-		if (needle && !haystack.includes(needle)) continue;
-		if (!needle && !options.recent) continue;
 		const info = contractInfo(reads, contractId);
-		results.push({
+		bodies.set(id, note.detail?.content ?? [note.summary?.firstLine, note.summary?.secondLine].filter(Boolean).join('\n'));
+		candidates.push({
 			id,
 			title: note.detail?.title ?? null,
 			displayTitle: displayTitleOf(note),
@@ -156,11 +159,25 @@ export function searchCachedNotes(
 			clientId: info?.clientId ?? '',
 			clientName: info?.clientName ?? '',
 			clientShortCode: info?.clientShortCode ?? '',
+			clientColorIndex: info?.clientColorIndex,
 			firstLine: note.summary?.firstLine ?? '',
 			secondLine: note.summary?.secondLine ?? '',
-			updatedAt: note.detail?.updatedAt ?? note.summary?.updatedAt ?? ''
+			updatedAt: note.detail?.updatedAt ?? note.summary?.updatedAt ?? '',
+			rank: null,
+			matchedIn: null,
+			matchedContext: []
 		});
 	}
-	results.sort((first, second) => second.updatedAt.localeCompare(first.updatedAt));
-	return results.slice(0, options.limit ?? 25);
+	const limit = options.limit ?? 25;
+	const idOf = (result: NoteSearchResult) => result.id;
+	const recencyOf = (result: NoteSearchResult) => result.updatedAt;
+	if (parsed.terms.length === 0) return sortByRecency(candidates, recencyOf, idOf).slice(0, limit);
+	return rankCandidates(
+		candidates,
+		(result) => matchNote(parsed, { ...result, title: result.displayTitle, body: bodies.get(result.id) ?? '' }),
+		recencyOf,
+		idOf
+	)
+		.slice(0, limit)
+		.map(({ candidate, match }) => ({ ...candidate, ...match }));
 }

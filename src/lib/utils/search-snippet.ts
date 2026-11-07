@@ -12,20 +12,34 @@ const DEFAULT_CONTEXT_BEFORE = 50;
 const DEFAULT_SNIPPET_LENGTH = 180;
 const ELLIPSIS = '…';
 
-/** Every non-overlapping occurrence of `needle` in `text`, case-insensitive. */
-export function findMatchRanges(text: string, needle: string): MatchRange[] {
-	const lowerNeedle = needle.toLowerCase();
-	if (!lowerNeedle) return [];
-	const lowerText = text.toLowerCase();
-	const ranges: MatchRange[] = [];
-	let searchFrom = 0;
-	for (;;) {
-		const index = lowerText.indexOf(lowerNeedle, searchFrom);
-		if (index === -1) break;
-		ranges.push({ start: index, end: index + lowerNeedle.length });
-		searchFrom = index + lowerNeedle.length;
+/**
+ * Every occurrence of one needle, case-insensitive, non-overlapping, as offsets into the original
+ * `text`. A regex with the `i` flag folds case without changing lengths, so the offsets stay right
+ * after characters whose lower case is longer (e.g. "İ"); lower-casing the text first would shift them.
+ */
+function rangesOfNeedle(text: string, needle: string): MatchRange[] {
+	if (!needle) return [];
+	const pattern = new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'giu');
+	return [...text.matchAll(pattern)].map((found) => ({ start: found.index, end: found.index + found[0].length }));
+}
+
+/**
+ * Every occurrence of `needle` in `text`, case-insensitive. Given several needles (a query's
+ * phrase and its words, sprint 058-DR), the ranges of all of them, sorted, with overlapping
+ * ranges merged so the result never overlaps.
+ */
+export function findMatchRanges(text: string, needle: string | readonly string[]): MatchRange[] {
+	const needles = typeof needle === 'string' ? [needle] : needle;
+	const ranges = needles
+		.flatMap((oneNeedle) => rangesOfNeedle(text, oneNeedle))
+		.sort((first, second) => first.start - second.start || second.end - first.end);
+	const merged: MatchRange[] = [];
+	for (const range of ranges) {
+		const previous = merged[merged.length - 1];
+		if (previous && range.start < previous.end) previous.end = Math.max(previous.end, range.end);
+		else merged.push({ ...range });
 	}
-	return ranges;
+	return merged;
 }
 
 /**
@@ -46,12 +60,13 @@ export function plainTextFromMarkdown(markdown: string): string {
 }
 
 /**
- * The excerpt of `text` around the first match of `needle`, cut at word boundaries where possible,
- * with "…" where it was cut. Without a match it is the start of the text and `matches` is empty.
+ * The excerpt of `text` around the first match of `needle` (or of any of several needles), cut at
+ * word boundaries where possible, with "…" where it was cut. Without a match it is the start of the
+ * text and `matches` is empty.
  */
 export function buildSearchSnippet(
 	text: string,
-	needle: string,
+	needle: string | readonly string[],
 	options: { length?: number; contextBefore?: number } = {}
 ): SearchSnippet {
 	const length = options.length ?? DEFAULT_SNIPPET_LENGTH;
