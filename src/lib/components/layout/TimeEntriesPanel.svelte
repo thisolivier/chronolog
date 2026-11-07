@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { captureScreen } from '$lib/components/timer/capture-screen.svelte';
 	import FindBar from '$lib/components/find/FindBar.svelte';
 	import { onMount, tick } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
@@ -8,9 +7,6 @@
 	import WeekStrip from '$lib/components/weekly/WeekStrip.svelte';
 	import TimeEntryCard from '$lib/components/weekly/TimeEntryCard.svelte';
 	import NewEntryRow from '$lib/components/weekly/NewEntryRow.svelte';
-	import AddTimeEntryModal from '$lib/components/timer/AddTimeEntryModal.svelte';
-	import { getTimerStateContext } from '$lib/stores/timer-state.svelte';
-	import { dispatchTimeEntrySaved } from '$lib/components/weekly/time-entry-events';
 	import { getMondayOfWeek, getWeekDates, formatDayHeader } from '$lib/utils/iso-week';
 	import { calendarWeekOf } from '$lib/utils/calendar-week';
 	import { formatDayHeading, formatWeekHeading } from '$lib/components/weekly/week-labels';
@@ -25,7 +21,6 @@
 
 	const navigation = getNavigationContext();
 	const dataService = getDataService();
-	const timer = getTimerStateContext();
 
 	let loadedWeeks = $state<WeekData[]>([]);
 	let isLoading = $state(false);
@@ -183,20 +178,9 @@
 			: []
 	);
 
-	// The phone's Add Entry opens on today when today is in view
-	let addEntryDate = $derived(displayDays.includes(todayString) ? todayString : selectedWeekStart);
-
-	// Phone (TR-08): no footer timer bar. A running or stopped capture is in the header pill (053-DR);
-	// with no capture, Start timer (the capture screen, the same path as the pill) and Add Entry
-	// stay in the week controls.
-	let showPhoneCaptureAccess = $derived(navigation.layoutMode === 'mobile' && timer.status === 'idle');
-	let showAddEntryModal = $state(false);
-
-	function handlePhoneEntryCreated(created: { entryId: string; date: string }) {
-		showAddEntryModal = false;
-		dispatchTimeEntrySaved(created);
-		navigation.showTimeEntryDay(created.date);
-	}
+	// Phone (TR-08; owner change in 060-DR): no footer timer bar and no Start timer / Add Entry in
+	// the week controls. A running or stopped capture is in the header pill (053-DR); a new timer
+	// starts from the home screen's widget; each day heading keeps its "Add entry".
 
 	// A failed week-status save, shown at the status (TR-07); cleared by the next attempt
 	let statusError = $state('');
@@ -523,25 +507,6 @@
 	</section>
 {/snippet}
 
-<!-- Phone (060-DR): icon plus label on the week's summary row; under 400 px the label is one word -->
-{#snippet phoneCaptureAccess()}
-	{#if showPhoneCaptureAccess}
-		<button
-			type="button"
-			onclick={() => captureScreen.open()}
-			class="flex items-center gap-1 rounded-control px-2.5 py-1.5 text-sm font-medium whitespace-nowrap btn-primary pointer-coarse:min-h-11"
-			title="Open the timer to start it"
-			aria-label="Start timer"
-			data-testid="phone-start-timer"
-		><svg class="h-3 w-3 shrink-0" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z" /></svg><span class="max-[399px]:hidden">Start timer</span><span class="hidden max-[399px]:inline">Timer</span></button>
-		<button
-			type="button"
-			onclick={() => (showAddEntryModal = true)}
-			aria-label="Add Entry"
-			class="flex items-center gap-1 rounded-control px-2.5 py-1.5 text-sm font-medium whitespace-nowrap btn-secondary pointer-coarse:min-h-11"
-		><svg class="h-3 w-3 shrink-0" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 2v8M2 6h8" /></svg><span class="max-[399px]:hidden">Add Entry</span><span class="hidden max-[399px]:inline">Entry</span></button>
-	{/if}
-{/snippet}
 
 <div class="flex h-full flex-col overflow-hidden bg-surface">
 	<FindBar mode="dom" />
@@ -558,7 +523,6 @@
 			onNextWeek={navigateToNextWeek}
 			onDayClick={handleDayClick}
 			onToday={() => navigation.showTimeEntryDay(todayString)}
-			phoneActions={showPhoneCaptureAccess ? phoneCaptureAccess : undefined}
 		/>
 	{/if}
 
@@ -591,9 +555,6 @@
 	</div>
 </div>
 
-{#if showAddEntryModal}
-	<AddTimeEntryModal initialDate={addEntryDate} onCreated={handlePhoneEntryCreated} onClose={() => (showAddEntryModal = false)} />
-{/if}
 
 <style>
 	/* Sticky inside its own day section: pinned to the top of the scroller while the day's entries

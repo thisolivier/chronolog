@@ -3,11 +3,10 @@
 	one row; seven day cells (weekday and date on one line, duration below, a thin segmented bar of
 	the day's client colours from the actual entries). A day cell scrolls to that day's heading; it
 	is not a filter. Week numbers follow calendar-week.ts (Week 1 contains 1 January).
-	Phone: the total and status move to one row under the days, with `phoneActions` (capture access
-	when no timer runs) at its end (sprint 060-DR: three compact rows above the first day).
+	Phone: the total and status move to one row under the days (sprint 060-DR: three compact rows
+	above the first day; no capture buttons, the header pill and home widget give timer access).
 -->
 <script lang="ts">
-	import type { Snippet } from 'svelte';
 	import { getMondayOfWeek } from '$lib/utils/iso-week';
 	import { calendarWeekNumber } from '$lib/utils/calendar-week';
 	import { formatMinutes, formatMinutesCompact } from '$lib/utils/duration';
@@ -31,8 +30,7 @@
 		onPrevWeek,
 		onNextWeek,
 		onDayClick,
-		onToday,
-		phoneActions
+		onToday
 	}: {
 		weekStart: string;
 		days: DayData[];
@@ -46,8 +44,6 @@
 		onDayClick: (date: string) => void;
 		/** Jump to the current week and today's section (sprint 041-CL); no button without it */
 		onToday?: () => void;
-		/** Extra phone-only controls in the total / status row */
-		phoneActions?: Snippet;
 	} = $props();
 
 	const weekNumber = $derived(calendarWeekNumber(weekStart));
@@ -99,7 +95,7 @@
 		{/if}
 	</div>
 
-	<div class="week-strip-summary flex flex-nowrap items-center justify-between gap-x-2 gap-y-2 px-3 pb-2 sm:justify-end sm:gap-x-3 sm:px-4 sm:pt-2 sm:pb-1">
+	<div class="week-strip-summary flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 pb-2 sm:justify-end sm:gap-x-3 sm:px-4 sm:pt-2 sm:pb-1">
 		<span class="text-base font-semibold whitespace-nowrap tabular-nums text-ink sm:text-lg" data-testid="week-total">{weeklyTotalHours}</span>
 		<div class="flex flex-col items-end">
 			<WeekStatusMenu {currentStatus} {onStatusChange} />
@@ -107,9 +103,6 @@
 				<p class="mt-0.5 text-xs text-danger" role="alert" data-testid="week-status-error">{statusError}</p>
 			{/if}
 		</div>
-		{#if phoneActions}
-			<div class="ml-auto flex justify-end gap-1.5 empty:hidden sm:order-first sm:ml-0 sm:gap-2">{@render phoneActions()}</div>
-		{/if}
 	</div>
 
 	<!-- Seven days: a jump to that day's heading, not a filter -->
