@@ -11,6 +11,7 @@
 	import { OfflineDataService } from '$lib/offline/offline-data-service';
 	import { startOfflineSession } from '$lib/offline/offline-session.svelte';
 	import { registerServiceWorker, watchServiceWorkerUpdates } from '$lib/offline/service-worker-updates';
+	import { historyReturns } from '$lib/components/notes/note-scroll-memory';
 
 	let { children, data } = $props();
 
@@ -37,6 +38,8 @@
 			navigation.type === 'enter'
 				? (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type
 				: undefined;
+		// Back / Forward to a note restores where it was read (054-DR, SH-07)
+		historyReturns.record(navigation.type, navigation.to.url.pathname);
 		void navState.syncFromUrl(navigation.to.url, navigation.type, navigation.delta, loadType);
 	});
 
