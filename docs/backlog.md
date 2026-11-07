@@ -60,10 +60,9 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
   Sprint 060-DR item 7 hides the top-bar title on note screens whose headers already carry the
   context (`phoneTitleBarNamesContext` in `note-context-ownership.ts`); confirm on the phone after
   the 060 deploy and reopen if anything still repeats.
-- **Back/forward hides the home button.** On the phone the top-left is "← Back" / "← Chronolog",
-  so the ever-present "Chronolog" home affordance disappears behind history navigation. Needs a small
-  design pass: options are a fixed home glyph beside the back arrow, or back/forward as a pair on the
-  right with "Chronolog" always on the left. Not started.
+- **Back/forward hides the home button.** Owner decision (2026-11-07, late): "Chronolog" is ever
+  present top-left and acts as the home button; the back and forward buttons sit to its right, on
+  every layout. Sprint 062-DR.
 
 ## Owner-requested (2026-11-07): revisit week numbering before 28 December
 
