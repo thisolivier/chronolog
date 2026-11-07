@@ -4,7 +4,7 @@ Components for displaying and editing time entries, used by the layout panels.
 
 ## Components
 
-- **WeekStrip.svelte** — Week overview (057-DR, TR-01), sticky above the timesheet scroller (`data-testid="week-strip"`): ‹ › (titles name the neighbouring week numbers, no wrap at 52), "Week 45 · 2–8 Nov 2026", Today (041-CL), week total and status in one row (phone: total and status below the days, with the panel's `phoneActions`). Seven day cells: "Mon 2", duration, a thin segmented client-colour bar from the actual entries (`flex-grow` by share). A cell scrolls to that day's heading; it is not a filter. Today's cell keeps `bg-ochre-100`. A failed status save shows under the status (`statusError`).
+- **WeekStrip.svelte** — Week overview (057-DR, TR-01), sticky above the timesheet scroller (`data-testid="week-strip"`): ‹ › (titles name the neighbouring week numbers, no wrap at 52), "Week 45 · 2–8 Nov 2026", Today (041-CL), week total and status in one row (phone: total and status on one row below the days). Seven day cells: "Mon 2", duration, a thin segmented client-colour bar from the actual entries (`flex-grow` by share). A cell scrolls to that day's heading; it is not a filter. Today's cell keeps `bg-ochre-100`. A failed status save shows under the status (`statusError`).
 - **WeekStatusMenu.svelte** — Menu for the week status: Unsubmitted, Draft ready, Submitted. Recordkeeping only; the Submitted hint says nothing is sent.
 - **week-labels.ts** — Week heading, week span ("28 Dec 2026 – 3 Jan 2027"), neighbouring week numbers, day headings ("Thursday, 5 November"), strip day ("Mon 2"). Tested.
 - **day-jump.ts** — `dayJumpScrollTop`: where to scroll so a day's heading sits under the week controls (replaces the fixed 8px offset). Tested.
@@ -26,7 +26,7 @@ Components for displaying and editing time entries, used by the layout panels.
 
 Components receive data as props from the parent layout panel (`TimeEntriesPanel`). Mutations (create, update, delete) go through the `DataService` from context within each component, with `onUpdated`/`onEntryCreated` callbacks to trigger parent re-fetches.
 
-TimeEntriesPanel (in `components/layout`) shows all seven days of the selected week, future days included, each under a bark-brown heading bar (date, local Add entry, day total; square ends) that is sticky inside its own day section, so the next day's heading replaces it at the boundary. Days with no entries get a quieter bar; today an ochre marker and "Today" tag, with no tint over the day. Older weeks are appended under "Show the week before". Phone: no footer timer bar (the header pill from 053-DR shows a running or stopped capture); with no capture the week controls offer Start timer (opens the capture screen) and Add Entry (the Add Entry modal).
+TimeEntriesPanel (in `components/layout`) shows all seven days of the selected week, future days included, each under a bark-brown heading bar (date, local Add entry, day total; square ends) that is sticky inside its own day section, so the next day's heading replaces it at the boundary. Days with no entries get a quieter bar; today an ochre marker and "Today" tag, with no tint over the day. Older weeks are appended under "Show the week before". Phone: no footer timer bar (the header pill from 053-DR shows a running or stopped capture); since 060-DR the week controls have no Start timer or Add Entry: a new timer starts from the home screen's widget, and each day heading keeps its Add entry.
 
 ## Related Files
 

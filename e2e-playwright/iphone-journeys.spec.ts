@@ -36,6 +36,8 @@ test('sign in, then the week: add, edit and delete an entry @iphone', async ({ p
 	await page.locator('#password').fill('FreshUser044!pass');
 	await page.locator('button[type="submit"]').click();
 	await page.waitForURL((url) => url.pathname === '/');
+	// Under a full-suite load the sign-in's own client navigation to / can still be settling (060-DR)
+	await page.waitForLoadState('networkidle');
 
 	await open(page, '/time');
 	await expect(page.getByTestId('time-entry-card').first()).toBeVisible();
@@ -48,18 +50,23 @@ test('sign in, then the week: add, edit and delete an entry @iphone', async ({ p
 	await expectTouchSized(page.getByRole('button', { name: /^Add entry for / }).first());
 	await iphoneScreenshot(page, testInfo, '02-week');
 
-	// Add an entry through the modal: every field at 16px or more (no zoom on focus)
-	await page.getByRole('button', { name: 'Add Entry', exact: true }).last().click();
-	const dialog = page.getByRole('dialog');
-	await expect(dialog).toBeVisible();
+	// Add an entry from today's heading (060-DR: the phone week has no Add Entry button):
+	// every field at 16px or more (no zoom on focus)
+	const now = new Date();
+	const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+	await expect(page.getByTestId('phone-start-timer')).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Add Entry', exact: true })).toHaveCount(0);
+	await page.locator(`[data-add-entry="${today}"]`).click();
+	const prefix = `#new-entry-${today}`;
+	await expect(page.locator(`${prefix}-contract`)).toBeVisible();
 	await expectNoZoomingFields(page);
-	await expectInsideViewportWidth(page, dialog.locator('> div').first());
+	await expectNoSidewaysScroll(page);
 	await iphoneScreenshot(page, testInfo, '03-add-entry');
-	await dialog.locator('#entry-description').fill('Phone entry');
-	const contractValue = await dialog.locator('#entry-contract option', { hasText: seed.contractName }).first().getAttribute('value');
-	await dialog.locator('#entry-contract').selectOption(contractValue!);
-	await dialog.locator('#entry-duration').fill('45m');
-	await dialog.getByRole('button', { name: 'Save' }).click();
+	await page.keyboard.type('Phone entry');
+	const contractValue = await page.locator(`${prefix}-contract option`, { hasText: seed.contractName }).first().getAttribute('value');
+	await page.locator(`${prefix}-contract`).selectOption(contractValue!);
+	await page.locator(`${prefix}-time`).fill('45m');
+	await page.locator(`${prefix}-time`).press('Enter');
 	const card = page.getByTestId('time-entry-card').filter({ hasText: 'Phone entry' });
 	await expect(card).toBeVisible();
 
@@ -91,12 +98,18 @@ test('timer: start, adjust the start, stop and discard @iphone', async ({ page, 
 	await signInAsFreshUser(page, baseURL, 'iphone-timer');
 	await seedIphoneData(page, uniqueSuffix());
 	await open(page, '/time');
-	// 057-DR: no footer timer bar on the phone timesheet; "Start timer" opens the capture screen
+	// 057-DR: no footer timer bar; 060-DR: no Start timer in the phone week either
 	await expect(page.getByTestId('timer-widget-footer')).toHaveCount(0);
-	await page.getByTestId('phone-start-timer').click();
-	// One path (checkpoint B/C): the week's Start timer opens the same capture screen as the pill
+	await expect(page.getByTestId('phone-start-timer')).toHaveCount(0);
+	// A new timer starts from the home screen's widget
+	await open(page, '/');
+	const homeWidget = page.getByTestId('timer-widget-sidebar');
+	await homeWidget.getByRole('button', { name: 'Start Timer' }).click();
+	await expect(homeWidget.getByTestId('timer-start-time')).toBeVisible();
+	// On the week the running capture is the header pill, which opens the capture screen
+	await open(page, '/time');
+	await page.getByTestId('timer-indicator').click();
 	const widget = page.getByTestId('phone-capture-screen').getByTestId('timer-widget-screen');
-	await widget.getByRole('button', { name: 'Start Timer' }).click();
 	const startField = widget.getByTestId('timer-start-time');
 	await expect(startField).toBeVisible();
 	await expectNoZoomingFields(page);
@@ -109,9 +122,9 @@ test('timer: start, adjust the start, stop and discard @iphone', async ({ page, 
 	await expectNoZoomingFields(page);
 	await iphoneScreenshot(page, testInfo, '05-timer-stopped');
 	await widget.getByRole('button', { name: /Discard/ }).click();
-	// Discard resolves the capture and leaves the screen: back on the week, Start timer is offered again
+	// Discard resolves the capture and leaves the screen: back on the week, no pill
 	await expect(page.getByTestId('phone-capture-screen')).toHaveCount(0);
-	await expect(page.getByTestId('phone-start-timer')).toBeVisible();
+	await expect(page.getByTestId('timer-indicator')).toHaveCount(0);
 });
 
 test('notes: list, editor, wiki-link list, menus, find and Undo @iphone', async ({ page, baseURL }, testInfo) => {
@@ -283,8 +296,10 @@ test('landscape on the standard iPhone: week and note @iphone', async ({ page, b
 	await expect(weekStrip).toHaveCSS('position', 'static');
 	await iphoneScreenshot(page, testInfo, '20-landscape-week');
 
-	// A modal taller than the screen scrolls inside itself, so Save can be reached
-	await page.getByRole('button', { name: 'Add Entry', exact: true }).last().click();
+	// A modal taller than the screen scrolls inside itself, so Save can be reached (the home
+	// screen widget's Add Entry: the phone week has none since 060-DR)
+	await open(page, '/');
+	await page.getByTestId('timer-widget-sidebar').getByRole('button', { name: 'Add Entry' }).click();
 	const dialog = page.getByRole('dialog');
 	const dialogBox = await dialog.boundingBox();
 	expect(dialogBox!.y, 'dialog top on screen').toBeGreaterThanOrEqual(0);

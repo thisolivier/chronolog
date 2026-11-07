@@ -17,6 +17,9 @@ import {
 	type HitContext
 } from '$lib/server/search/search-candidates';
 import { noteExcerpt, timeEntryExcerpt } from '$lib/server/search/search-excerpts';
+import { loadWikiLinkTargets } from './wiki-link-titles';
+import { markDeletedLinkText, type WikiLinkTextResolver } from '$lib/utils/search-snippet';
+import { collectWikiLinkNoteIds } from '$lib/utils/wiki-link-text';
 
 /**
  * Global search (sprint 042-CL; shared matcher since 058-DR): the user's notes and time entries
@@ -73,6 +76,22 @@ function matchFields(match: RecordMatch) {
 	return { rank: match.rank, matchedContext: match.matchedContext };
 }
 
+/**
+ * Reads the `[[id]]` links in the shown hits' text as their targets' titles, loaded in one query
+ * (sprint 060-DR); a link to a trashed note is marked so its excerpt can strike it through.
+ */
+async function wikiLinkReader(userId: string, texts: string[]): Promise<WikiLinkTextResolver> {
+	const targets = await loadWikiLinkTargets(
+		userId,
+		texts.flatMap((text) => collectWikiLinkNoteIds(null, text))
+	);
+	return (noteId, label) => {
+		const target = targets.get(noteId);
+		const text = label && label !== noteId ? label : target?.title || noteId;
+		return target?.deleted ? markDeletedLinkText(text) : text;
+	};
+}
+
 async function searchNotes(userId: string, query: SearchQuery, limit: number) {
 	const ranked = rankCandidates(
 		await loadNoteCandidates(userId),
@@ -80,10 +99,12 @@ async function searchNotes(userId: string, query: SearchQuery, limit: number) {
 		noteRecencyKey,
 		(note) => note.id
 	);
-	const hits = ranked.slice(0, limit).map(({ candidate: note, match }): NoteSearchHit => {
+	const shown = ranked.slice(0, limit);
+	const readWikiLink = await wikiLinkReader(userId, shown.map(({ candidate }) => candidate.readContent()));
+	const hits = shown.map(({ candidate: note, match }): NoteSearchHit => {
 		return {
 			id: note.id,
-			...noteExcerpt(note, query),
+			...noteExcerpt(note, query, readWikiLink),
 			updatedAt: note.updatedAt,
 			...hitContextOf(note),
 			matchedIn: match.matchedIn as NoteSearchHit['matchedIn'],
@@ -100,7 +121,9 @@ async function searchTimeEntries(userId: string, query: SearchQuery, limit: numb
 		timeEntryRecencyKey,
 		(entry) => entry.id
 	);
-	const hits = ranked.slice(0, limit).map(({ candidate: entry, match }): TimeEntrySearchHit => {
+	const shown = ranked.slice(0, limit);
+	const readWikiLink = await wikiLinkReader(userId, shown.map(({ candidate }) => candidate.description));
+	const hits = shown.map(({ candidate: entry, match }): TimeEntrySearchHit => {
 		return {
 			id: entry.id,
 			date: entry.date,
@@ -109,7 +132,7 @@ async function searchTimeEntries(userId: string, query: SearchQuery, limit: numb
 			deliverableName: entry.deliverableName,
 			workTypeName: entry.workTypeName,
 			...hitContextOf(entry),
-			snippet: timeEntryExcerpt(entry, query),
+			snippet: timeEntryExcerpt(entry, query, readWikiLink),
 			matchedIn: match.matchedIn as TimeEntrySearchHit['matchedIn'],
 			...matchFields(match)
 		};

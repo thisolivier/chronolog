@@ -10,6 +10,7 @@
 	the tray's Stop is the right card's (freeze the live end). Closed, the overlay is unmounted.
 -->
 <script lang="ts">
+	import WikiLinkRenderer from '$lib/components/weekly/WikiLinkRenderer.svelte';
 	import { untrack } from 'svelte';
 	import { getDataService } from '$lib/services/context';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
@@ -70,11 +71,13 @@
 	let leftCascade: OntologyCascade | undefined = $state();
 	let rightCascade: OntologyCascade | undefined = $state();
 
-	// The resolved summary keeps the left card's footprint, so the right card does not jump
-	let leftCardHeight = $state(0);
-	let lockedLeftHeight = $state(0);
+	// SP-04 "same footprint": the resolved summary keeps the left card's width but shrinks to its
+	// content (sprint 060-DR); the row of cards keeps its height, so the centred group, and with it
+	// the right card, does not move
+	let cardsRowHeight = $state(0);
+	let lockedRowHeight = $state(0);
 	$effect(() => {
-		if (!leftResolved) lockedLeftHeight = leftCardHeight;
+		if (!leftResolved) lockedRowHeight = cardsRowHeight;
 	});
 
 	function confirmDuration(part: SplitPartName, text: string): string {
@@ -189,19 +192,21 @@
 			{/if}
 		</div>
 
-		<div class="flex items-start gap-4">
+		<div
+			class="flex items-start gap-4"
+			style={leftResolved && lockedRowHeight ? `min-height: ${lockedRowHeight}px` : undefined}
+			bind:clientHeight={cardsRowHeight}
+		>
 			<!-- First part -->
 			<section
 				class={cardClass}
-				style={leftResolved && lockedLeftHeight ? `min-height: ${lockedLeftHeight}px` : undefined}
-				bind:clientHeight={leftCardHeight}
 				aria-label="First part"
 				data-testid="split-card-left"
 			>
 				<h3 class={titleClass}>First part</h3>
 				{#if splitSession.leftResult}
 					{@const result = splitSession.leftResult}
-					<div class="mt-3 flex flex-1 flex-col gap-2" data-testid="split-left-summary">
+					<div class="mt-3 flex flex-col gap-2" data-testid="split-left-summary">
 						<p class="flex items-center gap-1.5 text-sm font-semibold {result.action === 'saved' ? 'text-success' : 'text-ink-muted'}">
 							<svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
 								{#if result.action === 'saved'}<path d="m3.5 8.5 3 3 6-7" stroke-linecap="round" stroke-linejoin="round" />{:else}<path d="m4 4 8 8M12 4l-8 8" stroke-linecap="round" />{/if}
@@ -212,7 +217,7 @@
 						<p class="text-sm text-ink-muted tabular-nums" data-testid="split-left-summary-range">{clockOf(result.start)}–{clockOf(result.end)}</p>
 						{#if result.action === 'saved'}
 							{#if contractLabel(result.contractId)}<p class="text-sm font-medium text-ink">{contractLabel(result.contractId)}</p>{/if}
-							{#if result.description}<p class="line-clamp-3 text-sm whitespace-pre-line text-ink-soft">{result.description}</p>{/if}
+							{#if result.description}<p class="line-clamp-3 text-sm whitespace-pre-line text-ink-soft"><WikiLinkRenderer text={result.description} interactive={false} /></p>{/if}
 						{:else}
 							<p class="text-sm text-ink-muted">Left unlogged.</p>
 						{/if}

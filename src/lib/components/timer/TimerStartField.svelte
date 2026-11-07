@@ -2,10 +2,11 @@
 	/**
 	 * The running timer's "Started" time, editable (sprint 041-CL). Enter or Save moves the start,
 	 * Escape puts the old value back. A start before the end of another entry asks first; the date
-	 * shows only when the timer started on another day (it crossed midnight).
+	 * shows only when the timer started on another day (it crossed midnight). The time is a 24-hour
+	 * text field read by `parseClockText` (sprint 060-DR): a native time input reads 12-hour under en-US.
 	 */
 	import { localDateString } from './local-date';
-	import { localTimerStartProblem, toTimeInputValue, type StartChangeResult } from './timer-start-edit';
+	import { readTimerStartInput, toTimeInputValue, type StartChangeResult } from './timer-start-edit';
 
 	let {
 		startTime,
@@ -49,14 +50,16 @@
 			overlapMessage = '';
 			return;
 		}
-		const problem = localTimerStartProblem(editedDate, editedTime);
-		if (problem) {
-			errorMessage = problem;
+		// An unreadable time ("12:60", "1:46 PM") is refused here: it never reaches the save (060-DR)
+		const reading = readTimerStartInput(editedDate, editedTime);
+		if (!reading.ok) {
+			errorMessage = reading.error;
 			return;
 		}
+		editedTime = reading.clock;
 		isSaving = true;
 		try {
-			const result = await onChangeStart({ date: editedDate, startTime: `${editedTime}:00` }, confirmed);
+			const result = await onChangeStart({ date: editedDate, startTime: reading.startTime }, confirmed);
 			if (result.outcome === 'overlap') {
 				overlapMessage = result.message;
 			} else if (result.outcome === 'error') {
@@ -101,7 +104,11 @@
 		{/if}
 		<input
 			id="timer-start-time"
-			type="time"
+			type="text"
+			inputmode="text"
+			autocomplete="off"
+			placeholder="HH:MM"
+			size="5"
 			bind:this={timeInput}
 			bind:value={editedTime}
 			onkeydown={handleKeydown}

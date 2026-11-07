@@ -5,6 +5,7 @@
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
 | 018-QA | QA | Manual testing backlog | superseded by docs/review/2026-11-03-qa-state.md |
+| 060-DR | Design | Design r1 polish after checkpoint B/C: link titles in search excerpts and split cards, 24-hour time fields, new-entry placeholders, split summary footprint, compact phone week controls, stopped pill, phone notes title, disabled toolbar buttons ([spec](sprint-060-DR.md)) | ready for review |
 | 061-DR | Design | Week numbering back to ISO 8601 everywhere (labels, `/time/YYYY-Www`, `/api/me`, weekly statuses, CLI); one helper `iso-week.ts`, shared fixtures; no migration ([spec](sprint-061-DR.md)) | ready for review |
 | 059-DR | Design | Design r1 stage 7: `/search` inside the app shell with one large query field, title-first results with contract marks and match reasons, shared `[[` link picker (identity rows, stale guard, above the phone keyboard, full dismissal) ([spec](sprint-059-DR.md)) | merged, live at v1.5.0 |
 | 055-DR | Design | Design r1 stage 4: time capture and completion (stable completion form, one shared ontology cascade with sole-option and failure rules, 409 handling, phone capture screen with Back, keyboard-safe actions, manual entry Escape guard, Split stub) ([spec](sprint-055-DR.md)) | merged, live at v1.5.0 |

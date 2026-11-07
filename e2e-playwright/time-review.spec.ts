@@ -307,17 +307,19 @@ test.describe('Time review (057-DR)', () => {
 });
 
 test.describe('Time review on a phone (057-DR) @iphone', () => {
-	test('week and day: compact strip, reflowed rows, no footer timer, capture access when idle @iphone', async ({ page, baseURL }, testInfo) => {
+	test('week and day: compact strip, reflowed rows, no footer timer, no capture buttons in the week @iphone', async ({ page, baseURL }, testInfo) => {
 		test.skip(!testInfo.project.name.startsWith('iphone'), 'phone layout');
 		await signInAsFreshUser(page, baseURL, 'time-review-phone');
 		const seed = await seedWeek(page);
 		await open(page, '/time');
 		await expect(page.getByTestId('time-entry-card').first()).toBeVisible();
 
-		// No persistent bottom timer bar; Start timer / Add Entry stay while no timer runs
+		// No persistent bottom timer bar, and (owner change, 060-DR) no Start timer / Add Entry in the
+		// week controls: the pill and the home widget give timer access, each day keeps "Add entry"
 		await expect(page.getByTestId('timer-widget-footer')).toHaveCount(0);
-		await expect(page.getByTestId('phone-start-timer')).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Add Entry', exact: true })).toBeVisible();
+		await expect(page.getByTestId('phone-start-timer')).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Add Entry', exact: true })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: /^Add entry for / }).first()).toBeVisible();
 		const widthOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 		expect(widthOverflow).toBeLessThanOrEqual(0);
 

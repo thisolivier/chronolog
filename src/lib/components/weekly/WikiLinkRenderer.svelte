@@ -25,9 +25,14 @@
     interface Props {
         text: string;
         onNoteLinkClick?: (noteId: string) => void;
+        /**
+         * Text only (sprint 060-DR): links as styled spans with no click and no tab stop, for a
+         * rendering inside another control (the split's description button) or a read-only summary
+         */
+        interactive?: boolean;
     }
 
-    let { text, onNoteLinkClick }: Props = $props();
+    let { text, onNoteLinkClick, interactive = true }: Props = $props();
 
     type Segment =
         | { type: 'text'; content: string }
@@ -77,6 +82,13 @@
             {segment.content}
         {:else}
             {@const trashed = isNoteInTrash(segment.noteId)}
+            {#if !interactive}
+                <span
+                    class={trashed ? 'text-ink-faint line-through decoration-chalk-300' : 'font-medium text-pine-600 underline decoration-pine-300'}
+                    data-deleted={trashed ? '' : undefined}
+                    data-wiki-link-text={segment.noteId}
+                >{wikiLinkDisplayText(segment.noteId, segment.label)}</span>{#if trashed}<span class="text-xs text-ink-faint"> (deleted)</span>{/if}
+            {:else}
             <button
                 type="button"
                 class={trashed
@@ -89,6 +101,7 @@
                 <!-- The linked note's title (fetched and cached), the ID until it arrives -->
                 {wikiLinkDisplayText(segment.noteId, segment.label)}
             </button>{#if trashed}<span class="text-xs text-ink-faint"> (deleted)</span>{/if}
+            {/if}
         {/if}
     {/each}
 </span>

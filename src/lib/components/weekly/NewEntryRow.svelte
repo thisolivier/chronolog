@@ -142,9 +142,10 @@
 	/>
 
 	<!-- Row 2: Contract, Deliverable (+ Work type), Time.
-	     Phone: contract on its own line, the rest two per line; wider: one row. -->
-	<div class="mt-3 grid grid-cols-2 items-start gap-x-3 gap-y-2 sm:flex">
-		<div class="col-span-2 min-w-0 sm:flex-[2]">
+	     Phone: contract on its own line, the rest two per line; wider: one row when each select has
+	     room for its whole placeholder ("Choose a deliverable first"), else it wraps (060-DR). -->
+	<div class="mt-3 grid grid-cols-2 items-start gap-x-3 gap-y-2 sm:flex sm:flex-wrap">
+		<div class="col-span-2 min-w-0 sm:flex-[2_1_14rem]">
 			<label for="{fieldIdPrefix}-contract" class="mb-1 block text-xs font-medium text-ink-faint">
 				Contract
 			</label>
@@ -165,7 +166,7 @@
 			{/if}
 		</div>
 
-		<div class="min-w-0 sm:flex-[1.5]">
+		<div class="min-w-0 sm:flex-[1.5_1_14rem]">
 			<label for="{fieldIdPrefix}-deliverable" class="mb-1 block text-xs font-medium text-ink-faint">
 				Deliverable
 			</label>
@@ -180,7 +181,7 @@
 		</div>
 
 		<!-- Work type: always drawn ("Choose a deliverable first", "Not applicable"), so nothing pops in -->
-		<div class="min-w-0 sm:flex-1">
+		<div class="min-w-0 sm:flex-[1_1_14rem]">
 			<label for="{fieldIdPrefix}-work-type" class="mb-1 block text-xs font-medium text-ink-faint">
 				Work type
 			</label>
