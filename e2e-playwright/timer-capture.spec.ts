@@ -14,6 +14,8 @@ import { signInAsFreshUser } from './fresh-user';
 import { sprintScreenshotDirectory } from './sprint-screenshots';
 
 const SCREENSHOTS = sprintScreenshotDirectory('sprint-055');
+/** The value of the "No deliverable" / "No work type" option (CASCADE_NONE) */
+const NO_CHOICE = 'none';
 
 type Seeded = {
 	clientName: string;
@@ -171,7 +173,7 @@ test.describe('desktop 1280', () => {
 
 		// Several deliverables: nothing chosen for the user; the work type waits for one
 		await expect(widget(page).getByTestId('cascade-deliverable')).toHaveAttribute('data-cascade-state', 'ready');
-		await expect(widget(page).locator('#timer-deliverable')).toHaveValue('');
+		await expect(widget(page).locator('#timer-deliverable')).toHaveValue(NO_CHOICE);
 		await expect(widget(page).locator('#timer-work-type')).toBeDisabled();
 		await expect(widget(page).locator('#timer-work-type')).toContainText('Choose a deliverable first');
 		await page.screenshot({ path: path.join(SCREENSHOTS, '01-desktop-just-stopped.png') });
@@ -187,7 +189,7 @@ test.describe('desktop 1280', () => {
 		await expect(widget(page).locator('#timer-description')).toHaveValue(description);
 		// And back: Discovery is valid again but is one of several, so it is not guessed
 		await widget(page).locator('#timer-contract').selectOption(data.branchContractId);
-		await expect(widget(page).locator('#timer-deliverable')).toHaveValue('');
+		await expect(widget(page).locator('#timer-deliverable')).toHaveValue(NO_CHOICE);
 		await expect(widget(page).getByTestId('cascade-workType')).toHaveAttribute('data-cascade-state', 'waiting');
 		await widget(page).locator('#timer-contract').selectOption(data.soleContractId);
 		await expect(widget(page).locator('#timer-work-type')).toHaveValue(data.soleWorkTypeId);
@@ -249,6 +251,37 @@ test.describe('desktop 1280', () => {
 		await saveButton(widget(page)).click();
 		await expect(widget(page).getByRole('button', { name: 'Start Timer' })).toBeVisible();
 		expect((await entry(page, stopped.id)).isDraft).toBe(false);
+
+		// An explicit "No deliverable" on a one-deliverable contract survives the 409 reload (review fix):
+		// the sole option is not re-applied over the user's choice
+		await startTimer(page, data.soleContractId, 20);
+		await open(page, '/');
+		await widget(page).getByRole('button', { name: 'Stop', exact: true }).click();
+		await expect(widget(page).locator('#timer-work-type')).toHaveValue(data.soleWorkTypeId);
+		await widget(page).locator('#timer-deliverable').selectOption(NO_CHOICE);
+		await expect(widget(page).getByTestId('cascade-workType')).toHaveAttribute('data-cascade-state', 'waiting');
+		const cleared = (await timerStatus(page))!;
+		await page.evaluate(async (stopped) => {
+			const [hours, minutes] = stopped.startTime.split(':').map(Number);
+			const moved = new Date(2000, 0, 1, hours, minutes + 5);
+			const startTime = `${String(moved.getHours()).padStart(2, '0')}:${String(moved.getMinutes()).padStart(2, '0')}`;
+			await fetch('/api/timer', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ startTime, date: stopped.date, confirmed: true })
+			});
+		}, cleared);
+		await saveButton(widget(page)).click();
+		await expect(widget(page).getByTestId('timer-error')).toContainText('changed on another device');
+		await expect(widget(page).getByTestId('cascade-deliverable')).toHaveAttribute('data-cascade-state', 'ready');
+		await expect(widget(page).locator('#timer-deliverable')).toHaveValue(NO_CHOICE);
+		await expect(widget(page).getByTestId('cascade-workType')).toHaveAttribute('data-cascade-state', 'waiting');
+		await saveButton(widget(page)).click();
+		await expect(widget(page).getByRole('button', { name: 'Start Timer' })).toBeVisible();
+		const savedWithoutDeliverable = await entry(page, cleared.id);
+		expect(savedWithoutDeliverable.isDraft).toBe(false);
+		expect(savedWithoutDeliverable.deliverableId).toBeNull();
+		expect(savedWithoutDeliverable.workTypeId).toBeNull();
 
 		// not_a_draft: saved elsewhere first; this device's Save is refused and the timer resets
 		await startTimer(page, data.soleContractId, 15);
@@ -390,5 +423,50 @@ test.describe('phone @iphone', () => {
 		expect(focused!.y + focused!.height).toBeLessThanOrEqual(actions!.y + 1);
 		await page.screenshot({ path: path.join(SCREENSHOTS, `07-phone-manual-entry-${testInfo.project.name}.png`) });
 		await page.setViewportSize(size);
+	});
+
+	test('a Save in flight blocks Back, Escape and a second Save: exactly one entry (review fix)', async ({ page, baseURL }, testInfo) => {
+		if (!testInfo.project.name.startsWith('iphone')) await page.setViewportSize({ width: 390, height: 844 });
+		await signInAsFreshUser(page, baseURL, 'capture-phone-inflight');
+		const data = await seed(page, 'PI');
+		// A stopped browser-only capture (no contract yet): Save creates the entry with POST /api/time-entries
+		const today = await page.evaluate(() => {
+			const now = new Date(Date.now() - 2 * 60_000);
+			const start = new Date(now.getTime() - 20 * 60_000);
+			const pad = (value: number) => String(value).padStart(2, '0');
+			const date = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`;
+			const time = (moment: Date) => `${pad(moment.getHours())}:${pad(moment.getMinutes())}:${pad(moment.getSeconds())}`;
+			localStorage.setItem('chronolog.pending-timer', JSON.stringify({ date, startTime: time(start), description: '', endTime: time(now) }));
+			return date;
+		});
+		await open(page, `/notes/${data.soleContractId}/${data.noteId}`);
+		const pill = page.getByTestId('timer-indicator');
+		const surface = page.getByTestId('phone-capture-screen');
+		const screenWidget = page.getByTestId('timer-widget-screen');
+		await pill.click();
+		await screenWidget.locator('#timer-contract').selectOption(data.soleContractId);
+		await expect(screenWidget.locator('#timer-work-type')).toHaveValue(data.soleWorkTypeId);
+		await screenWidget.locator('#timer-description').fill('Saved once');
+
+		let releaseCreate: () => void = () => {};
+		await page.route('**/api/time-entries', async (route) => {
+			if (route.request().method() !== 'POST') return route.continue();
+			await new Promise<void>((resolve) => (releaseCreate = resolve));
+			await route.continue();
+		});
+		await saveButton(screenWidget).click();
+		await expect(page.getByTestId('capture-screen-back')).toBeDisabled();
+		await expect(screenWidget.getByRole('button', { name: 'Discard', exact: true })).toBeDisabled();
+		await expect(screenWidget.getByRole('button', { name: 'Saving…' })).toBeDisabled();
+		await page.keyboard.press('Escape');
+		await expect(surface).toBeVisible();
+		releaseCreate();
+		await expect(surface).toHaveCount(0);
+		await expect(pill).toHaveCount(0);
+		const entries = await page.evaluate(
+			async (date) => (await (await fetch(`/api/time-entries?from=${date}&to=${date}`)).json()).entries ?? [],
+			today
+		);
+		expect(entries.filter((each: { description?: string }) => each.description === 'Saved once')).toHaveLength(1);
 	});
 });

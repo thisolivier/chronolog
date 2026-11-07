@@ -66,7 +66,7 @@ Other failures keep their previous behaviour (save: inline "Couldn't save: …" 
 ## Decisions (conservative readings)
 
 - Contract field kept in the completion form (TC-04 lists it; 053 made it the stopped contract-change affordance), although the crops show only the header.
-- Sole option is applied when a level loads, not continuously, so a user can still pick "No deliverable" on a one-deliverable contract; a remount re-applies it (see follow-ups).
+- Sole option is applied when a level loads with a value never set, or after its parent changed; an explicit "No deliverable" / "No work type" is stored as `CASCADE_NONE` (`'none'`) and survives remounts (review fix 1).
 - Native selects on desktop (above). The "options open" screenshot therefore cannot show the list: native lists are drawn by the OS and are not captured by Playwright; `02-desktop-options-chosen.png` shows the branch after choosing.
 - Phone capture screen is an overlay, not a route: Back is an in-app button; the browser / swipe Back does not close it (follow-up).
 
@@ -94,12 +94,24 @@ Results (2026-11-07, dev server on 5186, dev Postgres):
 
 Reviewed by eye: the uppercase heading wrapped in the sidebar (shortened to "Finish entry"); "25m" next to "= 24m" read as a contradiction (preview hidden for the untouched measured text). In WebKit the native selects are a little shorter than the Time input (platform rendering); left as is.
 
+## Review fixes (2026-11-07, independent review)
+
+1. **Explicit "No deliverable" was overwritten (blocker).** '' meant both "never set" and "user cleared", so every remount (409 reload, phone screen open, reload) re-picked the sole deliverable and work type and Save sent them. Now "No deliverable" / "No work type" is `CASCADE_NONE`; `resolveSelection(current, level, parentChanged)` keeps it unless the parent changed; hosts send it as no value (`cascadeIdForSave`). The 409 e2e now covers it (verified to fail with the rule removed: expected `"none"`, received the deliverable's id).
+2. **Failed load after a contract change kept the old contract's deliverable (blocker).** A failure now keeps the held value only for the same parent; after a parent change it clears it (unit test).
+3. **Duplicate entry when leaving mid-save (blocker), and 4.** `captureDraft.isResolving` (module-level, shared by every widget and the screen): while a Save or Discard is in flight, Save and Discard are disabled everywhere, the screen's Back is disabled and Escape ignored. A widget unmounted before the answer no longer navigates or calls `onLeave` (it still clears the capture and announces the change). E2e: a stopped browser-only capture, Save with `POST /api/time-entries` held, Back / Discard / "Saving…" disabled, Escape ignored, then exactly one entry.
+5. **Cascade loads after unmount.** `OntologyCascade.dispose()` (form and modal cleanup); an answer is applied only by a live cascade, for the newest request, while its parent is still the selected one (unit tests).
+6. After a 409 reload the widget announces the change, so another mounted copy refreshes its `expectedStartedAt`.
+7. If the reload after a 409 (or a sibling's announcement) cannot reach the server, the widget keeps what it showed (a stopped capture stays stopped) and says "…could not be reloaded. Check your connection, then try again." instead of dropping to idle.
+
+Results after the fixes: `npm run check` `svelte-check found 0 errors and 0 warnings`; `npm run lint` exit 0; `npm test` `Test Files 127 passed (127)` · `Tests 1231 passed (1231)`; chromium `118 passed (1.4m)`; iPhone projects `29 passed (25.9s)`.
+
 ## Follow-ups
 
 1. **Stage 6:** the timesheet's inline editors (`weekly/NewEntryRow.svelte`, `weekly/TimeEntryCard.svelte`) still use `ContractSelect` / `DeliverableSelect` / `WorkTypeSelect` with their own reset logic. Adopt `OntologyCascade` (+ `CascadeFields` or `CascadeSelect` per level) so every form follows the same sole-option and failure rules; then `DeliverableSelect` / `WorkTypeSelect` can be deleted. A per-pick save editor can call `chooseX` and persist after `settled()`.
 2. **Stage 5:** `split-entry.ts` `splitHandlerFor()` → open the split overlay; the buttons are in place (desktop only, disabled offline).
-3. A user who explicitly picks "No deliverable" on a one-deliverable contract gets the sole option back after a remount (the choice "none" is not stored as distinct from "unset").
-4. The phone capture screen is not a history entry: iOS swipe-back / browser Back leave the underlying screen instead of closing the overlay.
+3. (Fixed in the review pass: explicit "No deliverable" is kept across remounts.)
+4. The phone capture screen is not a history entry: iOS swipe-back / browser Back change the route underneath and leave the overlay open over the changed screen.
+4b. In the Add Time Entry modal, Escape does nothing while a *closed* select has focus (the guard cannot tell an open native list from a focused one); Tab out first, or use Cancel.
 5. The running description textarea is still plain text, not `WikiLinkInput`; links show as `[[id]]` (unchanged).
 6. TimerWidget is ~640 lines; the conflict / reload and the server-draft calls could move to a small controller module.
 7. Commit trailer: the session's harness requires `Co-Authored-By: Claude Opus 5.5`, used instead of the brief's `Claude Fable 5.1` line (as in 052/053-DR).
