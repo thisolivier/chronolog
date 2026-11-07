@@ -112,7 +112,7 @@ The note code in the header (sprint 051-UI): a click or tap copies it through `$
 
 ### SaveStatusIndicator.svelte
 
-The save pill (sprint 051-UI): "Saved" (green) / "Saving" (amber; also while a change waits for its debounce) / "Draft" (grey), one fixed width (`w-[4.75rem]`) so the header line never shifts or wraps while typing. Failures stay distinct: a red pill sized to its message ("Couldn't save — retrying", or the conflict message with Reload). Labels and tones are `save-status-display.ts` (unit-tested); `data-testid="save-status"` keeps its `data-status` values (`saved`, `saving`, `unsaved`, `error`, `conflict`, `draft`).
+The save pill (sprint 051-UI): "Saved" (leaf green) / "Saving" (ochre; also while a change waits for its debounce) / "Draft" (grey), one fixed width (`w-[4.75rem]`) so the header line never shifts or wraps while typing. Failures stay distinct: a rust pill sized to its message ("Couldn't save — retrying", or the conflict message with Reload). Labels and tones are `save-status-display.ts` (unit-tested); `data-testid="save-status"` keeps its `data-status` values (`saved`, `saving`, `unsaved`, `error`, `conflict`, `draft`).
 
 ### NoteBacklinks.svelte
 
