@@ -19,6 +19,7 @@
 	import { ALL_NOTES_LABEL } from './navigation-labels';
 	import ContractMark from '$lib/components/identity/ContractMark.svelte';
 	import { noteContextOwnership } from './note-context-ownership';
+	import { shellPresentation } from './shell-presentation.svelte';
 	import type { NoteSummary } from '$lib/services/types';
 	import { OUTBOX_REPLAYED_EVENT } from '$lib/offline/offline-session.svelte';
 	import { OUTBOX_RESOLVED_EVENT } from '$lib/offline/outbox-resolve';
@@ -57,7 +58,7 @@
 	let ownership = $derived(
 		noteContextOwnership({
 			layoutMode: navigationContext.layoutMode,
-			sidebarCollapsed: navigationContext.panel1Collapsed,
+			sidebarOnScreen: shellPresentation.sidebarOnScreen,
 			scope: isAllNotesView ? 'all' : viewedClientId ? 'client' : 'contract'
 		})
 	);

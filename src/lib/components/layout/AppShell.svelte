@@ -163,8 +163,9 @@
 		!isMobile && navigationContext.panel1Collapsed && !sidebarIsOverlay && isSidebarTimerWidgetMounted()
 	);
 
-	// Hooks for components outside the shell (stage 3b's notes list header reads sidebarOnScreen)
-	$effect(() => {
+	// Hooks for components outside the shell: the notes list and editor headers read sidebarOnScreen
+	// (note-context-ownership.ts). A pre-effect, so the panels' first render already sees it.
+	$effect.pre(() => {
 		shellPresentation.layoutMode = presentation.layoutMode;
 		shellPresentation.sidebarOnScreen = isMobile ? navigationContext.mobileNavigationLevel === 0 : sidebarVisible;
 		shellPresentation.timerWidgetOnScreen = isTimerWidgetOnScreen(presentation);
