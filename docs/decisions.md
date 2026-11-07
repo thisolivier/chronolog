@@ -109,3 +109,12 @@ key that no longer exists, a week 53 in a 52-week year, still opens the same Mon
 `year`/`week_number` stay as stored labels; a status write renumbers any ISO-numbered row first so the
 unique key cannot collide. Rejected: `/time/<monday-date>` URLs (every bookmark and the CLI's `2026-W45`
 arguments would change for no gain while the numberings agree). See `docs/sprints/sprint-057-DR.md`.
+
+## 2026-11-07 — Home button and history buttons
+
+"Chronolog" is ever present at the top left of the app bar and acts as the home button, on desktop,
+tablet and phone. The back and forward history buttons sit immediately to its right. The phone's
+"← Back" / "← Chronolog" top-left label, which hid the home affordance behind history navigation, is
+replaced by this layout (sprint 062-DR). The owner also dropped the phone timesheet's Start timer and
+Add Entry buttons as nice-to-haves that cost space (sprint 060-DR); the header pill and the home
+screen widget give timer access on the phone.
