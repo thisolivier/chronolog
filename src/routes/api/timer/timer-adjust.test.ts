@@ -119,10 +119,35 @@ describe('PATCH /api/timer', () => {
 		const stopped = await (await call(stopRoute.POST as AnyHandler, { userId: ownerId, method: 'POST', path: '/api/timer/stop', body: {} })).json();
 		expect(stopped.durationMinutes).toBeGreaterThanOrEqual(90);
 		expect(stopped.durationMinutes).toBeLessThanOrEqual(91);
-		// A stopped timer is changed in the completion form, not here
-		const afterStop = await patchTimer({ startTime: momentMinutesAgo(30).time });
-		expect(afterStop.status).toBe(409);
-		expect((await afterStop.json()).code).toBe('timer_stopped');
+		// Sprint 056-DR: a stopped timer's start moves too; its end stays and the duration is re-measured
+		const laterStart = momentMinutesAgo(30);
+		const afterStop = await patchTimer({ date: laterStart.date, startTime: laterStart.time });
+		expect(afterStop.status).toBe(200);
+		const movedStopped = await afterStop.json();
+		expect(movedStopped.endTime).toBe(stopped.endTime);
+		expect(movedStopped.durationMinutes).toBeGreaterThanOrEqual(30);
+		expect(movedStopped.durationMinutes).toBeLessThanOrEqual(31);
+		// ...but never to or past the end
+		const pastEnd = await patchTimer({ startTime: stopped.endTime });
+		expect(pastEnd.status).toBe(400);
+		expect((await pastEnd.json()).code).toBe('invalid_start');
+	});
+
+	it('resumes a stopped timer from its start; refuses to resume a running one (sprint 056-DR)', async () => {
+		const timer = await startTimerMinutesAgo(40);
+		expect((await patchTimer({ resume: true })).status).toBe(409);
+		await call(stopRoute.POST as AnyHandler, { userId: ownerId, method: 'POST', path: '/api/timer/stop', body: {} });
+		const start = momentMinutesAgo(40);
+		const stale = await patchTimer({ resume: true, expectedStartedAt: `${start.date}T00:00:01` });
+		expect(stale.status).toBe(409);
+		expect((await stale.json()).code).toBe('timer_changed');
+		const resumed = await patchTimer({ resume: true, expectedStartedAt: `${start.date}T${start.time}` });
+		expect(resumed.status).toBe(200);
+		const running = await resumed.json();
+		expect(running.id).toBe(timer.id);
+		expect(running.endTime).toBeNull();
+		expect(running.startTime).toBe(start.time);
+		expect(running.durationMinutes).toBe(0);
 	});
 
 	it('refuses a start in the future or more than a day ago', async () => {
