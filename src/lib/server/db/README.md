@@ -78,6 +78,24 @@ Client names are encrypted, so the migration cannot number clients by name: ever
 
 `queries/entry-references.ts` (`assertEntryReferences`) is the one rule for what an entry may point at: the contract is the user's, the deliverable is on that contract, the work type is under that deliverable (so never without one). Every entry write route calls it (through `entryReferenceProblem` in `src/routes/api/time-entries/entry-input.ts`); `scripts/check-entry-references.mjs` reports existing rows that break it.
 
+## Timer draft: save, discard, split, resume (sprint 056-DR)
+
+The running or stopped timer is the user's one `time_entries` row with `is_draft = true`.
+`queries/timer-draft.ts` saves or discards it in a transaction that locks the row
+(`SELECT ... FOR UPDATE`) and refuses a row that is no longer a draft (`not_a_draft`) or whose start
+is not the one the client saw (`timer_changed`). `queries/timer-split.ts` splits it in one
+transaction: lock the draft, replay check, validation, insert the saved left part (with
+`client_request_id` = the request's id), then advance the draft to the boundary (marked
+`<id>:remainder`) or delete it when the remainder has no contract. A retry or a concurrent duplicate
+waits on the lock and then finds the marks, so it answers the first outcome without writing. No
+migration: the marks use migration `0011`'s `client_request_id` column and unique index; a save
+clears the remainder mark. `queries/timer-start.ts` also moves a stopped draft's start and resumes
+it (clears `end_time`).
+
+`reconcileTimeEntryLinksInTransaction` (`queries/time-entries-batch.ts`) is the one sync from
+description `[[links]]` to `note_time_entries` for an existing entry (`PUT /api/time-entries/[id]`,
+timer save, both parts of a split); new entries in a batch use `linkTimeEntryToNotesInTransaction`.
+
 `queries/formerly-line.ts` builds the appended `Formerly: ...` line on its own line so the original description is untouched.
 
 ## Usage

@@ -5,6 +5,7 @@
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
 | 018-QA | QA | Manual testing backlog | superseded by docs/review/2026-11-03-qa-state.md |
+| 056-DR | Server | Design r1 split groundwork: `POST /api/timer/split` (one transaction, idempotent), resume and stopped-start edit via `PATCH /api/timer`, draft-only save/discard, links on timer save | ready for review |
 | 051-UI | Client | Sidebar tidy (Archived chevron, Settings in list, no +), Notes heading opens all notes, Saved/Saving pill, copy note code | merged |
 | 050-UI | Client | Back and forward through the user's journey (top bar ‹ ›, phone ›, every navigation a step) | ready for review |
 
