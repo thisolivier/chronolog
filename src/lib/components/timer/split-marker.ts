@@ -19,6 +19,11 @@ export type SplitMarker = {
 	leftAction: 'save' | 'discard';
 	/** The exact request, re-sent as is */
 	request: SplitTimerInput;
+	/**
+	 * The user cancelled (or a resize cancelled) while the answer was unknown: a later load only
+	 * finds out what happened and never sends the split again for a draft still unsplit
+	 */
+	cancelled?: boolean;
 };
 
 const STORAGE_KEY = 'chronolog.split-marker';
@@ -60,6 +65,12 @@ export function writeSplitMarker(marker: SplitMarker): void {
 	} catch {
 		// Storage blocked: the request still carries its id, only the reload recovery is lost
 	}
+}
+
+/** Cancel while the outcome is unknown: keep the marker only to settle what already happened */
+export function markSplitMarkerCancelled(): void {
+	const marker = readSplitMarker();
+	if (marker) writeSplitMarker({ ...marker, cancelled: true });
 }
 
 export function clearSplitMarker(): void {

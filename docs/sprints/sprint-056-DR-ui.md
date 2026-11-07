@@ -44,7 +44,7 @@ A marker found when a widget loads the timer, or when Cancel / resize closes an 
 
 - **Contractless timers cannot be split** (disabled with a reason) rather than a second, browser-only split path: the API works on a draft row, and the pending path would need its own non-atomic create + rewrite. A *remainder* without a contract is supported (the API's `pending` answer).
 - **Breakpoint:** the app's 768 px (`layoutMode === 'mobile'`), per source map O06.
-- **Outer start edit** (left From) is sent as `PATCH /api/timer` just before the split, not atomically with it; if the split then fails, the capture keeps the new start. The overlap warning asks for a second press.
+- **Outer start edit** (left From) is sent as `PATCH /api/timer` (with `expectedStartedAt`) just before the split, not atomically with it; Cancel moves it back. The overlap warning asks for a second press.
 - **Tray:** the right card's testid is `timer-widget-split`, so the tray's "Stop" presses the right card's Stop while the overlay is open; closed, the overlay is unmounted and the sidebar widget's Stop is the only one.
 - Native time inputs for From / To (as TimerStartField); they render in the browser's 12/24 h locale.
 - Commit trailer: this harness requires `Co-Authored-By: Claude Opus 5.5`, used instead of the brief's Fable line (as in 055-DR).
@@ -65,12 +65,24 @@ Results (2026-11-07, dev server on 5189, dev Postgres):
 
 `01-two-cards-fresh.png`, `02-after-boundary-edit.png`, `03-after-flip.png`, `04-after-left-save.png` (summary keeps the footprint, Flip / Cancel gone, right actions enabled), `05-right-stopped-with-resume.png`. Reviewed by eye: the label was first drawn over the app header and the cards jumped when Cancel left (now one fixed-height row above the cards); time inputs were cut off in the 12 h locale (widened); the backdrop was darkened for the white label.
 
+## Review fixes (2026-11-07, independent review)
+
+1. **Retry on the known 404 gap (blocker).** A left Discard + blank right whose answer was lost, then Retry answering 404, cleared the marker with a generic error: the draft was gone and the remainder never written. The session now remembers the unanswered request; a 404 on its Retry is the gap: the pending remainder is restored from that request and the card shows the discarded summary. E2e: the first response is fetched then aborted (`route.fetch` + `abort`), Retry gets 404, the pending timer starts at the boundary, same `clientRequestId` both times.
+2. **Edited start not restored (blocker).** The start move before the split now sends `expectedStartedAt` (`DataService.adjustTimerStart` gained the option; the endpoint already had it), and Cancel (user or resize) moves the draft back to the start it had when the split opened, guarded by the moved start; if that fails, the widget says so. E2e: edit From, 502 on the split, Cancel, start is the original, no entry.
+3. **5xx may follow a commit (blocker).** Only a definitive 4xx clears the marker; no answer and any 5xx (502 / 504 / 524 included) keep it, show the error with "Retry to finish it", and remember the request (`isUnsettledFailure`, unit-tested). A reload re-send that gets a 5xx also keeps the marker.
+4. **Cancel while the outcome is unknown.** The marker is marked `cancelled`; a later load only settles what already happened and never splits a draft that is still unsplit (unit test).
+5. **Right From over the saved left.** Once the left is resolved the right start is clamped to the saved end (also for a typed right duration); the field shows the clamped value. E2e in scenario 4.
+6. **Changed Retry.** The payload (without its id) is compared with the last one sent; a change (boundary, Flip, content, action) gets a new `clientRequestId`, an unchanged Retry keeps it. E2e: aborted attempt, boundary edit, Retry → two different ids, one entry.
+7. One Cancel at a time (a resize and the overlay's unmount both asked); focus returns to the widget's Split button (or its first button) after the split closes and the widget reloads.
+
+Results after the fixes: `npm run check` `svelte-check found 0 errors and 0 warnings`; `npm run lint` exit 0; `npm test` `Test Files 136 passed (136)` · `Tests 1328 passed (1328)`; chromium `9 skipped`, `139 passed (1.3m)`; iPhone projects `5 skipped`, `35 passed (29.4s)`.
+
 ## Follow-ups
 
 1. The `[[links]]` show as raw `[[id]]` text in the split description (as in the running panel); the crop's link chip needs the WikiLinkInput there too.
-2. Outer start edit + split are two requests; a server `startTime` on the split would make them one.
+2. Outer start edit + split are still two requests (Cancel now moves the start back); a server `startTime` on the split would make them one.
 3. Escape in a closed (focused) select does nothing, as in the Add Entry modal (055 follow-up 4b).
 4. `split-session.svelte.ts` (~430 lines) and `SplitTimeOverlay.svelte` (~350) exceed the 200-line preference; the left summary and the right-action plumbing could move out.
-5. If the tray presses Stop with the overlay open and the right part already stopped, the tray finds no Stop and opens `/time` (a full load): nothing is lost (the marker / server hold the state) but right-card edits are.
+5. **Tray (needs `src-tauri/`, out of scope):** if the tray presses Stop with the overlay open and the right part already stopped, the tray finds no Stop and opens `/time` (a full load): nothing committed is lost (the marker / server hold the state) but right-card edits are. The tray script should do nothing while `[data-testid="split-overlay"]` is present.
 6. The original capture's edited time text (completion form) is not carried into the split; the split starts from the server's interval.
 7. Contractless (browser-only) timer split, if wanted: marker + idempotent create + pending rewrite (source map O10).

@@ -18,8 +18,8 @@ import { cascadeIdForSave } from './ontology-cascade';
 import { writePendingTimer } from './pending-timer';
 import { describeSaveError } from './save-error';
 import { resizeDecisionFor, splitActionsFor, type SplitActions, type SplitPhase } from './split-rules';
-import { clearSplitMarker, readSplitMarker, splitMarkerFor, writeSplitMarker } from './split-marker';
-import { applySplitResult, reconcileSplitMarker, requestFailureOf } from './split-reconcile';
+import { clearSplitMarker, markSplitMarkerCancelled, readSplitMarker, resendFailureMeaning, splitMarkerFor, writeSplitMarker } from './split-marker';
+import { applySplitResult, isUnsettledFailure, reconcileSplitMarker, requestFailureOf, restorePendingRemainder } from './split-reconcile';
 import {
 	discardRemainder,
 	endMomentAfter,
@@ -100,8 +100,16 @@ export class SplitSession {
 	#source: SplitSource = { entryId: '', date: '', startTime: '', endTime: null };
 	#dataService: DataService | null = null;
 	#clientRequestId = '';
+	/** The last split request's payload without its id: a changed payload gets a new id */
+	#lastPayload = '';
+	/** A split request sent whose outcome is unknown (no answer, or a 5xx) */
+	#unsettledRequest: SplitTimerInput | null = null;
+	/** The draft's start when the split opened: Cancel moves it back if the split moved it */
+	#originalStart = { date: '', startTime: '' };
 	#collapseRequested = false;
 	#confirmOverlap = false;
+	/** Cancel is running (a resize and an unmount can both ask for it) */
+	#closing = false;
 
 	get isOpen(): boolean {
 		return this.phase !== 'closed';
@@ -126,6 +134,10 @@ export class SplitSession {
 		this.#dataService = dataService;
 		// One id per split attempt, reused by every retry of it (SP-08)
 		this.#clientRequestId = crypto.randomUUID();
+		this.#lastPayload = '';
+		this.#unsettledRequest = null;
+		this.#originalStart = { date: source.date, startTime: source.startTime };
+		this.#closing = false;
 		this.#collapseRequested = false;
 		this.#confirmOverlap = false;
 		const start = this.sourceStart;
@@ -143,7 +155,9 @@ export class SplitSession {
 	}
 
 	setTimes(times: SplitTimes): void {
-		this.times = times;
+		// Once the left is resolved, the right part cannot start inside it (no silent overlap)
+		const leftEnd = this.leftResult?.end;
+		this.times = leftEnd !== undefined && times.boundary < leftEnd ? { ...times, boundary: leftEnd } : times;
 		this.#confirmOverlap = false;
 	}
 
@@ -172,19 +186,47 @@ export class SplitSession {
 	 * last split request was never answered, the server decides first (SP-08).
 	 */
 	async cancel(reason: 'user' | 'resize' = 'user'): Promise<void> {
-		if (!this.actions.flipAndCancel) return;
-		if (readSplitMarker() && this.#dataService) {
-			const outcome = await reconcileSplitMarker(this.#dataService, 'cancel');
-			if (outcome.kind === 'offline' && reason === 'user') {
-				this.leftError = "Can't tell yet whether the first part was saved. Reconnect, then Retry or Cancel.";
-				return;
+		if (!this.actions.flipAndCancel || this.#closing) return;
+		this.#closing = true;
+		try {
+			if (readSplitMarker() && this.#dataService) {
+				const outcome = await reconcileSplitMarker(this.#dataService, 'cancel');
+				if (outcome.kind === 'offline') {
+					// Unknown outcome: a later load only settles what happened, it never splits again
+					markSplitMarkerCancelled();
+					if (reason === 'user') {
+						this.leftError = "Can't tell yet whether the first part was saved. Reconnect, then Retry or Cancel.";
+						return;
+					}
+					this.#close();
+					return;
+				}
+				if (outcome.kind === 'split' || outcome.kind === 'abandoned') {
+					this.#close(outcome.kind === 'split' ? 'The first part had already been saved before Cancel; the rest is back in the timer.' : outcome.message);
+					return;
+				}
 			}
-			if (outcome.kind === 'split' || outcome.kind === 'abandoned') {
-				this.#close(outcome.kind === 'split' ? 'The first part had already been saved before Cancel; the rest is back in the timer.' : outcome.message);
-				return;
-			}
+			this.#close(await this.#restoreOriginalStart());
+		} finally {
+			this.#closing = false;
 		}
-		this.#close();
+	}
+
+	/** SP-06: an outer start moved for a split that did not happen goes back; '' or a notice */
+	async #restoreOriginalStart(): Promise<string> {
+		const original = this.#originalStart;
+		const dataService = this.#dataService;
+		if (!dataService || (original.date === this.#source.date && original.startTime === this.#source.startTime)) return '';
+		try {
+			await dataService.adjustTimerStart(original, {
+				confirmed: true,
+				expectedStartedAt: `${this.#source.date}T${this.#source.startTime}`
+			});
+			this.#source = { ...this.#source, ...original };
+			return '';
+		} catch {
+			return `The split was cancelled, but the timer's start could not be put back to ${original.startTime.slice(0, 5)}. Check its start before saving.`;
+		}
 	}
 
 	/** Escape or a backdrop click: a Cancel only while Cancel is offered (SP-06) */
@@ -252,13 +294,14 @@ export class SplitSession {
 		this.phase = 'left-saving';
 		captureDraft.isResolving = true;
 		this.leftError = '';
-		let requestSent = false;
+		let sentRequest: SplitTimerInput | null = null;
 		try {
 			if (!sameMinute(this.times.start, this.sourceStart)) {
-				// The outer start was edited: move the draft's start first (the split keeps the draft's start)
+				// The outer start was edited: move the draft's start first (the split keeps the draft's
+				// start). Guarded by the start shown, and moved back by Cancel if the split does not happen.
 				const moved = await dataService.adjustTimerStart(
 					{ date: localDateOf(this.times.start), startTime: localTimeOf(this.times.start) },
-					{ confirmed: this.#confirmOverlap }
+					{ confirmed: this.#confirmOverlap, expectedStartedAt: `${this.#source.date}T${this.#source.startTime}` }
 				);
 				this.#source = { ...this.#source, date: moved.date ?? localDateOf(this.times.start), startTime: moved.startTime ?? localTimeOf(this.times.start) };
 				this.times = { ...this.times, start: this.sourceStart };
@@ -269,33 +312,67 @@ export class SplitSession {
 				// The server's end, not an edited To (that is applied when the right part is saved)
 				expectedEndedAt: this.#source.endTime ? localMomentString(endMomentAfter(this.sourceStart, this.#source.endTime)) : null,
 				boundary: localMomentString(this.times.boundary),
-				clientRequestId: this.#clientRequestId,
+				clientRequestId: '',
 				left: action === 'save' ? { action: 'save', ...partContent(this.left), contractId: this.left.contractId } : { action: 'discard' },
 				right: partContent(this.right)
 			};
+			// One id per attempt: an unchanged Retry reuses it (the server splits once); a changed
+			// boundary, Flip, content or action is a new request and gets a new id
+			const payload = JSON.stringify(request);
+			if (this.#lastPayload && payload !== this.#lastPayload) this.#clientRequestId = crypto.randomUUID();
+			this.#lastPayload = payload;
+			request.clientRequestId = this.#clientRequestId;
 			writeSplitMarker(splitMarkerFor(request));
-			requestSent = true;
+			sentRequest = request;
 			const result = await dataService.splitTimer(request);
 			clearSplitMarker();
+			this.#unsettledRequest = null;
 			applySplitResult(result);
 			this.#applyLeftResult(result);
 		} catch (error) {
-			this.#handleLeftFailure(error, requestSent);
+			this.#handleLeftFailure(error, sentRequest);
 		} finally {
 			captureDraft.isResolving = false;
 			this.#afterSettle();
 		}
 	}
 
-	#handleLeftFailure(error: unknown, requestSent: boolean): void {
+	#handleLeftFailure(error: unknown, sentRequest: SplitTimerInput | null): void {
 		const failure = requestFailureOf(error);
 		this.phase = 'editing';
-		if (failure.kind === 'network') {
-			// No answer: the marker stays, a Retry re-sends the same id (the server splits once)
-			this.leftError = requestSent ? NETWORK_LEFT_ERROR : describeSaveError(error);
+		if (sentRequest && isUnsettledFailure(failure)) {
+			// No answer, or a 5xx that may follow a commit: the marker stays, Retry re-sends the same id
+			this.#unsettledRequest = sentRequest;
+			this.leftError =
+				failure.kind === 'network'
+					? NETWORK_LEFT_ERROR
+					: `${describeSaveError(error)} The first part may already be saved: Retry to finish it.`;
 			return;
 		}
-		if (requestSent) clearSplitMarker();
+		const earlier = this.#unsettledRequest;
+		if (sentRequest && failure.kind === 'http' && earlier && resendFailureMeaning(splitMarkerFor(earlier), failure.status) === 'settled-known-gap') {
+			// The known server gap: the unanswered discard-left + contractless right did split
+			clearSplitMarker();
+			this.#unsettledRequest = null;
+			restorePendingRemainder(earlier);
+			const [boundaryDate, boundaryTime] = earlier.boundary.split('T');
+			this.#applyLeftResult({
+				replayed: true,
+				left: { action: 'discarded', date: this.#source.date, startTime: this.#source.startTime, endTime: boundaryTime },
+				remainder: {
+					kind: 'pending',
+					date: boundaryDate,
+					startTime: boundaryTime,
+					endTime: earlier.expectedEndedAt ? earlier.expectedEndedAt.split('T')[1] : null,
+					description: earlier.right?.description ?? null
+				}
+			});
+			return;
+		}
+		if (sentRequest) {
+			clearSplitMarker();
+			this.#unsettledRequest = null;
+		}
 		if (failure.kind === 'http' && failure.status === 409 && CONFLICT_CODES.has(failure.code)) {
 			this.#close(CONFLICT_NOTICE);
 			return;

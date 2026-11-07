@@ -203,6 +203,9 @@ test.describe('desktop split', () => {
 		expect(remainder?.startTime.slice(0, 5)).toBe(boundaryBefore);
 		expect(remainder?.description).toBe(description);
 
+		// The right start cannot move back over the saved part: it stops at the saved end
+		await rightCard(page).getByTestId('split-right-from').fill(await clockMinutesAgo(page, 60));
+		await expect(rightCard(page).getByTestId('split-right-from')).toHaveValue(boundaryBefore);
 		// Editing the right start after the left is saved never rewrites the saved part
 		await rightCard(page).getByTestId('split-right-from').fill(await clockMinutesAgo(page, 20));
 		await expect(leftCard(page).getByTestId('split-left-summary-range')).toHaveText(`${fromBefore}–${boundaryBefore}`);
@@ -291,9 +294,11 @@ test.describe('desktop split', () => {
 		await open(page, '/');
 		const original = await timerStatus(page);
 		await openSplit(page);
-		await page.route('**/api/timer/split', (route) => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ message: 'Database unavailable' }) }));
+		await page.route('**/api/timer/split', (route) => route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ message: 'Database unavailable', code: 'invalid_split' }) }));
 		await button(leftCard(page), 'Save').click();
 		await expect(leftCard(page).getByTestId('split-left-error')).toContainText('Database unavailable');
+		// A definitive 4xx: nothing was written, the marker is gone
+		expect(await page.evaluate(() => localStorage.getItem('chronolog.split-marker'))).toBeNull();
 		await expect(leftCard(page).locator('#split-left-description')).toHaveValue('Planning');
 		await expect(button(leftCard(page), 'Retry')).toBeEnabled();
 		await expect(page.getByRole('button', { name: 'Flip' })).toBeVisible();
@@ -304,6 +309,86 @@ test.describe('desktop split', () => {
 		await page.unroute('**/api/timer/split');
 		await button(leftCard(page), 'Retry').click();
 		await expect(leftCard(page).getByTestId('split-left-summary')).toBeVisible();
+		expect(await savedEntries(page)).toHaveLength(1);
+	});
+
+	test('an edited start is moved back when the split fails and the user cancels', async ({ page, baseURL }) => {
+		await signInAsFreshUser(page, baseURL, 'split-start-back');
+		const data = await seed(page, 'SS');
+		await startTimer(page, data.contractId, 60, 'Planning');
+		await open(page, '/');
+		const original = await timerStatus(page);
+		await openSplit(page);
+		await leftCard(page).getByTestId('split-left-from').fill(await clockMinutesAgo(page, 50));
+		// A 502 may follow a commit: the marker stays and Retry is offered
+		await page.route('**/api/timer/split', (route) => route.fulfill({ status: 502, body: 'Bad gateway' }));
+		await button(leftCard(page), 'Save').click();
+		await expect(button(leftCard(page), 'Retry')).toBeEnabled();
+		expect(await page.evaluate(() => localStorage.getItem('chronolog.split-marker'))).toBeTruthy();
+		expect((await timerStatus(page))?.startTime).not.toBe(original?.startTime);
+		await page.unroute('**/api/timer/split');
+		await button(overlay(page), 'Cancel').click();
+		await expect(overlay(page)).toHaveCount(0);
+		await expect.poll(async () => (await timerStatus(page))?.startTime).toBe(original?.startTime);
+		expect(await page.evaluate(() => localStorage.getItem('chronolog.split-marker'))).toBeNull();
+		expect(await savedEntries(page)).toHaveLength(0);
+	});
+
+	test('the known gap: a lost answer to discard-left + blank right, then Retry gets 404: the remainder is restored', async ({ page, baseURL }) => {
+		await signInAsFreshUser(page, baseURL, 'split-gap');
+		const data = await seed(page, 'SG');
+		await startTimer(page, data.contractId, 60, 'Planning');
+		await open(page, '/');
+		await openSplit(page);
+		const boundary = await leftCard(page).getByTestId('split-left-to').inputValue();
+		const requestIds: string[] = [];
+		// First attempt: the server commits, the answer is lost
+		await page.route('**/api/timer/split', async (route) => {
+			requestIds.push(JSON.parse(route.request().postData() ?? '{}').clientRequestId);
+			await route.fetch();
+			await route.abort('failed');
+		});
+		await button(leftCard(page), 'Discard').click();
+		await expect(leftCard(page).getByTestId('split-left-error')).toContainText("Couldn't reach the server");
+		expect(await timerStatus(page)).toBeNull();
+		await page.unroute('**/api/timer/split');
+		await page.route('**/api/timer/split', async (route) => {
+			requestIds.push(JSON.parse(route.request().postData() ?? '{}').clientRequestId);
+			await route.continue();
+		});
+		await button(leftCard(page), 'Discard').click();
+		await expect(leftCard(page).getByTestId('split-left-summary')).toContainText('Discarded');
+		expect(requestIds).toHaveLength(2);
+		expect(requestIds[1]).toBe(requestIds[0]);
+		const pending = await page.evaluate(() => JSON.parse(localStorage.getItem('chronolog.pending-timer') ?? 'null'));
+		expect(pending?.startTime.slice(0, 5)).toBe(boundary);
+		expect(pending?.endTime).toBeUndefined();
+		await expect(button(rightCard(page), 'Resume')).toBeEnabled();
+		await button(rightCard(page), 'Resume').click();
+		await expect(overlay(page)).toHaveCount(0);
+		await expect(widget(page).getByRole('button', { name: 'Stop', exact: true })).toBeVisible();
+		expect(await savedEntries(page)).toHaveLength(0);
+	});
+
+	test('a changed request after an unanswered attempt gets a new id', async ({ page, baseURL }) => {
+		await signInAsFreshUser(page, baseURL, 'split-new-id');
+		const data = await seed(page, 'SN');
+		await startTimer(page, data.contractId, 60, 'Planning');
+		await open(page, '/');
+		await openSplit(page);
+		const requestIds: string[] = [];
+		await page.route('**/api/timer/split', async (route) => {
+			requestIds.push(JSON.parse(route.request().postData() ?? '{}').clientRequestId);
+			if (requestIds.length === 1) await route.abort('failed');
+			else await route.continue();
+		});
+		await button(leftCard(page), 'Save').click();
+		await expect(button(leftCard(page), 'Retry')).toBeEnabled();
+		await leftCard(page).getByTestId('split-left-to').fill(await clockMinutesAgo(page, 20));
+		await button(leftCard(page), 'Retry').click();
+		await expect(leftCard(page).getByTestId('split-left-summary')).toBeVisible();
+		expect(requestIds).toHaveLength(2);
+		expect(requestIds[1]).not.toBe(requestIds[0]);
 		expect(await savedEntries(page)).toHaveLength(1);
 	});
 

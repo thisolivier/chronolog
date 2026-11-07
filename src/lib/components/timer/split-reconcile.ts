@@ -19,7 +19,7 @@ import { isOfflineError } from '$lib/offline/replay-transport';
 import { dispatchTimeEntrySaved } from '$lib/components/weekly/time-entry-events';
 import { captureDraft } from '$lib/stores/capture-draft.svelte';
 import { readPendingTimer, writePendingTimer } from './pending-timer';
-import { clearSplitMarker, readSplitMarker, reconcileStepFor, resendFailureMeaning } from './split-marker';
+import { clearSplitMarker, markSplitMarkerCancelled, readSplitMarker, reconcileStepFor, resendFailureMeaning } from './split-marker';
 
 /** How a request failed: no answer, or an HTTP status with the server's `code` */
 export type RequestFailure = { kind: 'network' } | { kind: 'http'; status: number; code: string } | { kind: 'other' };
@@ -38,6 +38,15 @@ export function requestFailureOf(error: unknown): RequestFailure {
 		return { kind: 'http', status: error.status, code };
 	}
 	return { kind: 'other' };
+}
+
+/**
+ * A failure that does not say whether the server committed: no answer, or a 5xx (a proxy's 502,
+ * 504 or 524 can arrive after the origin wrote). The marker stays and Retry re-sends the same id.
+ * Only a definitive 4xx settles a split request as not done.
+ */
+export function isUnsettledFailure(failure: RequestFailure): boolean {
+	return failure.kind === 'network' || (failure.kind === 'http' && failure.status >= 500);
 }
 
 /**
@@ -61,7 +70,7 @@ export function applySplitResult(result: SplitTimerResult): void {
 }
 
 /** The known gap: the remainder the server reported in an answer that was lost */
-function restorePendingRemainder(request: SplitTimerInput): void {
+export function restorePendingRemainder(request: SplitTimerInput): void {
 	if (readPendingTimer()) return;
 	const [date, startTime] = request.boundary.split('T');
 	const endTime = request.expectedEndedAt ? request.expectedEndedAt.split('T')[1] : undefined;
@@ -85,6 +94,7 @@ export async function reconcileSplitMarker(dataService: DataService, mode: 'load
 	try {
 		step = reconcileStepFor(marker, (await dataService.getTimerStatus()).timer);
 	} catch {
+		if (mode === 'cancel') markSplitMarkerCancelled();
 		return { kind: 'offline' };
 	}
 	if (step === 'split-happened') {
@@ -92,7 +102,7 @@ export async function reconcileSplitMarker(dataService: DataService, mode: 'load
 		captureDraft.clear();
 		return { kind: 'split', message: FINISHED_MESSAGE };
 	}
-	if (step === 'not-split' && mode === 'cancel') {
+	if (step === 'not-split' && (mode === 'cancel' || marker.cancelled)) {
 		clearSplitMarker();
 		return { kind: 'not-split' };
 	}
@@ -103,7 +113,7 @@ export async function reconcileSplitMarker(dataService: DataService, mode: 'load
 		return { kind: 'split', message: FINISHED_MESSAGE };
 	} catch (error) {
 		const failure = requestFailureOf(error);
-		if (failure.kind === 'network') return { kind: 'offline' };
+		if (isUnsettledFailure(failure)) return { kind: 'offline' };
 		clearSplitMarker();
 		if (failure.kind === 'http' && resendFailureMeaning(marker, failure.status) === 'settled-known-gap') {
 			restorePendingRemainder(marker.request);

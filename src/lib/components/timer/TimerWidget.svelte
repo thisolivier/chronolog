@@ -13,7 +13,7 @@
 	} from './timer-api';
 	import { clearPendingTimer, readPendingTimer, writePendingTimer } from './pending-timer';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
-	import { untrack } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import { formatContractLabel } from './contract-label';
 	import { localDateString, localTimeString } from './local-date';
 	import {
@@ -582,6 +582,7 @@
 			return;
 		}
 		errorMessage = message;
+		await returnFocusAfterSplit();
 	}
 
 	function resetTimer() {
@@ -636,6 +637,22 @@
 		);
 	}
 
+	// Focus goes back to Split (or the widget's first button) once the closed split has reloaded
+	let widgetElement: HTMLDivElement | undefined = $state();
+	let focusAfterSplit = false;
+	$effect(() => {
+		if (splitSession.isOpen && splitSession.ownerWidgetId === widgetId) focusAfterSplit = true;
+	});
+	async function returnFocusAfterSplit() {
+		if (!focusAfterSplit || splitSession.isOpen) return;
+		focusAfterSplit = false;
+		await tick();
+		const target =
+			widgetElement?.querySelector<HTMLElement>('[data-testid="timer-split-button"]:not([disabled])') ??
+			widgetElement?.querySelector<HTMLElement>('button:not([disabled])');
+		target?.focus();
+	}
+
 	const showSplitOverlay = $derived(
 		splitSession.isOpen && splitSession.ownerWidgetId === widgetId && !splitSession.isCollapsing
 	);
@@ -648,6 +665,7 @@
 </script>
 
 <div
+	bind:this={widgetElement}
 	class="relative {isScreen
 		? 'flex min-h-0 flex-1 flex-col bg-surface'
 		: placement === 'footer'

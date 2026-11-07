@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HttpError } from '$lib/services/fetch-helpers';
 import type { DataService } from '$lib/services/data-service';
 import type { SplitTimerInput, SplitTimerResult, TimerEntry } from '$lib/services/types';
-import { reconcileSplitMarker } from './split-reconcile';
+import { isUnsettledFailure, reconcileSplitMarker, requestFailureOf } from './split-reconcile';
 import { readSplitMarker, splitMarkerFor, writeSplitMarker } from './split-marker';
 import { readPendingTimer } from './pending-timer';
 
@@ -98,5 +98,35 @@ describe('reconciling an unsettled split (SP-08)', () => {
 		const service = { getTimerStatus: vi.fn(async () => Promise.reject(new TypeError('Failed to fetch'))) } as unknown as DataService;
 		expect(await reconcileSplitMarker(service, 'load')).toEqual({ kind: 'offline' });
 		expect(readSplitMarker()).not.toBeNull();
+	});
+
+	it('a marker cancelled while offline never splits an unsplit draft later', async () => {
+		writeSplitMarker({ ...splitMarkerFor(request()), cancelled: true });
+		const { service, splitTimer } = fakeService(timer('09:00:00'), async () => pendingResult);
+		expect(await reconcileSplitMarker(service, 'load')).toEqual({ kind: 'not-split' });
+		expect(splitTimer).not.toHaveBeenCalled();
+		expect(readSplitMarker()).toBeNull();
+	});
+
+	it('a 5xx on re-send may follow a commit: the marker stays', async () => {
+		writeSplitMarker(splitMarkerFor(request()));
+		const { service } = fakeService(null, async () => {
+			throw new HttpError('POST /api/timer/split failed (524): timeout', 524);
+		});
+		expect(await reconcileSplitMarker(service, 'load')).toEqual({ kind: 'offline' });
+		expect(readSplitMarker()).not.toBeNull();
+	});
+});
+
+describe('which failures settle a split request', () => {
+	const http = (status: number) => requestFailureOf(new HttpError(`POST /api/timer/split failed (${status}): {"code":"x"}`, status));
+	it.each([500, 502, 504, 524])('%i is unsettled (the origin may have committed)', (status) => {
+		expect(isUnsettledFailure(http(status))).toBe(true);
+	});
+	it.each([400, 404, 409])('%i is definitive', (status) => {
+		expect(isUnsettledFailure(http(status))).toBe(false);
+	});
+	it('no answer is unsettled', () => {
+		expect(isUnsettledFailure(requestFailureOf(new TypeError('Failed to fetch')))).toBe(true);
 	});
 });

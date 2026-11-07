@@ -5,7 +5,7 @@
 	live end. Errors (zero, negative, unreadable) show inline under the fields.
 -->
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import { formatMinutes } from '$lib/utils/duration';
 	import { clockOf } from './split-times';
 
@@ -84,9 +84,13 @@
 		}
 	}
 
-	function handleClockChange(event: Event, apply: (clock: string) => void) {
-		const value = (event.currentTarget as HTMLInputElement).value;
-		if (value) apply(value);
+	/** Apply a typed clock, then show what the session kept (it may clamp it, or refuse it) */
+	async function handleClockChange(event: Event, apply: (clock: string) => void, kept: () => number | null) {
+		const input = event.currentTarget as HTMLInputElement;
+		if (input.value) apply(input.value);
+		await tick();
+		const value = kept();
+		if (value !== null) input.value = clockOf(value);
 	}
 
 	const message = $derived(durationError || problem);
@@ -124,7 +128,7 @@
 			id="{idPrefix}-from"
 			type="time"
 			value={clockOf(from)}
-			onchange={(event) => handleClockChange(event, onFrom)}
+			onchange={(event) => handleClockChange(event, onFrom, () => from)}
 			disabled={disabled || !fromEditable}
 			class="w-32 {inputClass}"
 			data-testid="{idPrefix}-from"
@@ -137,7 +141,7 @@
 				id="{idPrefix}-to"
 				type="time"
 				value={clockOf(to)}
-				onchange={(event) => handleClockChange(event, onTo)}
+				onchange={(event) => handleClockChange(event, onTo, () => to)}
 				disabled={disabled || !toEditable}
 				class="w-32 {inputClass}"
 				data-testid="{idPrefix}-to"
