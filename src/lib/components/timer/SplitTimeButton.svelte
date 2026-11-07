@@ -1,21 +1,20 @@
 <!--
 	SplitTimeButton — the Split time entry point (design r1 TC-07 / SP-01, sprint 055-DR): beside
 	Add note on the running desktop timer and in the stopped form's header. Never on a phone
-	layout (no small-layout split). Disabled offline: timer requests are not queued.
-	STAGE 5 STUB: the split overlay does not exist yet, so `onSplit` is absent and the button is
-	disabled with "Split time (coming soon)". Stage 5 passes the handler (split-entry.ts).
+	layout (no small-layout split). Disabled offline (timer requests are not queued) and when
+	`onSplit` is absent, with `disabledReason` as its tooltip (split-entry.ts, sprint 056-DR UI).
 -->
 <script lang="ts">
 	import { connectivity } from '$lib/stores/connectivity.svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 
-	let { onSplit = undefined }: { onSplit?: () => void } = $props();
+	let { onSplit = undefined, disabledReason = '' }: { onSplit?: () => void; disabledReason?: string } = $props();
 
 	const navigation = getNavigationContext();
 	const isOffline = $derived(connectivity.isOffline);
 	const isDisabled = $derived(isOffline || !onSplit);
 	const tooltip = $derived(
-		isOffline ? 'Split time is not available offline' : onSplit ? 'Split time' : 'Split time (coming soon)'
+		isOffline ? 'Split time is not available offline' : onSplit ? 'Split time' : disabledReason || 'Split time is not available'
 	);
 </script>
 
