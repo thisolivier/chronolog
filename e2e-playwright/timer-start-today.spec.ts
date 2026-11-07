@@ -165,6 +165,16 @@ test.describe('Sprint 041 task 1: editable timer start', () => {
 		await widget.getByRole('button', { name: 'Start Timer' }).click();
 		await expect(widget.getByTestId('timer-no-contract-hint')).toBeVisible();
 		const startField = widget.getByTestId('timer-start-time');
+		// An unreadable time is refused in place and never stored (060-DR review: "12:60" saved "null:00")
+		for (const unreadable of ['12:60', '1:46 PM']) {
+			await startField.fill(unreadable);
+			await widget.getByRole('button', { name: 'Save', exact: true }).click();
+			await expect(widget.getByTestId('timer-start-error')).toHaveText('Enter a start time as HH:MM.');
+		}
+		const storedStart = await page.evaluate(() => JSON.stringify(Object.fromEntries(Object.entries(localStorage))));
+		expect(storedStart).not.toContain('null:00');
+		expect(storedStart).not.toContain('NaN');
+		expect(await elapsedMinutes(page)).toBeLessThanOrEqual(1);
 		await startField.fill(clockMinutesAgo(45));
 		await widget.getByRole('button', { name: 'Save', exact: true }).click();
 		await expect.poll(() => elapsedMinutes(page)).toBeGreaterThanOrEqual(45);

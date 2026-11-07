@@ -3,6 +3,8 @@
  * server's (`src/routes/api/timer/timer-start-rules.ts`), and reading the server's refusal.
  */
 
+import { parseClockText } from '$lib/utils/clock-text';
+
 const DAY_SECONDS = 24 * 60 * 60;
 
 export type TimerStartRejection = {
@@ -23,13 +25,39 @@ function localMoment(date: string, time: string): Date {
  * server refuses both). A start within the current minute is "now", not the future.
  */
 export function localTimerStartProblem(date: string, time: string, now: Date = new Date()): string | null {
-	if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}(:\d{2})?$/.test(time)) {
-		return 'Enter a start time as HH:MM.';
+	const clockParts = time.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+	// Shape and range: "12:60" must not roll forward into 13:00 (060-DR review)
+	if (
+		!/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+		!clockParts ||
+		Number(clockParts[1]) > 23 ||
+		Number(clockParts[2]) > 59 ||
+		Number(clockParts[3] ?? 0) > 59
+	) {
+		return START_TIME_FORMAT_MESSAGE;
 	}
 	const secondsBeforeNow = (now.getTime() - localMoment(date, time).getTime()) / 1000;
 	if (secondsBeforeNow < -60) return 'The start time is in the future.';
 	if (secondsBeforeNow > DAY_SECONDS) return 'A timer can start at most 24 hours ago.';
 	return null;
+}
+
+export const START_TIME_FORMAT_MESSAGE = 'Enter a start time as HH:MM.';
+
+/**
+ * What the Started field holds, read for a save (sprint 060-DR): the `HH:MM:SS` start, or the
+ * message to show in place. Text the clock parser cannot read never reaches the checks or the save.
+ */
+export function readTimerStartInput(
+	date: string,
+	text: string,
+	now: Date = new Date()
+): { ok: true; clock: string; startTime: string } | { ok: false; error: string } {
+	const clock = parseClockText(text);
+	if (!clock) return { ok: false, error: START_TIME_FORMAT_MESSAGE };
+	const problem = localTimerStartProblem(date, clock, now);
+	if (problem) return { ok: false, error: problem };
+	return { ok: true, clock, startTime: `${clock}:00` };
 }
 
 /** `HH:MM` for a time input, from `HH:MM:SS`. */

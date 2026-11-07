@@ -5,9 +5,8 @@
 	 * shows only when the timer started on another day (it crossed midnight). The time is a 24-hour
 	 * text field read by `parseClockText` (sprint 060-DR): a native time input reads 12-hour under en-US.
 	 */
-	import { parseClockText } from '$lib/utils/clock-text';
 	import { localDateString } from './local-date';
-	import { localTimerStartProblem, toTimeInputValue, type StartChangeResult } from './timer-start-edit';
+	import { readTimerStartInput, toTimeInputValue, type StartChangeResult } from './timer-start-edit';
 
 	let {
 		startTime,
@@ -51,16 +50,16 @@
 			overlapMessage = '';
 			return;
 		}
-		const clock = parseClockText(editedTime);
-		const problem = localTimerStartProblem(editedDate, clock ?? editedTime);
-		if (problem) {
-			errorMessage = problem;
+		// An unreadable time ("12:60", "1:46 PM") is refused here: it never reaches the save (060-DR)
+		const reading = readTimerStartInput(editedDate, editedTime);
+		if (!reading.ok) {
+			errorMessage = reading.error;
 			return;
 		}
-		if (clock) editedTime = clock;
+		editedTime = reading.clock;
 		isSaving = true;
 		try {
-			const result = await onChangeStart({ date: editedDate, startTime: `${clock}:00` }, confirmed);
+			const result = await onChangeStart({ date: editedDate, startTime: reading.startTime }, confirmed);
 			if (result.outcome === 'overlap') {
 				overlapMessage = result.message;
 			} else if (result.outcome === 'error') {
@@ -108,7 +107,6 @@
 			type="text"
 			inputmode="text"
 			autocomplete="off"
-			maxlength="5"
 			placeholder="HH:MM"
 			size="5"
 			bind:this={timeInput}
