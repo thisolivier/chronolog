@@ -6,8 +6,10 @@
  *
  * - three columns, one contract selected: the sidebar owns it; the list says Notes and the count;
  *   the editor shows the contract mark, the note code, the save state and the actions;
- * - navigation hidden (desktop sidebar collapsed, tablet overlay, phone): the list header names
- *   the client and contract again;
+ * - navigation hidden (desktop sidebar collapsed, tablet overlay closed, phone): the list header
+ *   names the client and contract again. "Hidden" is the shell's own record of what it presents
+ *   (`shellPresentation.sidebarOnScreen`, written by AppShell), so the timer reflection and the
+ *   notes headers follow one rule;
  * - single-column note (phone): the editor header names its own client and contract;
  * - a list spanning contracts (a client's notes, all notes): the header names the scope and each
  *   row names its contract (with its mark); a single-contract list omits the repeated contract text.
@@ -20,8 +22,8 @@ export type NoteListScope = 'contract' | 'client' | 'all';
 
 export interface NoteContextInput {
 	layoutMode: LayoutMode;
-	/** The desktop preference "sidebar collapsed" (`navigation.panel1Collapsed`) */
-	sidebarCollapsed: boolean;
+	/** The navigation sidebar is on screen (`shellPresentation.sidebarOnScreen`, written by AppShell) */
+	sidebarOnScreen: boolean;
 	scope: NoteListScope;
 }
 
@@ -41,16 +43,17 @@ export interface NoteContextOwnership {
 	editorContextVisible: boolean;
 }
 
-/** The sidebar is beside the list only on desktop with the sidebar expanded */
-export function isNavigationHidden(layoutMode: LayoutMode, sidebarCollapsed: boolean): boolean {
+/**
+ * The sidebar is beside the list only when the shell has it on screen. A phone never shows the
+ * sidebar beside a list or note (its sidebar is its own screen), whatever the shell reports.
+ */
+export function isNavigationHidden(layoutMode: LayoutMode, sidebarOnScreen: boolean): boolean {
 	if (layoutMode === 'mobile') return true;
-	// Tablet notes mode: the sidebar is an overlay, closed while the list and editor are in use
-	if (layoutMode === 'tablet') return true;
-	return sidebarCollapsed;
+	return !sidebarOnScreen;
 }
 
-export function noteContextOwnership({ layoutMode, sidebarCollapsed, scope }: NoteContextInput): NoteContextOwnership {
-	const navigationHidden = isNavigationHidden(layoutMode, sidebarCollapsed);
+export function noteContextOwnership({ layoutMode, sidebarOnScreen, scope }: NoteContextInput): NoteContextOwnership {
+	const navigationHidden = isNavigationHidden(layoutMode, sidebarOnScreen);
 	const spansContracts = scope !== 'contract';
 	return {
 		navigationHidden,

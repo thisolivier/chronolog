@@ -22,6 +22,7 @@
 	import { createNotePanelActions } from '$lib/components/notes/note-panel-actions';
 	import '$lib/components/notes/print-styles.css';
 	import { noteContextOwnership } from './note-context-ownership';
+	import { shellPresentation } from './shell-presentation.svelte';
 
 	const navigation = getNavigationContext();
 	const noteNavigation = useNoteNavigation(navigation);
@@ -31,7 +32,7 @@
 	const showEditorContext = $derived(
 		noteContextOwnership({
 			layoutMode: navigation.layoutMode,
-			sidebarCollapsed: navigation.panel1Collapsed,
+			sidebarOnScreen: shellPresentation.sidebarOnScreen,
 			scope: navigation.isAllNotesView ? 'all' : navigation.listClientId ? 'client' : 'contract'
 		}).editorContextVisible
 	);
