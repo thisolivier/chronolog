@@ -5,6 +5,7 @@
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
 | 018-QA | QA | Manual testing backlog | superseded by docs/review/2026-11-03-qa-state.md |
+| 052-DR | Design | Design r1 stage 2: tokens, system font, earth-tone palette and client colours, ContractMark, control recipes | ready for review |
 | 051-UI | Client | Sidebar tidy (Archived chevron, Settings in list, no +), Notes heading opens all notes, Saved/Saving pill, copy note code | merged |
 | 050-UI | Client | Back and forward through the user's journey (top bar ‹ ›, phone ›, every navigation a step) | ready for review |
 
