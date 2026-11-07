@@ -1,7 +1,11 @@
 /**
  * Sprint 046-CL: /search shows notes and time entries in one list, each with a type icon ("Note" /
- * "Time entry") and its client / contract; at phone width the icon sits on the client/contract line
- * and nothing scrolls sideways. Hits still open their note or entry.
+ * "Time entry") and its client / contract; nothing scrolls sideways at phone width. Hits still open
+ * their note or entry.
+ *
+ * Since 059-DR (SR-02) a row reads title first (beside the type icon), then the contract mark with
+ * "Client / Contract", then the excerpt; the date sits at the right on desktop and beneath the
+ * excerpt on a phone.
  *
  * Since 058-DR (design r1 SR-02/SR-03) the list is ordered by the shared search rank, then newest
  * first within a rank; it is no longer plain newest-first.
@@ -104,14 +108,19 @@ test('desktop: one list by rank then recency, type icon column, client and contr
 	await page.goto(`/search?q=${seeded.word}`);
 	await expectInterleaved(page, seeded);
 
-	// Icon in its own column, left of the client/contract line
+	// Icon in its own column; title first, then the contract mark and client/contract; date at the right
 	const firstHit = noteHit(page, 'Follow-up on');
 	const iconBox = await firstHit.getByTestId('search-hit-type-icon').boundingBox();
 	const contextBox = await firstHit.getByTestId('search-hit-context').boundingBox();
 	const titleBox = await firstHit.getByText(`Follow-up on`).boundingBox();
+	const dateBox = (await firstHit.getByTestId('search-hit-date').boundingBox())!;
 	expect(iconBox && contextBox && titleBox).toBeTruthy();
 	expect(iconBox!.x + iconBox!.width).toBeLessThanOrEqual(contextBox!.x);
 	expect(titleBox!.x).toBeGreaterThanOrEqual(contextBox!.x - 1);
+	expect(titleBox!.y + titleBox!.height).toBeLessThanOrEqual(contextBox!.y + 1);
+	await expect(firstHit.getByTestId('search-hit-context').getByTestId('contract-mark')).toBeVisible();
+	expect(dateBox.x).toBeGreaterThan(titleBox!.x + titleBox!.width);
+	expect(dateBox.y).toBeLessThan(contextBox!.y);
 	if (browserName === 'chromium') await page.screenshot({ path: path.join(SCREENSHOTS, '01-desktop-results.png'), fullPage: true });
 
 	// Arrow keys walk the combined list in order
@@ -141,20 +150,23 @@ test('desktop: one list by rank then recency, type icon column, client and contr
 });
 
 for (const width of [320, 390]) {
-	test(`phone ${width}px: icon on the client/contract line, no sideways scroll, hits open`, async ({ page, browserName }) => {
+	test(`phone ${width}px: title first, date beneath the excerpt, no sideways scroll, hits open`, async ({ page, browserName }) => {
 		const seeded = await seed(page, browserName);
 		await page.setViewportSize({ width, height: 800 });
 		await page.goto(`/search?q=${seeded.word}`);
 		await expectInterleaved(page, seeded);
 
-		// The icon shares the client/contract line; the title starts under the icon
+		// The icon sits beside the title; client/contract under the title; the date under the excerpt
 		const firstHit = noteHit(page, 'Follow-up on');
 		const iconBox = (await firstHit.getByTestId('search-hit-type-icon').boundingBox())!;
 		const contextBox = (await firstHit.getByTestId('search-hit-context').boundingBox())!;
 		const titleBox = (await firstHit.getByText('Follow-up on').boundingBox())!;
-		expect(Math.abs(iconBox.y + iconBox.height / 2 - (contextBox.y + contextBox.height / 2))).toBeLessThan(4);
-		expect(titleBox.y).toBeGreaterThanOrEqual(contextBox.y + contextBox.height - 1);
-		expect(titleBox.x).toBeLessThan(contextBox.x);
+		const dateBox = (await firstHit.getByTestId('search-hit-date').boundingBox())!;
+		expect(iconBox.y).toBeLessThan(titleBox.y + titleBox.height);
+		expect(iconBox.x + iconBox.width).toBeLessThanOrEqual(titleBox.x);
+		expect(contextBox.y).toBeGreaterThanOrEqual(titleBox.y + titleBox.height - 1);
+		expect(dateBox.y).toBeGreaterThan(contextBox.y + contextBox.height);
+		expect(Math.abs(dateBox.x - titleBox.x)).toBeLessThan(2);
 		const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 		expect(overflow).toBeLessThanOrEqual(0);
 		if (browserName === 'chromium') await page.screenshot({ path: path.join(SCREENSHOTS, `02-phone-${width}-results.png`), fullPage: true });
