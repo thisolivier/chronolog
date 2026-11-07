@@ -96,8 +96,21 @@ test.describe('desktop 1280', () => {
 		await collapseToggle(page).click();
 		await expect(widget(page).locator('#draft-description')).toHaveValue('Planning the kick-off');
 
-		// Sidebar hidden (the widget stays mounted at 0px): the header reflects the capture
+		// Keyboard: Enter on the chevron toggles and focus stays on the chevron both ways
+		await collapseToggle(page).focus();
+		await page.keyboard.press('Enter');
+		await expect(widget(page).getByTestId('timer-compact')).toBeVisible();
+		await expect(collapseToggle(page)).toBeFocused();
+		await expect(collapseToggle(page)).toHaveAttribute('aria-expanded', 'false');
+		await page.keyboard.press('Enter');
+		await expect(widget(page).getByTestId('timer-identity')).toBeVisible();
+		await expect(collapseToggle(page)).toBeFocused();
+		await expect(collapseToggle(page)).toHaveAttribute('aria-expanded', 'true');
+
+		// Sidebar hidden (the widget stays mounted at 0px): the header reflects the capture, but
+		// only once the 300ms width animation is over, so the two never show together
 		await page.getByRole('button', { name: 'Toggle sidebar' }).click();
+		expect(await headerPill(page).count()).toBe(0);
 		await expect(headerPill(page)).toBeVisible();
 		await expect(headerPill(page)).toHaveAttribute('data-state', 'running');
 		await expect(headerPill(page)).toContainText(data.contractName);
@@ -165,6 +178,28 @@ test.describe('desktop 1280', () => {
 		await page.setViewportSize({ width: 1280, height: 800 });
 		await expect(widget(page).locator('#timer-description')).toHaveValue('Wrote the agenda');
 		await expect(widget(page).locator('#timer-time')).toHaveValue('1h 15m');
+
+		// The server moves the stopped draft's start (a split or move from another device): the
+		// stored time text is stale, so after a reload the Time field shows the server's interval,
+		// while the description survives
+		test.skip(new Date().getHours() < 1, 'needs 30 minutes of today behind the start');
+		const moved = await page.evaluate(async () => {
+			const timer = (await (await fetch('/api/timer/status')).json()).timer;
+			const [hours, minutes] = (timer.startTime as string).split(':').map(Number);
+			const earlier = hours * 60 + minutes - 30;
+			const startTime = `${String(Math.floor(earlier / 60)).padStart(2, '0')}:${String(earlier % 60).padStart(2, '0')}`;
+			const response = await fetch('/api/timer', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ startTime, confirmed: true })
+			});
+			return { status: response.status, startTime };
+		});
+		expect(moved.status).toBe(200);
+		await page.reload();
+		await page.waitForLoadState('networkidle');
+		await expect(widget(page).locator('#timer-time')).toHaveValue(new RegExp(`^${moved.startTime}-\\d\\d:\\d\\d$`));
+		await expect(widget(page).locator('#timer-description')).toHaveValue('Wrote the agenda');
 
 		// Discard resolves it: nothing left to finish, the stored fields are gone
 		await widget(page).getByRole('button', { name: 'Discard', exact: true }).click();
