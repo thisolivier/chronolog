@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { captureScreen } from '$lib/components/timer/capture-screen.svelte';
 	import FindBar from '$lib/components/find/FindBar.svelte';
 	import { onMount, tick } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
@@ -186,7 +187,8 @@
 	let addEntryDate = $derived(displayDays.includes(todayString) ? todayString : selectedWeekStart);
 
 	// Phone (TR-08): no footer timer bar. A running or stopped capture is in the header pill (053-DR);
-	// with no capture, Start timer (the capture screen) and Add Entry stay in the week controls.
+	// with no capture, Start timer (the capture screen, the same path as the pill) and Add Entry
+	// stay in the week controls.
 	let showPhoneCaptureAccess = $derived(navigation.layoutMode === 'mobile' && timer.status === 'idle');
 	let showAddEntryModal = $state(false);
 
@@ -525,7 +527,7 @@
 	{#if showPhoneCaptureAccess}
 		<button
 			type="button"
-			onclick={() => navigation.navigateMobile(0)}
+			onclick={() => captureScreen.open()}
 			class="flex items-center gap-1.5 rounded-control px-3 py-1.5 text-sm font-medium btn-primary pointer-coarse:min-h-11"
 			title="Open the timer to start it"
 			data-testid="phone-start-timer"

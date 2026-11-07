@@ -23,10 +23,12 @@
 		onRetry,
 		invalid = false,
 		errorId = undefined,
-		size = 'compact'
+		size = 'compact',
+		ariaLabel = undefined
 	}: {
 		level: CascadeLevelName;
-		id: string;
+		/** The select's id (for a <label for>); optional where the select is named by ariaLabel */
+		id?: string;
 		state: CascadeLevelState;
 		value: string;
 		onChoose: (id: string) => void;
@@ -37,6 +39,8 @@
 		errorId?: string;
 		/** 'compact' in the sidebar widget, 'regular' in the modal and on the phone screen */
 		size?: 'compact' | 'regular';
+		/** Accessible name when no <label> points at the select (the timesheet's inline editor) */
+		ariaLabel?: string;
 	} = $props();
 
 	const placeholder = $derived(levelPlaceholder(level, state, Boolean(value)));
@@ -64,6 +68,7 @@
 			onchange={(event) => onChoose(event.currentTarget.value)}
 			aria-invalid={invalid}
 			aria-describedby={errorId}
+			aria-label={ariaLabel}
 			class="block w-full min-w-0 flex-1 border bg-surface focus:ring-1 focus:outline-none {sizeClasses} {borderClasses}"
 		>
 			<option value={noneValue}>{noneOptionLabel(level)}</option>
@@ -78,6 +83,7 @@
 			disabled
 			aria-invalid={invalid}
 			aria-describedby={errorId}
+			aria-label={ariaLabel}
 			class="block w-full min-w-0 flex-1 border bg-sunken text-ink-faint {sizeClasses} {borderClasses}"
 		>
 			<option value="">{placeholder}</option>

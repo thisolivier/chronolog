@@ -4,10 +4,16 @@
  *   entry has no work type until one of the new deliverable's is picked.
  * - Add-entry row: the same, and the created entry has the new deliverable and no work type.
  * - A 400 from the API (should it ever come back) shows its message in the card's error line.
+ * Checkpoint B/C: both editors run on the shared ontology cascade, so "none" is the explicit
+ * CASCADE_NONE option value, and a deliverable with exactly one work type takes it (sole-option
+ * rule); Recommendations has two work types so the reset-to-none case stays observable.
  */
 import { test, expect, type Page } from '@playwright/test';
 
 test.describe.configure({ mode: 'default' });
+
+/** The value of the "No deliverable" / "No work type" option (CASCADE_NONE) */
+const NONE = 'none';
 
 type Seeded = {
 	contractLabel: string;
@@ -28,7 +34,7 @@ async function open(page: Page, path: string) {
 	await page.waitForLoadState('networkidle');
 }
 
-/** A client with one contract: Discovery (work type Interviews) and Recommendations (Drafting), and an entry today on Discovery > Interviews */
+/** A client with one contract: Discovery (work type Interviews) and Recommendations (Drafting, Editing), and an entry today on Discovery > Interviews */
 async function seed(page: Page): Promise<Seeded> {
 	const suffix = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
 	const today = isoDate(new Date());
@@ -53,6 +59,7 @@ async function seed(page: Page): Promise<Seeded> {
 			const recommendations = (await post('/api/deliverables', { contractId, name: 'Recommendations', sortOrder: 1 })).deliverable;
 			const interviews = (await post('/api/work-types', { deliverableId: discovery.id, name: 'Interviews' })).workType;
 			const drafting = (await post('/api/work-types', { deliverableId: recommendations.id, name: 'Drafting' })).workType;
+			await post('/api/work-types', { deliverableId: recommendations.id, name: 'Editing', sortOrder: 1 });
 			const created = await post('/api/time-entries', {
 				date: today,
 				durationMinutes: 60,
@@ -99,8 +106,8 @@ test.describe('Sprint 032 work type follows the deliverable', () => {
 		await expect(workTypePicker).toHaveValue(seeded.interviewsId);
 
 		await deliverablePicker.selectOption({ label: 'Recommendations' });
-		await expect(workTypePicker).toHaveValue('');
-		await expect(workTypePicker.locator('option')).toHaveText(['No work type', 'Drafting']);
+		await expect(workTypePicker).toHaveValue(NONE);
+		await expect(workTypePicker.locator('option')).toHaveText(['No work type', 'Drafting', 'Editing']);
 
 		await expect.poll(async () => (await readEntry(page, seeded.today, seeded.entryId))?.deliverableId).toBe(seeded.recommendationsId);
 		expect((await readEntry(page, seeded.today, seeded.entryId)).workTypeId).toBeNull();
@@ -111,6 +118,13 @@ test.describe('Sprint 032 work type follows the deliverable', () => {
 
 		await card.getByRole('button', { name: 'Done' }).click();
 		await expect(card).toContainText('Recommendations > Drafting');
+
+		// Sole-option rule (shared cascade): back to Discovery takes its only work type, saved as a pair
+		await card.getByTitle('Click to change deliverable / work type').click();
+		await card.locator('select').nth(0).selectOption({ label: 'Discovery' });
+		await expect(card.locator('select').nth(1)).toHaveValue(seeded.interviewsId);
+		await expect.poll(async () => (await readEntry(page, seeded.today, seeded.entryId))?.workTypeId).toBe(seeded.interviewsId);
+		expect((await readEntry(page, seeded.today, seeded.entryId)).deliverableId).toBe(seeded.discoveryId);
 	});
 
 	test('add-entry row: changing the deliverable resets the work type before save', async ({ page }) => {
@@ -125,7 +139,7 @@ test.describe('Sprint 032 work type follows the deliverable', () => {
 		await page.locator(`${prefix}-work-type`).selectOption({ label: 'Interviews' });
 
 		await page.locator(`${prefix}-deliverable`).selectOption({ label: 'Recommendations' });
-		await expect(page.locator(`${prefix}-work-type`)).toHaveValue('');
+		await expect(page.locator(`${prefix}-work-type`)).toHaveValue(NONE);
 
 		await page.locator(`${prefix}-time`).fill('30m');
 		await page.locator(`${prefix}-time`).press('Enter');

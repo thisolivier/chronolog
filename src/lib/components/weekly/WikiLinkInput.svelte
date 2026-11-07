@@ -1,4 +1,14 @@
+<script lang="ts" module>
+    let wikiLinkInputCount = 0;
+</script>
+
 <script lang="ts">
+    import { tick } from 'svelte';
+    import LinkPicker from '$lib/components/search/LinkPicker.svelte';
+    import { createLinkPickerSearch, type LinkPickerSearch } from '$lib/components/search/link-picker-search.svelte';
+    import { placeLinkPicker } from '$lib/components/search/link-picker-placement';
+    import type { LinkPickerItem } from '$lib/components/search/link-targets';
+
     interface Props {
         value: string;
         placeholder?: string;
@@ -29,8 +39,6 @@
         ariaLabel = undefined
     }: Props = $props();
 
-    type SearchResult = { id: string; title: string | null };
-
     let inputElement: HTMLInputElement | HTMLTextAreaElement | undefined = $state();
 
     // Focus on mount when asked (instead of the autofocus attribute, which a11y lint flags),
@@ -53,12 +61,102 @@
         void value;
         fitToContent();
     });
-    let showDropdown = $state(false);
-    let searchResults = $state<SearchResult[]>([]);
-    let selectedIndex = $state(0);
-    let searchQuery = $state('');
+    // The `[[` picker: the shared list, querying and placement of the note editor (059-DR,
+    // SR-04..SR-07). An empty `[[` lists recent notes; rows carry the contract mark and
+    // client / contract; replies to older queries are ignored; Enter while the current query is
+    // still loading inserts from its reply, never from the rows left over from the previous one.
+    const PHONE_QUERY = '(max-width: 767px)';
+    const idPrefix = `entry-link-${++wikiLinkInputCount}`;
+
+    let isPickerOpen = $state(false);
+    let activeIndex = $state(0);
     let bracketStartIndex = $state(-1);
-    let fetchTimer: ReturnType<typeof setTimeout> | undefined;
+    let pickerVariant = $state<'desktop' | 'phone'>('desktop');
+    let pickerPlacement = $state<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
+    let pickerLayer: HTMLDivElement | undefined = $state();
+    let search: LinkPickerSearch | null = $state(null);
+    let enterPending = false;
+    let lastItems: LinkPickerItem[] = [];
+
+    function syncFromSearch() {
+        if (!search) return;
+        if (search.items !== lastItems) {
+            lastItems = search.items;
+            activeIndex = 0;
+        }
+        if (enterPending && search.status !== 'loading') {
+            enterPending = false;
+            if (search.status === 'ready' && search.items[activeIndex]) {
+                selectResult(activeIndex);
+                return;
+            }
+        }
+        void tick().then(positionPicker);
+    }
+
+    function openPicker(query: string) {
+        if (!search) {
+            pickerVariant = window.matchMedia(PHONE_QUERY).matches ? 'phone' : 'desktop';
+            lastItems = [];
+            activeIndex = 0;
+            search = createLinkPickerSearch({ onChange: syncFromSearch });
+        }
+        isPickerOpen = true;
+        // Typing on after Enter means the earlier Enter no longer applies
+        if (query !== search.query) enterPending = false;
+        search.setQuery(query);
+        void tick().then(positionPicker);
+    }
+
+    function closePicker() {
+        isPickerOpen = false;
+        enterPending = false;
+        search?.dispose();
+        search = null;
+        pickerPlacement = null;
+    }
+
+    $effect(() => () => closePicker());
+
+    /** Place the list against the visual viewport (above a phone's keyboard), anchored to the field */
+    function positionPicker() {
+        if (!isPickerOpen || !inputElement) return;
+        const visual = window.visualViewport;
+        const viewport = visual
+            ? { top: visual.offsetTop, left: visual.offsetLeft, width: visual.width, height: visual.height }
+            : { top: 0, left: 0, width: document.documentElement.clientWidth, height: window.innerHeight };
+        const panel = pickerLayer?.firstElementChild as HTMLElement | null | undefined;
+        const list = panel?.querySelector<HTMLElement>('[role="listbox"]');
+        const contentHeight = panel && list ? panel.offsetHeight - list.clientHeight + list.scrollHeight : 0;
+        pickerPlacement = placeLinkPicker({
+            anchor: inputElement.getBoundingClientRect(),
+            viewport,
+            contentHeight,
+            isPhone: pickerVariant === 'phone'
+        });
+    }
+
+    $effect(() => {
+        if (!isPickerOpen) return;
+        const reposition = () => positionPicker();
+        const visual = window.visualViewport;
+        visual?.addEventListener('resize', reposition);
+        visual?.addEventListener('scroll', reposition);
+        window.addEventListener('resize', reposition);
+        document.addEventListener('scroll', reposition, { capture: true, passive: true });
+        return () => {
+            visual?.removeEventListener('resize', reposition);
+            visual?.removeEventListener('scroll', reposition);
+            window.removeEventListener('resize', reposition);
+            document.removeEventListener('scroll', reposition, { capture: true });
+        };
+    });
+
+    /** The list lives on <body>: the entry rows' container queries would otherwise hold a fixed box */
+    function portal(node: HTMLElement) {
+        document.body.appendChild(node);
+        return { destroy: () => node.remove() };
+    }
 
     /**
      * Detect [[ pattern at cursor position and extract the query.
@@ -85,33 +183,12 @@
     }
 
     /**
-     * Fetch note search results.
+     * Insert the chosen note's ID into the text, replacing the [[query portion.
      */
-    async function fetchResults(query: string) {
-        if (!query || query.length < 1) {
-            searchResults = [];
-            return;
-        }
-
-        try {
-            const response = await fetch(`/api/notes/search?q=${encodeURIComponent(query)}`);
-            if (!response.ok) {
-                searchResults = [];
-                return;
-            }
-            const data = await response.json();
-            searchResults = data.notes ?? [];
-            selectedIndex = 0;
-        } catch {
-            searchResults = [];
-        }
-    }
-
-    /**
-     * Insert a selected note ID into the text, replacing the [[query portion.
-     */
-    function selectResult(result: SearchResult) {
-        const noteId = result.id;
+    function selectResult(index: number) {
+        const item = search?.items[index];
+        if (!item) return;
+        const noteId = item.noteId;
         const beforeBrackets = value.slice(0, bracketStartIndex);
         const cursorPosition = inputElement?.selectionStart ?? value.length;
         const afterCursor = value.slice(cursorPosition);
@@ -120,8 +197,7 @@
         value = newValue;
         onInput?.(newValue);
 
-        showDropdown = false;
-        searchResults = [];
+        closePicker();
 
         // Set cursor after the inserted link
         const newCursorPos = beforeBrackets.length + noteId.length + 4; // [[ + noteId + ]]
@@ -138,53 +214,56 @@
 
         const detected = detectWikiLinkQuery();
         if (detected) {
-            searchQuery = detected.query;
             bracketStartIndex = detected.startIndex;
-            showDropdown = true;
-
-            clearTimeout(fetchTimer);
-            fetchTimer = setTimeout(() => fetchResults(searchQuery), 200);
+            openPicker(detected.query);
         } else {
-            showDropdown = false;
-            searchResults = [];
+            closePicker();
         }
     }
 
     function handleKeydown(event: KeyboardEvent) {
-        if (showDropdown && searchResults.length > 0) {
-            if (event.key === 'ArrowDown') {
+        if (isPickerOpen && search) {
+            const itemCount = search.items.length;
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                 event.preventDefault();
-                selectedIndex = (selectedIndex + 1) % searchResults.length;
-                return;
-            }
-            if (event.key === 'ArrowUp') {
-                event.preventDefault();
-                selectedIndex = (selectedIndex - 1 + searchResults.length) % searchResults.length;
+                if (itemCount === 0) return;
+                const step = event.key === 'ArrowDown' ? 1 : -1;
+                activeIndex = Math.min(Math.max(activeIndex + step, 0), itemCount - 1);
                 return;
             }
             if (event.key === 'Enter') {
+                // Rows still on screen during a load belong to the previous query
+                if (search.status === 'loading') {
+                    event.preventDefault();
+                    enterPending = true;
+                    return;
+                }
+                if (search.items[activeIndex]) {
+                    event.preventDefault();
+                    selectResult(activeIndex);
+                    return;
+                }
+            }
+            if (event.key === 'Escape') {
+                // Closes the list and keeps the typed text; the editor stays open
                 event.preventDefault();
-                selectResult(searchResults[selectedIndex]);
+                closePicker();
                 return;
             }
-        }
-
-        if (showDropdown && event.key === 'Escape') {
-            event.preventDefault();
-            showDropdown = false;
-            return;
         }
 
         // Forward to parent
         onKeydown?.(event);
     }
 
-    function handleBlur() {
-        // Delay to allow dropdown click to fire
-        setTimeout(() => {
-            showDropdown = false;
-            onBlur?.();
-        }, 150);
+    function handleBlur(event: FocusEvent) {
+        // The list prevents mousedown, so a click on a row never blurs the field
+        const next = event.relatedTarget as Node | null;
+        if (next && pickerLayer?.contains(next)) return;
+        closePicker();
+        // The parent's blur (TimeEntryCard: save the description) stays deferred: a click that
+        // took the focus, such as Attach note, runs first and may take over the typed text
+        setTimeout(() => onBlur?.(), 150);
     }
 </script>
 
@@ -196,6 +275,9 @@
             {value}
             {placeholder}
             aria-label={ariaLabel}
+            aria-autocomplete="list"
+            aria-controls={isPickerOpen ? `${idPrefix}-list` : undefined}
+            aria-activedescendant={isPickerOpen && search?.items[activeIndex] ? `${idPrefix}-option-${activeIndex}` : undefined}
             oninput={handleInput}
             onkeydown={handleKeydown}
             onblur={handleBlur}
@@ -208,6 +290,9 @@
             {value}
             {placeholder}
             aria-label={ariaLabel}
+            aria-autocomplete="list"
+            aria-controls={isPickerOpen ? `${idPrefix}-list` : undefined}
+            aria-activedescendant={isPickerOpen && search?.items[activeIndex] ? `${idPrefix}-option-${activeIndex}` : undefined}
             oninput={handleInput}
             onkeydown={handleKeydown}
             onblur={handleBlur}
@@ -215,28 +300,27 @@
         />
     {/if}
 
-    {#if showDropdown}
-        <div class="absolute left-0 top-full z-50 mt-1 w-72 rounded-md menu-panel py-1">
-            {#if searchResults.length === 0}
-                <div class="px-3 py-2 text-xs text-ink-faint">
-                    {searchQuery.length > 0 ? 'No matching notes' : 'Type to search notes...'}
-                </div>
-            {:else}
-                {#each searchResults as result, index (result.id)}
-                    <button
-                        type="button"
-                        class="block w-full px-3 py-1.5 text-left text-sm transition-colors
-                            {index === selectedIndex ? 'bg-pine-50 text-pine-700' : 'text-ink-soft hover:bg-chalk-50'}"
-                        onmousedown={() => selectResult(result)}
-                    >
-                        <span class="font-mono text-xs text-ink-faint">{result.id}</span>
-                        {#if result.title}
-                            <span class="ml-1 text-ink-faint">&middot;</span>
-                            <span class="ml-1">{result.title}</span>
-                        {/if}
-                    </button>
-                {/each}
-            {/if}
+    {#if isPickerOpen && search}
+        <div
+            use:portal
+            bind:this={pickerLayer}
+            class="fixed z-50"
+            style:top={pickerPlacement ? `${pickerPlacement.top}px` : undefined}
+            style:left={pickerPlacement ? `${pickerPlacement.left}px` : undefined}
+            style:width={pickerPlacement ? `${pickerPlacement.width}px` : undefined}
+            style:visibility={pickerPlacement ? undefined : 'hidden'}
+            data-link-picker-layer
+        >
+            <LinkPicker
+                items={search.items}
+                status={search.status}
+                {activeIndex}
+                variant={pickerVariant}
+                {idPrefix}
+                maxHeight={pickerPlacement?.maxHeight}
+                onChoose={selectResult}
+                onActivate={(index) => (activeIndex = index)}
+            />
         </div>
     {/if}
 </div>
