@@ -14,6 +14,15 @@ describe('findMatchRanges', () => {
 		]);
 		expect(findMatchRanges('anything', '')).toEqual([]);
 	});
+
+	it('takes several needles, sorted, overlaps merged (058-DR)', () => {
+		expect(findMatchRanges('Plan the roles matrix; roles later', ['roles matrix', 'roles', 'matrix', 'plan'])).toEqual([
+			{ start: 0, end: 4 },
+			{ start: 9, end: 21 },
+			{ start: 23, end: 28 }
+		]);
+		expect(findMatchRanges('anything', [])).toEqual([]);
+	});
 });
 
 describe('plainTextFromMarkdown', () => {

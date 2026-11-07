@@ -12,12 +12,10 @@ const DEFAULT_CONTEXT_BEFORE = 50;
 const DEFAULT_SNIPPET_LENGTH = 180;
 const ELLIPSIS = '…';
 
-/** Every non-overlapping occurrence of `needle` in `text`, case-insensitive. */
-export function findMatchRanges(text: string, needle: string): MatchRange[] {
-	const lowerNeedle = needle.toLowerCase();
-	if (!lowerNeedle) return [];
-	const lowerText = text.toLowerCase();
+/** Every occurrence of one needle, case-insensitive, non-overlapping. */
+function rangesOfNeedle(lowerText: string, lowerNeedle: string): MatchRange[] {
 	const ranges: MatchRange[] = [];
+	if (!lowerNeedle) return ranges;
 	let searchFrom = 0;
 	for (;;) {
 		const index = lowerText.indexOf(lowerNeedle, searchFrom);
@@ -26,6 +24,26 @@ export function findMatchRanges(text: string, needle: string): MatchRange[] {
 		searchFrom = index + lowerNeedle.length;
 	}
 	return ranges;
+}
+
+/**
+ * Every occurrence of `needle` in `text`, case-insensitive. Given several needles (a query's
+ * phrase and its words, sprint 058-DR), the ranges of all of them, sorted, with overlapping
+ * ranges merged so the result never overlaps.
+ */
+export function findMatchRanges(text: string, needle: string | readonly string[]): MatchRange[] {
+	const lowerText = text.toLowerCase();
+	const needles = typeof needle === 'string' ? [needle] : needle;
+	const ranges = needles
+		.flatMap((oneNeedle) => rangesOfNeedle(lowerText, oneNeedle.toLowerCase()))
+		.sort((first, second) => first.start - second.start || second.end - first.end);
+	const merged: MatchRange[] = [];
+	for (const range of ranges) {
+		const previous = merged[merged.length - 1];
+		if (previous && range.start < previous.end) previous.end = Math.max(previous.end, range.end);
+		else merged.push({ ...range });
+	}
+	return merged;
 }
 
 /**
@@ -46,12 +64,13 @@ export function plainTextFromMarkdown(markdown: string): string {
 }
 
 /**
- * The excerpt of `text` around the first match of `needle`, cut at word boundaries where possible,
- * with "…" where it was cut. Without a match it is the start of the text and `matches` is empty.
+ * The excerpt of `text` around the first match of `needle` (or of any of several needles), cut at
+ * word boundaries where possible, with "…" where it was cut. Without a match it is the start of the
+ * text and `matches` is empty.
  */
 export function buildSearchSnippet(
 	text: string,
-	needle: string,
+	needle: string | readonly string[],
 	options: { length?: number; contextBefore?: number } = {}
 ): SearchSnippet {
 	const length = options.length ?? DEFAULT_SNIPPET_LENGTH;
