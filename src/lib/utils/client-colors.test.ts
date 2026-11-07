@@ -4,6 +4,7 @@ import {
 	getClientBorderClass,
 	getClientDotClass,
 	getClientBgClass,
+	getClientMarkTextClass,
 	suggestClientColorIndex,
 	findSharedClientColors
 } from './client-colors';
@@ -18,18 +19,20 @@ describe('CLIENT_COLORS', () => {
 			expect(color.name).toBeTruthy();
 			expect(color.borderClass).toMatch(/^border-l-/);
 			expect(color.dotClass).toMatch(/^bg-/);
-			expect(color.bgClass).toMatch(/^bg-.*-50$/);
+			expect(color.bgClass).toMatch(/^bg-id-.*-wash$/);
+			expect(color.markTextClass).toMatch(/^text-/);
+			expect(color.washTextClass).toMatch(/^text-id-.*-ink$/);
 		}
 	});
 });
 
 describe('getClientBorderClass', () => {
-	it('returns correct class for index 0 (Rose)', () => {
-		expect(getClientBorderClass(0)).toBe('border-l-rose-400');
+	it('returns correct class for index 0 (Rust)', () => {
+		expect(getClientBorderClass(0)).toBe('border-l-id-rust');
 	});
 
-	it('returns correct class for index 3 (Amber)', () => {
-		expect(getClientBorderClass(3)).toBe('border-l-amber-500');
+	it('returns correct class for index 3 (Ochre)', () => {
+		expect(getClientBorderClass(3)).toBe('border-l-id-ochre');
 	});
 
 	it('wraps around for index > 7', () => {
@@ -40,8 +43,8 @@ describe('getClientBorderClass', () => {
 
 describe('getClientDotClass', () => {
 	it('returns bg- class for each index', () => {
-		expect(getClientDotClass(0)).toBe('bg-rose-400');
-		expect(getClientDotClass(1)).toBe('bg-sky-400');
+		expect(getClientDotClass(0)).toBe('bg-id-rust');
+		expect(getClientDotClass(1)).toBe('bg-id-juniper');
 	});
 
 	it('wraps around for index > 7', () => {
@@ -49,10 +52,18 @@ describe('getClientDotClass', () => {
 	});
 });
 
+describe('getClientMarkTextClass', () => {
+	it('uses dark ink on the light marks and light text on the dark ones', () => {
+		expect(getClientMarkTextClass(3)).toBe('text-ink');
+		expect(getClientMarkTextClass(4)).toBe('text-on-accent');
+		expect(getClientMarkTextClass(14)).toBe(getClientMarkTextClass(6));
+	});
+});
+
 describe('getClientBgClass', () => {
-	it('returns -50 shade bg class', () => {
-		expect(getClientBgClass(0)).toBe('bg-rose-50');
-		expect(getClientBgClass(4)).toBe('bg-teal-50');
+	it('returns the wash bg class', () => {
+		expect(getClientBgClass(0)).toBe('bg-id-rust-wash');
+		expect(getClientBgClass(4)).toBe('bg-id-pine-wash');
 	});
 
 	it('wraps around for index > 7', () => {
@@ -81,8 +92,8 @@ describe('findSharedClientColors', () => {
 		expect(
 			findSharedClientColors([client('Acme', 1), client('Beta', 0), client('Gamma', 1), client('Delta', 0), client('Echo', 9), client('Solo', 2)])
 		).toEqual([
-			{ colorIndex: 0, colorName: 'Rose', clientNames: ['Beta', 'Delta'] },
-			{ colorIndex: 1, colorName: 'Sky', clientNames: ['Acme', 'Gamma', 'Echo'] }
+			{ colorIndex: 0, colorName: 'Rust', clientNames: ['Beta', 'Delta'] },
+			{ colorIndex: 1, colorName: 'Juniper', clientNames: ['Acme', 'Gamma', 'Echo'] }
 		]);
 	});
 
