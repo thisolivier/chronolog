@@ -2,6 +2,8 @@
 	"Linked Time Entries": time entries whose description links to this note.
 	Each row opens that entry's week in time mode; wiki-links in the description show note
 	titles and open the linked note.
+	054-DR (NT-06): secondary and quiet ("Linked time · N", muted dates); an entry names its client /
+	contract (with the contract mark) only when it is not the note's own contract. No timer controls.
 -->
 <script lang="ts">
 	import { getDataService } from '$lib/services/context';
@@ -10,16 +12,29 @@
 	import WikiLinkRenderer from '$lib/components/weekly/WikiLinkRenderer.svelte';
 	import { useNoteNavigation } from './note-navigation';
 	import type { LinkedTimeEntryDisplay } from '$lib/services/types';
+	import ContractMark from '$lib/components/identity/ContractMark.svelte';
+	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
 
 	interface Props {
 		noteId: string;
+		/** The note's own contract; entries on it do not repeat its name */
+		noteContractId?: string | null;
 	}
 
 	const dataService = getDataService();
 	const navigation = getNavigationContext();
 	const noteNavigation = useNoteNavigation(navigation);
 
-	let { noteId }: Props = $props();
+	let { noteId, noteContractId = null }: Props = $props();
+
+	const noteContract = $derived(noteContractId ? contractDirectory.labels[noteContractId] : undefined);
+
+	/** True when the entry's contract is not the note's (by ID; by names for older cached rows) */
+	function isOtherContract(entry: LinkedTimeEntryDisplay): boolean {
+		if (!noteContractId) return true;
+		if (entry.contractId) return entry.contractId !== noteContractId;
+		return !noteContract || entry.contractName !== noteContract.name || entry.clientName !== noteContract.clientName;
+	}
 	let linkedEntries = $state<LinkedTimeEntryDisplay[]>([]);
 
 	async function fetchLinkedEntries() {
@@ -62,8 +77,8 @@
 
 {#if linkedEntries.length > 0}
 	<div class="border-t border-divider bg-surface px-6 py-3" data-testid="linked-time-entries">
-		<h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">
-			Linked Time Entries
+		<h4 class="mb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
+			Linked time <span class="font-normal" aria-hidden="true">· {linkedEntries.length}</span>
 		</h4>
 		<div class="space-y-1">
 			{#each linkedEntries as entry (entry.timeEntryId)}
@@ -84,11 +99,11 @@
 					>
 						<div class="flex items-center gap-2">
 							<!-- One line on a phone: the date never wraps into the description or duration (043) -->
-							<span class="shrink-0 whitespace-nowrap text-xs font-medium text-pine-600 group-hover:underline" data-testid="linked-time-entry-date">
+							<span class="shrink-0 whitespace-nowrap text-xs font-medium text-ink-muted group-hover:underline" data-testid="linked-time-entry-date">
 								{formatDate(entry.date)}
 							</span>
 							{#if entry.description}
-								<span class="min-w-0 truncate text-sm text-ink-soft">
+								<span class="min-w-0 truncate text-sm text-ink-muted">
 									— <WikiLinkRenderer
 										text={entry.description}
 										onNoteLinkClick={(linkedNoteId) => noteNavigation.openNoteById(linkedNoteId)}
@@ -96,9 +111,12 @@
 								</span>
 							{/if}
 						</div>
-						<div class="text-xs text-ink-faint">
-							{entry.clientName} / {entry.contractName}
-						</div>
+						{#if isOtherContract(entry)}
+							<div class="mt-0.5 flex min-w-0 items-center gap-mark-gap text-xs text-ink-faint" data-testid="linked-time-entry-contract">
+								<ContractMark contractName={entry.contractName} colorIndex={entry.clientColorIndex} size="sm" />
+								<span class="truncate">{entry.clientName} / {entry.contractName}</span>
+							</div>
+						{/if}
 					</div>
 					<div class="flex shrink-0 items-center gap-2">
 						<span class="whitespace-nowrap text-xs text-ink-faint" data-testid="linked-time-entry-duration">

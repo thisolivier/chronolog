@@ -2,53 +2,59 @@
 	NoteListRow — one note in the note list (split out of NoteListPanel, sprint 039-CL).
 	The row opens the note; the pin button on its right pins or unpins it. When pinned the pin
 	stays visible and is the row's marker; unpinned it shows on hover or focus (always faintly on
-	touch screens). `contractName` is shown in the client view, where rows come from several contracts;
-	in all notes (051-UI) it is "Client · Contract" on its own line (`contractOnOwnLine`), so the date stays visible.
+	touch screens). In a list spanning contracts (client view, all notes) the row names its contract
+	on its own line with the contract mark (054-DR, NT-01): the contract's name in the client view,
+	"Client · Contract" in all notes. A single-contract list passes no `contractName`.
+	Selected: a quiet sage fill with a narrow pine left edge (NT-02).
 -->
 <script lang="ts">
 	import { formatSmartDate } from '$lib/utils/format-date';
 	import type { NoteSummary } from '$lib/services/types';
 	import OutboxMarker from '$lib/offline/OutboxMarker.svelte';
+	import ContractMark from '$lib/components/identity/ContractMark.svelte';
+	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
 
 	let {
 		note,
 		isSelected,
 		dateField,
 		contractName = null,
-		contractOnOwnLine = false,
 		onOpen,
 		onTogglePin
 	}: {
 		note: NoteSummary;
 		isSelected: boolean;
 		dateField: 'createdAt' | 'updatedAt';
+		/** The row's contract text, in lists spanning contracts only */
 		contractName?: string | null;
-		contractOnOwnLine?: boolean;
 		onOpen: (note: NoteSummary) => void;
 		onTogglePin: (note: NoteSummary) => void;
 	} = $props();
 
 	const title = $derived(note.firstLine || 'Untitled');
+	const contractLabel = $derived(contractName ? contractDirectory.labels[note.contractId] : undefined);
 </script>
 
 <div class="group relative" data-testid="note-list-row" data-note-id={note.id} data-pinned={note.isPinned ? 'true' : undefined}>
 	<button
 		onclick={() => onOpen(note)}
 		class="block w-full text-left transition-colors hover:bg-chalk-100
-			{isSelected ? 'border-l-2 border-pine-600 bg-pine-50' : 'border-l-2 border-transparent'}"
+			{isSelected ? 'border-l-2 border-selection-edge bg-moss-100' : 'border-l-2 border-transparent'}"
 	>
 		<div class="py-3 pr-9 pl-4">
 			<span class="mb-0.5 flex items-center gap-1.5">
 				<span class="truncate text-sm font-semibold text-ink">{title}</span>
 				<OutboxMarker resourceKey="note:{note.id}" otherKey={note.clientRequestId ? `note:${note.clientRequestId}` : null} />
 			</span>
-			{#if contractName && contractOnOwnLine}
-				<div class="truncate text-xs font-medium text-ink-muted" data-testid="note-row-contract">{contractName}</div>
+			{#if contractName}
+				<div class="flex min-w-0 items-center gap-mark-gap py-px">
+					{#if contractLabel}
+						<ContractMark contractName={contractLabel.name} colorIndex={contractLabel.clientColorIndex} size="sm" />
+					{/if}
+					<span class="truncate text-xs font-medium text-ink-muted" data-testid="note-row-contract">{contractName}</span>
+				</div>
 			{/if}
 			<div class="truncate text-xs text-ink-faint">
-				{#if contractName && !contractOnOwnLine}
-					<span class="mr-1.5 font-medium text-ink-muted" data-testid="note-row-contract">{contractName}</span>
-				{/if}
 				<span class="font-medium">{formatSmartDate(note[dateField])}</span>
 				{#if note.secondLine}
 					<span class="ml-1.5 text-ink-faint">{note.secondLine}</span>

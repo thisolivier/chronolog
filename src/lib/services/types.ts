@@ -189,6 +189,8 @@ export type LinkedTimeEntryDisplay = {
 	date: string;
 	description: string | null;
 	durationMinutes: number;
+	/** The entry's contract (054-DR; optional so older cached responses still type-check) */
+	contractId?: string;
 	contractName: string;
 	clientName: string;
 	clientColorIndex: number;

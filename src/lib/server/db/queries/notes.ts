@@ -354,9 +354,10 @@ export async function getLinkedTimeEntriesForNote(noteId: string, userId: string
 			date: timeEntries.date,
 			description: timeEntries.description,
 			durationMinutes: timeEntries.durationMinutes,
+			contractId: timeEntries.contractId,
 			contractName: contracts.name,
 			clientName: clients.name,
-		clientColorIndex: clients.colorIndex,
+			clientColorIndex: clients.colorIndex,
 		})
 		.from(noteTimeEntries)
 		.innerJoin(timeEntries, eq(noteTimeEntries.timeEntryId, timeEntries.id))

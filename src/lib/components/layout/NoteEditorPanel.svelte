@@ -21,10 +21,20 @@
 	import { NotePanelState } from '$lib/components/notes/note-panel-state.svelte';
 	import { createNotePanelActions } from '$lib/components/notes/note-panel-actions';
 	import '$lib/components/notes/print-styles.css';
+	import { noteContextOwnership } from './note-context-ownership';
 
 	const navigation = getNavigationContext();
 	const noteNavigation = useNoteNavigation(navigation);
 	const panel = new NotePanelState(getDataService(), navigation);
+	/** NT-01: the single-column (phone) editor names its own client / contract */
+	const isSingleColumn = $derived(navigation.layoutMode === 'mobile');
+	const showEditorContext = $derived(
+		noteContextOwnership({
+			layoutMode: navigation.layoutMode,
+			sidebarCollapsed: navigation.panel1Collapsed,
+			scope: navigation.isAllNotesView ? 'all' : navigation.listClientId ? 'client' : 'contract'
+		}).editorContextVisible
+	);
 
 	let headerMessage = $state<string | null>(null);
 	let headerMessageTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -109,6 +119,7 @@
 			contractId={panel.currentNote?.contractId ?? session.contractId}
 			saveStatus={panel.saveStatus}
 			message={headerMessage}
+			showContextText={showEditorContext}
 			onMove={actions.moveToContract}
 			onExportMarkdown={actions.exportMarkdown}
 			onExportPdf={actions.exportPdf}
@@ -125,6 +136,7 @@
 					initialJson={session.initialJson}
 					getNoteId={() => session.noteId}
 					autofocus={session.autofocus}
+					compactToolbar={isSingleColumn}
 					onSave={session.save}
 					onSaveStatusChange={session.onStatus}
 					onFileUpload={actions.uploadFile}
@@ -136,6 +148,7 @@
 		{#if panel.activeNoteId}
 			<NoteLinkedPanels
 				noteId={panel.activeNoteId}
+				noteContractId={panel.currentNote?.contractId ?? session.contractId}
 				backlinks={panel.backlinks}
 				onOpenBacklink={(backlink) => noteNavigation.openBacklink(backlink)}
 			/>

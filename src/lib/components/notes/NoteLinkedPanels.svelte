@@ -11,8 +11,18 @@
 	import AttachmentList from './AttachmentList.svelte';
 	import type { Backlink } from '$lib/services/types';
 
-	let { noteId, backlinks, onOpenBacklink }: { noteId: string; backlinks: Backlink[]; onOpenBacklink: (backlink: Backlink) => void } =
-		$props();
+	let {
+		noteId,
+		noteContractId = null,
+		backlinks,
+		onOpenBacklink
+	}: {
+		noteId: string;
+		/** The note's own contract: linked time names a contract only when it differs (054-DR) */
+		noteContractId?: string | null;
+		backlinks: Backlink[];
+		onOpenBacklink: (backlink: Backlink) => void;
+	} = $props();
 
 	const SHORT_SCREEN_QUERY = '(max-height: 500px)';
 	let isShortScreen = $state(typeof matchMedia === 'function' && matchMedia(SHORT_SCREEN_QUERY).matches);
@@ -28,7 +38,7 @@
 
 {#snippet panels()}
 	<NoteBacklinks {backlinks} onOpen={onOpenBacklink} />
-	<LinkedTimeEntries {noteId} />
+	<LinkedTimeEntries {noteId} {noteContractId} />
 	<AttachmentList {noteId} />
 {/snippet}
 

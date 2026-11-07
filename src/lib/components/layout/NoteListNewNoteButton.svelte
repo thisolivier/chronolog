@@ -1,5 +1,6 @@
 <!--
-	NoteListNewNoteButton — the note list's New Note (sprint 039-CL split). Under a contract it starts
+	NoteListNewNoteButton — the note list's New note (sprint 039-CL split). Since 054-DR (NT-02) it is
+	an icon button (a page with a plus) named and titled "New note", 32 px with a 44 px touch target. Under a contract it starts
 	a draft for that contract. In the client view a client with one contract uses it; with several,
 	the button opens a small menu asking which contract the note is for. In all notes (051-UI) the
 	menu lists every active contract, each named "Client · Contract" (`withClientNames`).
@@ -62,10 +63,18 @@
 		disabled={isDisabled}
 		aria-haspopup={contractId ? undefined : 'menu'}
 		aria-expanded={contractId ? undefined : isMenuOpen}
-		class="rounded-md bg-primary px-3 py-1.5 text-sm font-medium whitespace-nowrap text-on-accent hover:bg-primary-hover
-			disabled:cursor-not-allowed disabled:opacity-50"
+		aria-label="New note"
+		title="New note"
+		data-testid="new-note-button"
+		class="flex h-8 w-8 items-center justify-center rounded-md border border-line bg-surface text-primary hover:bg-primary-wash
+			pointer-coarse:h-11 pointer-coarse:w-11 disabled:cursor-not-allowed disabled:opacity-50"
 	>
-		New Note
+		<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" class="h-[18px] w-[18px]" aria-hidden="true">
+			<path d="M11.5 2.75H5.75a1 1 0 0 0-1 1v12.5a1 1 0 0 0 1 1h4.5" stroke-linejoin="round" stroke-linecap="round" />
+			<path d="M11.5 2.75 15.25 6.5v3.25" stroke-linejoin="round" stroke-linecap="round" />
+			<path d="M11.5 2.75V6.5h3.75" stroke-linejoin="round" />
+			<path d="M14.75 12.25v5M12.25 14.75h5" stroke-linecap="round" />
+		</svg>
 	</button>
 	{#if isMenuOpen}
 		<div

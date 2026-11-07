@@ -1,13 +1,18 @@
 <!--
-	Note editor header: note ID (click to copy, 051-UI), save status (a fixed-width pill), and the
-	Move / Export / Delete actions (menus without chevrons since 051-UI; `aria-haspopup` says so).
-	Delete asks for confirmation inline (no native confirm(), which Tauri can suppress). The contract
-	mark (052-DR) sits before the client / contract context.
+	Note editor header (054-DR, NT-04): the contract mark with the copyable note code (code and copy
+	icon both copy, 051-UI), the quiet save pill, and one "Note actions" ellipsis menu holding Move,
+	Export and Delete (`NoteActionsMenu.svelte`). Delete on a saved note confirms inline (no native
+	confirm(), which Tauri can suppress). The note's title lives in the body only.
+	Client / contract text (NT-01): visible only in the single-column (phone) layout, where nothing
+	else names the note's own contract; elsewhere it is screen-reader text beside the mark (the
+	sidebar or the list header names it on screen). The free space after the save pill is kept for
+	the deferred contract repeat (NT-03).
 -->
 <script lang="ts">
-	import { getDataService } from '$lib/services/context';
+	import { tick } from 'svelte';
 	import SaveStatusIndicator from './SaveStatusIndicator.svelte';
 	import NoteCodeCopyButton from './NoteCodeCopyButton.svelte';
+	import NoteActionsMenu from './NoteActionsMenu.svelte';
 	import OutboxMarker from '$lib/offline/OutboxMarker.svelte';
 	import ContractMark from '$lib/components/identity/ContractMark.svelte';
 	import type { SaveStatus } from './note-autosave';
@@ -20,6 +25,8 @@
 		contractId: string;
 		saveStatus: SaveStatus;
 		message?: string | null;
+		/** Show "Client / Contract" as visible text (single-column layout); else screen readers only */
+		showContextText?: boolean;
 		onMove: (contract: ContractOption) => void;
 		onExportMarkdown: () => void;
 		onExportPdf: () => void;
@@ -28,92 +35,82 @@
 		onReload?: () => void;
 	}
 
-	let { noteId, contractId, saveStatus, message = null, onMove, onExportMarkdown, onExportPdf, onDelete, onReload }: Props =
-		$props();
+	let {
+		noteId,
+		contractId,
+		saveStatus,
+		message = null,
+		showContextText = false,
+		onMove,
+		onExportMarkdown,
+		onExportPdf,
+		onDelete,
+		onReload
+	}: Props = $props();
 
-	const dataService = getDataService();
-
-	// Rule 4: the editor names the note's client and contract, not only its ID
+	// The note's own contract (never the timer's, SH-08)
 	const contractLabel = $derived(contractDirectory.labels[contractId]);
+	const contextText = $derived(contractLabel ? `${contractLabel.clientName} / ${contractLabel.name}` : '');
 
-	let openMenu = $state<'move' | 'export' | null>(null);
-	let moveContracts = $state<ContractOption[]>([]);
 	let isConfirmingDelete = $state(false);
+	let confirmDeleteButton = $state<HTMLButtonElement | null>(null);
 
-	/** Close an open menu on any click outside it */
-	$effect(() => {
-		if (!openMenu) return;
-		const selector = openMenu === 'move' ? '[data-move-menu]' : '[data-export-menu]';
-		const handleClick = (event: MouseEvent) => {
-			if (!(event.target as HTMLElement).closest(selector)) openMenu = null;
-		};
-		const timer = setTimeout(() => document.addEventListener('click', handleClick), 0);
-		return () => {
-			clearTimeout(timer);
-			document.removeEventListener('click', handleClick);
-		};
-	});
-
-	async function toggleMoveMenu() {
-		if (openMenu === 'move') {
-			openMenu = null;
-			return;
-		}
-		try {
-			const allContracts = await dataService.getContracts();
-			moveContracts = allContracts.filter((contract) => contract.id !== contractId);
-			openMenu = 'move';
-		} catch (contractError) {
-			console.error('Error loading contracts:', contractError);
-		}
+	async function requestDelete() {
+		if (!noteId) return onDelete();
+		isConfirmingDelete = true;
+		// The menu that held Delete is gone: put focus on the confirmation instead of the page body
+		await tick();
+		confirmDeleteButton?.focus();
 	}
-
-	const menuButtonClass =
-		'inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs btn-quiet transition-colors disabled:cursor-not-allowed disabled:opacity-40 pointer-coarse:min-h-11';
-	const menuItemClass = 'block w-full px-3 py-1.5 text-left text-sm menu-item pointer-coarse:py-3';
 </script>
 
-<div
-	class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-b border-divider bg-surface px-4 py-2"
-	data-testid="note-editor-header"
->
-	<div class="flex min-w-0 items-center gap-3 max-md:gap-2">
-		{#if contractLabel}
-			<span class="flex min-w-0 items-center gap-mark-gap">
-				<ContractMark contractName={contractLabel.name} colorIndex={contractLabel.clientColorIndex} size="sm" />
-				<span class="min-w-0 truncate text-xs text-ink-muted" data-testid="note-editor-context">
-					{contractLabel.clientName} <span class="text-ink-faint">/</span>
-					<span class="font-medium text-ink">{contractLabel.name}</span>
-				</span>
-			</span>
-		{/if}
-		{#if noteId}
-			<NoteCodeCopyButton noteCode={noteId} />
-		{:else}
-			<span class="truncate font-mono text-xs text-ink-faint">New note</span>
-		{/if}
-		<SaveStatusIndicator status={saveStatus} isDraft={!noteId} />
-		{#if noteId}<OutboxMarker resourceKey="note:{noteId}" />{/if}
-		{#if saveStatus === 'conflict' && onReload}
-			<button
-				type="button"
-				onclick={onReload}
-				data-testid="reload-note"
-				class="rounded bg-rust-50 px-2 py-0.5 text-xs font-medium text-rust-700 hover:bg-rust-100"
+{#snippet identity()}
+	{#if contractLabel}
+		<span class="flex min-w-0 items-center gap-mark-gap" title={contextText}>
+			<ContractMark contractName={contractLabel.name} colorIndex={contractLabel.clientColorIndex} size="sm" />
+			<span
+				class={showContextText ? 'min-w-0 truncate text-sm text-ink-muted' : 'sr-only'}
+				data-testid="note-editor-context"
+				data-contract-id={contractId}
+				data-visible={showContextText ? 'true' : 'false'}
 			>
-				Reload
-			</button>
-		{/if}
-		{#if message}
-			<span role="alert" class="text-xs text-rust-600">{message}</span>
-		{/if}
-	</div>
+				{contractLabel.clientName} <span class="text-ink-faint">/</span>
+				<span class="font-semibold text-ink">{contractLabel.name}</span>
+			</span>
+		</span>
+	{/if}
+{/snippet}
 
+{#snippet codeAndStatus()}
+	{#if noteId}
+		<NoteCodeCopyButton noteCode={noteId} />
+	{:else}
+		<span class="truncate font-mono text-xs text-ink-faint">New note</span>
+	{/if}
+	<SaveStatusIndicator status={saveStatus} isDraft={!noteId} />
+	{#if noteId}<OutboxMarker resourceKey="note:{noteId}" />{/if}
+	{#if saveStatus === 'conflict' && onReload}
+		<button
+			type="button"
+			onclick={onReload}
+			data-testid="reload-note"
+			class="rounded bg-rust-50 px-2 py-0.5 text-xs font-medium text-rust-700 hover:bg-rust-100"
+		>
+			Reload
+		</button>
+	{/if}
+	{#if message}
+		<span role="alert" class="text-xs text-rust-600">{message}</span>
+	{/if}
+{/snippet}
+
+{#snippet actions()}
 	{#if isConfirmingDelete}
 		<div class="flex items-center gap-2 text-xs" data-testid="delete-confirm">
 			<span class="text-ink-muted">Delete this note?</span>
 			<button
 				type="button"
+				bind:this={confirmDeleteButton}
 				onclick={() => {
 					isConfirmingDelete = false;
 					onDelete();
@@ -131,89 +128,25 @@
 			</button>
 		</div>
 	{:else}
-		<div class="flex items-center gap-1">
-			<div class="relative" data-move-menu>
-				<button
-					type="button"
-					onclick={toggleMoveMenu}
-					disabled={!noteId}
-					class={menuButtonClass}
-					aria-haspopup="menu"
-					aria-expanded={openMenu === 'move'}
-				>
-					Move
-				</button>
-				{#if openMenu === 'move'}
-					<div class="absolute right-0 top-full z-10 mt-1 w-56 max-w-[calc(100vw-2rem)] rounded-md max-md:right-auto max-md:left-0 menu-panel py-1">
-						{#if moveContracts.length === 0}
-							<span class="block px-3 py-1.5 text-sm text-ink-faint">No other contracts</span>
-						{:else}
-							{#each moveContracts as contract (contract.id)}
-								<button
-									type="button"
-									onclick={() => {
-										openMenu = null;
-										onMove(contract);
-									}}
-									class={menuItemClass}
-								>
-									<span class="font-medium">{contract.clientName}</span>
-									<span class="text-ink-faint"> / </span>
-									{contract.name}
-								</button>
-							{/each}
-						{/if}
-					</div>
-				{/if}
-			</div>
+		<NoteActionsMenu {noteId} {contractId} {onMove} {onExportMarkdown} {onExportPdf} onRequestDelete={requestDelete} />
+	{/if}
+{/snippet}
 
-			<div class="relative" data-export-menu>
-				<button
-					type="button"
-					onclick={() => (openMenu = openMenu === 'export' ? null : 'export')}
-					disabled={!noteId}
-					class={menuButtonClass}
-					aria-haspopup="menu"
-					aria-expanded={openMenu === 'export'}
-				>
-					Export
-				</button>
-				{#if openMenu === 'export'}
-					<div class="absolute right-0 top-full z-10 mt-1 w-44 rounded-md max-md:right-auto max-md:left-0 menu-panel py-1">
-						<button
-							type="button"
-							onclick={() => {
-								openMenu = null;
-								onExportMarkdown();
-							}}
-							class={menuItemClass}
-						>
-							Export as Markdown
-						</button>
-						<button
-							type="button"
-							onclick={() => {
-								openMenu = null;
-								onExportPdf();
-							}}
-							class={menuItemClass}
-						>
-							Export as PDF
-						</button>
-					</div>
-				{/if}
-			</div>
-
-			<span class="mx-1 h-4 w-px bg-chalk-200" aria-hidden="true"></span>
-
-			<button
-				type="button"
-				onclick={() => (noteId ? (isConfirmingDelete = true) : onDelete())}
-				class="rounded px-2.5 py-1 text-xs text-ink-faint transition-colors hover:bg-rust-50 hover:text-rust-600 pointer-coarse:min-h-11"
-				title={noteId ? 'Delete this note' : 'Discard this empty draft'}
-			>
-				{noteId ? 'Delete' : 'Discard'}
-			</button>
+<div class="border-b border-divider bg-surface px-4 py-1.5" data-testid="note-editor-header">
+	{#if showContextText}
+		<!-- Single column: the note's client / contract with the actions, then code and status -->
+		<div class="flex items-center gap-2">
+			<div class="min-w-0 flex-1">{@render identity()}</div>
+			{@render actions()}
+		</div>
+		<div class="flex flex-wrap items-center gap-x-3 gap-y-1">{@render codeAndStatus()}</div>
+	{:else}
+		<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+			{@render identity()}
+			{@render codeAndStatus()}
+			<!-- Kept free for the contract repeat (NT-03, deferred 2026-11-07) -->
+			<div class="min-w-0 flex-1" aria-hidden="true"></div>
+			{@render actions()}
 		</div>
 	{/if}
 </div>

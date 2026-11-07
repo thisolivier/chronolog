@@ -14,6 +14,32 @@ export const noteListItem = (page: Page, text: string) =>
 export const sidebarContract = (page: Page, name: string) =>
 	page.getByRole('button', { name: new RegExp(`^${name}`) }).first();
 
+/**
+ * Run an item of the editor header's "Note actions" menu (054-DR: Move, Export as Markdown,
+ * Export as PDF, Delete / Discard live there). Move then lists the contracts as menu items.
+ */
+export async function chooseNoteAction(page: Page, item: string | RegExp) {
+	await page.getByTestId('note-editor-header').getByRole('button', { name: 'Note actions' }).click();
+	await page.getByRole('menu', { name: 'Note actions' }).getByRole('menuitem', { name: item }).click();
+}
+
+/** Move the open note through Note actions → Move → the contract whose item matches `contract` */
+export async function moveOpenNote(page: Page, contract: string | RegExp) {
+	await chooseNoteAction(page, /^Move/);
+	await page.getByRole('menu', { name: 'Move note to' }).getByRole('menuitem', { name: contract }).click();
+}
+
+/**
+ * The note list and editor are scoped to `contractId` (054-DR). With the sidebar beside them the
+ * contract's name is only screen-reader text there, so check the scope by ID and the visible title.
+ */
+export async function expectNotesScopedTo(page: Page, contractId: string, { editorToo = true } = {}) {
+	await expect(page.getByTestId('note-list-context')).toHaveAttribute('data-contract-id', contractId);
+	await expect(page.getByTestId('note-list-context')).toHaveAttribute('data-owner', 'notes');
+	await expect(page.getByTestId('note-list-title')).toHaveText('Notes');
+	if (editorToo) await expect(page.getByTestId('note-editor-context')).toHaveAttribute('data-contract-id', contractId);
+}
+
 export const openNoteId = async (page: Page) =>
 	(await page.getByTestId('note-editor-header').locator('span.font-mono').innerText()).trim();
 

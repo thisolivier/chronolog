@@ -368,7 +368,10 @@ await step('E1-create-note', async () => {
 	await page.getByRole('button', { name: 'New Note' }).click();
 	await page.locator('.tiptap').waitFor({ timeout: 10000 });
 	const draftLabel = await currentNoteId();
-	const discardVisible = await noteHeader.getByRole('button', { name: 'Discard' }).isVisible();
+	// 054-DR: Discard sits in the header's Note actions menu
+	await noteHeader.getByRole('button', { name: 'Note actions' }).click();
+	const discardVisible = await page.getByRole('menuitem', { name: 'Discard' }).isVisible();
+	await page.keyboard.press('Escape');
 	await sleep(1500);
 	page.off('request', watchCreates);
 	assert(draftLabel === 'New note', 'draft header reads ' + draftLabel);
@@ -414,8 +417,8 @@ await step('E1-edit-note-tiptap-autosave', async () => {
 	return `after reload app opened in ${modeAfterReload}; content persisted (${listItems} list item(s)); list preview: "${preview.replace(/\s+/g, ' ').slice(0, 60)}"`;
 });
 await step('E1-raw-rendered-toggle', async () => {
-	const toggle = page.getByTitle('Toggle raw markdown view');
-	await toggle.click();
+	// 054-DR: Rich / Raw is a two-way switch at the toolbar's right
+	await page.getByTestId('editor-mode-switch').getByRole('button', { name: 'Raw' }).click();
 	const textarea = page.locator('textarea[placeholder="Write markdown here..."]');
 	await textarea.waitFor({ timeout: 5000 });
 	const raw = await textarea.inputValue();
@@ -423,7 +426,7 @@ await step('E1-raw-rendered-toggle', async () => {
 	await shot('07-raw-mode');
 	await textarea.fill(raw + '\n\n## Added in raw mode\n');
 	await page.waitForResponse((response) => response.url().includes(`/api/notes/${noteAId}`) && response.request().method() === 'PUT', { timeout: 10000 });
-	await toggle.click();
+	await page.getByTestId('editor-mode-switch').getByRole('button', { name: 'Rich' }).click();
 	await page.locator('.tiptap').waitFor({ timeout: 5000 });
 	const h2 = await page.locator('.tiptap h2').allInnerTexts();
 	assert(h2.includes('Added in raw mode'), 'rendered h2s: ' + h2.join('|'));
@@ -1077,7 +1080,8 @@ await step('E1-delete-note', async () => {
 	let nativeDialog = '';
 	const onDialog = (dialog) => { nativeDialog = dialog.message(); dialog.dismiss().catch(() => {}); };
 	page.on('dialog', onDialog);
-	await noteHeader.getByRole('button', { name: 'Delete', exact: true }).click();
+	await noteHeader.getByRole('button', { name: 'Note actions' }).click();
+	await page.getByRole('menuitem', { name: 'Delete', exact: true }).click();
 	const confirm = page.getByTestId('delete-confirm');
 	await confirm.waitFor({ timeout: 3000 });
 	const confirmText = (await confirm.innerText()).replace(/\s+/g, ' ').trim();
