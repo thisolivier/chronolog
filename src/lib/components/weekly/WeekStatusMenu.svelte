@@ -2,13 +2,14 @@
 	/**
 	 * Week status pill that opens a small menu of the three states, instead of a blind
 	 * click-to-cycle. Arrow keys move, Enter/Space picks, Escape or a click outside closes.
+	 * Recordkeeping only (TR-07): choosing Submitted sends, exports or invoices nothing.
 	 */
 	import { tick } from 'svelte';
 
 	const WEEK_STATUSES = [
 		{ value: 'Unsubmitted', hint: 'Still logging time' },
 		{ value: 'Draft ready', hint: 'Ready to review' },
-		{ value: 'Submitted', hint: 'Sent to the client' }
+		{ value: 'Submitted', hint: 'Marked as submitted (a record only; nothing is sent)' }
 	];
 
 	let {
@@ -26,11 +27,11 @@
 	function getStatusClasses(status: string): string {
 		switch (status) {
 			case 'Draft ready':
-				return 'bg-ochre-100 text-ochre-800';
+				return 'border-ochre-300 bg-ochre-50 text-ochre-800';
 			case 'Submitted':
-				return 'bg-leaf-100 text-leaf-800';
+				return 'border-leaf-300 bg-leaf-50 text-leaf-800';
 			default:
-				return 'bg-chalk-100 text-ink-muted';
+				return 'border-line bg-surface text-ink-soft';
 		}
 	}
 
@@ -84,7 +85,7 @@
 		aria-haspopup="menu"
 		aria-expanded={isOpen}
 		aria-label="Week status: {currentStatus}. Change status"
-		class="flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap {getStatusClasses(currentStatus)}"
+		class="flex items-center gap-1 rounded-control border px-2.5 py-1 text-xs font-medium whitespace-nowrap pointer-coarse:min-h-11 {getStatusClasses(currentStatus)}"
 	>
 		{currentStatus}
 		<span aria-hidden="true" class="text-[9px]">&#9662;</span>
@@ -97,7 +98,7 @@
 			tabindex="-1"
 			aria-label="Week status"
 			onkeydown={handleMenuKeydown}
-			class="absolute right-0 top-full z-30 mt-1 w-48 rounded-md menu-panel py-1"
+			class="absolute right-0 top-full z-30 mt-1 w-60 rounded-md menu-panel py-1"
 		>
 			{#each WEEK_STATUSES as status (status.value)}
 				<button

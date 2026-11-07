@@ -6,17 +6,52 @@
         onBlur?: () => void;
         onKeydown?: (event: KeyboardEvent) => void;
         autofocus?: boolean;
+        /**
+         * A textarea that grows to its text (sprint 057-DR, TR-06), for editing a saved entry's
+         * description in place without collapsing it to one line. Enter is still the parent's
+         * (it saves); the text wraps instead of scrolling sideways.
+         */
+        multiline?: boolean;
+        /** Extra classes for the field (the entry row matches its read-mode text) */
+        fieldClass?: string;
+        ariaLabel?: string;
     }
 
-    let { value = $bindable(), placeholder = '', onInput, onBlur, onKeydown, autofocus = false }: Props = $props();
+    let {
+        value = $bindable(),
+        placeholder = '',
+        onInput,
+        onBlur,
+        onKeydown,
+        autofocus = false,
+        multiline = false,
+        fieldClass = '',
+        ariaLabel = undefined
+    }: Props = $props();
 
     type SearchResult = { id: string; title: string | null };
 
-    let inputElement: HTMLInputElement;
+    let inputElement: HTMLInputElement | HTMLTextAreaElement | undefined = $state();
 
-    // Focus on mount when asked (instead of the autofocus attribute, which a11y lint flags)
+    // Focus on mount when asked (instead of the autofocus attribute, which a11y lint flags),
+    // with the caret at the end of the text
     $effect(() => {
-        if (autofocus) inputElement?.focus();
+        if (!autofocus || !inputElement) return;
+        inputElement.focus();
+        const end = inputElement.value.length;
+        inputElement.setSelectionRange(end, end);
+    });
+
+    /** Grow the textarea to its content (no scrollbar, no collapse to one line) */
+    function fitToContent() {
+        if (!multiline || !inputElement) return;
+        inputElement.style.height = 'auto';
+        inputElement.style.height = `${inputElement.scrollHeight}px`;
+    }
+
+    $effect(() => {
+        void value;
+        fitToContent();
     });
     let showDropdown = $state(false);
     let searchResults = $state<SearchResult[]>([]);
@@ -78,7 +113,7 @@
     function selectResult(result: SearchResult) {
         const noteId = result.id;
         const beforeBrackets = value.slice(0, bracketStartIndex);
-        const cursorPosition = inputElement.selectionStart ?? value.length;
+        const cursorPosition = inputElement?.selectionStart ?? value.length;
         const afterCursor = value.slice(cursorPosition);
 
         const newValue = `${beforeBrackets}[[${noteId}]]${afterCursor}`;
@@ -97,7 +132,7 @@
     }
 
     function handleInput(event: Event) {
-        const target = event.target as HTMLInputElement;
+        const target = event.target as HTMLInputElement | HTMLTextAreaElement;
         value = target.value;
         onInput?.(value);
 
@@ -154,16 +189,31 @@
 </script>
 
 <div class="relative">
-    <input
-        bind:this={inputElement}
-        type="text"
-        {value}
-        {placeholder}
-        oninput={handleInput}
-        onkeydown={handleKeydown}
-        onblur={handleBlur}
-        class="block w-full border-0 border-b border-divider bg-transparent px-0 py-0.5 text-sm text-ink-muted focus:border-pine-400 focus:ring-0 focus:outline-none"
-    />
+    {#if multiline}
+        <textarea
+            bind:this={inputElement}
+            rows="1"
+            {value}
+            {placeholder}
+            aria-label={ariaLabel}
+            oninput={handleInput}
+            onkeydown={handleKeydown}
+            onblur={handleBlur}
+            class="block w-full resize-none overflow-hidden border-0 bg-transparent p-0 focus:ring-0 focus:outline-none {fieldClass}"
+        ></textarea>
+    {:else}
+        <input
+            bind:this={inputElement}
+            type="text"
+            {value}
+            {placeholder}
+            aria-label={ariaLabel}
+            oninput={handleInput}
+            onkeydown={handleKeydown}
+            onblur={handleBlur}
+            class="block w-full border-0 border-b border-divider bg-transparent px-0 py-0.5 text-sm text-ink-muted focus:border-pine-400 focus:ring-0 focus:outline-none {fieldClass}"
+        />
+    {/if}
 
     {#if showDropdown}
         <div class="absolute left-0 top-full z-50 mt-1 w-72 rounded-md menu-panel py-1">
