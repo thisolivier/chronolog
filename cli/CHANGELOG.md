@@ -4,6 +4,22 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 `chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
 030, 033 and 035 changed nothing in the CLI and are not listed.
 
+## 1.4.0 (sprints 052–054-DR, 056-DR-api, 058-DR-api, 2026-11-07): earth-tone redesign, safer timer saves, smarter search
+
+- Design r1 checkpoint A: the app has a new earth-tone look (tokens, system font, contract marks in
+  the sidebar, timer and note headers; one visible timer; notes list and editor headers tidied). The
+  CLI output is unchanged.
+- Sprint 056-DR (API): **safer timer saves.** `timer stop` now sends the start it saw
+  (`expectedStartedAt`); the server answers 409 instead of overwriting an entry that was saved,
+  discarded or split on another device. `timer adjust` also works on a stopped timer. A `[[link]]` in
+  the timer description is linked to the note on save. New `POST /api/timer/split` and
+  `PATCH /api/timer { resume: true }` for the desktop split flow (no CLI command yet).
+- Sprint 058-DR (API): **search matches client and contract names.** `chronolog search` and the
+  `[[` picker share one matcher: every word of the query must match, client name, short code and
+  contract name count as searchable fields, and results come back in rank order (ID, title, body,
+  then identity-only) rather than newest first. Each hit also carries `clientColorIndex`, `rank` and
+  `matchedContext`. Existing fields are unchanged.
+
 ## 1.3.0 (sprints 043–044-CL, 2026-11-04): version drift notice, undo of imported notes
 
 - Sprint 044-CL: **version drift notice.** `GET /api/me` now returns `serverCommit` (the commit the
