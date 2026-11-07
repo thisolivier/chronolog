@@ -3,9 +3,9 @@
 	import { parseDuration } from '$lib/utils/duration';
 	import { getDataService } from '$lib/services/context';
 	import { getClientBorderClass } from '$lib/utils/client-colors';
-	import ContractSelect from '$lib/components/timer/ContractSelect.svelte';
-	import DeliverableSelect from '$lib/components/timer/DeliverableSelect.svelte';
-	import WorkTypeSelect from '$lib/components/timer/WorkTypeSelect.svelte';
+	import CascadeSelect from '$lib/components/timer/CascadeSelect.svelte';
+	import { OntologyCascade, type CascadeSelection } from '$lib/components/timer/ontology-cascade.svelte';
+	import { cascadeIdForSave } from '$lib/components/timer/ontology-cascade';
 	import DurationField from '$lib/components/timer/DurationField.svelte';
 	import { describeSaveError } from '$lib/components/timer/save-error';
 	import WikiLinkInput from './WikiLinkInput.svelte';
@@ -26,10 +26,15 @@
 
 	const fieldIdPrefix = $derived(`new-entry-${date}`);
 
-	let selectedContractId = $state('');
-	let selectedDeliverableId = $state('');
-	let selectedWorkTypeId = $state('');
-	let workTypesAvailable = $state(false);
+	// Contract → deliverable → work type: the shared cascade (sole option, not applicable,
+	// failed load with Retry; a contract change keeps valid children and clears the rest)
+	let selection = $state<CascadeSelection>({ contractId: '', deliverableId: '', workTypeId: '' });
+	const cascade = new OntologyCascade(dataService, () => selection);
+	$effect(() => {
+		untrack(() => cascade.start());
+		return () => cascade.dispose();
+	});
+	const selectedContractId = $derived(selection.contractId);
 	let descriptionInput = $state('');
 	let timeInputValue = $state('');
 	let isSubmitting = $state(false);
@@ -54,14 +59,8 @@
 		loadContracts();
 	});
 
-	// A deliverable belongs to a contract: changing the contract clears the deliverable chain
 	$effect(() => {
-		void selectedContractId;
-		untrack(() => {
-			selectedDeliverableId = '';
-			selectedWorkTypeId = '';
-			if (selectedContractId) contractError = '';
-		});
+		if (selectedContractId) untrack(() => (contractError = ''));
 	});
 
 	$effect(() => {
@@ -92,12 +91,14 @@
 
 		isSubmitting = true;
 		try {
+			// Never send a pair from before the last pick's options arrived
+			await cascade.settled();
 			const entryData: CreateTimeEntryInput = {
 				date,
 				durationMinutes: parsed.durationMinutes,
 				contractId: selectedContractId,
-				deliverableId: selectedDeliverableId || null,
-				workTypeId: selectedWorkTypeId || null,
+				deliverableId: cascadeIdForSave(selection.deliverableId) || null,
+				workTypeId: cascadeIdForSave(selection.workTypeId) || null,
 				description: descriptionInput.trim() || undefined
 			};
 
@@ -147,13 +148,18 @@
 			<label for="{fieldIdPrefix}-contract" class="mb-1 block text-xs font-medium text-ink-faint">
 				Contract
 			</label>
-			<ContractSelect
-				id="{fieldIdPrefix}-contract"
-				bind:selectedContractId
-				compact={true}
-				invalid={contractError !== ''}
-				onkeydown={handleKeydown}
-			/>
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div onkeydown={handleKeydown}>
+				<CascadeSelect
+					level="contract"
+					id="{fieldIdPrefix}-contract"
+					state={cascade.contract}
+					value={selection.contractId}
+					onChoose={(contractId) => cascade.chooseContract(contractId)}
+					onRetry={() => cascade.retry('contract')}
+					invalid={contractError !== ''}
+				/>
+			</div>
 			{#if contractError}
 				<p class="mt-1 text-xs text-rust-600" role="alert">{contractError}</p>
 			{/if}
@@ -163,26 +169,28 @@
 			<label for="{fieldIdPrefix}-deliverable" class="mb-1 block text-xs font-medium text-ink-faint">
 				Deliverable
 			</label>
-			<DeliverableSelect
+			<CascadeSelect
+				level="deliverable"
 				id="{fieldIdPrefix}-deliverable"
-				contractId={selectedContractId}
-				bind:selectedDeliverableId
-				compact={true}
-				alwaysRender={true}
+				state={cascade.deliverable}
+				value={selection.deliverableId}
+				onChoose={(deliverableId) => cascade.chooseDeliverable(deliverableId)}
+				onRetry={() => cascade.retry('deliverable')}
 			/>
 		</div>
 
-		<!-- Work type select: only when the chosen deliverable has work types -->
-		<div class="min-w-0 sm:flex-1" class:hidden={!workTypesAvailable}>
+		<!-- Work type: always drawn ("Choose a deliverable first", "Not applicable"), so nothing pops in -->
+		<div class="min-w-0 sm:flex-1">
 			<label for="{fieldIdPrefix}-work-type" class="mb-1 block text-xs font-medium text-ink-faint">
 				Work type
 			</label>
-			<WorkTypeSelect
+			<CascadeSelect
+				level="workType"
 				id="{fieldIdPrefix}-work-type"
-				deliverableId={selectedDeliverableId}
-				bind:selectedWorkTypeId
-				bind:hasWorkTypes={workTypesAvailable}
-				compact={true}
+				state={cascade.workType}
+				value={selection.workTypeId}
+				onChoose={(workTypeId) => cascade.chooseWorkType(workTypeId)}
+				onRetry={() => cascade.retry('workType')}
 			/>
 		</div>
 

@@ -8,8 +8,6 @@
 	} from '$lib/utils/duration';
 	import { getDataService } from '$lib/services/context';
 	import ContractSelect from '$lib/components/timer/ContractSelect.svelte';
-	import DeliverableSelect from '$lib/components/timer/DeliverableSelect.svelte';
-	import WorkTypeSelect from '$lib/components/timer/WorkTypeSelect.svelte';
 	import DurationField from '$lib/components/timer/DurationField.svelte';
 	import { formatContractLabel } from '$lib/components/timer/contract-label';
 	import { contractHasDeliverables } from '$lib/components/timer/deliverable-cache';
@@ -21,6 +19,7 @@
 	import OutboxMarker from '$lib/offline/OutboxMarker.svelte';
 	import WikiLinkInput from './WikiLinkInput.svelte';
 	import AttachNoteButton from './AttachNoteButton.svelte';
+	import EntryClassificationEditor from './EntryClassificationEditor.svelte';
 	import { attachNewNoteToEntry, attachNoteBlockedReason } from './attach-note';
 	import { splitFormerlyLines } from './formerly-lines';
 	import type { TimeEntryFields } from '$lib/services/types';
@@ -72,8 +71,6 @@
 	let timeInputValue = $state('');
 	let timeInputError = $state('');
 	let selectedContractId = $state('');
-	let selectedDeliverableId = $state('');
-	let selectedWorkTypeId = $state('');
 	let descriptionInputValue = $state('');
 	// Set by Escape so the blur that follows the editor closing does not save
 	let isDescriptionCancelled = false;
@@ -98,6 +95,9 @@
 	// contract, set to none, with a one-line notice of what was cleared
 	let contractChangeNotice = $state('');
 	let deliverablePickerContractId = $state('');
+	// What the classification editor opens on (the entry's values, or none after a contract change)
+	let editorDeliverableId = $state<string | null>(null);
+	let editorWorkTypeId = $state<string | null>(null);
 
 	// Controls that take focus back when an editor is closed from the keyboard (A-11)
 	let cardElement: HTMLElement | undefined = $state();
@@ -272,8 +272,8 @@
 			refocus(() => contractButton);
 			return;
 		}
-		selectedDeliverableId = '';
-		selectedWorkTypeId = '';
+		editorDeliverableId = null;
+		editorWorkTypeId = null;
 		deliverablePickerContractId = nextContractId;
 		contractChangeNotice = `Cleared “${clearedLabel}”: it belongs to ${previousContractLabel}.`;
 		isEditingDeliverable = true;
@@ -291,8 +291,8 @@
 
 	// --- Deliverable / work type: each pick is saved immediately; Done, Enter or Escape closes ---
 	function startEditingDeliverable() {
-		selectedDeliverableId = entry.deliverableId ?? '';
-		selectedWorkTypeId = entry.workTypeId ?? '';
+		editorDeliverableId = entry.deliverableId ?? null;
+		editorWorkTypeId = entry.workTypeId ?? null;
 		deliverablePickerContractId = '';
 		contractChangeNotice = '';
 		isEditingDeliverable = true;
@@ -308,22 +308,7 @@
 		if (returnFocus) refocus(() => deliverableButton ?? missingDetailButton);
 	}
 
-	function handleDeliverableChange(nextDeliverableId: string) {
-		// Work types belong to a deliverable, so changing the deliverable clears the work type
-		selectedWorkTypeId = '';
-		saveFields({ deliverableId: nextDeliverableId || null, workTypeId: null });
-	}
-
-	function handleWorkTypeChange(nextWorkTypeId: string) {
-		saveFields({ deliverableId: selectedDeliverableId || null, workTypeId: nextWorkTypeId || null });
-	}
-
-	function handleDeliverableKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape' || event.key === 'Enter') {
-			event.preventDefault();
-			closeDeliverableEditor(true);
-		}
-	}
+	// (the picks themselves are saved by EntryClassificationEditor through saveFields)
 
 	// --- Description ---
 	function startEditingDescription() {
@@ -498,27 +483,17 @@
 		{#if isEditingDeliverable || hasDeliverableOrWorkType || missingDetail}
 			<div class="entry-classification flex min-h-6 min-w-0 items-center gap-1.5">
 				{#if isEditingDeliverable}
-					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<div
-						bind:this={deliverableEditorElement}
-						tabindex="-1"
-						class="entry-compact-select flex min-w-0 flex-1 items-center gap-1.5 focus:outline-none"
-						onkeydown={handleDeliverableKeydown}
-					>
-						<div class="min-w-0 flex-1">
-							<DeliverableSelect
-								contractId={deliverablePickerContractId || entry.contractId}
-								bind:selectedDeliverableId
-								compact={true}
-								alwaysRender={true}
-								onChange={handleDeliverableChange}
-							/>
-						</div>
-						<div class="min-w-0 flex-1 empty:hidden">
-							<WorkTypeSelect deliverableId={selectedDeliverableId} bind:selectedWorkTypeId compact={true} onChange={handleWorkTypeChange} />
-						</div>
-						<button onclick={() => closeDeliverableEditor(true)} class="shrink-0 rounded-control px-2 py-0.5 text-xs btn-secondary" type="button">Done</button>
-					</div>
+					<!-- Keyed by contract: a contract change while open starts a fresh cascade -->
+					{#key deliverablePickerContractId || entry.contractId}
+					<EntryClassificationEditor
+						bind:element={deliverableEditorElement}
+						contractId={deliverablePickerContractId || entry.contractId}
+						deliverableId={editorDeliverableId}
+						workTypeId={editorWorkTypeId}
+						onSave={(fields) => saveFields(fields)}
+						onDone={() => closeDeliverableEditor(true)}
+					/>
+					{/key}
 				{:else}
 					{#if hasDeliverableOrWorkType}
 						<button

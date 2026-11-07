@@ -161,7 +161,7 @@ test.describe('Sprint 030 timesheet polish', () => {
 		await expect(notice).toBeVisible();
 		await expect(notice).toHaveText(`Cleared “Phase Two > Build”: it belongs to ${seeded.sourceLabel}.`);
 		const deliverablePicker = card.locator('select').first();
-		await expect(deliverablePicker).toHaveValue('');
+		await expect(deliverablePicker).toHaveValue('none'); // "No deliverable" (CASCADE_NONE)
 		await expect(deliverablePicker.locator('option')).toContainText(['No deliverable', 'Target Phase']);
 		// The row shows the contract name with the client beneath (057-DR), not "Client / Contract"
 		await expect(card.getByRole('button', { name: `Contract: ${seeded.targetLabel}. Change contract` })).toBeVisible();
