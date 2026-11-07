@@ -94,7 +94,8 @@ test('timer: start, adjust the start, stop and discard @iphone', async ({ page, 
 	// 057-DR: no footer timer bar on the phone timesheet; "Start timer" opens the capture screen
 	await expect(page.getByTestId('timer-widget-footer')).toHaveCount(0);
 	await page.getByTestId('phone-start-timer').click();
-	const widget = page.locator('[data-testid^="timer-widget-"]').first();
+	// One path (checkpoint B/C): the week's Start timer opens the same capture screen as the pill
+	const widget = page.getByTestId('phone-capture-screen').getByTestId('timer-widget-screen');
 	await widget.getByRole('button', { name: 'Start Timer' }).click();
 	const startField = widget.getByTestId('timer-start-time');
 	await expect(startField).toBeVisible();
@@ -108,7 +109,9 @@ test('timer: start, adjust the start, stop and discard @iphone', async ({ page, 
 	await expectNoZoomingFields(page);
 	await iphoneScreenshot(page, testInfo, '05-timer-stopped');
 	await widget.getByRole('button', { name: /Discard/ }).click();
-	await expect(widget.getByRole('button', { name: 'Start Timer' })).toBeVisible();
+	// Discard resolves the capture and leaves the screen: back on the week, Start timer is offered again
+	await expect(page.getByTestId('phone-capture-screen')).toHaveCount(0);
+	await expect(page.getByTestId('phone-start-timer')).toBeVisible();
 });
 
 test('notes: list, editor, wiki-link list, menus, find and Undo @iphone', async ({ page, baseURL }, testInfo) => {
