@@ -523,20 +523,23 @@
 	</section>
 {/snippet}
 
+<!-- Phone (060-DR): icon plus label on the week's summary row; under 400 px the label is one word -->
 {#snippet phoneCaptureAccess()}
 	{#if showPhoneCaptureAccess}
 		<button
 			type="button"
 			onclick={() => captureScreen.open()}
-			class="flex items-center gap-1.5 rounded-control px-3 py-1.5 text-sm font-medium btn-primary pointer-coarse:min-h-11"
+			class="flex items-center gap-1 rounded-control px-2.5 py-1.5 text-sm font-medium whitespace-nowrap btn-primary pointer-coarse:min-h-11"
 			title="Open the timer to start it"
+			aria-label="Start timer"
 			data-testid="phone-start-timer"
-		><span aria-hidden="true">&#9654;</span> Start timer</button>
+		><svg class="h-3 w-3 shrink-0" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z" /></svg><span class="max-[399px]:hidden">Start timer</span><span class="hidden max-[399px]:inline">Timer</span></button>
 		<button
 			type="button"
 			onclick={() => (showAddEntryModal = true)}
-			class="rounded-control px-3 py-1.5 text-sm font-medium btn-secondary pointer-coarse:min-h-11"
-		>Add Entry</button>
+			aria-label="Add Entry"
+			class="flex items-center gap-1 rounded-control px-2.5 py-1.5 text-sm font-medium whitespace-nowrap btn-secondary pointer-coarse:min-h-11"
+		><svg class="h-3 w-3 shrink-0" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 2v8M2 6h8" /></svg><span class="max-[399px]:hidden">Add Entry</span><span class="hidden max-[399px]:inline">Entry</span></button>
 	{/if}
 {/snippet}
 

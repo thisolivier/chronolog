@@ -3,8 +3,8 @@
 	one row; seven day cells (weekday and date on one line, duration below, a thin segmented bar of
 	the day's client colours from the actual entries). A day cell scrolls to that day's heading; it
 	is not a filter. Week numbers follow calendar-week.ts (Week 1 contains 1 January).
-	Phone: the total and status move to their own row, with `phoneActions` (capture access when no
-	timer runs) beside them.
+	Phone: the total and status move to one row under the days, with `phoneActions` (capture access
+	when no timer runs) at its end (sprint 060-DR: three compact rows above the first day).
 -->
 <script lang="ts">
 	import type { Snippet } from 'svelte';
@@ -72,7 +72,7 @@
 <!-- On a short landscape phone screen the strip scrolls away, so the entries get the height (047-QA) -->
 <div class="week-strip sticky top-0 z-10 border-b border-divider bg-surface [@media(max-height:500px)]:static" data-testid="week-strip">
 	<!-- Navigation · Today ········ total · status (phone: total and status below the days) -->
-	<div class="week-strip-nav flex min-w-0 items-center gap-2 px-2 pt-2 pb-1 sm:px-4">
+	<div class="week-strip-nav flex min-w-0 items-center gap-2 px-2 pt-1 sm:px-4 sm:pt-2 sm:pb-1">
 		<button
 			onclick={onPrevWeek}
 			class="flex items-center rounded-control px-1.5 py-1 text-sm btn-quiet pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:justify-center"
@@ -99,7 +99,7 @@
 		{/if}
 	</div>
 
-	<div class="week-strip-summary flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 pb-2 sm:justify-end sm:px-4 sm:pt-2 sm:pb-1">
+	<div class="week-strip-summary flex flex-nowrap items-center justify-between gap-x-2 gap-y-2 px-3 pb-2 sm:justify-end sm:gap-x-3 sm:px-4 sm:pt-2 sm:pb-1">
 		<span class="text-base font-semibold whitespace-nowrap tabular-nums text-ink sm:text-lg" data-testid="week-total">{weeklyTotalHours}</span>
 		<div class="flex flex-col items-end">
 			<WeekStatusMenu {currentStatus} {onStatusChange} />
@@ -108,12 +108,12 @@
 			{/if}
 		</div>
 		{#if phoneActions}
-			<div class="flex basis-full justify-end gap-2 empty:hidden sm:order-first sm:basis-auto">{@render phoneActions()}</div>
+			<div class="ml-auto flex justify-end gap-1.5 empty:hidden sm:order-first sm:ml-0 sm:gap-2">{@render phoneActions()}</div>
 		{/if}
 	</div>
 
 	<!-- Seven days: a jump to that day's heading, not a filter -->
-	<div class="week-strip-days grid grid-cols-7 px-1 pb-2 sm:px-3">
+	<div class="week-strip-days grid grid-cols-7 px-1 pb-1 sm:px-3 sm:pb-2">
 		{#each days as dayData, dayIndex (dayData.date)}
 			{@const isToday = dayData.date === todayDateString}
 			{@const colorSegments = computeColorSegments(dayData.entries)}
