@@ -12,18 +12,15 @@ const DEFAULT_CONTEXT_BEFORE = 50;
 const DEFAULT_SNIPPET_LENGTH = 180;
 const ELLIPSIS = '…';
 
-/** Every occurrence of one needle, case-insensitive, non-overlapping. */
-function rangesOfNeedle(lowerText: string, lowerNeedle: string): MatchRange[] {
-	const ranges: MatchRange[] = [];
-	if (!lowerNeedle) return ranges;
-	let searchFrom = 0;
-	for (;;) {
-		const index = lowerText.indexOf(lowerNeedle, searchFrom);
-		if (index === -1) break;
-		ranges.push({ start: index, end: index + lowerNeedle.length });
-		searchFrom = index + lowerNeedle.length;
-	}
-	return ranges;
+/**
+ * Every occurrence of one needle, case-insensitive, non-overlapping, as offsets into the original
+ * `text`. A regex with the `i` flag folds case without changing lengths, so the offsets stay right
+ * after characters whose lower case is longer (e.g. "İ"); lower-casing the text first would shift them.
+ */
+function rangesOfNeedle(text: string, needle: string): MatchRange[] {
+	if (!needle) return [];
+	const pattern = new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'giu');
+	return [...text.matchAll(pattern)].map((found) => ({ start: found.index, end: found.index + found[0].length }));
 }
 
 /**
@@ -32,10 +29,9 @@ function rangesOfNeedle(lowerText: string, lowerNeedle: string): MatchRange[] {
  * ranges merged so the result never overlaps.
  */
 export function findMatchRanges(text: string, needle: string | readonly string[]): MatchRange[] {
-	const lowerText = text.toLowerCase();
 	const needles = typeof needle === 'string' ? [needle] : needle;
 	const ranges = needles
-		.flatMap((oneNeedle) => rangesOfNeedle(lowerText, oneNeedle.toLowerCase()))
+		.flatMap((oneNeedle) => rangesOfNeedle(text, oneNeedle))
 		.sort((first, second) => first.start - second.start || second.end - first.end);
 	const merged: MatchRange[] = [];
 	for (const range of ranges) {

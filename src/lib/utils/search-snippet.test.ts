@@ -23,6 +23,16 @@ describe('findMatchRanges', () => {
 		]);
 		expect(findMatchRanges('anything', [])).toEqual([]);
 	});
+
+	it('keeps offsets right after characters that grow when lower-cased', () => {
+		const text = 'İstanbul roles review';
+		const [range] = findMatchRanges(text, ['roles']);
+		expect(text.slice(range.start, range.end)).toBe('roles');
+		expect(findMatchRanges('a.b (x) a.b', 'a.b')).toEqual([
+			{ start: 0, end: 3 },
+			{ start: 8, end: 11 }
+		]);
+	});
 });
 
 describe('plainTextFromMarkdown', () => {
