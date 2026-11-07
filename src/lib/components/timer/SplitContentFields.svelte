@@ -5,7 +5,8 @@
 	the cascade loads for the swapped contract. `cascade` is bound out: Save waits for it to settle.
 -->
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { tick, untrack } from 'svelte';
+	import WikiLinkRenderer from '$lib/components/weekly/WikiLinkRenderer.svelte';
 	import CascadeFields from './CascadeFields.svelte';
 	import { OntologyCascade } from './ontology-cascade.svelte';
 	import { getDataService } from '$lib/services/context';
@@ -25,6 +26,17 @@
 		cascade?: OntologyCascade;
 	} = $props();
 
+	// A description with a [[link]] reads as its rendered text until clicked (then the raw field)
+	let isEditingDescription = $state(false);
+	let descriptionField: HTMLTextAreaElement | undefined = $state();
+	const showRenderedDescription = $derived(!isEditingDescription && /\[\[[^\]]+\]\]/.test(selection().description ?? ''));
+
+	async function editDescription() {
+		isEditingDescription = true;
+		await tick();
+		descriptionField?.focus();
+	}
+
 	const ownCascade = untrack(() => new OntologyCascade(getDataService(), selection));
 	cascade = ownCascade;
 	$effect(() => {
@@ -36,8 +48,23 @@
 <fieldset class="min-w-0 space-y-2.5" {disabled}>
 	<div>
 		<label for="{idPrefix}-description" class="block text-xs font-medium text-ink-muted">Description</label>
+		{#if showRenderedDescription}
+			<button
+				type="button"
+				onclick={editDescription}
+				{disabled}
+				class="mt-0.5 block min-h-[3.75rem] w-full rounded-control input-base px-2 py-1.5 text-left text-sm break-words whitespace-pre-line"
+				title="Click to edit description"
+				data-testid="{idPrefix}-description-rendered"
+			>
+				<WikiLinkRenderer text={selection().description ?? ''} />
+			</button>
+		{/if}
 		<textarea
+			bind:this={descriptionField}
 			id="{idPrefix}-description"
+			class:hidden={showRenderedDescription}
+			onblur={() => (isEditingDescription = false)}
 			bind:value={() => selection().description, (value) => (selection().description = value)}
 			rows="2"
 			class="mt-0.5 block w-full rounded-control input-base px-2 py-1.5 text-sm"

@@ -10,6 +10,7 @@
 	the tray's Stop is the right card's (freeze the live end). Closed, the overlay is unmounted.
 -->
 <script lang="ts">
+	import WikiLinkRenderer from '$lib/components/weekly/WikiLinkRenderer.svelte';
 	import { untrack } from 'svelte';
 	import { getDataService } from '$lib/services/context';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
@@ -212,7 +213,7 @@
 						<p class="text-sm text-ink-muted tabular-nums" data-testid="split-left-summary-range">{clockOf(result.start)}–{clockOf(result.end)}</p>
 						{#if result.action === 'saved'}
 							{#if contractLabel(result.contractId)}<p class="text-sm font-medium text-ink">{contractLabel(result.contractId)}</p>{/if}
-							{#if result.description}<p class="line-clamp-3 text-sm whitespace-pre-line text-ink-soft">{result.description}</p>{/if}
+							{#if result.description}<p class="line-clamp-3 text-sm whitespace-pre-line text-ink-soft"><WikiLinkRenderer text={result.description} /></p>{/if}
 						{:else}
 							<p class="text-sm text-ink-muted">Left unlogged.</p>
 						{/if}

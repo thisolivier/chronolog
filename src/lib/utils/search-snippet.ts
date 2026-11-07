@@ -5,7 +5,27 @@
  */
 
 export type MatchRange = { start: number; end: number };
-export type SearchSnippet = { text: string; matches: MatchRange[] };
+export type SearchSnippet = {
+	text: string;
+	matches: MatchRange[];
+	/** Text of wiki-links to notes in the trash, drawn struck through (sprint 060-DR) */
+	deletedLinks?: MatchRange[];
+};
+
+/** Reads one wiki-link as text: its label, its target's title or its ID (`wikiLinkPlainText`) */
+export type WikiLinkTextResolver = (noteId: string, label: string) => string;
+
+/**
+ * Private-use characters around a deleted link's text while an excerpt is built; never sent to the
+ * client (`extractDeletedLinks` turns them into `deletedLinks` ranges).
+ */
+const DELETED_LINK_OPEN = '\uE000';
+const DELETED_LINK_CLOSE = '\uE001';
+
+/** Wrap a deleted link's text so `extractDeletedLinks` can find it after the excerpt is cut */
+export function markDeletedLinkText(text: string): string {
+	return `${DELETED_LINK_OPEN}${text}${DELETED_LINK_CLOSE}`;
+}
 
 /** Characters kept before the first match (the rest of the budget goes after it) */
 const DEFAULT_CONTEXT_BEFORE = 50;
@@ -46,17 +66,66 @@ export function findMatchRanges(text: string, needle: string | readonly string[]
  * Markdown to one line of readable text: drops heading and list markers, emphasis, code fences,
  * image/link syntax and `[[id|label]]` wiki-link brackets, and collapses whitespace.
  */
-export function plainTextFromMarkdown(markdown: string): string {
-	return markdown
+export function plainTextFromMarkdown(markdown: string, readWikiLink?: WikiLinkTextResolver): string {
+	return wikiLinksToText(markdown, readWikiLink)
 		.replace(/```[^\n]*\n?/g, ' ')
 		.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
 		.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-		.replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2')
-		.replace(/\[\[([^\]]+)\]\]/g, '$1')
 		.replace(/^\s{0,3}(#{1,6}|>|[-*+]|\d+\.)\s+(\[[ xX]\]\s+)?/gm, '')
 		.replace(/(\*\*|__|~~|`)/g, '')
 		.replace(/\s+/g, ' ')
 		.trim();
+}
+
+/**
+ * `[[id|label]]` as its label and `[[id]]` as `readWikiLink`'s text (the target's title), else the ID.
+ */
+export function wikiLinksToText(text: string, readWikiLink?: WikiLinkTextResolver): string {
+	return text.replace(/\[\[([^\]\n]+)\]\]/g, (_whole, inner: string) => {
+		const pipeIndex = inner.indexOf('|');
+		const target = pipeIndex === -1 ? inner : inner.slice(0, pipeIndex);
+		const label = pipeIndex === -1 ? '' : inner.slice(pipeIndex + 1);
+		const noteId = target.split('#')[0];
+		if (readWikiLink) return readWikiLink(noteId, label);
+		return label || target;
+	});
+}
+
+/**
+ * Take the deleted-link marks (`markDeletedLinkText`) out of a built excerpt: the text without
+ * them, the match offsets moved to suit, and the deleted links' ranges. A link cut by the
+ * excerpt's ends runs to that end.
+ */
+export function extractDeletedLinks(snippet: SearchSnippet): SearchSnippet {
+	const { text } = snippet;
+	if (!text.includes(DELETED_LINK_OPEN) && !text.includes(DELETED_LINK_CLOSE)) return snippet;
+	const newOffsetOf: number[] = [];
+	const deletedLinks: MatchRange[] = [];
+	let output = '';
+	let openAt: number | null = null;
+	let sawAnyMark = false;
+	for (let index = 0; index <= text.length; index++) {
+		newOffsetOf[index] = output.length;
+		if (index === text.length) break;
+		const character = text[index];
+		if (character === DELETED_LINK_OPEN) {
+			openAt = output.length;
+			sawAnyMark = true;
+		} else if (character === DELETED_LINK_CLOSE) {
+			// A close with no open: the excerpt began inside the link
+			const start = openAt ?? (sawAnyMark ? null : 0);
+			if (start !== null && output.length > start) deletedLinks.push({ start, end: output.length });
+			openAt = null;
+			sawAnyMark = true;
+		} else {
+			output += character;
+		}
+	}
+	if (openAt !== null && output.length > openAt) deletedLinks.push({ start: openAt, end: output.length });
+	const matches = snippet.matches
+		.map((range) => ({ start: newOffsetOf[range.start], end: newOffsetOf[range.end] }))
+		.filter((range) => range.end > range.start);
+	return { text: output, matches, ...(deletedLinks.length > 0 ? { deletedLinks } : {}) };
 }
 
 /**
@@ -92,18 +161,35 @@ export function buildSearchSnippet(
 	return { text: excerpt, matches };
 }
 
-export type SnippetPart = { text: string; isMatch: boolean };
+export type SnippetPart = { text: string; isMatch: boolean; isDeletedLink?: boolean };
 
-/** Split a snippet into plain and matched parts, for rendering `<mark>` without `{@html}`. */
+const inAnyRange = (ranges: readonly MatchRange[], start: number, end: number) =>
+	ranges.some((range) => range.start <= start && end <= range.end);
+
+/**
+ * Split a snippet into plain, matched and deleted-link parts, for rendering `<mark>` and the
+ * struck-through deleted link without `{@html}`.
+ */
 export function snippetParts(snippet: SearchSnippet): SnippetPart[] {
-	const parts: SnippetPart[] = [];
-	let position = 0;
-	for (const range of snippet.matches) {
-		if (range.start < position) continue;
-		if (range.start > position) parts.push({ text: snippet.text.slice(position, range.start), isMatch: false });
-		parts.push({ text: snippet.text.slice(range.start, range.end), isMatch: true });
-		position = range.end;
+	const deletedLinks = snippet.deletedLinks ?? [];
+	const boundaries = new Set<number>([0, snippet.text.length]);
+	for (const range of [...snippet.matches, ...deletedLinks]) {
+		boundaries.add(Math.max(0, Math.min(range.start, snippet.text.length)));
+		boundaries.add(Math.max(0, Math.min(range.end, snippet.text.length)));
 	}
-	if (position < snippet.text.length) parts.push({ text: snippet.text.slice(position), isMatch: false });
+	const sorted = [...boundaries].sort((first, second) => first - second);
+	const parts: SnippetPart[] = [];
+	for (let index = 0; index < sorted.length - 1; index++) {
+		const start = sorted[index];
+		const end = sorted[index + 1];
+		const isMatch = inAnyRange(snippet.matches, start, end);
+		const isDeletedLink = inAnyRange(deletedLinks, start, end);
+		const previous = parts[parts.length - 1];
+		if (previous && previous.isMatch === isMatch && Boolean(previous.isDeletedLink) === isDeletedLink) {
+			previous.text += snippet.text.slice(start, end);
+		} else {
+			parts.push({ text: snippet.text.slice(start, end), isMatch, ...(isDeletedLink ? { isDeletedLink } : {}) });
+		}
+	}
 	return parts;
 }

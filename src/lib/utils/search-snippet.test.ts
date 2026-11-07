@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSearchSnippet, findMatchRanges, plainTextFromMarkdown, snippetParts } from './search-snippet';
+import { buildSearchSnippet, extractDeletedLinks, findMatchRanges, markDeletedLinkText, plainTextFromMarkdown, snippetParts, wikiLinksToText } from './search-snippet';
 
 describe('findMatchRanges', () => {
 	it('finds every case-insensitive, non-overlapping occurrence', () => {
@@ -75,5 +75,42 @@ describe('snippetParts', () => {
 			{ text: 'budget', isMatch: true },
 			{ text: ' b', isMatch: false }
 		]);
+	});
+});
+
+describe('wiki-links in excerpts (sprint 060-DR)', () => {
+	const titles: Record<string, string> = { 'AMP.1': 'Pricing questions', 'AMP.2': 'Old agenda' };
+	const read = (noteId: string, label: string) =>
+		label || (noteId === 'AMP.2' ? markDeletedLinkText(titles[noteId]) : (titles[noteId] ?? noteId));
+
+	it('reads [[id]] as the title, [[id|label]] as the label and an unknown id as itself', () => {
+		expect(wikiLinksToText('See [[AMP.1]], [[AMP.1|the list]] and [[AMP.9]].', read)).toBe(
+			'See Pricing questions, the list and AMP.9.'
+		);
+		expect(plainTextFromMarkdown('Open questions are in [[AMP.1]].', read)).toBe('Open questions are in Pricing questions.');
+		expect(wikiLinksToText('[[AMP.1#Costs]]')).toBe('AMP.1#Costs');
+	});
+
+	it('turns a deleted link into a range and keeps the match offsets right', () => {
+		const text = wikiLinksToText('Moved from [[AMP.2]] to the pricing page', read);
+		const snippet = extractDeletedLinks(buildSearchSnippet(text, 'pricing'));
+		expect(snippet.text).toBe('Moved from Old agenda to the pricing page');
+		expect(snippet.deletedLinks).toEqual([{ start: 11, end: 21 }]);
+		expect(snippet.text.slice(snippet.matches[0].start, snippet.matches[0].end)).toBe('pricing');
+		expect(snippetParts(snippet)).toEqual([
+			{ text: 'Moved from ', isMatch: false },
+			{ text: 'Old agenda', isMatch: false, isDeletedLink: true },
+			{ text: ' to the ', isMatch: false },
+			{ text: 'pricing', isMatch: true },
+			{ text: ' page', isMatch: false }
+		]);
+	});
+
+	it('a deleted link cut by the start of the excerpt runs from the start', () => {
+		expect(extractDeletedLinks({ text: '…agenda rest', matches: [] })).toEqual({
+			text: '…agenda rest',
+			matches: [],
+			deletedLinks: [{ start: 0, end: 7 }]
+		});
 	});
 });

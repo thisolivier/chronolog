@@ -45,7 +45,7 @@
 		{#if item.kind === 'note'}
 			<HighlightedText text={item.hit.title} matches={item.hit.titleMatches} />
 		{:else}
-			<HighlightedText text={item.hit.snippet.text} matches={item.hit.snippet.matches} />
+			<HighlightedText text={item.hit.snippet.text} matches={item.hit.snippet.matches} deletedLinks={item.hit.snippet.deletedLinks} />
 		{/if}
 	</div>
 
@@ -58,7 +58,7 @@
 		<div class="{textColumn} text-sm text-ink-muted italic" data-testid="search-hit-reason">{reason}</div>
 	{:else if showNoteExcerpt && item.kind === 'note'}
 		<div class="{textColumn} text-sm text-ink-muted md:line-clamp-2">
-			<HighlightedText text={item.hit.snippet.text} matches={item.hit.snippet.matches} />
+			<HighlightedText text={item.hit.snippet.text} matches={item.hit.snippet.matches} deletedLinks={item.hit.snippet.deletedLinks} />
 		</div>
 	{/if}
 
