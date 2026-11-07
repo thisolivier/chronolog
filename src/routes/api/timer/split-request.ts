@@ -4,7 +4,7 @@
  * (`$lib/server/db/queries/timer-split.ts`).
  */
 import type { EntryContent, SplitRequest } from '$lib/server/db/queries/timer-split';
-import { parseLocalMoment } from './timer-moments';
+import { parseExpectedMoment, parseLocalMoment } from './timer-moments';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** As `readClientRequestId`, but at most 90 characters: the draft gets `<id>:remainder` (REMAINDER_MARK_SUFFIX). */
@@ -42,8 +42,14 @@ function readContent(source: Record<string, unknown>, side: string): EntryConten
 
 export function readSplitRequest(body: Record<string, unknown>): SplitRequestResult {
 	if (typeof body.entryId !== 'string' || !UUID_PATTERN.test(body.entryId)) return invalid('entryId must be the draft timer id');
-	const expectedStartedAt = parseLocalMoment(body.expectedStartedAt);
+	const expectedStartedAt = parseExpectedMoment(body.expectedStartedAt);
 	if (!expectedStartedAt) return invalid('expectedStartedAt must be YYYY-MM-DDTHH:MM[:SS] (the start the client shows)');
+	let expectedEndedAt: SplitRequest['expectedEndedAt'];
+	if (body.expectedEndedAt === null) expectedEndedAt = null;
+	else if (body.expectedEndedAt !== undefined) {
+		expectedEndedAt = parseExpectedMoment(body.expectedEndedAt);
+		if (!expectedEndedAt) return invalid('expectedEndedAt must be YYYY-MM-DDTHH:MM[:SS], or null for a running timer');
+	}
 	const boundary = parseLocalMoment(body.boundary);
 	if (!boundary) return invalid('boundary must be YYYY-MM-DDTHH:MM[:SS]', 'invalid_boundary');
 	if (typeof body.clientRequestId !== 'string' || !SPLIT_REQUEST_ID_PATTERN.test(body.clientRequestId)) {
@@ -72,6 +78,6 @@ export function readSplitRequest(body: Record<string, unknown>): SplitRequestRes
 
 	return {
 		ok: true,
-		request: { entryId: body.entryId, expectedStartedAt, boundary, clientRequestId: body.clientRequestId, left, right }
+		request: { entryId: body.entryId, expectedStartedAt, expectedEndedAt, boundary, clientRequestId: body.clientRequestId, left, right }
 	};
 }

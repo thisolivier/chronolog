@@ -35,6 +35,17 @@ describe('readSplitRequest', () => {
 		expect(result.ok && result.request.right).toEqual({ kind: 'pending', description: 'Next thing' });
 	});
 
+	it('keeps expectedStartedAt at the precision sent and reads an optional expectedEndedAt', () => {
+		const minutes = readSplitRequest({ ...base, expectedStartedAt: '2026-11-07T09:00' });
+		expect(minutes.ok && minutes.request.expectedStartedAt).toEqual({ date: '2026-11-07', time: '09:00' });
+		expect(minutes.ok && minutes.request.expectedEndedAt).toBeUndefined();
+		const stopped = readSplitRequest({ ...base, expectedEndedAt: '2026-11-07T10:00:05' });
+		expect(stopped.ok && stopped.request.expectedEndedAt).toEqual({ date: '2026-11-07', time: '10:00:05' });
+		const running = readSplitRequest({ ...base, expectedEndedAt: null });
+		expect(running.ok && running.request.expectedEndedAt).toBeNull();
+		expect(readSplitRequest({ ...base, expectedEndedAt: '10:00' }).ok).toBe(false);
+	});
+
 	it.each([
 		[{ entryId: 'nope' }, 'invalid_split'],
 		[{ expectedStartedAt: '09:00' }, 'invalid_split'],

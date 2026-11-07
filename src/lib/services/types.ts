@@ -278,7 +278,10 @@ export type SaveTimerInput = {
 	durationMinutes?: number;
 	startTime?: string | null;
 	endTime?: string | null;
-	/** The draft start the client shows (`YYYY-MM-DDTHH:MM:SS`); a different start is a 409 `timer_changed` */
+	/**
+	 * The draft start the client shows (`YYYY-MM-DDTHH:MM[:SS]`); a different start is a 409 `timer_changed`.
+	 * Required (409 `expected_start_required`) with time overrides or on a split remainder.
+	 */
 	expectedStartedAt?: string;
 };
 
@@ -294,6 +297,8 @@ export type SplitPartContent = {
 export type SplitTimerInput = {
 	entryId: string;
 	expectedStartedAt: string;
+	/** The end the client shows (null: running); optional, checked, and the end a replayed pending remainder reports */
+	expectedEndedAt?: string | null;
 	boundary: string;
 	/** Reuse the same ID when retrying: the split then happens once */
 	clientRequestId: string;
@@ -311,7 +316,7 @@ export type SplitTimerResult = {
 	remainder:
 		| { kind: 'draft'; timer: TimerEntry }
 		/** Keep the remainder as the browser's pending timer from here (with the source's end if it was stopped) */
-		| { kind: 'pending'; date: string; startTime: string; description: string | null }
+		| { kind: 'pending'; date: string; startTime: string; endTime: string | null; description: string | null }
 		/** Replay only: the remainder was saved, discarded or split again since */
 		| { kind: 'gone' };
 };

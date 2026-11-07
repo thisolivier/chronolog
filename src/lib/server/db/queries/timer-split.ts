@@ -10,7 +10,8 @@
  * (or the same request twice at once) waits for the first, then finds one of those marks and
  * answers with the first outcome (`replayed: true`) without writing anything. A split that
  * discarded its left part and left no server draft (blank remainder) leaves no mark: its retry
- * gets `not_found`, like any request for a draft that is gone.
+ * gets `not_found`, like any request for a draft that is gone (`time_entries.contract_id` is NOT
+ * NULL, so a blank remainder cannot stay a row; closing this needs a table and a migration).
  */
 import { and, eq } from 'drizzle-orm';
 import { database, timeEntries } from '$lib/server/db';
@@ -20,12 +21,13 @@ import type { BatchTransaction } from '$lib/server/batch/run-batch';
 import { calculateTimerDurationMinutes } from './timer-duration';
 import { linkTimeEntryToNotesInTransaction, reconcileTimeEntryLinksInTransaction } from './time-entries-batch';
 import { draftRefusal, lockUserEntry, type DraftRefusal } from './timer-draft';
+import { REMAINDER_MARK_SUFFIX } from './timer-draft-rules';
 import { extractDescriptionLinks } from '$lib/utils/reconcile-description-links';
 
 type TimeEntryRow = typeof timeEntries.$inferSelect;
 
 /** The advanced draft carries `<clientRequestId>:remainder`, so split ids are at most 90 characters. */
-export const REMAINDER_MARK_SUFFIX = ':remainder';
+export { REMAINDER_MARK_SUFFIX };
 
 type LocalMoment = { date: string; time: string };
 export type EntryContent = {
@@ -36,27 +38,38 @@ export type EntryContent = {
 };
 export type SplitRequest = {
 	entryId: string;
-	/** `HH:MM:SS` times */
+	/** As sent (`HH:MM` or `HH:MM:SS`), compared at that precision */
 	expectedStartedAt: LocalMoment;
+	/** Optional: the end the client shows (null: running; undefined: not sent). Also gives a replay its pending end. */
+	expectedEndedAt?: LocalMoment | null;
+	/** `HH:MM:SS` */
 	boundary: LocalMoment;
 	clientRequestId: string;
 	left: ({ action: 'save' } & EntryContent) | { action: 'discard' };
 	/** With a contract the remainder stays the server draft; without one it becomes a browser (pending) timer */
 	right: { kind: 'draft'; content: EntryContent } | { kind: 'pending'; description: string | null };
 };
-/** The route's wall-clock rule for the locked draft (`splitBoundaryProblem`): null when the boundary fits */
-export type IntervalCheck = (draft: { date: string; startTime: string | null; endTime: string | null }) => { code: string; message: string } | null;
+/**
+ * The route's wall-clock rules for the locked draft: its end is the one the client saw, if it said
+ * (409), and the boundary fits (`splitBoundaryProblem`, 400). Null when all is well.
+ */
+export type IntervalCheck = (draft: {
+	date: string;
+	startTime: string | null;
+	endTime: string | null;
+}) => { status?: 400 | 409; code: string; message: string } | null;
 
 export type SplitLeft =
 	| { action: 'saved'; entry: TimeEntryRow }
 	| { action: 'discarded'; date: string; startTime: string; endTime: string };
 export type SplitRemainder =
 	| { kind: 'draft'; timerId: string }
-	| { kind: 'pending'; date: string; startTime: string; description: string | null }
+	/** `endTime`: the stopped source's end (null when it was running, or unknown on a replay without `expectedEndedAt`) */
+	| { kind: 'pending'; date: string; startTime: string; endTime: string | null; description: string | null }
 	/** Replay only: the remainder draft has since been saved, discarded or split again */
 	| { kind: 'gone' };
 export type SplitOutcome = { ok: true; replayed: boolean; left: SplitLeft; remainder: SplitRemainder };
-export type SplitRefusal = DraftRefusal | { ok: false; status: 400; code: string; message: string };
+export type SplitRefusal = DraftRefusal | { ok: false; status: 400 | 409; code: string; message: string };
 
 const decrypt = (row: TimeEntryRow): TimeEntryRow => ({ ...row, description: decryptNullable(row.description, 'time_entries.description') });
 
@@ -69,14 +82,16 @@ async function findByRequestId(transaction: BatchTransaction, userId: string, cl
 	return row ?? null;
 }
 
-function pendingRemainder(request: SplitRequest): SplitRemainder {
+const fullTime = (time: string) => (time.length === 5 ? `${time}:00` : time);
+
+function pendingRemainder(request: SplitRequest, endTime: string | null): SplitRemainder {
 	return request.right.kind === 'pending'
-		? { kind: 'pending', date: request.boundary.date, startTime: request.boundary.time, description: request.right.description }
+		? { kind: 'pending', date: request.boundary.date, startTime: request.boundary.time, endTime, description: request.right.description }
 		: { kind: 'gone' };
 }
 
-function discardedLeft(request: SplitRequest): SplitLeft {
-	return { action: 'discarded', date: request.expectedStartedAt.date, startTime: request.expectedStartedAt.time, endTime: request.boundary.time };
+function discardedLeft(start: { date: string; time: string }, request: SplitRequest): SplitLeft {
+	return { action: 'discarded', date: start.date, startTime: fullTime(start.time), endTime: request.boundary.time };
 }
 
 /** The first outcome of this request, when it already happened. */
@@ -87,8 +102,10 @@ async function findReplay(transaction: BatchTransaction, userId: string, request
 	return {
 		ok: true,
 		replayed: true,
-		left: savedLeft ? { action: 'saved', entry: decrypt(savedLeft) } : discardedLeft(request),
-		remainder: markedDraft ? { kind: 'draft', timerId: markedDraft.id } : pendingRemainder(request)
+		left: savedLeft ? { action: 'saved', entry: decrypt(savedLeft) } : discardedLeft(request.expectedStartedAt, request),
+		remainder: markedDraft
+			? { kind: 'draft', timerId: markedDraft.id }
+			: pendingRemainder(request, request.expectedEndedAt ? fullTime(request.expectedEndedAt.time) : null)
 	};
 }
 
@@ -105,9 +122,9 @@ async function splitInTransaction(
 	if (refusal || !draft?.startTime) return refusal ?? { ok: false, status: 409, code: 'timer_changed', message: 'The timer has no start time' };
 
 	const problem = intervalProblem(draft);
-	if (problem) return { ok: false, status: 400, ...problem };
+	if (problem) return { ok: false, status: problem.status ?? 400, code: problem.code, message: problem.message };
 
-	let left: SplitLeft = discardedLeft(request);
+	let left: SplitLeft = discardedLeft({ date: draft.date, time: draft.startTime }, request);
 	if (request.left.action === 'save') {
 		const { contractId, deliverableId, workTypeId, description } = request.left;
 		const content = { contractId, deliverableId, workTypeId, description };
@@ -132,7 +149,7 @@ async function splitInTransaction(
 	if (request.right.kind === 'pending') {
 		// A remainder with no contract cannot be a server draft: the browser keeps it (pending timer)
 		await transaction.delete(timeEntries).where(eq(timeEntries.id, draft.id));
-		return { ok: true, replayed: false, left, remainder: pendingRemainder(request) };
+		return { ok: true, replayed: false, left, remainder: pendingRemainder(request, draft.endTime ? fullTime(draft.endTime) : null) };
 	}
 	const content = request.right.content;
 	await transaction
