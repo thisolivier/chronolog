@@ -113,7 +113,7 @@
 				<span class="text-[11px] tabular-nums text-ink-muted" data-testid="timer-compact-frozen">{frozenText}</span>
 			</span>
 		{:else}
-			<span class="flex-shrink-0 font-mono text-sm font-semibold tabular-nums text-ink" data-testid="timer-compact-clock"
+			<span class="flex-shrink-0 font-mono text-xs font-semibold tabular-nums text-ink" data-testid="timer-compact-clock"
 				>{formatElapsedClock(elapsedSeconds)}</span
 			>
 			<TimerPulseDot class="absolute -top-1.5 -right-1.5" />
