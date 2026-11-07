@@ -232,7 +232,9 @@ test.describe('J8: phone', () => {
 		await open(page, '/');
 		await sidebarItem(page, data.contractA).click();
 		await expect(page).toHaveURL(`/notes/${data.contractA}`);
-		await expect(page.getByTestId('mobile-context-title')).toContainText(data.nameA);
+		// The list header names the contract; the title bar does not repeat it (060-DR)
+		await expect(page.getByTestId('note-list-header')).toContainText(data.nameA);
+		await expect(page.getByTestId('mobile-context-title')).toHaveCount(0);
 		// In-app moves only: the list's only row is the seeded note
 		await page.getByTestId('note-list-row').first().getByRole('button').first().click();
 		await expect(page).toHaveURL(`/notes/${data.contractA}/${data.noteA}`);

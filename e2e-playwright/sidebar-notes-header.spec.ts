@@ -261,10 +261,11 @@ test.describe('phone 390', () => {
 		await scroll.getByTestId('sidebar-settings-link').scrollIntoViewIfNeeded();
 		await shoot('phone-01b-sidebar-settings.png');
 
-		// The heading opens all notes (level 1), titled "All notes"
+		// The heading opens all notes (level 1), its header "All notes" (no title bar copy, 060-DR)
 		await scroll.getByTestId('sidebar-notes-heading').tap();
 		await expect.poll(() => pathOf(page)).toBe('/notes/all');
-		await expect(page.getByTestId('mobile-context-title')).toHaveText('All notes');
+		await expect(page.getByTestId('note-list-header')).toContainText('All notes');
+		await expect(page.getByTestId('mobile-context-title')).toHaveCount(0);
 		await expect.poll(() => rowIds(page)).toEqual([...data.noteIds].reverse());
 		await expectNoSidewaysScroll(page);
 		await shoot('phone-02-all-notes.png');

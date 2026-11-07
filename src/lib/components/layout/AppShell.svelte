@@ -10,6 +10,7 @@
 	import HistoryButtons from './HistoryButtons.svelte';
 	import { requestFindInPage } from '$lib/components/find/shortcuts';
 	import { labelForPath, titleForRoute } from './navigation-labels';
+	import { phoneTitleBarNamesContext } from './note-context-ownership';
 	import { requestNoteTitles, subscribeToNoteTitles } from '$lib/components/notes/note-titles.svelte';
 	import { isNoteListRoute, parseWorkspacePath } from '$lib/stores/navigation-routes';
 	import { getDataService } from '$lib/services/context';
@@ -135,6 +136,8 @@
 		return labelForPath(navigationContext.backTarget.path, navigationContext.selectedWeek ?? '');
 	});
 	const mobileTitle = $derived(titleForRoute(navigationContext.route));
+	// Notes screens: the list and editor headers name the context, so no title above them (060-DR)
+	const mobileTitleShown = $derived(phoneTitleBarNamesContext(navigationContext.route.kind));
 	// The week or a note is on screen (panel 3): the title bar offers Find, the phone's route to
 	// find in page (sprint 047-QA)
 	const mobileShowsContentPanel = $derived(
@@ -244,7 +247,7 @@
 					<!-- The title gives way first; Back truncates only past 65% of the bar (long note titles).
 					     With the timer pill showing, the context title is dropped: the list and editor
 					     headers already name the context (053-DR) -->
-					{#if headerReflection === 'none'}
+					{#if headerReflection === 'none' && mobileTitleShown}
 						<span class="min-w-0 truncate text-xs text-ink-faint" data-testid="mobile-context-title">{mobileTitle}</span>
 					{/if}
 				{:else}
