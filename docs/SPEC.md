@@ -207,9 +207,10 @@ One shared matcher (`src/lib/server/search/`, sprint 058-DR, design r1 SR-03) se
 the only link target). Every word of the query must match the record's own text (note ID, title,
 body; entry description) or its identity (client name, short code, contract name; for entries also
 deliverable and work type), so "Amplitude" finds a client's notes even when their text never names
-it. Ranked exact ID, ID prefix, title, ID substring, body, content plus identity, identity only;
+it. Ranked exact ID, ID prefix, title, ID substring, content plus identity, body, identity only;
 newest first within a rank; never scoped to the current contract. Columns are encrypted, so matching
-runs in memory after one decrypt pass per request. Details and the rank table: the module README.
+runs in memory after one decrypt pass per request (note bodies only when needed); the offline
+picker fallback runs the same pure matcher (`src/lib/search/`) over the read cache. Details and the rank table: the module README.
 
 ## UI Principles
 

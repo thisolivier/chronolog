@@ -25,8 +25,8 @@
   | 1 | note ID starts with phrase | — |
   | 2 | every word in title | — |
   | 3 | note ID contains phrase | — |
-  | 4 | every word in own text (body) | every word in description |
-  | 5 | own text plus client/contract | description plus identity |
+  | 4 | own text plus client/contract | description plus identity |
+  | 5 | every word in own text (body) | every word in description |
   | 6 | client/contract only | identity only |
 
 - **Hit fields added** (nothing renamed or removed): every hit gets `clientColorIndex`, `rank`,
@@ -48,6 +48,30 @@
   across every contract (no scoping); kept and now covered by e2e. `WikiLinkInput` not fetching on
   an empty query is a UI gap for the UI sprint.
 
+## Review fixes (2026-11-07, second pass)
+
+1. **Performance.** The pure matcher moved to `src/lib/search/record-matcher.ts` (re-exported from
+   `src/lib/server/search/`). ID, title, body and context are lower-cased once per candidate.
+   Like the old code, the ID and title are checked first. The body sits behind a memoised
+   `readContent()` and is only decrypted when a word is not in the ID or title, or for the
+   returned excerpts. The picker's recent list (`[[` with an empty query) decrypts no body; its
+   `snippet` is empty there (`firstLine`/`secondLine` still come from `content_json`, as before).
+2. **Offline parity.** `searchCachedNotes` (read cache) and the queued outbox notes in
+   `OfflineDataService.searchNotes` now use `parseSearchQuery`/`matchNote`/`rankCandidates`.
+   Queued notes merge with the server or cache results by rank, then recency, instead of always
+   going first; the limit applies after the merge.
+3. **Highlight offsets.** `findMatchRanges` matches with an escaped, case-insensitive regex on
+   the original text, so "İstanbul roles review" highlights "roles", not "oles ". Unit test added.
+4. **Tests.** Realistic note IDs in the short-code test. Short-code queries hit `ID_PREFIX`
+   (rank 1) for every note created under that client; this is documented in the module README.
+   Tests added for lazy body reads and identity-over-content ordering. The e2e creates nine notes
+   and asserts exactly 8 for the default picker limit (recent and query), and 9 with `limit=20`.
+5. **Design decision: ranks 4 and 5 swapped.** Identity plus content (now 4) ranks above content
+   alone (now 5). Naming the client is a deliberate signal: for "Hungryroot roles", Hungryroot's
+   own roles notes beat a Rank Group note whose body mentions Hungryroot and roles. A one-word
+   query cannot produce rank 4, so single-word ordering (ID, prefix, title, ID substring, body,
+   identity only) is exactly as before.
+
 ## Compatibility
 
 - CLI (`cli/commands/search.mjs`) reads `notes.hits[].id/clientShortCode/contractName/updatedAt/
@@ -61,7 +85,7 @@
 
 - `npm run check`: `svelte-check found 0 errors and 0 warnings`
 - `npm run lint`: `eslint .` with no output (clean)
-- `npm test`: `Test Files 117 passed (117)` / `Tests 1127 passed (1127)`
+- `npm test`: `Test Files 117 passed (117)` / `Tests 1130 passed (1130)` (first pass: 1127)
 - `npm run test:e2e` (dev server from this worktree, `ALLOW_REGISTRATION=true`): `Test Files 23
   passed (23)` / `Tests 137 passed (137)` (baseline before the change: 22 files, 130 tests)
 - New: `src/lib/server/search/record-matcher.test.ts` (15: SR-03 examples, AND semantics, ranks,
@@ -78,12 +102,16 @@
 - UI sprint: render `matchedContext` as the reason on context hits, use `clientColorIndex` instead
   of the extra `/api/clients` fetch, show picker identity rows, recent notes in `WikiLinkInput`,
   stale-response guard.
-- Caching: every keystroke in the picker decrypts every note. A per-user, short-TTL decrypted
+- Caching: every picker keystroke still decrypts every note's title and `content_json` (as before
+  058), plus bodies when a word is not in an ID or title. A per-user, short-TTL decrypted
   candidate cache (invalidated on note/client/contract writes) would cut this; not needed at a
   few thousand records.
 - Still open from O08: ambiguous short words (one word matching many contracts), weights within a
   rank (e.g. title phrase above title words), and whether deliverable/work type should rank as
   content for entries.
-- The offline picker fallback (`offline-reads.ts` `searchCachedNotes`) is still a single-substring
-  match without identity fields; align it if offline search matters.
+- Highlights use the regex's simple case folding while matching uses `toLowerCase`. A query that
+  grows when lower-cased (e.g. "İstanbul") can match without being highlighted; it no longer
+  shifts the highlight.
+- `OfflineDataService.searchNotes` queued-note merge has no unit test (the service needs heavy
+  setup); `searchCachedNotes` is covered.
 - CLI changelog/readme could mention the new matching when the CLI next ships.
