@@ -175,6 +175,8 @@ test.describe('desktop split', () => {
 
 		await page.getByRole('button', { name: 'Flip' }).click();
 		await expect(rightCard(page).locator('#split-right-description')).toHaveValue(description);
+		// The link reads as rendered text, not [[id]], until the field is clicked (060-DR)
+		await expect(rightCard(page).getByTestId('split-right-description-rendered')).not.toContainText('[[');
 		await expect(rightCard(page).locator('#split-right-contract')).toHaveValue(data.contractId);
 		await expect(rightCard(page).locator('#split-right-work-type')).toHaveValue(data.workTypeId);
 		await expect(leftCard(page).locator('#split-left-description')).toHaveValue('');
@@ -187,10 +189,20 @@ test.describe('desktop split', () => {
 		// The left (now blank) part: Rank Group, then Save
 		await leftCard(page).locator('#split-left-description').fill('Kick-off call');
 		await leftCard(page).locator('#split-left-contract').selectOption(data.otherContractId);
+		const rightBoxBefore = await rightCard(page).boundingBox();
+		const leftBoxBefore = await leftCard(page).boundingBox();
 		await button(leftCard(page), 'Save').click();
 		await expect(leftCard(page).getByTestId('split-left-summary')).toBeVisible();
 		await expect(leftCard(page).getByTestId('split-left-summary-range')).toHaveText(`${fromBefore}–${boundaryBefore}`);
 		await expect(page.getByRole('button', { name: 'Flip' })).toHaveCount(0);
+		// SP-04 same footprint (060-DR): the right card does not move; the summary keeps the left
+		// card's width and shrinks to its content
+		const rightBoxAfter = await rightCard(page).boundingBox();
+		const leftBoxAfter = await leftCard(page).boundingBox();
+		expect(Math.abs((rightBoxAfter?.x ?? 0) - (rightBoxBefore?.x ?? 0))).toBeLessThanOrEqual(1);
+		expect(Math.abs((rightBoxAfter?.y ?? 0) - (rightBoxBefore?.y ?? 0))).toBeLessThanOrEqual(1);
+		expect(Math.abs((leftBoxAfter?.width ?? 0) - (leftBoxBefore?.width ?? 0))).toBeLessThanOrEqual(1);
+		expect(leftBoxAfter?.height ?? 0).toBeLessThan((leftBoxBefore?.height ?? 0) - 100);
 		await expect(button(overlay(page), 'Cancel')).toHaveCount(0);
 		await expect(button(rightCard(page), 'Resume')).toBeEnabled();
 		await page.screenshot({ path: path.join(SCREENSHOTS, '04-after-left-save.png') });
