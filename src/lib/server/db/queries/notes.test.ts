@@ -219,7 +219,7 @@ describe('searchNotesForUser', () => {
 });
 
 describe('note ranks (shared matcher, was rankNoteMatch)', () => {
-	it('orders exact id, id prefix, title, id substring, body', () => {
+	it('orders exact id, id prefix, title, id substring, body (body is rank 5 since 058-DR)', () => {
 		const rank = (query: string) =>
 			matchNote(parseSearchQuery(query), {
 				id: 'ACME.20261103.002',
@@ -233,7 +233,7 @@ describe('note ranks (shared matcher, was rankNoteMatch)', () => {
 		expect(rank('acme.2026')).toBe(1);
 		expect(rank('kickoff')).toBe(2);
 		expect(rank('1103.002')).toBe(3);
-		expect(rank('body')).toBe(4);
+		expect(rank('body')).toBe(5);
 		expect(rank('nothing')).toBeNull();
 	});
 });

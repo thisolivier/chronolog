@@ -6,10 +6,10 @@ import { noteDisplayTitle } from '$lib/utils/note-display-title';
 import { decryptNullable } from '$lib/server/crypto/server-cipher';
 import type { MatchRange, SearchSnippet } from '$lib/utils/search-snippet';
 import {
-	SEARCH_RANK,
 	matchNote,
 	parseSearchQuery,
 	rankCandidates,
+	sortByRecency,
 	type ContextField,
 	type RecordMatch,
 	type SearchQuery
@@ -50,7 +50,10 @@ export type NoteSearchResult = HitContext & {
 	matchedContext: ContextField[];
 	/** Match offsets inside `displayTitle ?? id` */
 	titleMatches: MatchRange[];
-	/** Body excerpt around the first body match (the unhighlighted start of the body otherwise) */
+	/**
+	 * Body excerpt around the first body match (the unhighlighted start of the body otherwise);
+	 * empty on the recent list, which never decrypts bodies (use firstLine/secondLine there)
+	 */
 	snippet: SearchSnippet;
 };
 
@@ -62,12 +65,12 @@ export type NoteSearchOptions = {
 
 export const DEFAULT_NOTE_SEARCH_LIMIT = 8;
 
-/** Every note "matches" an empty query equally, so recency alone orders the recent list */
-const RECENT_MATCH: RecordMatch = { rank: SEARCH_RANK.ID_EXACT, matchedIn: 'id', matchedContext: [] };
+/** The recent list (empty query) never reads the body: no excerpt, no highlights */
+const NO_EXCERPT = { titleMatches: [], snippet: { text: '', matches: [] } };
 
 function toSearchResult(note: NoteCandidate, query: SearchQuery, match: RecordMatch | null): NoteSearchResult {
 	const preview = extractPreviewLines(note.contentJson);
-	const excerpt = noteExcerpt(note, query);
+	const excerpt = match ? noteExcerpt(note, query) : NO_EXCERPT;
 	return {
 		id: note.id,
 		title: note.title,
@@ -87,7 +90,7 @@ function toSearchResult(note: NoteCandidate, query: SearchQuery, match: RecordMa
 /**
  * Search all of a user's notes with the shared matcher (every query word in the note's ID, title,
  * body, client name, client short code or contract name). Ranked: exact ID, ID prefix, title,
- * ID substring, body, content plus client/contract, client/contract only; newest first within a
+ * ID substring, content plus client/contract, body, client/contract only; newest first within a
  * rank. Never scoped to a client or contract. An empty query returns the most recently edited
  * notes (across every contract).
  */
@@ -102,13 +105,13 @@ export async function searchNotesForUser(
 	const candidates = (await loadNoteCandidates(userId)).filter((note) => note.id !== options.excludeNoteId);
 
 	if (query.terms.length === 0) {
-		return rankCandidates(candidates, () => RECENT_MATCH, noteRecencyKey, (note) => note.id)
+		return sortByRecency(candidates, noteRecencyKey, (note) => note.id)
 			.slice(0, limit)
-			.map(({ candidate }) => toSearchResult(candidate, query, null));
+			.map((note) => toSearchResult(note, query, null));
 	}
 	return rankCandidates(
 		candidates,
-		(note) => matchNote(query, { ...note, title: note.displayTitle, body: note.content }),
+		(note) => matchNote(query, { ...note, title: note.displayTitle, body: note.readContent }),
 		noteRecencyKey,
 		(note) => note.id
 	)

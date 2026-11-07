@@ -5,7 +5,7 @@
  * text, never an invented excerpt, and `matchedIn: 'context'` plus `matchedContext` say why it matched.
  */
 import { buildSearchSnippet, findMatchRanges, plainTextFromMarkdown, type MatchRange, type SearchSnippet } from '$lib/utils/search-snippet';
-import { highlightNeedles, type SearchQuery } from './record-matcher';
+import { highlightNeedles, type SearchQuery } from '$lib/search/record-matcher';
 import type { NoteCandidate, TimeEntryCandidate } from './search-candidates';
 
 export type NoteExcerpt = {
@@ -20,12 +20,13 @@ export function noteExcerpt(note: NoteCandidate, query: SearchQuery): NoteExcerp
 	const needles = highlightNeedles(query);
 	const title = note.displayTitle ?? note.id;
 	// The body usually opens with the title as a heading: the snippet starts after it
-	const fullPlainBody = plainTextFromMarkdown(note.content);
+	const content = note.readContent();
+	const fullPlainBody = plainTextFromMarkdown(content);
 	const plainBody = fullPlainBody.startsWith(title) ? fullPlainBody.slice(title.length).trim() : fullPlainBody;
 	// A word only in the raw markdown (a link target, a marker) shows the raw text instead
 	const inPlain = findMatchRanges(fullPlainBody, needles).length > 0;
-	const inMarkup = !inPlain && findMatchRanges(note.content, needles).length > 0;
-	const snippetSource = inMarkup ? note.content.replace(/\s+/g, ' ').trim() : plainBody;
+	const inMarkup = !inPlain && findMatchRanges(content, needles).length > 0;
+	const snippetSource = inMarkup ? content.replace(/\s+/g, ' ').trim() : plainBody;
 	return {
 		title,
 		titleMatches: findMatchRanges(title, needles),

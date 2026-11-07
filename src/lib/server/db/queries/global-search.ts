@@ -76,7 +76,7 @@ function matchFields(match: RecordMatch) {
 async function searchNotes(userId: string, query: SearchQuery, limit: number) {
 	const ranked = rankCandidates(
 		await loadNoteCandidates(userId),
-		(note) => matchNote(query, { ...note, title: note.displayTitle, body: note.content }),
+		(note) => matchNote(query, { ...note, title: note.displayTitle, body: note.readContent }),
 		noteRecencyKey,
 		(note) => note.id
 	);

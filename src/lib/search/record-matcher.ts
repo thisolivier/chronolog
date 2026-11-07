@@ -1,10 +1,13 @@
 /**
  * The shared search matcher (sprint 058-DR, design r1 SR-03 / O08). One query interpretation,
  * one matching rule and one rank scale for every search surface: `GET /api/search` (notes and
- * time entries) and the `[[` wiki-link picker (`GET /api/notes/search`, notes only).
+ * time entries), the `[[` wiki-link picker (`GET /api/notes/search`, notes only) and the picker's
+ * offline fallback over the read cache (`$lib/offline/offline-reads.ts`).
  *
- * Pure: no database, no decryption. Callers decrypt their candidates (the columns are encrypted
- * at rest, so SQL `ILIKE` can never help) and hand plain fields in.
+ * Pure: no database, no decryption, safe in the browser. Server callers decrypt their candidates
+ * (the columns are encrypted at rest, so SQL `ILIKE` can never help) and hand plain fields in.
+ * A note's body may be passed as a function: it is only read (and decrypted) when some word is
+ * not already in the note's ID or title.
  *
  * Query: trimmed, NFC-normalised, lower-cased and split on whitespace into words. Every word must
  * be found (case-insensitive substring) in at least one searchable field of the record: AND across
@@ -28,10 +31,13 @@ export const SEARCH_RANK = {
 	TITLE: 2,
 	/** The note ID contains the whole query */
 	ID_CONTAINS: 3,
+	/**
+	 * Some words only in the client/contract (entry: also deliverable/work type), the rest in the
+	 * record's own text. Above CONTENT: naming the client is a deliberate signal (058-DR review).
+	 */
+	CONTENT_AND_CONTEXT: 4,
 	/** Every word is in the record's own text: note ID, title or body; an entry's description */
-	CONTENT: 4,
-	/** Some words only in the client/contract (entry: also deliverable/work type), the rest in content */
-	CONTENT_AND_CONTEXT: 5,
+	CONTENT: 5,
 	/** No word in the record's own text: matched on client/contract identity alone */
 	CONTEXT_ONLY: 6
 } as const;
@@ -51,8 +57,8 @@ export type NoteMatchFields = RecordContext & {
 	id: string;
 	/** Display title (stored title, else first line), or null */
 	title: string | null;
-	/** Markdown body */
-	body: string | null;
+	/** Markdown body, or a function returning it, called at most once and only when needed */
+	body: string | null | (() => string | null);
 };
 
 export type TimeEntryMatchFields = RecordContext & {
@@ -81,32 +87,10 @@ export function highlightNeedles(query: SearchQuery): string[] {
 	return query.terms.length > 1 ? [query.phrase, ...query.terms] : query.terms;
 }
 
-function contains(value: string | null | undefined, lowerTerm: string): boolean {
-	return !!value && value.toLowerCase().includes(lowerTerm);
-}
+type LowerContext = Array<[ContextField, string]>;
 
-/**
- * Split the words over content and context. Returns null if some word is in neither, else the
- * context fields that words missing from content needed, and how many words content held.
- */
-function coverTerms(
-	terms: string[],
-	contentFields: Array<string | null>,
-	contextFields: Array<[ContextField, string | null]>
-): { contentTermCount: number; matchedContext: ContextField[] } | null {
-	let contentTermCount = 0;
-	const matchedContext = new Set<ContextField>();
-	for (const term of terms) {
-		if (contentFields.some((field) => contains(field, term))) {
-			contentTermCount += 1;
-			continue;
-		}
-		const contextHits = contextFields.filter(([, value]) => contains(value, term));
-		if (contextHits.length === 0) return null;
-		for (const [name] of contextHits) matchedContext.add(name);
-	}
-	const order = contextFields.map(([name]) => name);
-	return { contentTermCount, matchedContext: order.filter((name) => matchedContext.has(name)) };
+function lowerContext(fields: Array<[ContextField, string | null]>): LowerContext {
+	return fields.map(([name, value]) => [name, (value ?? '').toLowerCase()]);
 }
 
 function contextOf(fields: RecordContext): Array<[ContextField, string | null]> {
@@ -117,48 +101,100 @@ function contextOf(fields: RecordContext): Array<[ContextField, string | null]> 
 	];
 }
 
+/** Context fields (in field order) that hold `term`, or null when none does */
+function contextHits(context: LowerContext, term: string): ContextField[] | null {
+	const hits = context.filter(([, value]) => value.includes(term)).map(([name]) => name);
+	return hits.length > 0 ? hits : null;
+}
+
+function inFieldOrder(context: LowerContext, matched: Set<ContextField>): ContextField[] {
+	return context.map(([name]) => name).filter((name) => matched.has(name));
+}
+
+function contentRank(matchedContext: ContextField[]): SearchRank {
+	return matchedContext.length === 0 ? SEARCH_RANK.CONTENT : SEARCH_RANK.CONTENT_AND_CONTEXT;
+}
+
 /** Rank a note against a parsed query, or null when some word matches nothing. */
 export function matchNote(query: SearchQuery, fields: NoteMatchFields): RecordMatch | null {
 	if (query.terms.length === 0) return null;
 	const lowerId = fields.id.toLowerCase();
+	const lowerTitle = (fields.title ?? '').toLowerCase();
 	const none: ContextField[] = [];
 	if (lowerId === query.phrase) return { rank: SEARCH_RANK.ID_EXACT, matchedIn: 'id', matchedContext: none };
 	if (lowerId.startsWith(query.phrase)) return { rank: SEARCH_RANK.ID_PREFIX, matchedIn: 'id', matchedContext: none };
-	if (query.terms.every((term) => contains(fields.title, term))) {
+	if (query.terms.every((term) => lowerTitle.includes(term))) {
 		return { rank: SEARCH_RANK.TITLE, matchedIn: 'title', matchedContext: none };
 	}
 	if (lowerId.includes(query.phrase)) return { rank: SEARCH_RANK.ID_CONTAINS, matchedIn: 'id', matchedContext: none };
 
-	const cover = coverTerms(query.terms, [fields.id, fields.title, fields.body], contextOf(fields));
-	if (!cover) return null;
-	if (cover.contentTermCount === 0) {
-		return { rank: SEARCH_RANK.CONTEXT_ONLY, matchedIn: 'context', matchedContext: cover.matchedContext };
+	let lowerBody: string | undefined;
+	const readLowerBody = () => {
+		lowerBody ??= ((typeof fields.body === 'function' ? fields.body() : fields.body) ?? '').toLowerCase();
+		return lowerBody;
+	};
+	const context = lowerContext(contextOf(fields));
+	const matched = new Set<ContextField>();
+	let contentTermCount = 0;
+	let inTitle = false;
+	let inBody = false;
+	for (const term of query.terms) {
+		const titleHas = lowerTitle.includes(term);
+		inTitle ||= titleHas;
+		if (titleHas || lowerId.includes(term)) {
+			contentTermCount += 1;
+		} else if (readLowerBody().includes(term)) {
+			contentTermCount += 1;
+			inBody = true;
+		} else {
+			const hits = contextHits(context, term);
+			if (!hits) return null;
+			for (const name of hits) matched.add(name);
+		}
 	}
-	const inBody = query.terms.some((term) => contains(fields.body, term) && !contains(fields.title, term));
-	const inTitle = query.terms.some((term) => contains(fields.title, term));
-	const matchedIn = inBody ? 'body' : inTitle ? 'title' : 'id';
-	const rank = cover.matchedContext.length === 0 ? SEARCH_RANK.CONTENT : SEARCH_RANK.CONTENT_AND_CONTEXT;
-	return { rank, matchedIn, matchedContext: cover.matchedContext };
+	const matchedContext = inFieldOrder(context, matched);
+	if (contentTermCount === 0) return { rank: SEARCH_RANK.CONTEXT_ONLY, matchedIn: 'context', matchedContext };
+	return { rank: contentRank(matchedContext), matchedIn: inBody ? 'body' : inTitle ? 'title' : 'id', matchedContext };
 }
 
 /** Rank a time entry against a parsed query, or null when some word matches nothing. */
 export function matchTimeEntry(query: SearchQuery, fields: TimeEntryMatchFields): RecordMatch | null {
 	if (query.terms.length === 0) return null;
-	const context: Array<[ContextField, string | null]> = [
+	const lowerDescription = (fields.description ?? '').toLowerCase();
+	const context = lowerContext([
 		...contextOf(fields),
 		['deliverableName', fields.deliverableName],
 		['workTypeName', fields.workTypeName]
-	];
-	const cover = coverTerms(query.terms, [fields.description], context);
-	if (!cover) return null;
-	if (cover.contentTermCount === 0) {
-		return { rank: SEARCH_RANK.CONTEXT_ONLY, matchedIn: 'context', matchedContext: cover.matchedContext };
+	]);
+	const matched = new Set<ContextField>();
+	let contentTermCount = 0;
+	for (const term of query.terms) {
+		if (lowerDescription.includes(term)) {
+			contentTermCount += 1;
+			continue;
+		}
+		const hits = contextHits(context, term);
+		if (!hits) return null;
+		for (const name of hits) matched.add(name);
 	}
-	const rank = cover.matchedContext.length === 0 ? SEARCH_RANK.CONTENT : SEARCH_RANK.CONTENT_AND_CONTEXT;
-	return { rank, matchedIn: 'description', matchedContext: cover.matchedContext };
+	const matchedContext = inFieldOrder(context, matched);
+	if (contentTermCount === 0) return { rank: SEARCH_RANK.CONTEXT_ONLY, matchedIn: 'context', matchedContext };
+	return { rank: contentRank(matchedContext), matchedIn: 'description', matchedContext };
 }
 
 export type Ranked<Candidate> = { candidate: Candidate; match: RecordMatch };
+
+/** Rank, then larger (newer) recency key, then ID ascending: a total order. */
+export function compareRanked(
+	left: { rank: number; recency: string; id: string },
+	right: { rank: number; recency: string; id: string }
+): number {
+	return (
+		left.rank - right.rank ||
+		(left.recency < right.recency ? 1 : left.recency > right.recency ? -1 : 0) ||
+		(left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
+	);
+}
 
 /**
  * Match every candidate and sort: rank first, then most recent (`recencyKey` compares as text,
@@ -170,16 +206,23 @@ export function rankCandidates<Candidate>(
 	recencyKey: (candidate: Candidate) => string,
 	idOf: (candidate: Candidate) => string
 ): Ranked<Candidate>[] {
-	const ranked: Array<Ranked<Candidate> & { recency: string; id: string }> = [];
+	const ranked: Array<Ranked<Candidate> & { rank: number; recency: string; id: string }> = [];
 	for (const candidate of candidates) {
 		const match = matchOne(candidate);
-		if (match) ranked.push({ candidate, match, recency: recencyKey(candidate), id: idOf(candidate) });
+		if (match) ranked.push({ candidate, match, rank: match.rank, recency: recencyKey(candidate), id: idOf(candidate) });
 	}
-	ranked.sort(
-		(left, right) =>
-			left.match.rank - right.match.rank ||
-			(left.recency < right.recency ? 1 : left.recency > right.recency ? -1 : 0) ||
-			(left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
-	);
+	ranked.sort(compareRanked);
 	return ranked.map(({ candidate, match }) => ({ candidate, match }));
+}
+
+/** Sort an already-matched list (e.g. recent notes, rank null) newest first, then by ID. */
+export function sortByRecency<Candidate>(
+	candidates: Candidate[],
+	recencyKey: (candidate: Candidate) => string,
+	idOf: (candidate: Candidate) => string
+): Candidate[] {
+	return candidates
+		.map((candidate) => ({ candidate, rank: 0, recency: recencyKey(candidate), id: idOf(candidate) }))
+		.sort(compareRanked)
+		.map(({ candidate }) => candidate);
 }

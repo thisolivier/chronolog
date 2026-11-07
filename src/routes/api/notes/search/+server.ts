@@ -14,11 +14,12 @@ const MAX_QUERY_LENGTH = 200;
  * The `[[` wiki-link picker's search across all of the user's notes, never scoped to a client or
  * contract. Same shared matcher and rank order as `GET /api/search` (sprint 058-DR): every word in
  * the note's ID, title, body, client name, client short code or contract name; ranked exact ID,
- * ID prefix, title, ID substring, body, content plus client/contract, client/contract only; newest
+ * ID prefix, title, ID substring, content plus client/contract, body, client/contract only; newest
  * first within a rank. Each result adds `rank`, `matchedIn`, `matchedContext`, `titleMatches`,
  * `snippet` and `clientColorIndex` to the earlier fields. `limit` defaults to 8 (at most 50).
  * `exclude` drops one note (the note being edited). An empty `q` returns nothing, unless
- * `recent=1`, which returns the most recently edited notes across every contract.
+ * `recent=1`, which returns the most recently edited notes across every contract (no body is
+ * decrypted for that list, so its `snippet` is empty).
  */
 export const GET: RequestHandler = async ({ locals, url }) => {
 	const currentUser = locals.user;

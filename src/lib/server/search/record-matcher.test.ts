@@ -32,7 +32,7 @@ function candidate(id: string, title: string | null, content: string, context = 
 		id,
 		title,
 		contentJson: null,
-		content,
+		readContent: () => content,
 		displayTitle: title,
 		updatedAt: new Date(updatedAt),
 		clientId: `client-${context.clientShortCode}`,
@@ -46,7 +46,7 @@ function rankNotes(query: string, notes: NoteCandidate[]): string[] {
 	const parsed = parseSearchQuery(query);
 	return rankCandidates(
 		notes,
-		(note) => matchNote(parsed, { ...note, title: note.displayTitle, body: note.content }),
+		(note) => matchNote(parsed, { ...note, title: note.displayTitle, body: note.readContent }),
 		(note) => note.updatedAt.toISOString(),
 		(note) => note.id
 	).map(({ candidate: note }) => note.id);
@@ -103,11 +103,32 @@ describe('matchNote', () => {
 		expect(rankNotes('hroot.20261104.0042', [mentioning, target])).toEqual([target.id, mentioning.id]);
 	});
 
-	it('matches the client short code and contract name too', () => {
-		const note = noteFields('X.1', 'Notes', 'text', hungryroot);
-		expect(matchNote(parseSearchQuery('hroot'), note)?.matchedContext).toEqual(['clientShortCode']);
-		expect(matchNote(parseSearchQuery('root'), note)?.matchedContext).toEqual(['clientName', 'clientShortCode']);
-		expect(matchNote(parseSearchQuery('org design'), note)?.matchedContext).toEqual(['contractName']);
+	it('matches client name, short code and contract name; a short code usually hits the ID first', () => {
+		// Real IDs are SHORTCODE.YYYYMMDD.SEQ, so a short-code query is an ID prefix of all that client's notes
+		const note = noteFields('HROOT.20261104.0001', 'Notes', 'text', hungryroot);
+		expect(matchNote(parseSearchQuery('hroot'), note)).toEqual({ rank: SEARCH_RANK.ID_PREFIX, matchedIn: 'id', matchedContext: [] });
+		// A note moved to another client keeps its ID: then the short code matches as identity only
+		const moved = noteFields('RANK.20261104.0001', 'Notes', 'text', hungryroot);
+		expect(matchNote(parseSearchQuery('hroot'), moved)).toMatchObject({ rank: SEARCH_RANK.CONTEXT_ONLY, matchedContext: ['clientShortCode'] });
+		expect(matchNote(parseSearchQuery('org design'), note)).toMatchObject({ rank: SEARCH_RANK.CONTEXT_ONLY, matchedContext: ['contractName'] });
+		expect(matchNote(parseSearchQuery('hungryroot'), note)?.matchedContext).toEqual(['clientName']);
+	});
+
+	it('reads the body only when a word is not in the ID or title', () => {
+		let bodyReads = 0;
+		const note = { ...kickoff, body: () => (bodyReads++, 'Agree the roles and the budget.') };
+		expect(matchNote(parseSearchQuery('kickoff'), note)?.rank).toBe(SEARCH_RANK.TITLE);
+		expect(matchNote(parseSearchQuery('acme plan'), note)?.rank).toBe(SEARCH_RANK.CONTENT);
+		expect(bodyReads).toBe(0);
+		expect(matchNote(parseSearchQuery('budget roles'), note)?.rank).toBe(SEARCH_RANK.CONTENT);
+		expect(bodyReads).toBe(1);
+	});
+
+	it('ranks identity plus content above content alone (Hungryroot roles)', () => {
+		const query = 'hungryroot roles';
+		const own = candidate('HROOT.20261101.0001', 'Workshop', 'The roles.', hungryroot, '2026-11-01T00:00:00Z');
+		const mention = candidate('RANK.20261105.0001', 'Notes', 'Hungryroot asked about roles.', rankGroup, '2026-11-05T00:00:00Z');
+		expect(rankNotes(query, [mention, own])).toEqual([own.id, mention.id]);
 	});
 
 	it('returns null for an empty query', () => {

@@ -24,8 +24,11 @@ export type NoteCandidate = HitContext & {
 	id: string;
 	title: string | null;
 	contentJson: string | null;
-	/** Markdown body ('' when none) */
-	content: string;
+	/**
+	 * Markdown body ('' when none), decrypted on first call and cached: the matcher only reads it
+	 * when a word is not in the ID or title, and the picker's recent list never does.
+	 */
+	readContent: () => string;
 	/** Stored title, else first content line, else null */
 	displayTitle: string | null;
 	updatedAt: Date;
@@ -84,7 +87,7 @@ export function hitContextOf(candidate: HitContext): HitContext {
 	};
 }
 
-/** Every note of the user that is not in the trash, decrypted. */
+/** Every note of the user that is not in the trash, decrypted (the body lazily). */
 export async function loadNoteCandidates(userId: string): Promise<NoteCandidate[]> {
 	const rows = await database
 		.select({
@@ -103,11 +106,12 @@ export async function loadNoteCandidates(userId: string): Promise<NoteCandidate[
 	return rows.map((row) => {
 		const title = decryptNullable(row.title, 'notes.title');
 		const contentJson = decryptNullable(row.contentJson, 'notes.content_json');
+		let content: string | undefined;
 		return {
 			id: row.id,
 			title,
 			contentJson,
-			content: decryptNullable(row.content, 'notes.content') ?? '',
+			readContent: () => (content ??= decryptNullable(row.content, 'notes.content') ?? ''),
 			displayTitle: noteDisplayTitle(title, contentJson),
 			updatedAt: row.updatedAt,
 			...decryptContext(row)
