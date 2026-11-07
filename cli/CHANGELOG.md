@@ -4,7 +4,14 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 `chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
 030, 033 and 035 changed nothing in the CLI and are not listed.
 
-## Unreleased (sprint 057-DR, 2026-11-07): week numbering
+## 1.5.0 (sprints 055-DR, 056-DR UI, 057-DR, 059-DR, 2026-11-07): capture, split, time review, search in the shell
+
+- Design r1 checkpoint B/C: stable completion form with Save/Discard and sole-option auto-selection,
+  phone capture screen, desktop two-card split, weekly review with sticky day headings and the
+  calendar-year week rule (below), search inside the app shell and one shared note picker. The CLI
+  output is unchanged apart from the week numbering described next.
+
+### Week numbering (sprint 057-DR)
 
 - **Weeks count from 1 January.** `week`, `status` and `me` use Chronolog's week rule: Week 1 is the
   Monday-start week containing 1 January (owner decision 2026-11-07), not ISO 8601. The two agree
