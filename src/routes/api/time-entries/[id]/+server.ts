@@ -1,9 +1,7 @@
 import { json } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
-import { database, noteTimeEntries } from '$lib/server/db';
+import { database } from '$lib/server/db';
 import { deleteTimeEntry, getTimeEntryForUser, updateTimeEntry } from '$lib/server/db/queries/time-entries';
-import { linkTimeEntryToNote, unlinkTimeEntryFromNote } from '$lib/server/db/queries/notes';
-import { extractDescriptionLinks, reconcileLinks } from '$lib/utils/reconcile-description-links';
+import { reconcileTimeEntryLinksInTransaction } from '$lib/server/db/queries/time-entries-batch';
 import { apiError } from '$lib/server/api-errors';
 import { readJsonObject } from '$lib/server/api-request';
 import { entryReferenceProblem, isValidDate, readDurationFields, UUID_PATTERN } from '../entry-input';
@@ -100,23 +98,8 @@ const updateEntry: RequestHandler = async ({ params, request, locals }) => {
 
 	// Reconcile wiki-link references in description
 	if (body.description !== undefined) {
-		const desiredLinks = extractDescriptionLinks((body.description as string | null) || '');
-		const currentLinks = await database
-			.select()
-			.from(noteTimeEntries)
-			.where(eq(noteTimeEntries.timeEntryId, id));
-		const { toAdd, toRemove } = reconcileLinks(currentLinks, desiredLinks);
-
-		for (const link of toAdd) {
-			try {
-				await linkTimeEntryToNote(link.noteId, id, link.headingAnchor);
-			} catch {
-				// Silently ignore if note doesn't exist
-			}
-		}
-		for (const link of toRemove) {
-			await unlinkTimeEntryFromNote(link.noteId, id);
-		}
+		const description = (body.description as string | null) || null;
+		await database.transaction((transaction) => reconcileTimeEntryLinksInTransaction(transaction, id, description));
 	}
 
 	return json({ success: true, entry: updated });
