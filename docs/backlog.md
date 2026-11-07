@@ -50,6 +50,21 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 6. **iOS build: owner steps left.** 047 and 048 done. Owner: App ID `dev.thisolivier.chronolog`, App Store Connect record, "Chronolog App Store" profile, then `scripts/ios/ship-ios.sh 1` (the `testflight-setup` skill walks it; `docs/IOS-RELEASE.md`). Follow-ups: attachments open with `window.open`, which the iOS shell does not support (web-side fix); iPhone landscape locked because the shell reports stale safe-area insets after rotation; signed-in flows against production untried in the app until the first TestFlight install. Running side by side with the installable PWA (web app manifest, Apple home-screen tags, real icons; added 2026-11-04) to decide whether the shell earns its keep.
 7. **Key rotation (IF-4) and per-device keys (IF-5).** Discuss with the owner before starting. An `enc2:` envelope with a key id and a re-encrypt walker; several device keys so one lost device can be revoked alone.
 
+## Owner-requested (2026-11-07, evening, after v1.5.0 on the phone)
+
+- **Phone timesheet: drop the Start timer / Add Entry row.** Nice-to-haves that cost space in the
+  narrow UI. Timer access on the phone stays through the header pill (running or unfinished capture)
+  and the home screen's widget. Being done in sprint 060-DR (polish) before its merge.
+- **Phone top bar redundancy on notes screens.** On the notes list and the note editor the top bar
+  and the heading just below it both name the client and contract (and the deliverable where shown).
+  Sprint 060-DR item 7 hides the top-bar title on note screens whose headers already carry the
+  context (`phoneTitleBarNamesContext` in `note-context-ownership.ts`); confirm on the phone after
+  the 060 deploy and reopen if anything still repeats.
+- **Back/forward hides the home button.** On the phone the top-left is "← Back" / "← Chronolog",
+  so the ever-present "Chronolog" home affordance disappears behind history navigation. Needs a small
+  design pass: options are a fixed home glyph beside the back arrow, or back/forward as a pair on the
+  right with "Chronolog" always on the left. Not started.
+
 ## Owner-requested (2026-11-07): revisit week numbering before 28 December
 
 The design overhaul (057-DR, v1.5.0) replaced ISO week numbering with "Week 1 is the Monday-start
