@@ -278,6 +278,49 @@ export type SaveTimerInput = {
 	durationMinutes?: number;
 	startTime?: string | null;
 	endTime?: string | null;
+	/** The draft start the client shows (`YYYY-MM-DDTHH:MM:SS`); a different start is a 409 `timer_changed` */
+	expectedStartedAt?: string;
+};
+
+/** One part's content in a timer split (sprint 056-DR); empty text counts as none */
+export type SplitPartContent = {
+	contractId?: string | null;
+	deliverableId?: string | null;
+	workTypeId?: string | null;
+	description?: string | null;
+};
+
+/** `POST /api/timer/split`: times are local `YYYY-MM-DDTHH:MM[:SS]` */
+export type SplitTimerInput = {
+	entryId: string;
+	expectedStartedAt: string;
+	boundary: string;
+	/** Reuse the same ID when retrying: the split then happens once */
+	clientRequestId: string;
+	left: ({ action: 'save'; contractId: string } & SplitPartContent) | { action: 'discard' };
+	/** With a contract the remainder stays the server draft; without one it comes back as `pending` */
+	right?: SplitPartContent;
+};
+
+export type SplitTimerResult = {
+	/** True when this clientRequestId had already split: the first outcome, nothing written again */
+	replayed: boolean;
+	left:
+		| { action: 'saved'; entry: TimerEntry & { date: string } }
+		| { action: 'discarded'; date: string; startTime: string; endTime: string };
+	remainder:
+		| { kind: 'draft'; timer: TimerEntry }
+		/** Keep the remainder as the browser's pending timer from here (with the source's end if it was stopped) */
+		| { kind: 'pending'; date: string; startTime: string; description: string | null }
+		/** Replay only: the remainder was saved, discarded or split again since */
+		| { kind: 'gone' };
+};
+
+/** `PATCH /api/timer` with `resume: true`: a stopped timer runs again, from its start unless `start` moves it */
+export type ResumeTimerOptions = {
+	start?: TimerLocalStart;
+	confirmed?: boolean;
+	expectedStartedAt?: string;
 };
 
 // -- Deliverables & Work Types --

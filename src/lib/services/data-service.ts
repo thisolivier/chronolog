@@ -23,6 +23,9 @@ import type {
 	TimerStatus,
 	TimerEntry,
 	SaveTimerInput,
+	SplitTimerInput,
+	SplitTimerResult,
+	ResumeTimerOptions,
 	DeliverableOption,
 	WorkTypeOption
 } from './types';
@@ -80,8 +83,13 @@ export interface DataService {
 	/** Move the running timer's start (PATCH /api/timer); a 409 `start_overlaps_entry` needs `confirmed` */
 	adjustTimerStart(start: TimerLocalStart, options?: { confirmed?: boolean }): Promise<TimerEntry>;
 	stopTimer(): Promise<TimerEntry>;
+	/** 409 `not_a_draft` when it was saved or discarded elsewhere, `timer_changed` when `expectedStartedAt` is stale */
 	saveTimer(data: SaveTimerInput): Promise<void>;
-	discardTimer(entryId: string): Promise<void>;
+	discardTimer(entryId: string, options?: { expectedStartedAt?: string }): Promise<void>;
+	/** Split the draft timer in one transaction (POST /api/timer/split); online only, never queued */
+	splitTimer(input: SplitTimerInput): Promise<SplitTimerResult>;
+	/** Resume a stopped timer (PATCH /api/timer `resume: true`); online only, never queued */
+	resumeTimer(options?: ResumeTimerOptions): Promise<TimerEntry>;
 
 	// Deliverables & Work Types
 	getDeliverables(contractId: string): Promise<DeliverableOption[]>;
