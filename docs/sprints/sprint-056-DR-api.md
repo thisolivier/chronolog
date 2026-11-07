@@ -13,7 +13,7 @@ All times are the caller's local wall clock. `expectedStartedAt` and `boundary` 
 
 Body:
 ```
-{ entryId, expectedStartedAt, boundary, clientRequestId,
+{ entryId, expectedStartedAt, expectedEndedAt?, boundary, clientRequestId,
   left:  { action: "save", contractId, deliverableId?, workTypeId?, description? } | { action: "discard" },
   right?: { contractId?, deliverableId?, workTypeId?, description? } }
 ```
@@ -21,12 +21,14 @@ Body:
 ```
 { replayed: boolean,
   left:      { action: "saved", entry } | { action: "discarded", date, startTime, endTime },
-  remainder: { kind: "draft", timer } | { kind: "pending", date, startTime, description } | { kind: "gone" } }
+  remainder: { kind: "draft", timer } | { kind: "pending", date, startTime, endTime, description } | { kind: "gone" } }
 ```
 - **Left** `start..boundary`: saved as a normal entry (`is_draft = false`, start/end times, duration from the timer rule: seconds, rounded up, at least 1 minute), with note links for its `[[links]]`; or discarded (nothing logged).
-- **Right** `boundary..end-or-now`: with a contract the draft row advances (start = boundary, content replaced, links reconciled; a stopped draft keeps its end and its duration is re-measured, a running one stays running). Without a contract (SP-03's blank new part) the draft row is deleted and `remainder.kind = "pending"`: the browser keeps that part as its pending timer from the boundary, with the source's end if it was stopped (the existing contractless-timer model, source map §a6).
+- **Right** `boundary..end-or-now`: with a contract the draft row advances (start = boundary, content replaced, links reconciled; a stopped draft keeps its end and its duration is re-measured, a running one stays running). Without a contract (SP-03's blank new part) the draft row is deleted and `remainder.kind = "pending"`: the browser keeps that part as its pending timer from the boundary (the existing contractless-timer model, source map §a6). `endTime` is the stopped source's end (null when it was running); on a replay the row is gone, so `endTime` comes from the request's `expectedEndedAt` (send it for a stopped draft; absent gives null).
 - `kind: "gone"` only on a replay whose remainder has since been saved, discarded or split again.
 - Errors, nothing written: 400 `invalid_split`, `invalid_boundary`, `invalid_client_request_id` (required, ≤ 90 chars), `contract_required` (left save without contract), `boundary_outside` (not strictly inside start..end, or start..now with the usual 120 s clock-skew slack), `interval_too_long` (a part ≥ 24 h); 403 `contract_forbidden`, 400 `deliverable_mismatch` / `work_type_mismatch` (the sprint 032 rule, applied to both parts); 404 `not_found`; 409 `not_a_draft` (the id is a saved entry: SP-01/O13, never split a saved entry); 409 `timer_changed` (draft start ≠ `expectedStartedAt`).
+
+`expectedEndedAt` (optional; `null` = "I see it running") is checked against the locked draft: a mismatch (stopped or resumed elsewhere) is 409 `timer_changed`. `expectedStartedAt` / `expectedEndedAt` compare at the precision sent: `…T09:00` matches a start stored as 09:00:37, `…T09:00:00` does not.
 
 ### `PATCH /api/timer` (extended)
 
@@ -50,7 +52,24 @@ Both accept an optional `expectedStartedAt` and now run in a transaction that lo
 
 A duplicate sent at the same moment blocks on the row lock, then sees the marks (READ COMMITTED re-reads) and replays; a unique-index violation (the same id racing on another row) reruns the transaction, which replays. So a retry after a resize or lost answer (SP-07 "save in flight") settles exactly once and the original interval is never double-counted or lost (SP-08). The marks reuse migration 0011's `client_request_id` column and partial unique index, so no migration; timer save clears the remainder mark.
 
-**Known limit:** a split that discards the left part *and* hands the remainder back as pending leaves no server row to carry a mark; its retry answers 404 `not_found` (the draft is gone). The client knows its own request, so it can treat that 404 as settled when it was retrying that exact split.
+**Known limit (SP-08, not closed):** a split with `left: discard` *and* a pending (contractless) right part removes the only row, so nothing carries a mark: a retry of that exact request answers 404 `not_found` (pinned by an e2e test). Keeping the row is not possible because `time_entries.contract_id` is NOT NULL; closing the gap needs a small `timer_split_requests (user_id, client_request_id, outcome jsonb)` table and a migration, not done here. Until then the client, which knows its own request, can treat that 404 on a retry of that split as settled. Every other combination replays: save-left via the left entry's id, a draft right via the remainder mark.
+
+## Review fixes (2026-11-07, second pass)
+
+1. **Stale device after a split (high).** `expectedStartedAt` is now required (409 `expected_start_required`) on `POST /api/timer/save` and `/discard` when the draft is a split remainder (`:remainder` mark), and on any save that overrides the times (`durationMinutes` / `startTime` / `endTime`). So a device that still shows 09:00–10:00 after another split it at 09:30 can neither save its edited times (09:00–09:30 logged twice) nor discard the 09:30–10:00 remainder. `TimerWidget.svelte` (two lines: Save and Discard pass the start it holds) and the CLI's `timer stop` now send `expectedStartedAt`.
+2. **Pending remainder end (medium, SP-08).** `pending` carries `endTime`; replays read it from `expectedEndedAt`; the discard + pending replay gap is documented above.
+3. **Precision (medium).** Expected moments compare at the precision sent (`momentMatches`, `queries/timer-draft-rules.ts`, unit-tested).
+4. **PATCH race (low).** The move, stopped-move and resume updates re-check the start, date and end the route read in their `WHERE` clause; a miss is 409 `timer_changed`.
+5. **Tests.** A concurrent duplicate with `left: discard` and a draft right part (no unique insert to collide on, so it passes only with the row lock: verified by removing `FOR UPDATE`, which fails exactly that test); the resume test logs its own overlapping entry; new e2e cases for stale save with time overrides, stale discard, the pending end and replay, and HH:MM precision. `timer.e2e.test.ts`'s adjusted-time save now sends `expectedStartedAt` and first checks the 409 without it.
+
+Results after the fixes: `npm run check` `svelte-check found 0 errors and 0 warnings`; `npm run lint` exit 0; `npm test` `Test Files 120 passed (120)`, `Tests 1148 passed (1148)`; `npm run test:e2e` `Test Files 23 passed (23)`, `Tests 143 passed (143)`.
+
+## Behaviour changes callers may notice
+
+- A **retried** `POST /api/timer/save` (the first one succeeded but its answer was lost) now gets 409 `not_a_draft` instead of 200; treat it as saved if the entry exists.
+- `chronolog timer adjust` now works on a **stopped** timer (the server no longer answers `timer_stopped`): it moves the start and keeps the end.
+- A timer save reconciles links to its description: a save **without a description** (or one dropping `[[links]]`) removes the draft's note links, e.g. those added by Attach note while it ran.
+- Save with time overrides, or save/discard of a split remainder, needs `expectedStartedAt` (older clients that never split are unaffected except for overrides: the current widget now sends it).
 
 ## Validation and shared code
 

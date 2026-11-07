@@ -89,8 +89,11 @@ transaction: lock the draft, replay check, validation, insert the saved left par
 `<id>:remainder`) or delete it when the remainder has no contract. A retry or a concurrent duplicate
 waits on the lock and then finds the marks, so it answers the first outcome without writing. No
 migration: the marks use migration `0011`'s `client_request_id` column and unique index; a save
-clears the remainder mark. `queries/timer-start.ts` also moves a stopped draft's start and resumes
-it (clears `end_time`).
+clears the remainder mark. Save and discard of a marked remainder, and a save that overrides the
+times, need the start the client saw (`expected_start_required`); `queries/timer-draft-rules.ts`
+compares it at the precision sent. A split that discards the left and hands back a contractless
+remainder leaves no row to mark, so its retry is a 404 (would need a table and a migration). `queries/timer-start.ts` also moves a stopped draft's start and resumes
+it (clears `end_time`); each update re-checks the start and end it read in its `WHERE` clause.
 
 `reconcileTimeEntryLinksInTransaction` (`queries/time-entries-batch.ts`) is the one sync from
 description `[[links]]` to `note_time_entries` for an existing entry (`PUT /api/time-entries/[id]`,

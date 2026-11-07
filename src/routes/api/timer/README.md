@@ -21,12 +21,15 @@ the user's local wall clock, sent by the browser or the CLI.
 - `POST save`, `POST discard` -- finish or drop the draft: `{ entryId, expectedStartedAt?, ... }`.
   Since 056-DR both lock the row and refuse anything but the draft (409 `not_a_draft`: a stale
   device cannot overwrite or delete an entry saved elsewhere) or a moved draft (409
-  `timer_changed`). Save links the notes named by `[[links]]` in the description.
+  `timer_changed`). `expectedStartedAt` is required (409 `expected_start_required`) for a split
+  remainder and for a save with time overrides; it compares at the precision sent. Save links the
+  notes named by `[[links]]` in the description.
 - `POST split` (sprint 056-DR) -- `{ entryId, expectedStartedAt, boundary, clientRequestId, left:
   { action: "save", contractId, ... } | { action: "discard" }, right?: { contractId?, ... } }`.
   One transaction: the left part `start..boundary` is saved (with its links) or discarded and the
   draft advances to `boundary..end-or-now` with the right content; a right part with no contract
-  deletes the draft and answers `remainder: { kind: "pending" }` for the browser's pending timer.
+  deletes the draft and answers `remainder: { kind: "pending", endTime }` for the browser's pending
+  timer. Optional `expectedEndedAt` (null = running) is checked and feeds a replay's `endTime`.
   The same `clientRequestId` again answers the first outcome with `replayed: true`. Errors write
   nothing: 400 `invalid_split` / `invalid_boundary` / `contract_required` / `boundary_outside` /
   `interval_too_long`, the entry reference errors, 404, 409 `not_a_draft` / `timer_changed`.
