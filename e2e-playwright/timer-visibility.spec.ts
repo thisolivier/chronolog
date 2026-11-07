@@ -234,15 +234,20 @@ test.describe('phone 390 @iphone', () => {
 		await expect.poll(() => headerPill(page).getByTestId('timer-indicator-clock').innerText(), { timeout: 4000 }).not.toBe(firstClock);
 		await page.screenshot({ path: path.join(SCREENSHOTS, '05-iphone-notes-header-pill.png') });
 
-		// Tapping it opens the capture screen
+		// Tapping it opens the focused capture screen over the note (sprint 055-DR, TC-08)
+		const captureScreen = page.getByTestId('phone-capture-screen');
+		const screenWidget = page.getByTestId('timer-widget-screen');
 		await headerPill(page).click();
-		await expect(page).toHaveURL(/\/$/);
+		await expect(captureScreen).toBeVisible();
+		await expect(page).toHaveURL(new RegExp(`/notes/${data.contractId}/`));
 		await expect(headerPill(page)).toHaveCount(0);
-		await phoneWidget.getByRole('button', { name: 'Stop', exact: true }).click();
-		await phoneWidget.locator('#timer-description').fill('Phone notes');
+		await expect(screenWidget.getByTestId('timer-collapse-toggle')).toHaveCount(0);
+		await screenWidget.getByRole('button', { name: 'Stop', exact: true }).click();
+		await screenWidget.locator('#timer-description').fill('Phone notes');
 
 		// Back to the note: Finish entry with the frozen duration; reload keeps it
-		await page.goBack();
+		await page.getByTestId('capture-screen-back').click();
+		await expect(captureScreen).toHaveCount(0);
 		await expect(headerPill(page)).toHaveAttribute('data-state', 'finish');
 		await expect(headerPill(page)).toContainText('Finish entry');
 		await expect(headerPill(page).getByTestId('timer-running-dot')).toHaveCount(0);
@@ -250,8 +255,9 @@ test.describe('phone 390 @iphone', () => {
 		await expect(headerPill(page)).toHaveAttribute('data-state', 'finish');
 		await page.screenshot({ path: path.join(SCREENSHOTS, '07-iphone-finish-entry.png') });
 		await headerPill(page).click();
-		await expect(phoneWidget.locator('#timer-description')).toHaveValue('Phone notes');
-		await phoneWidget.getByRole('button', { name: 'Discard', exact: true }).click();
-		await expect(phoneWidget.getByRole('button', { name: 'Start Timer' })).toBeVisible();
+		await expect(screenWidget.locator('#timer-description')).toHaveValue('Phone notes');
+		await screenWidget.getByRole('button', { name: 'Discard', exact: true }).click();
+		await expect(captureScreen).toHaveCount(0);
+		await expect(headerPill(page)).toHaveCount(0);
 	});
 });

@@ -348,10 +348,12 @@ test.describe('phone 390', () => {
 		await expect(editor(page)).toContainText('Specific response to Brent');
 		await scrollNoteTo(page, 1200);
 		await page.waitForTimeout(150);
+		// Since 055-DR the pill opens the focused capture screen over the note; Back closes it
 		await page.getByTestId('timer-indicator').click();
-		await expect.poll(() => pathOf(page)).toBe('/');
-		await expect(page.getByRole('button', { name: 'Stop' })).toBeVisible();
-		await page.goBack();
+		await expect(page.getByTestId('phone-capture-screen')).toBeVisible();
+		await expect(page.getByTestId('timer-widget-screen').getByRole('button', { name: 'Stop' })).toBeVisible();
+		await page.getByTestId('capture-screen-back').click();
+		await expect(page.getByTestId('phone-capture-screen')).toHaveCount(0);
 		await expect(editor(page)).toContainText('Specific response to Brent');
 		await expect.poll(() => noteScrollTop(page)).toBeGreaterThan(1150);
 		// The running capture is untouched

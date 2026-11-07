@@ -11,11 +11,14 @@
  */
 import { untrack } from 'svelte';
 
-const registry = $state({ sidebarWidgetCount: 0, footerWidgetCount: 0 });
+const registry = $state({ sidebarWidgetCount: 0, footerWidgetCount: 0, screenWidgetCount: 0 });
+
+export type TimerWidgetPlacement = 'sidebar' | 'footer' | 'screen';
 
 /** Call from a TimerWidget on mount; returns the unregister function. */
-export function registerTimerWidget(placement: 'sidebar' | 'footer'): () => void {
-	const field = placement === 'sidebar' ? 'sidebarWidgetCount' : 'footerWidgetCount';
+export function registerTimerWidget(placement: TimerWidgetPlacement): () => void {
+	const field =
+		placement === 'sidebar' ? 'sidebarWidgetCount' : placement === 'footer' ? 'footerWidgetCount' : 'screenWidgetCount';
 	// untrack: called from an $effect, which must not depend on the count it changes
 	untrack(() => (registry[field] += 1));
 	return () => {
@@ -33,7 +36,27 @@ export function isSidebarTimerWidgetMounted(): boolean {
 	return registry.sidebarWidgetCount > 0;
 }
 
-/** Reactive: how many TimerWidgets (sidebar and footer) are on the page. */
+/** Reactive: how many TimerWidgets (sidebar, footer and the phone capture screen) are on the page. */
 export function mountedTimerWidgetCount(): number {
-	return registry.sidebarWidgetCount + registry.footerWidgetCount;
+	return registry.sidebarWidgetCount + registry.footerWidgetCount + registry.screenWidgetCount;
+}
+
+/*
+ * The phone capture screen (sprint 055-DR) is an overlay, so the timesheet's footer widget can
+ * stay mounted underneath it. Each widget keeps its own local state, so a widget that changes the
+ * capture (start, stop, save, discard) announces it and every other mounted widget reloads from
+ * the server and the pending timer. One timer model; the copies only re-read it.
+ */
+const captureChanges = $state({ version: 0, sourceWidgetId: '' });
+
+export function announceCaptureChange(sourceWidgetId: string): void {
+	untrack(() => {
+		captureChanges.sourceWidgetId = sourceWidgetId;
+		captureChanges.version += 1;
+	});
+}
+
+/** Reactive: the latest change, for a widget's $effect to compare with its own id */
+export function latestCaptureChange(): { version: number; sourceWidgetId: string } {
+	return { version: captureChanges.version, sourceWidgetId: captureChanges.sourceWidgetId };
 }
