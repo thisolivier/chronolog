@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { levelPlaceholder, loadedLevel, resolveRootSelection, resolveSelection, waitingLevel } from './ontology-cascade';
+import { CASCADE_NONE, cascadeIdForSave, levelPlaceholder, loadedLevel, resolveRootSelection, resolveSelection, waitingLevel } from './ontology-cascade';
 import { OntologyCascade, type CascadeDataSource, type CascadeSelection } from './ontology-cascade.svelte';
 
 const option = (id: string) => ({ id, name: id.toUpperCase() });
@@ -28,6 +28,18 @@ describe('cascade rules (pure)', () => {
 			"Couldn't load deliverables: your choice is kept"
 		);
 		expect(levelPlaceholder('deliverable', loadedLevel([option('a')]), false)).toBe('');
+	});
+
+	it('keeps an explicit none for the same parent; a parent change re-applies the sole option', () => {
+		expect(resolveSelection(CASCADE_NONE, loadedLevel([option('a')]))).toBe(CASCADE_NONE);
+		expect(resolveSelection(CASCADE_NONE, loadedLevel([option('a')]), true)).toBe('a');
+		expect(cascadeIdForSave(CASCADE_NONE)).toBe('');
+		expect(cascadeIdForSave('a')).toBe('a');
+	});
+
+	it('a failure keeps the value for the same parent and clears it after a parent change', () => {
+		expect(resolveSelection('x', { status: 'failed', options: [] }, false)).toBe('x');
+		expect(resolveSelection('x', { status: 'failed', options: [] }, true)).toBe('');
 	});
 
 	it('keeps a held root value even when the list does not offer it', () => {
@@ -181,5 +193,59 @@ describe('OntologyCascade', () => {
 		await cascade.chooseContract('c2');
 		await cascade.chooseContract('c1');
 		expect(source.calls.filter((call) => call === 'deliverables:c1')).toHaveLength(1);
+	});
+
+	it('an explicit "No deliverable" survives a remount (a new cascade on the same selection)', async () => {
+		const source = fakeSource();
+		const { selection, cascade } = cascadeWith(source, { contractId: 'c2' });
+		await cascade.start();
+		expect(selection.deliverableId).toBe('d3');
+		await cascade.chooseDeliverable(CASCADE_NONE);
+		expect(selection).toEqual({ contractId: 'c2', deliverableId: CASCADE_NONE, workTypeId: '' });
+		cascade.dispose();
+		const remounted = new OntologyCascade(source, () => selection);
+		await remounted.start();
+		expect(selection).toEqual({ contractId: 'c2', deliverableId: CASCADE_NONE, workTypeId: '' });
+		expect(remounted.workType.status).toBe('waiting');
+	});
+
+	it('a contract change whose deliverable list fails clears the old contract\'s deliverable', async () => {
+		const source = fakeSource();
+		const failing = fakeSource({
+			getDeliverables: async (contractId) => {
+				if (contractId === 'c1') throw new Error('network');
+				return source.getDeliverables(contractId);
+			}
+		});
+		const { selection, cascade } = cascadeWith(failing, { contractId: 'c2' });
+		await cascade.start();
+		expect(selection.deliverableId).toBe('d3');
+		await cascade.chooseContract('c1');
+		expect(cascade.deliverable.status).toBe('failed');
+		expect(selection).toEqual({ contractId: 'c1', deliverableId: '', workTypeId: '' });
+	});
+
+	it('a disposed cascade, or an answer for a contract no longer chosen, never writes', async () => {
+		let release: () => void = () => {};
+		const source = fakeSource();
+		const slow = fakeSource({
+			getDeliverables: (contractId) =>
+				new Promise((resolve) => (release = () => resolve(source.getDeliverables(contractId) as never)))
+		});
+		const { selection, cascade } = cascadeWith(slow, { contractId: 'c2' });
+		const started = cascade.start();
+		cascade.dispose();
+		release();
+		await started;
+		expect(selection.deliverableId).toBe('');
+
+		// Two cascades on one selection: the first one's late answer is for c2, but c3 is chosen now
+		const shared = cascadeWith(slow, { contractId: 'c2' });
+		const first = shared.cascade.start();
+		const releaseFirst = release;
+		shared.selection.contractId = 'c3';
+		releaseFirst();
+		await first;
+		expect(shared.selection.deliverableId).toBe('');
 	});
 });

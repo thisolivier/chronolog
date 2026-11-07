@@ -34,21 +34,40 @@ export function loadedLevel(options: CascadeOption[]): CascadeLevelState {
 }
 
 /**
- * The selection a level holds after its options load (or fail to):
- * - waiting / not applicable: nothing can be chosen, so the value clears;
- * - loading / failed: the options are unknown, so the held value is kept (never guessed away);
- * - ready: a still-valid value is kept; otherwise exactly one option is chosen for the user
- *   (the sole-option rule, which then continues down the chain); otherwise nothing.
+ * A deliverable or work type the user explicitly set to "none". Distinct from '' (never set), so
+ * a remount or reload does not re-apply the sole-option rule over the user's choice. Hosts send
+ * it to the server as no value (`cascadeIdForSave`).
  */
-export function resolveSelection(currentId: string, level: CascadeLevelState): string {
+export const CASCADE_NONE = 'none';
+
+/** The id to save: the explicit "none" and the unset value both mean no value */
+export function cascadeIdForSave(value: string): string {
+	return value === CASCADE_NONE ? '' : value;
+}
+
+/**
+ * The selection a level holds after its options load (or fail to). `parentChanged` is true when
+ * the parent was changed since the held value was chosen (a new contract, a new deliverable);
+ * false on a mount, a reload or a Retry for the same parent.
+ * - waiting / not applicable: nothing can be chosen, so the value clears;
+ * - loading: kept for now;
+ * - failed: kept for the same parent (never guessed away); cleared after a parent change, since
+ *   it belonged to the old parent and the user could not clear it from a disabled control;
+ * - ready: a still-valid value is kept, and so is an explicit "none" for the same parent;
+ *   otherwise exactly one option is chosen for the user (the sole-option rule, which then
+ *   continues down the chain); otherwise nothing.
+ */
+export function resolveSelection(currentId: string, level: CascadeLevelState, parentChanged = false): string {
 	switch (level.status) {
 		case 'waiting':
 		case 'not-applicable':
 			return '';
 		case 'loading':
-		case 'failed':
 			return currentId;
+		case 'failed':
+			return parentChanged ? '' : currentId;
 		case 'ready':
+			if (currentId === CASCADE_NONE && !parentChanged) return CASCADE_NONE;
 			if (currentId && level.options.some((option) => option.id === currentId)) return currentId;
 			return level.options.length === 1 ? level.options[0].id : '';
 	}

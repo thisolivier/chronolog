@@ -10,13 +10,19 @@
  *   failed), so nothing pops in or moves the form;
  * - exactly one option is chosen automatically, when a level loads, and the chain continues;
  * - a parent change keeps still-valid descendants and clears the rest;
- * - a failed load keeps the held value and can be retried.
+ * - a failed load keeps the held value for the same parent and can be retried; after a parent
+ *   change it clears the old parent's child;
+ * - an explicit "No deliverable" / "No work type" is stored as CASCADE_NONE, so a remount never
+ *   re-applies the sole-option rule over it (only a parent change does).
  *
- * Construct it in a component's script and call `start()` once mounted. Loads are cached per
- * parent for the life of the controller; a newer request always wins over an older one.
+ * Construct it in a component's script, call `start()` once mounted and `dispose()` on unmount:
+ * a disposed cascade never writes again. Loads are cached per parent for the life of the
+ * controller; an answer is applied only if it is the newest request and its parent is still the
+ * one selected (several cascades can share one selection: the phone screen and a footer widget).
  */
 import { formatContractLabel } from './contract-label';
 import {
+	CASCADE_NONE,
 	loadedLevel,
 	resolveRootSelection,
 	resolveSelection,
@@ -53,6 +59,7 @@ export class OntologyCascade {
 	#deliverableCache = new Map<string, CascadeOption[]>();
 	#workTypeCache = new Map<string, CascadeOption[]>();
 	#inFlight = new Set<Promise<void>>();
+	#disposed = false;
 
 	constructor(source: CascadeDataSource, selection: () => CascadeSelection) {
 		this.#source = source;
@@ -65,20 +72,26 @@ export class OntologyCascade {
 
 	/** Load every level for the held selection (call once mounted) */
 	start(): Promise<void> {
-		return this.#track(Promise.all([this.#loadContracts(), this.#loadDeliverables()]).then(() => undefined));
+		return this.#track(Promise.all([this.#loadContracts(), this.#loadDeliverables(false)]).then(() => undefined));
+	}
+
+	/** Stop writing: answers that arrive after unmount are ignored */
+	dispose(): void {
+		this.#disposed = true;
 	}
 
 	/** The user picked a contract (or '' for none) */
 	chooseContract(contractId: string): Promise<void> {
 		this.touchedByUser = true;
 		this.selection.contractId = contractId;
-		return this.#track(this.#loadDeliverables());
+		return this.#track(this.#loadDeliverables(true));
 	}
 
+	/** The user picked a deliverable, or CASCADE_NONE for "No deliverable" */
 	chooseDeliverable(deliverableId: string): Promise<void> {
 		this.touchedByUser = true;
 		this.selection.deliverableId = deliverableId;
-		return this.#track(this.#loadWorkTypes());
+		return this.#track(this.#loadWorkTypes(true));
 	}
 
 	chooseWorkType(workTypeId: string): void {
@@ -89,7 +102,11 @@ export class OntologyCascade {
 	/** Try a failed level again */
 	retry(level: CascadeLevelName): Promise<void> {
 		const load =
-			level === 'contract' ? this.#loadContracts() : level === 'deliverable' ? this.#loadDeliverables() : this.#loadWorkTypes();
+			level === 'contract'
+				? this.#loadContracts()
+				: level === 'deliverable'
+					? this.#loadDeliverables(false)
+					: this.#loadWorkTypes(false);
 		return this.#track(load);
 	}
 
@@ -117,39 +134,47 @@ export class OntologyCascade {
 				name: formatContractLabel(contract.clientName, contract.name)
 			}));
 		} catch {
-			if (requestNumber === this.#requestNumbers.contract) this.contract = { status: 'failed', options: [] };
+			if (this.#isCurrent('contract', requestNumber)) this.contract = { status: 'failed', options: [] };
 			return;
 		}
-		if (requestNumber !== this.#requestNumbers.contract) return;
+		if (!this.#isCurrent('contract', requestNumber)) return;
 		this.contract = loadedLevel(options);
 		const nextContractId = resolveRootSelection(this.selection.contractId, this.contract);
 		if (nextContractId !== this.selection.contractId) {
 			this.selection.contractId = nextContractId;
-			await this.#loadDeliverables();
+			await this.#loadDeliverables(true);
 		}
 	}
 
-	async #loadDeliverables(): Promise<void> {
+	async #loadDeliverables(parentChanged: boolean): Promise<void> {
 		const requestNumber = ++this.#requestNumbers.deliverable;
 		const contractId = this.selection.contractId;
 		const level = await this.#loadLevel(contractId, this.#deliverableCache, (id) => this.#source.getDeliverables(id), () => {
 			this.deliverable = { status: 'loading', options: [] };
 		});
-		if (requestNumber !== this.#requestNumbers.deliverable) return;
+		// Applied only for the newest request, by a live cascade, while its contract is still chosen
+		if (!this.#isCurrent('deliverable', requestNumber) || this.selection.contractId !== contractId) return;
 		this.deliverable = level;
-		this.selection.deliverableId = resolveSelection(this.selection.deliverableId, level);
-		await this.#loadWorkTypes();
+		const previousDeliverableId = this.selection.deliverableId;
+		const nextDeliverableId = resolveSelection(previousDeliverableId, level, parentChanged);
+		this.selection.deliverableId = nextDeliverableId;
+		await this.#loadWorkTypes(parentChanged || nextDeliverableId !== previousDeliverableId);
 	}
 
-	async #loadWorkTypes(): Promise<void> {
+	async #loadWorkTypes(parentChanged: boolean): Promise<void> {
 		const requestNumber = ++this.#requestNumbers.workType;
 		const deliverableId = this.selection.deliverableId;
-		const level = await this.#loadLevel(deliverableId, this.#workTypeCache, (id) => this.#source.getWorkTypes(id), () => {
+		const parentId = deliverableId === CASCADE_NONE ? '' : deliverableId;
+		const level = await this.#loadLevel(parentId, this.#workTypeCache, (id) => this.#source.getWorkTypes(id), () => {
 			this.workType = { status: 'loading', options: [] };
 		});
-		if (requestNumber !== this.#requestNumbers.workType) return;
+		if (!this.#isCurrent('workType', requestNumber) || this.selection.deliverableId !== deliverableId) return;
 		this.workType = level;
-		this.selection.workTypeId = resolveSelection(this.selection.workTypeId, level);
+		this.selection.workTypeId = resolveSelection(this.selection.workTypeId, level, parentChanged);
+	}
+
+	#isCurrent(level: CascadeLevelName, requestNumber: number): boolean {
+		return !this.#disposed && requestNumber === this.#requestNumbers[level];
 	}
 
 	/** One level's options for a parent: waiting without a parent, cached, loading, failed */
