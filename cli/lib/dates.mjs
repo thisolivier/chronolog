@@ -1,5 +1,7 @@
 /**
- * Calendar helpers for the CLI (pure): ISO weeks (`2026-W45`), and `--date` words
+ * Calendar helpers for the CLI (pure): weeks (`2026-W45`) numbered by Chronolog's rule (Week 1 is
+ * the Monday-start week containing 1 January; the same rule as src/lib/utils/calendar-week.ts,
+ * owner decision 2026-11-07, not ISO 8601), and `--date` words
  * (`today`, `yesterday`, weekday names meaning the most recent such day, or YYYY-MM-DD).
  */
 
@@ -18,21 +20,31 @@ export function addDays(dateString, days) {
 	return formatDate(new Date(toDate(dateString).getTime() + days * DAY_MS));
 }
 
-export function parseIsoWeek(weekKey) {
+/** Monday (`YYYY-MM-DD`) that starts Week 1 of `year`: the Monday on or before 1 January */
+function firstMonday(year) {
+	const january1st = Date.UTC(year, 0, 1);
+	const weekdayFromMonday = (new Date(january1st).getUTCDay() + 6) % 7;
+	return january1st - weekdayFromMonday * DAY_MS;
+}
+
+/** 52 or 53 */
+export function weeksInYear(year) {
+	return Math.round((firstMonday(year + 1) - firstMonday(year)) / (7 * DAY_MS));
+}
+
+/** `2026-W45` (also `2026W45`, `2026-w5`); null when malformed or the year has no such week */
+export function parseWeekKey(weekKey) {
 	const match = String(weekKey).trim().match(/^(\d{4})-?W(\d{1,2})$/i);
 	if (!match) return null;
 	const year = Number(match[1]);
 	const weekNumber = Number(match[2]);
-	if (weekNumber < 1 || weekNumber > 53) return null;
+	if (weekNumber < 1 || weekNumber > weeksInYear(year)) return null;
 	return { year, weekNumber, key: `${year}-W${String(weekNumber).padStart(2, '0')}` };
 }
 
-/** Monday and Sunday (`YYYY-MM-DD`) of an ISO week. */
-export function isoWeekRange(year, weekNumber) {
-	const january4th = Date.UTC(year, 0, 4);
-	const dayOfWeek = new Date(january4th).getUTCDay() || 7;
-	const mondayOfWeek1 = january4th - (dayOfWeek - 1) * DAY_MS;
-	const monday = formatDate(new Date(mondayOfWeek1 + (weekNumber - 1) * 7 * DAY_MS));
+/** Monday and Sunday (`YYYY-MM-DD`) of a week */
+export function weekRange(year, weekNumber) {
+	const monday = formatDate(new Date(firstMonday(year) + (weekNumber - 1) * 7 * DAY_MS));
 	return { from: monday, to: addDays(monday, 6) };
 }
 

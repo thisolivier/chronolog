@@ -33,7 +33,7 @@ Environment variables win over the file:
 ## Commands
 
 - `init`: save server URL, API token and device key (checks `GET /api/me`)
-- `me`: who you are, today, current ISO week
+- `me`: who you are, today, current week (Week 1 contains 1 January)
 - `clients [--all]`, `contracts [client] [--all]`: reference lists (`--all` adds archived ones, marked `[archived]`)
 - `week [2026-W45] [--client X | --contract X]`: entries and totals
 - `log <contract> <duration> "<desc>" [--date D] [--deliverable X [--work-type Y]] [--note ID]`
@@ -155,7 +155,7 @@ cli/lib/resolve.mjs       reference matching for contracts, clients, deliverable
 cli/lib/object-refs.mjs   fetch + resolve one client/contract/deliverable/work type from an id or path
 cli/lib/entry-references.mjs  an entry's deliverable and work type (work type only under that deliverable)
 cli/lib/confirm.mjs       remove confirmation: --yes, [y/N] on a terminal, refuse otherwise
-cli/lib/dates.mjs         ISO weeks, --date words, duration formatting
+cli/lib/dates.mjs         weeks (Week 1 contains 1 January), --date words, duration formatting
 cli/lib/history.mjs       last-entry.json: the entry `undo` deletes
 cli/lib/import-file.mjs   import file reading (JSON Lines or array, line numbers), chunking
 cli/lib/import-items.mjs  import items: references resolved once each, into batch API items

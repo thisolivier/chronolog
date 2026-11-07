@@ -5,6 +5,7 @@
 | Sprint | Team | Phase | Status |
 |--------|------|-------|--------|
 | 018-QA | QA | Manual testing backlog | superseded by docs/review/2026-11-03-qa-state.md |
+| 057-DR | Design | Design r1 stage 6: weekly time review (week overview strip, sticky bark day headings, aligned entry rows with ContractMarks, local missing-detail cues, steady inline editing, phone reflow without the footer timer) and Week 1 = week containing 1 January ([spec](sprint-057-DR.md)) | ready for review |
 | 053-DR | Design | Design r1 stage 3a: app shell and sidebar (tinted client groups, ContractMarks, surface selection, Time Entries mute), search at the far right, one visible timer (collapse, header reflection, Finish entry), shared capture store ([spec](sprint-053-DR.md)) | merged, live at v1.4.0 |
 | 054-DR | Design | Design r1 stage 3b: notes list / editor headers (context ownership, New note icon, Note actions menu), grouped toolbar with phone overflow, quiet linked time, note scroll restore on Back ([spec](sprint-054-DR.md)) | merged, live at v1.4.0 |
 | 058-DR (API) | Server | Shared search matcher: client/contract-aware, word AND, one rank scale for `/api/search` and the `[[` picker ([spec](sprint-058-DR-api.md)) | merged, live at v1.4.0 |

@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-	getIsoWeekNumber,
-	getIsoYear,
-	getMondayOfIsoWeek,
 	getMondayOfWeek,
 	getSundayOfWeek,
 	getWeekDates,
@@ -15,57 +12,6 @@ import {
 	formatWeekStartShort,
 	formatWeekStartLabel
 } from './iso-week';
-
-describe('getIsoWeekNumber', () => {
-	it('returns week 1 for January 1, 2026 (Thursday)', () => {
-		expect(getIsoWeekNumber('2026-01-01')).toBe(1);
-	});
-
-	it('returns week 6 for February 3, 2026 (Monday)', () => {
-		expect(getIsoWeekNumber('2026-02-03')).toBe(6);
-	});
-
-	it('returns week 6 for February 8, 2026 (Sunday)', () => {
-		expect(getIsoWeekNumber('2026-02-08')).toBe(6);
-	});
-
-	it('returns week 53 for December 28, 2020 (a year with 53 weeks)', () => {
-		expect(getIsoWeekNumber('2020-12-28')).toBe(53);
-	});
-
-	it('handles year boundary — Jan 1, 2024 is in week 1 of 2024', () => {
-		// Jan 1, 2024 is a Monday => ISO week 1 of 2024
-		expect(getIsoWeekNumber('2024-01-01')).toBe(1);
-	});
-});
-
-describe('getIsoYear', () => {
-	it('returns 2026 for a date in 2026', () => {
-		expect(getIsoYear('2026-02-03')).toBe(2026);
-	});
-
-	it('handles year boundary — Dec 31, 2024 belongs to ISO year 2025', () => {
-		// Dec 31, 2024 is a Tuesday, week starts Dec 30 (Monday)
-		// Thursday of that week is Jan 2, 2025 => ISO year 2025
-		expect(getIsoYear('2024-12-31')).toBe(2025);
-	});
-});
-
-describe('getMondayOfIsoWeek', () => {
-	it('returns correct Monday for week 6, 2026', () => {
-		expect(getMondayOfIsoWeek(2026, 6)).toBe('2026-02-02');
-	});
-
-	it('returns correct Monday for week 1, 2026', () => {
-		// Week 1 of 2026: Jan 1 is Thursday, so Monday of week 1 is Dec 29, 2025
-		expect(getMondayOfIsoWeek(2026, 1)).toBe('2025-12-29');
-	});
-
-	it('returns correct Monday for week 1, 2024', () => {
-		// Jan 1, 2024 is Monday => that is the Monday of week 1
-		expect(getMondayOfIsoWeek(2024, 1)).toBe('2024-01-01');
-	});
-});
 
 describe('getMondayOfWeek', () => {
 	it('returns the same date if input is already Monday', () => {

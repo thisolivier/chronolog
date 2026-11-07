@@ -236,14 +236,11 @@ describe('Time Entries API', () => {
 	});
 
 	it('POST /api/time-entries/weekly-statuses sets a week status', async () => {
+		// Chronolog's week rule (Week 1 contains 1 January), from the shared helper
+		const { calendarWeekOf } = await import('../lib/utils/calendar-week');
 		const now = new Date();
-		// Get ISO year and week number
-		const tempDate = new Date(now.getTime());
-		tempDate.setDate(tempDate.getDate() + 3 - ((tempDate.getDay() + 6) % 7));
-		const isoYear = tempDate.getFullYear();
-		const weekNumber = Math.ceil(
-			((tempDate.getTime() - new Date(isoYear, 0, 4).getTime()) / 86400000 + 1) / 7
-		);
+		const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+		const { year: isoYear, weekNumber } = calendarWeekOf(today);
 
 		const response = await authPost('/api/time-entries/weekly-statuses', {
 			year: isoYear,
@@ -254,5 +251,19 @@ describe('Time Entries API', () => {
 
 		const data = await response.json();
 		expect(data).toHaveProperty('success', true);
+	});
+
+	it('week statuses at the year boundary follow the Week 1 rule and only change recordkeeping (057-DR)', async () => {
+		// 28 Dec 2026 – 3 Jan 2027 contains 1 January, so it is 2027 Week 1 (ISO would say 2026-W53)
+		const posted = await authPost('/api/time-entries/weekly-statuses', { year: 2027, weekNumber: 1, status: 'Submitted' });
+		expect(posted.status).toBe(200);
+		expect((await posted.json()).status).toMatchObject({ weekStart: '2026-12-28', year: 2027, weekNumber: 1, status: 'Submitted' });
+		const statuses = await (await authGet('/api/time-entries/weekly-statuses?weeks=2026-W52,2027-W01')).json();
+		expect(statuses.statuses).toEqual({ '2026-W52': 'Unsubmitted', '2027-W01': 'Submitted' });
+		const weekly = await (await authGet('/api/time-entries/weekly?weeks=2026-12-28')).json();
+		expect(weekly.weeks[0].status).toBe('Submitted');
+		const week53 = await authPost('/api/time-entries/weekly-statuses', { year: 2026, weekNumber: 53, status: 'Submitted' });
+		expect(week53.status).toBe(400);
+		await authPost('/api/time-entries/weekly-statuses', { weekStart: '2026-12-28', status: 'Unsubmitted' });
 	});
 });

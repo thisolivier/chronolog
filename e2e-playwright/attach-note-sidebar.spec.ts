@@ -116,7 +116,8 @@ for (const layout of [
 			await page.goto('/time');
 			const entryCard = card(page, seeded);
 			await entryCard.getByRole('button', { name: seeded.description }).click();
-			const input = entryCard.locator('input[type="text"]');
+			// The description editor is a textarea that grows to the text (057-DR)
+			const input = entryCard.locator('textarea');
 			await expect(input).toBeFocused();
 			await input.press('End');
 			await page.keyboard.type(' and agenda');
@@ -130,7 +131,8 @@ for (const layout of [
 		test('running timer: attach note appears once a contract is picked, links it and opens the note', async ({ page, baseURL, browserName }) => {
 			await signInAsFreshUser(page, baseURL, `timer-attach-${layout.name}`);
 			const seeded = await seed(page);
-			await page.goto('/time');
+			// Phone: the capture widget lives on the home screen; the timesheet has no footer bar (057-DR)
+			await page.goto(layout.touch ? '/' : '/time');
 			const widget = page.locator('[data-testid^="timer-widget-"]').first();
 			await widget.getByRole('button', { name: 'Start Timer' }).click();
 			await expect(widget.locator('#draft-description')).toBeVisible();
