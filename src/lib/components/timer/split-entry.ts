@@ -1,10 +1,23 @@
 /**
- * Split time entry (design r1 SP-01, stage 5). STAGE 5 STUB (sprint 055-DR): the buttons exist
- * (SplitTimeButton, beside Add note while running and in the stopped form's header) but the
- * two-card split overlay is not built yet, so there is no handler and the buttons stay disabled.
- * Stage 5 replaces `splitHandlerFor` with one that opens the overlay for the current capture.
+ * Split time entry points (design r1 TC-07 / SP-01, sprint 056-DR UI): the Split buttons beside
+ * Add note (running) and in the stopped form's header open the two-card overlay for the capture.
+ *
+ * Only a server draft can be split: `POST /api/timer/split` works on the draft row, and a timer
+ * started with no contract lives only in this browser (pending-timer.ts). Such a timer gets a
+ * disabled Split with the reason ("Choose a contract to split this time") instead of a second,
+ * browser-only split path. Phone layouts never show Split; offline disables it (SplitTimeButton).
  */
-export function splitHandlerFor(): (() => void) | undefined {
-	// TODO(stage 5, sprint 057-DR or later): open the split overlay (docs/sprints/sprint-055-DR.md)
-	return undefined;
+export type SplitEntry = {
+	/** Opens the overlay; undefined when Split is disabled */
+	onSplit: (() => void) | undefined;
+	/** Why Split is disabled ('' when it is not) */
+	disabledReason: string;
+};
+
+export const NO_CONTRACT_SPLIT_REASON = 'Choose a contract to split this time';
+
+export function splitEntryFor(capture: { hasServerDraft: boolean; isSplitOpen: boolean }, open: () => void): SplitEntry {
+	if (!capture.hasServerDraft) return { onSplit: undefined, disabledReason: NO_CONTRACT_SPLIT_REASON };
+	if (capture.isSplitOpen) return { onSplit: undefined, disabledReason: 'Split time is open' };
+	return { onSplit: open, disabledReason: '' };
 }

@@ -27,7 +27,8 @@
 		startTime = '',
 		endTime = '',
 		layout = 'panel',
-		onSplit = undefined
+		onSplit = undefined,
+		splitDisabledReason = ''
 	}: {
 		/** Resolves when saved (or when the widget handled a conflict); rejects with the error to show */
 		onSave: (data: TimerSaveData) => Promise<void>;
@@ -38,8 +39,10 @@
 		endTime?: string;
 		/** 'panel' in the sidebar / footer widget; 'screen' on the phone capture screen (actions pinned) */
 		layout?: 'panel' | 'screen';
-		/** Split time (stage 5); absent while the split overlay is a stub */
+		/** Split time (sprint 056-DR): opens the split overlay; absent when Split is disabled */
 		onSplit?: () => void;
+		/** Why Split is disabled (split-entry.ts) */
+		splitDisabledReason?: string;
 	} = $props();
 
 	const dataService = getDataService();
@@ -139,7 +142,7 @@
 						>{/if}
 				</p>
 			</div>
-			<SplitTimeButton {onSplit} />
+			<SplitTimeButton {onSplit} disabledReason={splitDisabledReason} />
 		</div>
 
 		<div>

@@ -193,7 +193,7 @@ export class DelegatingDataService implements DataService {
 		return this.delegate.startTimer(contractId, localStart);
 	}
 
-	adjustTimerStart(start: TimerLocalStart, options?: { confirmed?: boolean }): Promise<TimerEntry> {
+	adjustTimerStart(start: TimerLocalStart, options?: { confirmed?: boolean; expectedStartedAt?: string }): Promise<TimerEntry> {
 		return this.delegate.adjustTimerStart(start, options);
 	}
 

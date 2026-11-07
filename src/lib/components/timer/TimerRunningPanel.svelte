@@ -2,7 +2,7 @@
 	TimerRunningPanel — the running timer's body (TC-01/TC-03/TC-07, sprints 049, 053-DR, 055-DR):
 	the elapsed clock and Stop (text exactly "Stop": the Tauri tray clicks it), the editable start,
 	the contract (until one is chosen, then behind the header's "Change"), and the description
-	with Add note (once a contract is chosen) and Split time (desktop; a stage 5 stub).
+	with Add note (once a contract is chosen) and Split time (desktop; opens the split overlay, sprint 056-DR).
 	`layout="screen"` is the phone capture screen: a large clock, the fields in a scrolling area,
 	and Add note and Stop pinned at the bottom above the keyboard and the home indicator.
 -->
@@ -27,6 +27,7 @@
 		onDescriptionInput,
 		onAttachNote,
 		onSplit = undefined,
+		splitDisabledReason = '',
 		layout = 'panel'
 	}: {
 		elapsedSeconds: number;
@@ -40,6 +41,8 @@
 		onDescriptionInput: () => void;
 		onAttachNote: () => Promise<void>;
 		onSplit?: () => void;
+		/** Why Split is disabled (split-entry.ts) */
+		splitDisabledReason?: string;
 		layout?: 'panel' | 'screen';
 	} = $props();
 
@@ -94,7 +97,7 @@
 				{#if !isScreen}
 					<span class="flex items-center gap-0.5">
 						{#if draftContractId}<AttachNoteButton alwaysVisible onAttach={onAttachNote} />{/if}
-						<SplitTimeButton {onSplit} />
+						<SplitTimeButton {onSplit} disabledReason={splitDisabledReason} />
 					</span>
 				{/if}
 			</div>

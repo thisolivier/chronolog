@@ -13,7 +13,7 @@
 	} from './timer-api';
 	import { clearPendingTimer, readPendingTimer, writePendingTimer } from './pending-timer';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
-	import { untrack } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import { formatContractLabel } from './contract-label';
 	import { localDateString, localTimeString } from './local-date';
 	import {
@@ -23,7 +23,10 @@
 		type TimerWidgetPlacement
 	} from './timer-widget-registry.svelte';
 	import { describeTimerConflict, timerConflictFrom } from './save-error';
-	import { splitHandlerFor } from './split-entry';
+	import { splitEntryFor } from './split-entry';
+	import { splitSession } from './split-session.svelte';
+	import { reconcileOnLoad } from './split-reconcile';
+	import SplitTimeOverlay from './SplitTimeOverlay.svelte';
 	import TimerIdentityHeader from './TimerIdentityHeader.svelte';
 	import { captureDraft } from '$lib/stores/capture-draft.svelte';
 	import { captureKeyFor, intervalKeyFor } from '$lib/stores/capture-draft';
@@ -74,7 +77,6 @@
 	});
 
 	const isScreen = $derived(placement === 'screen');
-	const splitHandler = splitHandlerFor();
 
 	const dataService = getDataService();
 	const sharedTimerState = getTimerStateContext();
@@ -178,6 +180,11 @@
 
 	/** Read the capture; false when the status could not be read and `keepOnFailure` left state alone */
 	async function checkExistingTimer(keepOnFailure = false): Promise<boolean> {
+		// A split whose answer never arrived (reload, lost connection) is settled first (SP-08)
+		if (!splitSession.isOpen) {
+			const reconciled = await reconcileOnLoad(dataService);
+			if (reconciled.kind === 'split' || reconciled.kind === 'abandoned') splitSession.notice = reconciled.message;
+		}
 		try {
 			const data = await dataService.getTimerStatus();
 			if (data.timer) {
@@ -575,6 +582,7 @@
 			return;
 		}
 		errorMessage = message;
+		await returnFocusAfterSplit();
 	}
 
 	function resetTimer() {
@@ -596,6 +604,59 @@
 		}
 	}
 
+	/*
+	 * Split time (SP-01, sprint 056-DR UI): desktop only (the button is not drawn on a phone), a
+	 * server draft only (split-entry.ts). The description's debounced save is flushed first, so the
+	 * draft holds what the user typed (source map risk d4); the overlay starts from this content.
+	 */
+	const splitEntry = $derived(
+		splitEntryFor({ hasServerDraft: entryId !== '', isSplitOpen: splitSession.isOpen }, () => void openSplit())
+	);
+
+	async function openSplit() {
+		if (!entryId || splitSession.isOpen) return;
+		if (timerState === 'running' && descriptionDebounceTimer) {
+			clearTimeout(descriptionDebounceTimer);
+			descriptionDebounceTimer = undefined;
+			await dataService.updateTimeEntry(entryId, { description: draftDescription }).catch(() => undefined);
+		}
+		const content =
+			timerState === 'stopped'
+				? {
+						contractId: captureDraft.fields.contractId,
+						deliverableId: captureDraft.fields.deliverableId,
+						workTypeId: captureDraft.fields.workTypeId,
+						description: captureDraft.fields.description
+					}
+				: { contractId: draftContractId, deliverableId: '', workTypeId: '', description: draftDescription };
+		splitSession.open(
+			{ entryId, date: timerDate, startTime, endTime: timerState === 'stopped' ? endTime : null },
+			content,
+			dataService,
+			widgetId
+		);
+	}
+
+	// Focus goes back to Split (or the widget's first button) once the closed split has reloaded
+	let widgetElement: HTMLDivElement | undefined = $state();
+	let focusAfterSplit = false;
+	$effect(() => {
+		if (splitSession.isOpen && splitSession.ownerWidgetId === widgetId) focusAfterSplit = true;
+	});
+	async function returnFocusAfterSplit() {
+		if (!focusAfterSplit || splitSession.isOpen) return;
+		focusAfterSplit = false;
+		await tick();
+		const target =
+			widgetElement?.querySelector<HTMLElement>('[data-testid="timer-split-button"]:not([disabled])') ??
+			widgetElement?.querySelector<HTMLElement>('button:not([disabled])');
+		target?.focus();
+	}
+
+	const showSplitOverlay = $derived(
+		splitSession.isOpen && splitSession.ownerWidgetId === widgetId && !splitSession.isCollapsing
+	);
+
 	function handleAddEntryCreated(created: { entryId: string; date: string }) {
 		showAddEntryModal = false;
 		dispatchTimeEntrySaved(created);
@@ -604,6 +665,7 @@
 </script>
 
 <div
+	bind:this={widgetElement}
 	class="relative {isScreen
 		? 'flex min-h-0 flex-1 flex-col bg-surface'
 		: placement === 'footer'
@@ -612,7 +674,10 @@
 	data-testid="timer-widget-{placement}"
 	data-compact={isCompact ? 'true' : undefined}
 >
-	{#if isLoading}
+	{#if splitSession.isOpen}
+		<!-- One visible capture (SH-04): the split overlay holds it; no Stop here for the tray to press -->
+		<p class="py-2 text-center text-sm text-ink-faint" data-testid="timer-split-in-progress">Splitting this time…</p>
+	{:else if isLoading}
 		<div class="py-2 text-center text-sm text-ink-faint">Loading timer...</div>
 	{:else if timerState === 'idle'}
 		<div class="flex gap-2 {isScreen ? 'px-4 pt-3' : ''}">
@@ -662,7 +727,8 @@
 					bind:isChangingContract
 					onDescriptionInput={handleDescriptionInput}
 					onAttachNote={attachNoteToRunningTimer}
-					onSplit={splitHandler}
+					onSplit={splitEntry.onSplit}
+					splitDisabledReason={splitEntry.disabledReason}
 					layout={isScreen ? 'screen' : 'panel'}
 				/>
 			{:else if timerState === 'stopped'}
@@ -672,10 +738,18 @@
 					frozenMinutes={Math.max(1, Math.ceil(elapsedSeconds / 60))}
 					{startTime}
 					{endTime}
-					onSplit={splitHandler}
+					onSplit={splitEntry.onSplit}
+					splitDisabledReason={splitEntry.disabledReason}
 					layout={isScreen ? 'screen' : 'panel'}
 				/>
 			{/if}
+		</div>
+	{/if}
+
+	{#if splitSession.notice && !splitSession.isOpen}
+		<div class="mt-2 flex items-start gap-2 rounded-md bg-warning-wash p-2 text-xs text-ink {isScreen ? 'mx-4' : ''}" role="status" data-testid="split-notice">
+			<span class="flex-1">{splitSession.notice}</span>
+			<button type="button" class="text-ink-muted underline underline-offset-2 hover:text-ink" onclick={() => (splitSession.notice = '')}>Dismiss</button>
 		</div>
 	{/if}
 
@@ -685,6 +759,10 @@
 		</div>
 	{/if}
 </div>
+
+{#if showSplitOverlay}
+	<SplitTimeOverlay />
+{/if}
 
 {#if showAddEntryModal}
 	<AddTimeEntryModal
