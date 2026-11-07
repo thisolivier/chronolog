@@ -1,6 +1,7 @@
 # Global search (sprint 042-CL)
 
-One search over every note (ID, title, body) and time entry description, across all clients,
+One search over every note (ID, title, body) and time entry description, plus each record's
+client and contract identity (sprint 058-DR), across all clients,
 backed by `GET /api/search` (`src/lib/server/db/queries/global-search.ts`). The URL is the state:
 `/search?q=…` (`src/routes/search/+page.svelte`), so Back/Forward and reload keep the results.
 
@@ -13,9 +14,10 @@ backed by `GET /api/search` (`src/lib/server/db/queries/global-search.ts`). The 
   the visible field from anywhere (capture phase, so the editor never sees it); Escape blurs;
   ArrowDown on /search moves into the results. On a phone the shell header has a search icon
   linking to `/search`, where the field takes focus.
-- **SearchResults.svelte** — one list of notes and time entries, newest first (sprint 046-CL),
+- **SearchResults.svelte** — one list of notes and time entries in the server's shared rank order
+  (sprint 058-DR; newest first within a rank, as the `[[` picker orders notes),
   under a summary line ("3 notes · 7 time entries", "50 of 120 notes" when cut at the limit of 50
-  per type). Up/Down walk the list in order; Up from the first hit returns to the field.
+  per type; the API now allows up to 100). Up/Down walk the list in order; Up from the first hit returns to the field.
 - **SearchHitRow.svelte** — one hit: type icon, client colour dot and "Client / Contract", date
   (and duration for entries) at the end of that line, then the title or description and the
   snippet with the matches in `<mark>`. From 768 px (`md`) the icon has its own left column; on a
@@ -24,8 +26,9 @@ backed by `GET /api/search` (`src/lib/server/db/queries/global-search.ts`). The 
 - **SearchTypeIcon.svelte** — inline SVG note / clock icon, `role="img"` labelled "Note" or
   "Time entry".
 - **search-interleave.ts** — `interleaveSearchHits()` merges the API's two groups (the response
-  shape is unchanged; the CLI reads it): a note sorts by its last modified time, an entry by its
-  date then start time (none = start of day), compared in local time; ties keep the server order.
+  shape only grows; the CLI reads it) by the hits' shared `rank` (058-DR, see
+  `src/lib/server/search/README.md`), then recency: a note by its last modified time, an entry by
+  its date then start time (none = start of day), compared in local time; ties keep the server order.
   Also `searchSummary()` and the phone date format.
 - **HighlightedText.svelte** — renders text plus match offsets (from the server) as `<mark>`s
   without `{@html}`.
