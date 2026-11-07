@@ -72,7 +72,8 @@ test.describe('desktop 1280', () => {
 		const chevronBox = (await collapseToggle(page).boundingBox())!;
 		expect(dotBox.x + dotBox.width).toBeGreaterThan(identityBox.x + identityBox.width - 16);
 		expect(dotBox.y).toBeLessThan(identityBox.y + 12);
-		expect(dotBox.y + dotBox.height).toBeLessThanOrEqual(chevronBox.y);
+		// Half a pixel of slack: WebKit rounds the pulsing light's box a hair past the chevron (checkpoint A)
+		expect(dotBox.y + dotBox.height).toBeLessThanOrEqual(chevronBox.y + 0.5);
 		// The contract select hides behind "Change"; the chevron is not a selector
 		await expect(widget(page).locator('#draft-contract')).toHaveCount(0);
 		await widget(page).getByRole('button', { name: 'Change contract' }).click();
