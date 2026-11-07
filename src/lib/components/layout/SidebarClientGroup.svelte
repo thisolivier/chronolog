@@ -132,7 +132,7 @@
 			isViewedClient
 				? 'text-pine-700'
 				: muted
-					? 'text-ink-faint'
+					? 'text-ink-fainter'
 					: 'text-ink-faint'}"
 			data-testid="sidebar-client-heading"
 		>

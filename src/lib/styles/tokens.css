@@ -104,11 +104,13 @@
 	--color-line: var(--color-chalk-300);
 	--color-divider: var(--color-chalk-200);
 
-	/* Semantic roles: text (all AA on surface, canvas and sunken) */
+	/* Semantic roles: text (all AA on surface, canvas and sunken, except ink-fainter) */
 	--color-ink: var(--color-chalk-900);
 	--color-ink-soft: var(--color-chalk-700);
 	--color-ink-muted: var(--color-chalk-600);
 	--color-ink-faint: var(--color-chalk-500);
+	/* Below AA (2.65:1 on surface): only for deliberately muted / inactive states, never sole content */
+	--color-ink-fainter: var(--color-chalk-400);
 	--color-on-accent: #fffefa;
 
 	/* Semantic roles: actions and states */
@@ -141,9 +143,9 @@
 	--color-id-ochre: #bc9859;
 	--color-id-ochre-wash: #f6edd9;
 	--color-id-ochre-ink: #5e4720;
-	--color-id-pine: #294c3b;
-	--color-id-pine-wash: #e2ece3;
-	--color-id-pine-ink: #1f3b2e;
+	--color-id-lake: #46597a;
+	--color-id-lake-wash: #e6eaf2;
+	--color-id-lake-ink: #2c3a55;
 	--color-id-bark: #624735;
 	--color-id-bark-wash: #efe6dd;
 	--color-id-bark-ink: #4e3829;
