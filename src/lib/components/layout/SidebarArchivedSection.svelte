@@ -18,13 +18,16 @@
 		contractCount,
 		selectedContractId,
 		selectionIsArchived,
-		onSelect
+		onSelect,
+		sectionMuted = false
 	}: {
 		groups: ClientGroup<ContractsByClientResult>[];
 		contractCount: number;
 		selectedContractId: string | null;
 		selectionIsArchived: boolean;
 		onSelect: (contractId: string, clientId: string) => void;
+		/** The Notes section is muted as a whole (Time Entries selected) */
+		sectionMuted?: boolean;
 	} = $props();
 
 	let isExpanded = $state(readArchivedExpanded(browserLocalStorage()));
@@ -50,11 +53,14 @@
 	<button
 		type="button"
 		onclick={toggle}
-		class="flex w-full items-center gap-2 rounded-md py-1.5 pr-1 pl-3 text-left text-xs font-semibold uppercase text-ink-faint transition-colors hover:bg-chalk-100 hover:text-ink-muted pointer-coarse:py-3.5"
+		class="flex w-full items-center gap-2 rounded-control py-1.5 pr-1 pl-3 text-left text-sm text-ink-muted transition-colors hover:bg-chalk-200/70 hover:text-ink pointer-coarse:py-3.5"
 		aria-expanded={isExpanded}
 		aria-controls="sidebar-archived-list"
 		data-testid="sidebar-archived-toggle"
 	>
+		<svg class="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+			<rect x="3" y="4" width="18" height="5" rx="1" /><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4" />
+		</svg>
 		<span class="flex-1">Archived</span>
 		<span
 			class="rounded-full bg-chalk-200/70 px-1.5 text-[11px] font-medium normal-case tabular-nums text-ink-faint"
@@ -81,7 +87,7 @@
 	</button>
 	<div id="sidebar-archived-list" class="mt-1" hidden={!isExpanded}>
 		{#each groups as group (group.clientId)}
-			<SidebarClientGroup {group} {selectedContractId} muted testId="sidebar-archived-client-group" {onSelect} />
+			<SidebarClientGroup {group} {selectedContractId} muted testId="sidebar-archived-client-group" {onSelect} {sectionMuted} />
 		{/each}
 	</div>
 </div>

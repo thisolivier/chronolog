@@ -32,12 +32,14 @@
 		md: 'size-(--size-mark-md) text-[0.5625rem]',
 		lg: 'size-(--size-mark-lg) text-[0.75rem]'
 	} as const;
+	// Three initials (`RGM`) overflow the small square at 0.5rem: one step smaller (sprint 053-DR)
+	const narrowSmall = $derived(size === 'sm' && initials.length > 2);
 </script>
 
 <span
 	class={[
 		'inline-flex shrink-0 items-center justify-center rounded-mark leading-none font-bold tracking-tight select-none',
-		sizeClasses[size],
+		narrowSmall ? 'size-(--size-mark-sm) text-[0.4rem] tracking-tighter' : sizeClasses[size],
 		getClientDotClass(colorIndex),
 		getClientMarkTextClass(colorIndex),
 		selected && 'ring-2 ring-selection-edge ring-offset-1 ring-offset-surface',
