@@ -10,6 +10,11 @@
 	import { labelForPath, titleForRoute } from './navigation-labels';
 	import { requestNoteTitles, subscribeToNoteTitles } from '$lib/components/notes/note-titles.svelte';
 	import { isNoteListRoute, parseWorkspacePath } from '$lib/stores/navigation-routes';
+	import { getDataService } from '$lib/services/context';
+	import { headerReflectionFor, isTimerWidgetOnScreen } from '$lib/components/timer/timer-visibility';
+	import { isSidebarTimerWidgetMounted, mountedTimerWidgetCount } from '$lib/components/timer/timer-widget-registry.svelte';
+	import { loadTimerReflection } from '$lib/components/timer/timer-reflection';
+	import { shellPresentation } from './shell-presentation.svelte';
 
 	interface Props {
 		panel1: Snippet;
@@ -123,6 +128,44 @@
 		navigationContext.mobileNavigationLevel >= (navigationContext.isNotesMode ? 2 : 1)
 	);
 
+	// One visible timer (SH-04, sprint 053-DR): the header reflects the capture only while no
+	// TimerWidget is on screen (timer-visibility.ts encodes the SH-02 state matrix)
+	const presentation = $derived({
+		layoutMode: isMobile ? ('mobile' as const) : isTablet ? ('tablet' as const) : ('desktop' as const),
+		sidebarCollapsed: navigationContext.panel1Collapsed,
+		sidebarIsOverlay,
+		overlaySidebarOpen,
+		mountedWidgetCount: mountedTimerWidgetCount()
+	});
+	const headerReflection = $derived(headerReflectionFor(timerState.status, presentation));
+	// No capture and the desktop sidebar hidden: keep the pre-053 "Timer" access to Start / Add Entry
+	const showIdleTimerAccess = $derived(
+		!isMobile && navigationContext.panel1Collapsed && !sidebarIsOverlay && isSidebarTimerWidgetMounted()
+	);
+
+	// Hooks for components outside the shell (stage 3b's notes list header reads sidebarOnScreen)
+	$effect(() => {
+		shellPresentation.layoutMode = presentation.layoutMode;
+		shellPresentation.sidebarOnScreen = isMobile ? navigationContext.mobileNavigationLevel === 0 : sidebarVisible;
+		shellPresentation.timerWidgetOnScreen = isTimerWidgetOnScreen(presentation);
+	});
+
+	// A phone opened straight on a note mounts no TimerWidget: read the capture once so the
+	// header can still reflect it (read-only; the first widget to mount takes over)
+	const dataService = getDataService();
+	let reflectionRequested = false;
+	$effect(() => {
+		if (reflectionRequested || mountedTimerWidgetCount() > 0 || timerState.status !== 'idle') return;
+		reflectionRequested = true;
+		let cancelled = false;
+		void loadTimerReflection(dataService).then((reflection) => {
+			if (!cancelled && reflection && mountedTimerWidgetCount() === 0) timerState.update(reflection);
+		});
+		return () => {
+			cancelled = true;
+		};
+	});
+
 	function toggleSidebar() {
 		if (sidebarIsOverlay) overlaySidebarOpen = !overlaySidebarOpen;
 		else navigationContext.toggleSidebar();
@@ -180,16 +223,11 @@
 			>
 				<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" /><path d="m13 13 4 4" stroke-linecap="round" /></svg>
 			</a>
-			{#if navigationContext.mobileNavigationLevel > 0}
-				<TimerIndicator
-					timerState={timerState.status}
-					elapsedSeconds={timerState.elapsedSeconds}
-					description={timerState.description}
-					contractName={timerState.contractName}
-					clientColorIndex={timerState.clientColorIndex}
-					onIndicatorClick={() => navigationContext.navigateMobile(0)}
-				/>
-			{/if}
+			<!-- The capture's reflection, only on screens without a timer widget (SH-04); opens the
+			     phone's capture screen (home, with the sidebar timer) -->
+			<div class="ml-1 flex-shrink-0">
+				<TimerIndicator reflection={headerReflection} onIndicatorClick={() => navigationContext.navigateMobile(0)} />
+			</div>
 		</div>
 		<ConnectionStatus mode={navigationContext.mode} />
 
@@ -210,7 +248,7 @@
 	<div class="safe-area-shell flex h-dvh flex-col overflow-hidden bg-surface">
 		<!-- Top bar -->
 		<div class="flex h-12 items-center justify-between border-b border-divider bg-surface px-4" data-testid="app-top-bar">
-			<div class="flex items-center gap-3">
+			<div class="flex flex-shrink-0 items-center gap-3">
 				<button
 					onclick={toggleSidebar}
 					class="text-lg text-ink-faint hover:text-ink-soft"
@@ -218,18 +256,16 @@
 					aria-expanded={sidebarVisible}
 				>≡</button>
 				<span class="text-sm font-semibold text-ink-soft">Chronolog</span>
-				<!-- Back / Forward (050-UI) right before the left-aligned search field -->
+				<!-- Back / Forward (050-UI) -->
 				<HistoryButtons class="ml-1" />
-				<GlobalSearchField class="w-60 lg:w-72" />
 			</div>
-			<TimerIndicator
-				timerState={timerState.status}
-				elapsedSeconds={timerState.elapsedSeconds}
-				description={timerState.description}
-				contractName={timerState.contractName}
-				clientColorIndex={timerState.clientColorIndex}
-				onIndicatorClick={openSidebar}
-			/>
+			<!-- Right: the capture's reflection when no sidebar timer is on screen (SH-04; clicking it
+			     shows the sidebar, where the same widget lives), then global search at the far
+			     right (SH-05) -->
+			<div class="flex min-w-0 items-center justify-end gap-3" data-testid="app-top-bar-right">
+				<TimerIndicator reflection={headerReflection} showIdleAccess={showIdleTimerAccess} onIndicatorClick={openSidebar} />
+				<GlobalSearchField class="w-60 flex-shrink-0 lg:w-72" />
+			</div>
 		</div>
 		<ConnectionStatus mode={navigationContext.mode} />
 
