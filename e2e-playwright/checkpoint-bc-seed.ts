@@ -133,6 +133,15 @@ export async function startTimerEarlier(page: Page, contractId: string | null, m
 				body: JSON.stringify({ contractId, date, startTime, confirmed: true, description })
 			});
 			if (!response.ok) throw new Error(`start: ${response.status} ${await response.text()}`);
+			// The start request ignores a description: write it on the running row
+			if (description) {
+				const timer = await response.json();
+				await fetch(`/api/time-entries/${timer.id}`, {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ description })
+				});
+			}
 		},
 		{ contractId, minutesAgo, description }
 	);
