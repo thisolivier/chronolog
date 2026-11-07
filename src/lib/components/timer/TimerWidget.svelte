@@ -21,7 +21,7 @@
 	import { registerTimerWidget } from './timer-widget-registry.svelte';
 	import TimerIdentityHeader from './TimerIdentityHeader.svelte';
 	import { captureDraft } from '$lib/stores/capture-draft.svelte';
-	import { captureKeyFor } from '$lib/stores/capture-draft';
+	import { captureKeyFor, intervalKeyFor } from '$lib/stores/capture-draft';
 	import { formatDurationInput } from '$lib/utils/duration';
 	import { readTimerCompact, writeTimerCompact } from './timer-compact-preference';
 	import { dispatchTimeEntrySaved } from '$lib/components/weekly/time-entry-events';
@@ -121,21 +121,17 @@
 
 	/** Open (or resume) the completion fields for the capture that just stopped */
 	function openCompletion() {
-		const measuredTimeText = formatDurationInput(
-			Math.max(1, Math.ceil(elapsedSeconds / 60)),
-			startTime || null,
-			endTime || null
-		);
-		captureDraft.open(captureKeyFor({ entryId, date: timerDate, startTime }), {
+		const durationMinutes = Math.max(1, Math.ceil(elapsedSeconds / 60));
+		const measuredTimeText = formatDurationInput(durationMinutes, startTime || null, endTime || null);
+		// The interval key: a split, resume or move elsewhere changes it, which resets the time text
+		const intervalKey = intervalKeyFor({ date: timerDate, startTime, endTime, durationMinutes });
+		captureDraft.open(captureKeyFor({ entryId, date: timerDate, startTime }), intervalKey, {
 			contractId: draftContractId,
 			deliverableId: '',
 			workTypeId: '',
 			description: draftDescription,
 			timeText: measuredTimeText,
-			measuredTimeText,
-			endTime,
-			startTime,
-			date: timerDate
+			measuredTimeText
 		});
 	}
 

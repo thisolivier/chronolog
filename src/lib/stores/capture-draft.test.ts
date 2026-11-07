@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { captureDraftStorageKey, captureKeyFor, readCaptureDraft, type CaptureDraftFields } from './capture-draft';
+import { captureDraftStorageKey, captureKeyFor, intervalKeyFor, readCaptureDraft, type CaptureDraftFields } from './capture-draft';
 import { CaptureDraftStore } from './capture-draft.svelte';
 
 function memoryStorage(): Storage {
@@ -22,11 +22,9 @@ const initialFields: CaptureDraftFields = {
 	workTypeId: '',
 	description: 'Typed while running',
 	timeText: '09:00-10:30',
-	measuredTimeText: '09:00-10:30',
-	endTime: '10:30:12',
-	startTime: '09:00:05',
-	date: '2026-11-07'
+	measuredTimeText: '09:00-10:30'
 };
+const INTERVAL = intervalKeyFor({ date: '2026-11-07', startTime: '09:00:05', endTime: '10:30:12', durationMinutes: 91 });
 
 describe('capture draft keys', () => {
 	it('keys a server draft by id and a browser timer by its start', () => {
@@ -53,7 +51,7 @@ describe('CaptureDraftStore', () => {
 	it('persists edits and restores them in a fresh store (a remount or reload)', () => {
 		const first = new CaptureDraftStore();
 		first.configure('user-1', storage);
-		first.open('entry:abc', initialFields);
+		first.open('entry:abc', INTERVAL, initialFields);
 		first.fields.deliverableId = 'deliverable-1';
 		first.fields.workTypeId = 'work-type-1';
 		first.fields.description = 'Edited after Stop';
@@ -63,7 +61,7 @@ describe('CaptureDraftStore', () => {
 		const second = new CaptureDraftStore();
 		second.configure('user-1', storage);
 		// What the server knows is older than what the user typed: the stored fields win
-		second.open('entry:abc', initialFields);
+		second.open('entry:abc', INTERVAL, initialFields);
 		expect(second.captureKey).toBe('entry:abc');
 		expect(second.fields).toEqual({
 			...initialFields,
@@ -72,18 +70,44 @@ describe('CaptureDraftStore', () => {
 			description: 'Edited after Stop',
 			timeText: '1h 15m'
 		});
-		// The frozen end survives unchanged
-		expect(second.fields.endTime).toBe('10:30:12');
+	});
+
+	it('a changed server interval (split, resume, move) resets the time text and keeps the rest', () => {
+		const first = new CaptureDraftStore();
+		first.configure('user-1', storage);
+		first.open('entry:abc', INTERVAL, initialFields);
+		first.fields.description = 'Typed after Stop';
+		first.fields.deliverableId = 'deliverable-1';
+		first.fields.timeText = '1h';
+		first.persist();
+
+		// Another device split the entry: same id, new start
+		const splitInterval = intervalKeyFor({ date: '2026-11-07', startTime: '10:00:00', endTime: '10:30:12', durationMinutes: 31 });
+		expect(splitInterval).not.toBe(INTERVAL);
+		const fromServer = { ...initialFields, timeText: '10:00-10:30', measuredTimeText: '10:00-10:30' };
+		const second = new CaptureDraftStore();
+		second.configure('user-1', storage);
+		second.open('entry:abc', splitInterval, fromServer);
+		expect(second.fields.timeText).toBe('10:00-10:30');
+		expect(second.fields.measuredTimeText).toBe('10:00-10:30');
+		expect(second.fields.description).toBe('Typed after Stop');
+		expect(second.fields.deliverableId).toBe('deliverable-1');
+		expect(readCaptureDraft(storage, 'user-1')?.intervalKey).toBe(splitInterval);
+
+		// The same store instance (no reload) also follows the new interval
+		first.open('entry:abc', splitInterval, fromServer);
+		expect(first.fields.timeText).toBe('10:00-10:30');
+		expect(first.fields.description).toBe('Typed after Stop');
 	});
 
 	it('replaces a record that belongs to another capture', () => {
 		const first = new CaptureDraftStore();
 		first.configure('user-1', storage);
-		first.open('entry:old', { ...initialFields, description: 'Old capture' });
+		first.open('entry:old', INTERVAL, { ...initialFields, description: 'Old capture' });
 
 		const second = new CaptureDraftStore();
 		second.configure('user-1', storage);
-		second.open('entry:new', initialFields);
+		second.open('entry:new', INTERVAL, initialFields);
 		expect(second.fields.description).toBe('Typed while running');
 		expect(readCaptureDraft(storage, 'user-1')?.captureKey).toBe('entry:new');
 	});
@@ -91,19 +115,19 @@ describe('CaptureDraftStore', () => {
 	it('keeps one record per user', () => {
 		const forUserOne = new CaptureDraftStore();
 		forUserOne.configure('user-1', storage);
-		forUserOne.open('entry:abc', initialFields);
+		forUserOne.open('entry:abc', INTERVAL, initialFields);
 
 		const forUserTwo = new CaptureDraftStore();
 		forUserTwo.configure('user-2', storage);
 		expect(readCaptureDraft(storage, 'user-2')).toBeNull();
-		forUserTwo.open('entry:abc', { ...initialFields, description: 'Other account' });
+		forUserTwo.open('entry:abc', INTERVAL, { ...initialFields, description: 'Other account' });
 		expect(readCaptureDraft(storage, 'user-1')?.description).toBe('Typed while running');
 	});
 
 	it('clear (Save or Discard) forgets the fields in memory and storage', () => {
 		const store = new CaptureDraftStore();
 		store.configure('user-1', storage);
-		store.open('entry:abc', initialFields);
+		store.open('entry:abc', INTERVAL, initialFields);
 		store.clear();
 		expect(store.captureKey).toBeNull();
 		expect(store.fields.description).toBe('');
@@ -111,17 +135,17 @@ describe('CaptureDraftStore', () => {
 
 		const reopened = new CaptureDraftStore();
 		reopened.configure('user-1', storage);
-		reopened.open('entry:abc', { ...initialFields, description: 'From the server' });
+		reopened.open('entry:abc', INTERVAL, { ...initialFields, description: 'From the server' });
 		expect(reopened.fields.description).toBe('From the server');
 	});
 
 	it('works without storage (private mode): fields live for the page', () => {
 		const store = new CaptureDraftStore();
 		store.configure('user-1', null);
-		store.open('entry:abc', initialFields);
+		store.open('entry:abc', INTERVAL, initialFields);
 		store.fields.description = 'Kept in memory';
 		store.persist();
-		store.open('entry:abc', initialFields);
+		store.open('entry:abc', INTERVAL, initialFields);
 		expect(store.fields.description).toBe('Kept in memory');
 	});
 });

@@ -2,11 +2,17 @@
  * The unfinished capture's completion fields, persisted per user (design r1 IN-03 / TC-06 /
  * SH-07, sprint 053-DR). Pure helpers: the reactive store is `capture-draft.svelte.ts`.
  *
- * A stopped timer that is not yet saved or discarded is one unfinished capture. Its frozen end
- * already lives on the server row (or the browser's pending timer); this record keeps what the
- * user has typed or chosen in the completion form, so collapse, phone Back, /search, /settings
- * and crossing the 768px breakpoint never lose it. It is not a queue and not a second timer
- * model: one record, keyed to the capture it belongs to, cleared by Save or Discard.
+ * A stopped timer that is not yet saved or discarded is one unfinished capture. Its frozen
+ * interval lives only on the server row (or the browser's pending timer), the one source of
+ * truth for times; this record keeps what the user has typed or chosen in the completion form,
+ * so collapse, phone Back, /search, /settings and crossing the 768px breakpoint never lose it.
+ * It is not a queue and not a second timer model: one record, cleared by Save or Discard.
+ *
+ * Two keys: `captureKey` (which capture: the draft id or the pending start) guards description,
+ * contract, deliverable and work type; `intervalKey` (its start and end) guards the time text.
+ * The server can move a stopped draft's start or end without changing its id (split, resume,
+ * move; sprint 056), and then the stored time text must not survive: a stale "1h" equal to the
+ * stored measured text would send no time and the form would show a duration it does not save.
  */
 
 export interface CaptureDraftFields {
@@ -18,15 +24,13 @@ export interface CaptureDraftFields {
 	timeText: string;
 	/** The measured text the form started from: an untouched field sends no adjusted time */
 	measuredTimeText: string;
-	/** The frozen end (`HH:MM:SS`), start and date of the capture */
-	endTime: string;
-	startTime: string;
-	date: string;
 }
 
 export interface CaptureDraftRecord extends CaptureDraftFields {
 	/** Which capture these fields belong to (`captureKeyFor`) */
 	captureKey: string;
+	/** The capture's interval when the time text was measured (`intervalKeyFor`) */
+	intervalKey: string;
 }
 
 export const CAPTURE_DRAFT_KEY_PREFIX = 'chronolog:capture-draft:';
@@ -40,17 +44,20 @@ export function captureKeyFor(capture: { entryId: string; date: string; startTim
 	return capture.entryId ? `entry:${capture.entryId}` : `pending:${capture.date}T${capture.startTime}`;
 }
 
+/** The frozen interval the time text was measured from: any change to it invalidates the text */
+export function intervalKeyFor(capture: { date: string; startTime: string; endTime: string; durationMinutes: number }): string {
+	return `${capture.date}T${capture.startTime}/${capture.endTime}/${capture.durationMinutes}`;
+}
+
 const FIELD_NAMES: (keyof CaptureDraftRecord)[] = [
 	'captureKey',
+	'intervalKey',
 	'contractId',
 	'deliverableId',
 	'workTypeId',
 	'description',
 	'timeText',
-	'measuredTimeText',
-	'endTime',
-	'startTime',
-	'date'
+	'measuredTimeText'
 ];
 
 function isCaptureDraftRecord(value: unknown): value is CaptureDraftRecord {

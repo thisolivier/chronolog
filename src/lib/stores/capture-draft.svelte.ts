@@ -22,10 +22,7 @@ function emptyFields(): CaptureDraftFields {
 		workTypeId: '',
 		description: '',
 		timeText: '',
-		measuredTimeText: '',
-		endTime: '',
-		startTime: '',
-		date: ''
+		measuredTimeText: ''
 	};
 }
 
@@ -36,16 +33,15 @@ function fieldsOf(record: CaptureDraftFields): CaptureDraftFields {
 		workTypeId: record.workTypeId,
 		description: record.description,
 		timeText: record.timeText,
-		measuredTimeText: record.measuredTimeText,
-		endTime: record.endTime,
-		startTime: record.startTime,
-		date: record.date
+		measuredTimeText: record.measuredTimeText
 	};
 }
 
 export class CaptureDraftStore {
 	/** The capture the fields belong to; null when there is no unfinished capture */
 	captureKey = $state<string | null>(null);
+	/** The interval the time text was measured from */
+	intervalKey = $state<string | null>(null);
 	fields = $state<CaptureDraftFields>(emptyFields());
 
 	#userId = '';
@@ -56,36 +52,62 @@ export class CaptureDraftStore {
 		this.#userId = userId;
 		this.#storage = storage;
 		this.captureKey = null;
+		this.intervalKey = null;
 		this.fields = emptyFields();
 	}
 
 	/**
-	 * Start or resume the completion of a stopped capture. Fields already stored for the same
-	 * capture win over `initial` (what the server or the running widget knew); any other stored
-	 * record belongs to a capture that no longer exists and is replaced.
+	 * Start or resume the completion of a stopped capture. Fields already held (in memory, else in
+	 * storage) for the same capture win over `initial` (what the server or the running widget
+	 * knew), except the time text when the capture's interval has changed since it was measured:
+	 * then the time comes from `initial`, so the form shows and saves the server's interval. Any
+	 * other record belongs to a capture that no longer exists and is replaced.
 	 */
-	open(captureKey: string, initial: CaptureDraftFields): void {
-		if (this.captureKey === captureKey) return;
-		const stored = readCaptureDraft(this.#storage, this.#userId);
-		if (stored && stored.captureKey === captureKey) {
-			this.fields = fieldsOf(stored);
-		} else {
+	open(captureKey: string, intervalKey: string, initial: CaptureDraftFields): void {
+		const held =
+			this.captureKey === captureKey && this.intervalKey !== null
+				? { intervalKey: this.intervalKey, fields: fieldsOf(this.fields) }
+				: (() => {
+						const stored = readCaptureDraft(this.#storage, this.#userId);
+						return stored && stored.captureKey === captureKey
+							? { intervalKey: stored.intervalKey, fields: fieldsOf(stored) }
+							: null;
+					})();
+		if (held && held.intervalKey === intervalKey && this.captureKey === captureKey) return;
+		if (!held) {
 			this.fields = { ...initial };
+		} else if (held.intervalKey === intervalKey) {
+			this.fields = held.fields;
+		} else {
+			this.fields = { ...held.fields, timeText: initial.timeText, measuredTimeText: initial.measuredTimeText };
 		}
 		this.captureKey = captureKey;
+		this.intervalKey = intervalKey;
 		this.persist();
+	}
+
+	/** The contract chosen in the completion form for this capture, if any (memory, else storage) */
+	contractFor(captureKey: string): string {
+		if (this.captureKey === captureKey) return this.fields.contractId;
+		const stored = readCaptureDraft(this.#storage, this.#userId);
+		return stored && stored.captureKey === captureKey ? stored.contractId : '';
 	}
 
 	/** Write the current fields (call after an edit) */
 	persist(): void {
-		if (!this.captureKey) return;
-		const record: CaptureDraftRecord = { captureKey: this.captureKey, ...$state.snapshot(this.fields) };
+		if (!this.captureKey || this.intervalKey === null) return;
+		const record: CaptureDraftRecord = {
+			captureKey: this.captureKey,
+			intervalKey: this.intervalKey,
+			...$state.snapshot(this.fields)
+		};
 		writeCaptureDraft(this.#storage, this.#userId, record);
 	}
 
 	/** Save or Discard resolved the capture (or none exists any more): forget its fields */
 	clear(): void {
 		this.captureKey = null;
+		this.intervalKey = null;
 		this.fields = emptyFields();
 		clearCaptureDraft(this.#storage, this.#userId);
 	}
