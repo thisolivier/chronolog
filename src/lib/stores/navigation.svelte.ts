@@ -503,12 +503,14 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 	};
 
 	const goBackMobile = () => {
-		if (state.route.kind === 'home') return;
-		if (history.previous && adapter) {
+		// A step before, wherever this is (home after the home button, /search entered from home):
+		// the same history step goBack takes (062-DR review)
+		if (history.canGoBack && adapter) {
 			moveThroughHistory(-1);
 			return;
 		}
-		// Nothing in the app before this entry: go one level up in place
+		// Nothing in the app before this entry: go one level up in place; at home there is no level up
+		if (state.route.kind === 'home') return;
 		go(parentRoute(state.route), { replace: true });
 	};
 

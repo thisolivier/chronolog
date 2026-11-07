@@ -134,6 +134,15 @@ test.describe('phone', () => {
 		await expectNoSidewaysScroll(page);
 		await page.screenshot({ path: path.join(SCREENSHOTS, `phone-${width}-02-note-editor.png`) });
 
+		// Home, then ‹ comes back to the note (review: ‹ at home did nothing)
+		const notePath = pathOf(page);
+		await homeButton(page).click();
+		await expect.poll(() => pathOf(page)).toBe('/');
+		await expect(page.getByTestId('mobile-back')).toHaveAttribute('aria-label', /^Back to Kick-off/);
+		await page.getByTestId('mobile-back').click();
+		await expect.poll(() => pathOf(page)).toBe(notePath);
+		await expect(editor(page)).toBeVisible();
+
 		// Timesheet with the running pill: the title gives way, the bar keeps everything else
 		await startTimer(page, data.contractId);
 		await open(page, '/time');
@@ -153,6 +162,14 @@ test.describe('phone', () => {
 		await expect.poll(() => pathOf(page)).toBe('/');
 		await expect(page.getByTestId('mobile-back')).toBeEnabled();
 		expect(await timerId(page)).toBe(runningId);
+
+		// Home → search icon → ‹ returns to the home screen
+		await page.getByTestId('mobile-search-link').click();
+		await expect.poll(() => pathOf(page)).toBe('/search');
+		await expect(page.getByTestId('mobile-back')).toHaveAttribute('aria-label', 'Back to Chronolog');
+		await page.getByTestId('mobile-back').click();
+		await expect.poll(() => pathOf(page)).toBe('/');
+		await expect(page.getByRole('button', { name: 'Time Entries' })).toBeVisible();
 
 		// /search: the same group, capture access, no "Back to app"
 		await open(page, '/search');

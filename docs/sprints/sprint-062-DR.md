@@ -14,6 +14,10 @@ Source: owner decision 2026-11-07 "Home button and history buttons" (`docs/decis
 6. **Settings and Trash headers:** the same group on every width (‹ › were md+ only); "Back to app" stays at the right (the workspace place you left, distinct from home).
 7. Keyboard shortcuts unchanged (⌘[ ⌘], Alt+←/→, still in `HistoryButtons`).
 
+## Review round
+
+- **Blocker: the phone ‹ did nothing at home or on /search entered from home.** `goBackMobile` returned early whenever the place was home (and /search keeps the last place, often home), though ‹ was enabled and named "Back to …". It now takes the history step whenever there is one (the same step `goBack` takes), falls back to one level up only with nothing before, and does nothing only at home with nothing before. The accessible name already follows `backTarget` (the history entry, else the parent), so it names what will happen. Unit tests: ‹ at home after the home button, and on /search entered from home; `home-button.spec.ts` now taps ‹ after Home (back to the note, editor shown) and home → search → ‹ (home screen).
+
 ## Spec changes (deliberate)
 
 - `history-buttons.spec.ts` (phone 390): › is now always present; `toHaveCount(0)` / `toBeVisible()` became `toBeDisabled()` / `toBeEnabled()`, and the size check is 44 px (was 32).
@@ -28,8 +32,8 @@ Kept test ids: `history-buttons`, `history-back`, `history-forward`, `mobile-bac
 
 - `npm run check`: svelte-check found 0 errors and 0 warnings
 - `npm run lint`: clean
-- `npm test`: 139 files, 1362 tests passed (new: 3 `goHome` cases)
-- `npm run test:playwright` (all projects): 346 passed, 41 skipped (3.5m). An earlier full run, before the phone search spec walked ‹ through the submitted search, failed that one test in all five projects and showed one webkit flake (`attach-note-sidebar` 049, passed on retry).
+- `npm test`: 139 files, 1364 tests passed after the review round (new: 3 `goHome` cases, 2 phone-Back cases)
+- `npm run test:playwright` (all projects): 346 passed, 41 skipped (3.6m after the review round). An earlier full run, before the phone search spec walked ‹ through the submitted search, failed that one test in all five projects and showed one webkit flake (`attach-note-sidebar` 049, passed on retry).
 
 ## Screenshots
 
@@ -37,5 +41,5 @@ Kept test ids: `history-buttons`, `history-back`, `history-forward`, `mobile-bac
 
 ## Known issues
 
-- On a fresh page load straight onto /search (reload, bookmark) the phone ‹ is disabled (no in-app step behind, and /search has no level above); the home button is the way out. "Back to app" used to fall back to the last workspace place.
-- Seen while checking the first screenshots: the pill's md ContractMark lets a three-letter code ("PMM") spill past its tile. Not caused or changed here (ContractMark untouched); on phones below 420 px the pill no longer shows the mark.
+- After a reload straight onto /search the phone ‹ has no in-app step behind it. It is disabled only when the tab's last workspace place was home; otherwise it is enabled and replaces /search with that place's parent (the one-level-up rule). The home button always works.
+- Follow-up for the next polish pass: the pill's md ContractMark lets a three-letter code ("PMM") spill past its tile (seen in this sprint's first screenshots; ContractMark untouched here; below 420 px the pill no longer shows the mark).

@@ -167,6 +167,32 @@ describe('the home button (062-DR)', () => {
 		expect(calls.at(-1)).toEqual({ path: '/', replace: false });
 	});
 
+	it('the phone Back at home, after the home button, takes the step before (review)', async () => {
+		const { nav, settle, backCount } = setup('/');
+		await enter(nav, '/', 'navigate');
+		nav.openNote('ACME.1', CONTRACT_A, CLIENT_A);
+		await settle();
+		nav.goHome();
+		await settle();
+		expect(nav.backTarget).toEqual({ path: `/notes/${CONTRACT_A}/ACME.1`, isHistory: true });
+		nav.goBackMobile();
+		expect(backCount()).toBe(1);
+	});
+
+	it('the phone Back on /search entered from home steps back; at home with nothing before it does nothing', async () => {
+		const { nav, calls, settle, backCount } = setup('/');
+		await enter(nav, '/', 'navigate');
+		nav.goBackMobile();
+		await settle();
+		expect(backCount()).toBe(0);
+		expect(calls).toEqual([]);
+		await nav.syncFromUrl(new URL('http://app/search'), 'link');
+		expect(nav.isHome).toBe(true);
+		expect(nav.backTarget).toEqual({ path: '/', isHistory: true });
+		nav.goBackMobile();
+		expect(backCount()).toBe(1);
+	});
+
 	it('does nothing when already home', async () => {
 		const { nav, calls, settle } = setup('/');
 		await enter(nav, '/', 'navigate');
