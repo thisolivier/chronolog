@@ -39,6 +39,7 @@ import { isTempId, type NoteCreateItem, type NoteFieldValues } from './outbox-ty
 import { findQueuedNoteCreate, noteDetailFromCreate, previewLines, projectNoteDetail, projectNoteSummaries, projectWeeks } from './outbox-projection';
 import { cachedEntry, entryDisplayNames, knownNotes, searchCachedNotes, titlesFromCache, weeksFromCache, type CachedRead } from './offline-reads';
 import { isOfflineError } from './replay-transport';
+import { compareRanked, matchNote, parseSearchQuery } from '$lib/search/record-matcher';
 import { scheduleReplay, substituteExpectedUpdatedAt } from './offline-session.svelte';
 
 const NOTE_FIELDS = ['title', 'content', 'contentJson'] as const;
@@ -261,14 +262,25 @@ export class OfflineDataService extends FetchDataService {
 			const reads = contractReads();
 			results = searchCachedNotes(query, options, knownNotes(cachedReadsStartingWith('/api/notes')), reads);
 		}
-		const needle = query.trim().toLowerCase();
+		// Notes still waiting in the outbox, matched and ranked like the server's (058-DR shared matcher)
+		const parsed = parseSearchQuery(query);
 		const queued = this.items()
 			.filter((item): item is NoteCreateItem => item.kind === 'note-create' && !item.realId)
 			.map((item) => noteDetailFromCreate(item))
 			.filter((note) => note.id !== options.excludeNoteId)
-			.filter((note) => (needle ? `${note.title ?? ''}\n${note.content ?? ''}`.toLowerCase().includes(needle) : options.recent))
-			.map((note) => this.searchResultFor(note));
-		return [...queued, ...results];
+			.flatMap((note): NoteSearchResult[] => {
+				const result = this.searchResultFor(note);
+				if (parsed.terms.length === 0) return options.recent ? [{ ...result, rank: null, matchedIn: null, matchedContext: [] }] : [];
+				const match = matchNote(parsed, { ...result, title: result.displayTitle, body: note.content });
+				return match ? [{ ...result, ...match }] : [];
+			});
+		if (queued.length === 0) return results;
+		// One list in shared rank order (the recent list has no rank: recency alone), then the limit
+		const merged = [...queued, ...results]
+			.map((result) => ({ result, rank: result.rank ?? 0, recency: result.updatedAt, id: result.id }))
+			.sort(compareRanked)
+			.map(({ result }) => result);
+		return options.limit ? merged.slice(0, options.limit) : merged;
 	}
 
 	private searchResultFor(note: NoteDetail): NoteSearchResult {
