@@ -77,3 +77,22 @@ The web app is now a proper installable PWA: `static/manifest.webmanifest` (stan
 blue `#2563eb`), Apple home-screen tags and icons cut from the iOS app icon (the old `pwa-*.png` were
 placeholders). The owner runs it side by side with the Tauri iOS shell as an experiment; whichever
 wins decides whether the TestFlight lane is kept.
+
+## 2026-11-07 — Design overhaul r1: four decisions before stage 2
+
+The engineering spec pack (`docs/design/r1/`, revision 1 of 7 Nov 2026) left thirteen open items. The
+owner settled the four that blocked the token and identity work:
+
+- **Contract identity marks (O02 / DS-07): keep it minimal for now.** Ship the earth-tone reskin with
+  solid colour marks (client colour plus contract initials) rather than procedural or hand-drawn
+  pattern tiles. The DS-04 pattern placements (timer header repeat, selected-contract repeat, notes
+  list and editor header repeats) are deferred to a later sprint; the layout must leave room for them.
+- **Typography (O01): system sans stack.** `-apple-system`/SF Pro on Mac and iOS, Segoe/Roboto
+  elsewhere. No bundled font. Hierarchy comes from weight, size and colour.
+- **Branch strategy: integration branch `design-r1`, merged to main at coherent checkpoints.** Each
+  stage runs in its own worktree and merges into `design-r1`; `design-r1` merges to main (and
+  deploys) only when the result looks consistent: first tokens + shell + sidebar + notes headers,
+  then capture/split, then review, then search. Production never shows a half-styled mix.
+- **Week numbering (O05 / TR-07): Week 1 is the Monday-start week that contains 1 January.** 29 Dec
+  2025 to 4 Jan 2026 is 2026 Week 1. Replaces ISO numbering in the label; the storage and URL keys
+  are decided in the time-review stage.

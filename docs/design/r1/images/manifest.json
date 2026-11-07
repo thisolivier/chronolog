@@ -1,0 +1,840 @@
+{
+  "format_version": 1,
+  "date": "2026-11-07",
+  "raw_images": [
+    {
+      "id": "01",
+      "file": "images/raw/01-studio-ledger.png",
+      "original_filename": "exec-51a41fa8-29c9-462a-bcff-42184db0f014.png",
+      "size_px": [
+        1536,
+        1024
+      ],
+      "sha256": "c39375c7e51e46f47c550bbc5ae821ff476c04c171066a09f0e5a060fa190ed1",
+      "status": "Historical mood exploration"
+    },
+    {
+      "id": "02",
+      "file": "images/raw/02-working-papers.png",
+      "original_filename": "exec-a4846dfd-52e2-48c7-b36b-fb9d92648d62.png",
+      "size_px": [
+        1536,
+        1024
+      ],
+      "sha256": "76ad4920d2d17f1b770f166c1543a5e940492901dd691acff34eb5f0f5e39f44",
+      "status": "Historical mood exploration"
+    },
+    {
+      "id": "03",
+      "file": "images/raw/03-field-notes.png",
+      "original_filename": "exec-9490363d-92a9-47fc-97b1-46abeed44b7d.png",
+      "size_px": [
+        1536,
+        1024
+      ],
+      "sha256": "2e3f19fe23f8640d8952572cdf7284097193d0c199abe506e0fa69ff41223a18",
+      "status": "Preferred earth-tone direction; component details subsequently amended"
+    },
+    {
+      "id": "04",
+      "file": "images/raw/04-symbol-exploration.png",
+      "original_filename": "exec-f001537e-370f-4ea2-afa3-1a868d84968e.png",
+      "size_px": [
+        1219,
+        1290
+      ],
+      "sha256": "510f1467a41dd8be90a5ed474583497ceef84539135af79b7d36322c70e73d47",
+      "status": "Exploratory symbols, not production assets; square base supersedes mixed shapes"
+    },
+    {
+      "id": "05",
+      "file": "images/raw/05-stopped-entry.png",
+      "original_filename": "exec-1b2b9897-b744-4645-bf43-c94f291019c6.png",
+      "size_px": [
+        1536,
+        1024
+      ],
+      "sha256": "4b56b3fca013546ce2ecd18d30d121620bc33f1b24159b4787d9856c1538e259",
+      "status": "Approved with wording and sole-option amendments"
+    },
+    {
+      "id": "06",
+      "file": "images/raw/06-split-fullscreen.png",
+      "original_filename": "exec-39e7c537-dba0-4f34-a3b0-140df8a1fab0.png",
+      "size_px": [
+        1477,
+        1065
+      ],
+      "sha256": "6136d24baec80ee1287214da6fc736f73b1f820b337176b92e1da288a7134998",
+      "status": "Historical; replaced by two floating cards"
+    },
+    {
+      "id": "07",
+      "file": "images/raw/07-split-many.png",
+      "original_filename": "exec-a8aeb125-f3a9-404f-b437-a717f18341e0.png",
+      "size_px": [
+        1330,
+        1182
+      ],
+      "sha256": "9a8d4381572a9951e550e196e2b8f7a6111535b322f0ca5836ebdb79204f451b",
+      "status": "Rejected multi-split study"
+    },
+    {
+      "id": "08",
+      "file": "images/raw/08-split-mobile.png",
+      "original_filename": "exec-82ea5925-42c5-429c-a7bb-a7c200d4a23f.png",
+      "size_px": [
+        1448,
+        1086
+      ],
+      "sha256": "4250441612baba8320e7eeb9c15543c75bcfb98ec24b7b90d1f10471d7d004dc",
+      "status": "Rejected; splitting is desktop only"
+    },
+    {
+      "id": "09",
+      "file": "images/raw/09-split-single-dialog.png",
+      "original_filename": "exec-b7530426-c4fa-4072-a317-86bb50b355f1.png",
+      "size_px": [
+        1568,
+        1003
+      ],
+      "sha256": "fa712868f7862073ae87723c91a46df158357789576bcd8dc5b24efcb91d3d9e",
+      "status": "Historical; enclosing dialog superseded"
+    },
+    {
+      "id": "10",
+      "file": "images/raw/10-split-two-cards.png",
+      "original_filename": "exec-bd69e6aa-d634-4dd3-b241-ea9484f5c910.png",
+      "size_px": [
+        1568,
+        1003
+      ],
+      "sha256": "88a7d4f512c3b48bf1f0f7a981e3d1cda10ae83e827678a21303837abc986df7",
+      "status": "Approved desktop initial state; later states specified in text"
+    },
+    {
+      "id": "11",
+      "file": "images/raw/11-time-review-study.png",
+      "original_filename": "exec-88ec8886-33da-465c-b06d-1a405aef54d6.png",
+      "size_px": [
+        1516,
+        1037
+      ],
+      "sha256": "072e178184b717edebbe6459d2adda37c6b3f885c207d7fb83dd7363209a7f8e",
+      "status": "Historical before sidebar/timer refinements"
+    },
+    {
+      "id": "12",
+      "file": "images/raw/12-time-review-selected.png",
+      "original_filename": "exec-50064e58-a2ed-41a3-afae-ae6998e4be1f.png",
+      "size_px": [
+        1516,
+        1037
+      ],
+      "sha256": "30f013544f6f25d40b2f1344b2c9cf41335f1a9d923e5146138d3572f2a92794",
+      "status": "Owner-selected sidebar variant; review layout with written amendments"
+    },
+    {
+      "id": "13",
+      "file": "images/raw/13-sidebar-alignment-alternative.png",
+      "original_filename": "exec-f62625bb-2971-4115-8132-5e405aecd0c7.png",
+      "size_px": [
+        1516,
+        1037
+      ],
+      "sha256": "ab27e26308e1ce824b199d68706587a404b95d6f7baaa996f851aec7b2a33298",
+      "status": "Not selected; use looser alignment in image 12"
+    },
+    {
+      "id": "14",
+      "file": "images/raw/14-time-review-mobile.png",
+      "original_filename": "exec-2012f230-7cf1-4a2e-8a33-0ac251d82c0c.png",
+      "size_px": [
+        887,
+        1774
+      ],
+      "sha256": "6358d13276e074f15ec69077740a26be318c43fcf6fa8539a344afbcf7757f09",
+      "status": "Mobile draft; square heading ends and divider notes override image"
+    },
+    {
+      "id": "15",
+      "file": "images/raw/15-notes-desktop.png",
+      "original_filename": "exec-ac487607-5593-4b9c-a593-d449cbc059ca.png",
+      "size_px": [
+        1536,
+        1024
+      ],
+      "sha256": "cb9c68cff1c7022c5a2c459a6b859d809687a89167317f36d7f8f55320a4f14a",
+      "status": "Approved notes layout; latest inline-pattern amendments apply"
+    },
+    {
+      "id": "16",
+      "file": "images/raw/16-notes-mobile.png",
+      "original_filename": "exec-888d2566-b02f-4310-a190-f355bacc1b55.png",
+      "size_px": [
+        852,
+        1846
+      ],
+      "sha256": "58cf78528cc15af8d6661ea7130da162d14b7ef3d60f06056e9ceb63724ff46e",
+      "status": "Approved notes layout; latest identity rules apply"
+    },
+    {
+      "id": "17",
+      "file": "images/raw/17-link-picker-desktop.png",
+      "original_filename": "exec-198bb3fa-37f6-4c17-aadb-032ccea7eb3a.png",
+      "size_px": [
+        1536,
+        1024
+      ],
+      "sha256": "16566c000e2fbed3e12002ad16670a9d5132bea3008da71fb355dc37b5965f3e",
+      "status": "Banked with visible header and scope controls removed in implementation"
+    },
+    {
+      "id": "18",
+      "file": "images/raw/18-link-picker-mobile.png",
+      "original_filename": "exec-41eb1209-0a33-4623-b969-44d07021119e.png",
+      "size_px": [
+        852,
+        1846
+      ],
+      "sha256": "a6e1b65b3caf67b8d44e6ef1aca2164bdfb5b6c377bc8e45aecab1f0c83522fa",
+      "status": "Banked with visible header and scope controls removed in implementation"
+    },
+    {
+      "id": "19",
+      "file": "images/raw/19-time-capture-mobile.png",
+      "original_filename": "exec-e2140f20-e599-464a-ac24-5d0048180f4f.png",
+      "size_px": [
+        1536,
+        1024
+      ],
+      "sha256": "f41d7ea561d8b09a418397fc42813dd4bc42e1ce86c3d2bd7df547f9041bbbe3",
+      "status": "Responsive draft; desktop-only collapse and latest identity rules apply"
+    },
+    {
+      "id": "20",
+      "file": "images/raw/20-search-desktop.png",
+      "original_filename": "exec-843751cf-6625-4c5f-88f9-0b0d89595283.png",
+      "size_px": [
+        1536,
+        1024
+      ],
+      "sha256": "592b6091a10a9d6e22b9a4305945f3b44e9b3965c411beeb8bc8a1b3a65d3ea2",
+      "status": "Approved with large results-top query and hidden header-search amendment"
+    },
+    {
+      "id": "21",
+      "file": "images/raw/21-search-mobile.png",
+      "original_filename": "exec-c3a537fc-0e79-4b23-8e44-0a8a7ba501b5.png",
+      "size_px": [
+        887,
+        1774
+      ],
+      "sha256": "ca9909ce433784316edada43799dde58ed286f2e4c20926d987f777b8938fe1e",
+      "status": "Approved mobile search direction"
+    },
+    {
+      "id": "22",
+      "file": "images/raw/22-square-tile-study.png",
+      "original_filename": "exec-661a338d-cd8d-4ad5-b644-b9a66f2415e6.png",
+      "size_px": [
+        1536,
+        1024
+      ],
+      "sha256": "4153e879518d10eae46da3cb9f38e2c9c4a7cad1505b328f92e8ddc4ad6a6969",
+      "status": "Historical; gaps between tiles superseded"
+    },
+    {
+      "id": "23",
+      "file": "images/raw/23-continuous-tile-study.png",
+      "original_filename": "exec-dc1ee6df-4fb7-4466-87ee-cbcdfe380026.png",
+      "size_px": [
+        1536,
+        1024
+      ],
+      "sha256": "b3ae80f995a67f3031bdb023ab0674c32871b7a79c875eea43301623a483c0a1",
+      "status": "Continuous repeat study; time-entry wash not approved"
+    },
+    {
+      "id": "24",
+      "file": "images/raw/24-timer-clip-study.png",
+      "original_filename": "exec-b660b4f0-3dbb-4ca8-a2ad-b5368ebe82d4.png",
+      "size_px": [
+        1672,
+        941
+      ],
+      "sha256": "8027b577842e86db0a407d8a13678b16d8018a71be54f153710753aff668ea89",
+      "status": "Corrected 1.5-unit clip study; identity header later amended"
+    },
+    {
+      "id": "25",
+      "file": "images/raw/25-note-pattern-rows-study.png",
+      "original_filename": "exec-fad6b31d-e721-4741-8c52-ea91757ba837.png",
+      "size_px": [
+        1536,
+        1024
+      ],
+      "sha256": "d9aa7c5697fd8331dd131b9a38c0933edf3496a4193bb1b138aba1be6cfd288e",
+      "status": "Historical; dedicated pattern rows removed"
+    },
+    {
+      "id": "26",
+      "file": "images/raw/26-timer-and-selection-latest.png",
+      "original_filename": "exec-626e0efb-d875-44bc-b999-1228abf76a5a.png",
+      "size_px": [
+        1672,
+        941
+      ],
+      "sha256": "3a89adfb5110437649fdec07cb67499747da7758e0ae20a2547cfdc6c75cf9c2",
+      "status": "Latest requested component render; pulse dot must be TOP RIGHT"
+    },
+    {
+      "id": "27",
+      "file": "images/raw/27-notes-inline-patterns-latest.png",
+      "original_filename": "exec-e0b8c685-35a0-4dd9-ad2c-256ba388f051.png",
+      "size_px": [
+        1536,
+        1024
+      ],
+      "sha256": "6e8210a73f5da035964023d19cd5fe19b56933dc558744081e9455f30620a00c",
+      "status": "Latest requested desktop render; pulse dot top right; written sidebar spacing controls"
+    }
+  ],
+  "crops": [
+    {
+      "id": "timer-running",
+      "file": "images/crops/timer-running.png",
+      "raw_id": "26",
+      "raw_file": "images/raw/26-timer-and-selection-latest.png",
+      "box_px": [
+        48,
+        312,
+        756,
+        762
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        708,
+        450
+      ],
+      "sha256": "09652e1f80ea5822c7d66e0858e20dfc5b30774cf98e03419f75c31445198d0a",
+      "spec": "specs/03-time-capture.md",
+      "title": "Entire running timer",
+      "written_override": "Move pulse light to top right; 1.5:1 graphic clip is defined in writing, not measured from the raster."
+    },
+    {
+      "id": "sidebar-selected-contract",
+      "file": "images/crops/sidebar-selected-contract.png",
+      "raw_id": "26",
+      "raw_file": "images/raw/26-timer-and-selection-latest.png",
+      "box_px": [
+        807,
+        312,
+        1630,
+        762
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        823,
+        450
+      ],
+      "sha256": "2f651cea1f9a14ef6ad48e5a5f3db83d15c49fe14e69970f5a6bec40fcb2f54c",
+      "spec": "specs/02-shell-and-navigation.md",
+      "title": "Complete client group with selected contract",
+      "written_override": "Count stays right. Tile-to-name gap is approximately 40% smaller than the earlier selected-contract study; this component reference takes precedence over image 27 spacing."
+    },
+    {
+      "id": "shell-desktop-header",
+      "file": "images/crops/shell-desktop-header.png",
+      "raw_id": "27",
+      "raw_file": "images/raw/27-notes-inline-patterns-latest.png",
+      "box_px": [
+        0,
+        0,
+        1536,
+        51
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        1536,
+        51
+      ],
+      "sha256": "670995611e90b8a3b0837e9748d9e698b08770039a4ccf5daffa567fdf3574b9",
+      "spec": "specs/02-shell-and-navigation.md",
+      "title": "Entire desktop application header",
+      "written_override": "No duplicate timer when the sidebar timer is visible."
+    },
+    {
+      "id": "sidebar-notes",
+      "file": "images/crops/sidebar-notes.png",
+      "raw_id": "27",
+      "raw_file": "images/raw/27-notes-inline-patterns-latest.png",
+      "box_px": [
+        0,
+        51,
+        348,
+        709
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        348,
+        658
+      ],
+      "sha256": "25ab85f29901ffdd6b331f3b65c39e74ff949ce8befc9bb3b42e06a29acbca10",
+      "spec": "specs/02-shell-and-navigation.md",
+      "title": "Notes navigation panel with utilities",
+      "written_override": "Written tile-to-label spacing takes precedence over this raster."
+    },
+    {
+      "id": "sidebar-time-review",
+      "file": "images/crops/sidebar-time-review.png",
+      "raw_id": "12",
+      "raw_file": "images/raw/12-time-review-selected.png",
+      "box_px": [
+        0,
+        51,
+        358,
+        1001
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        358,
+        950
+      ],
+      "sha256": "5ba5c445800ba4f362bf2f70287d8582b9cee16a78c47829f31ffc410d0f745d",
+      "spec": "specs/02-shell-and-navigation.md",
+      "title": "Sidebar showing faded navigation and full-strength timer",
+      "written_override": "Timer appearance superseded by latest timer crop; sidebar emphasis and looser alignment are the reference."
+    },
+    {
+      "id": "completion-just-stopped",
+      "file": "images/crops/completion-just-stopped.png",
+      "raw_id": "05",
+      "raw_file": "images/raw/05-stopped-entry.png",
+      "box_px": [
+        87,
+        158,
+        522,
+        896
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        435,
+        738
+      ],
+      "sha256": "bb1da0177c590cb732079589e480549309b4cd0fcb4a02c0bd27050a2489f77b",
+      "spec": "specs/03-time-capture.md",
+      "title": "Entire stopped completion card",
+      "written_override": "Use Save, not Save entry; latest contract-first identity and separate contract-change control apply."
+    },
+    {
+      "id": "completion-options-open",
+      "file": "images/crops/completion-options-open.png",
+      "raw_id": "05",
+      "raw_file": "images/raw/05-stopped-entry.png",
+      "box_px": [
+        552,
+        158,
+        987,
+        896
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        435,
+        738
+      ],
+      "sha256": "bdcf7d6258348500db3309ff825212dbe18bf68f0022423350ca30df02c297cc",
+      "spec": "specs/03-time-capture.md",
+      "title": "Entire completion card with browsable options",
+      "written_override": "Use Save; choices overlay the form. All completion fields remain present."
+    },
+    {
+      "id": "completion-ready",
+      "file": "images/crops/completion-ready.png",
+      "raw_id": "05",
+      "raw_file": "images/raw/05-stopped-entry.png",
+      "box_px": [
+        1015,
+        158,
+        1453,
+        896
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        438,
+        738
+      ],
+      "sha256": "47c916f0339220c0a350a41e1deffb2d3b001e5095cb090b8b34c3b3d93664f8",
+      "spec": "specs/03-time-capture.md",
+      "title": "Entire completed form before saving",
+      "written_override": "Remove Only option text/icon/helper and its reserved space; button says Save."
+    },
+    {
+      "id": "capture-mobile-running",
+      "file": "images/crops/capture-mobile-running.png",
+      "raw_id": "19",
+      "raw_file": "images/raw/19-time-capture-mobile.png",
+      "box_px": [
+        86,
+        122,
+        521,
+        992
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        435,
+        870
+      ],
+      "sha256": "084a2ddd26ecee86b0475dfc08795fe6131dd2c17bd44e34f6ccf9c7ca523688",
+      "spec": "specs/03-time-capture.md",
+      "title": "Whole focused mobile running timer",
+      "written_override": "No collapse chevron; latest contract-first header, top-right pulse dot and no RECORDING text apply."
+    },
+    {
+      "id": "capture-mobile-stopped",
+      "file": "images/crops/capture-mobile-stopped.png",
+      "raw_id": "19",
+      "raw_file": "images/raw/19-time-capture-mobile.png",
+      "box_px": [
+        552,
+        122,
+        986,
+        992
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        434,
+        870
+      ],
+      "sha256": "532f26b8f04d431fdc3e9ea5c5fc366ef32743085bcbed9ba7edf5ee6fa29347",
+      "spec": "specs/03-time-capture.md",
+      "title": "Whole focused mobile stopped form",
+      "written_override": "No collapse chevron; Back preserves unfinished stopped entry."
+    },
+    {
+      "id": "capture-mobile-manual",
+      "file": "images/crops/capture-mobile-manual.png",
+      "raw_id": "19",
+      "raw_file": "images/raw/19-time-capture-mobile.png",
+      "box_px": [
+        1015,
+        122,
+        1454,
+        992
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        439,
+        870
+      ],
+      "sha256": "54723b8a75897fefd0024a28b941ee382fe88d515bd3a76a3c2f35c1bdd33e54",
+      "spec": "specs/03-time-capture.md",
+      "title": "Whole manual-entry form with keyboard",
+      "written_override": "Selector chevron remains a selector here. Cancel/Save; lower fields remain in scrollable form."
+    },
+    {
+      "id": "split-two-card-overlay",
+      "file": "images/crops/split-two-card-overlay.png",
+      "raw_id": "10",
+      "raw_file": "images/raw/10-split-two-cards.png",
+      "box_px": [
+        319,
+        179,
+        1268,
+        911
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        949,
+        732
+      ],
+      "sha256": "7ea2743e9d93c6754ae3a5a05d6d21ccc85a4ef4acc7a5ff37414ae069885e50",
+      "spec": "specs/04-split-time.md",
+      "title": "Whole split interaction: two cards, Flip, label and Cancel",
+      "written_override": "Initial state only; resolved-left state is specified in text. No mobile split."
+    },
+    {
+      "id": "review-desktop-week",
+      "file": "images/crops/review-desktop-week.png",
+      "raw_id": "12",
+      "raw_file": "images/raw/12-time-review-selected.png",
+      "box_px": [
+        358,
+        51,
+        1516,
+        294
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        1158,
+        243
+      ],
+      "sha256": "57ad34dff6f1e3e2beb3690381f2b58c01b3deba50e58d4871e9a4d91110c3a2",
+      "spec": "specs/05-time-review.md",
+      "title": "Whole week-navigation and summary panel",
+      "written_override": "Week numbering from start of calendar year; partial-week convention remains open."
+    },
+    {
+      "id": "review-desktop-day",
+      "file": "images/crops/review-desktop-day.png",
+      "raw_id": "12",
+      "raw_file": "images/raw/12-time-review-selected.png",
+      "box_px": [
+        358,
+        295,
+        1516,
+        773
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        1158,
+        478
+      ],
+      "sha256": "0294a9d68273f077d5c3589af8bd7a9a9d2f5140e03e5fd2b412efe07abd03b5",
+      "spec": "specs/05-time-review.md",
+      "title": "Whole day section with heading and six rows",
+      "written_override": "Heading ends are square. Horizontal divider endpoints remain open; do not copy full-width rules as settled geometry."
+    },
+    {
+      "id": "review-mobile-week",
+      "file": "images/crops/review-mobile-week.png",
+      "raw_id": "14",
+      "raw_file": "images/raw/14-time-review-mobile.png",
+      "box_px": [
+        0,
+        0,
+        887,
+        640
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        887,
+        640
+      ],
+      "sha256": "f544dc6b2e58ff402bd672ec77000369068bb68bb0dbc5be5ee55f44c9586eba",
+      "spec": "specs/05-time-review.md",
+      "title": "Whole mobile shell and week summary",
+      "written_override": "Single timer reflection when sidebar absent; exact year-boundary numbering remains open."
+    },
+    {
+      "id": "review-mobile-day",
+      "file": "images/crops/review-mobile-day.png",
+      "raw_id": "14",
+      "raw_file": "images/raw/14-time-review-mobile.png",
+      "box_px": [
+        0,
+        640,
+        887,
+        1774
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        887,
+        1134
+      ],
+      "sha256": "bde806b8e18c80c6f40c214a2608d40d1cb54255cebe05f6840b6b54334aaf1b",
+      "spec": "specs/05-time-review.md",
+      "title": "Mobile day section with heading and entries",
+      "written_override": "Square heading ends; chronological entries; no mobile split. This remains a responsive draft."
+    },
+    {
+      "id": "notes-list-panel",
+      "file": "images/crops/notes-list-panel.png",
+      "raw_id": "27",
+      "raw_file": "images/raw/27-notes-inline-patterns-latest.png",
+      "box_px": [
+        348,
+        51,
+        699,
+        1024
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        351,
+        973
+      ],
+      "sha256": "ae8fb7481fda03ac9de640346c8994da85f7c1b110e50ee581511e692908a50c",
+      "spec": "specs/06-notes-workspace.md",
+      "title": "Entire middle notes-list column",
+      "written_override": "Repeat is in the existing Notes title row; no dedicated pattern row."
+    },
+    {
+      "id": "notes-editor-panel",
+      "file": "images/crops/notes-editor-panel.png",
+      "raw_id": "27",
+      "raw_file": "images/raw/27-notes-inline-patterns-latest.png",
+      "box_px": [
+        699,
+        51,
+        1536,
+        1024
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        837,
+        973
+      ],
+      "sha256": "bc217b488a5738752112d6f86181166ed634317e63e1846e23d42c6c1666a5fb",
+      "spec": "specs/06-notes-workspace.md",
+      "title": "Entire editor panel including metadata, toolbar, body and linked time",
+      "written_override": "Repeat goes between Saved and ellipsis; content is illustrative, not a note-data edit."
+    },
+    {
+      "id": "notes-mobile-context-toolbar",
+      "file": "images/crops/notes-mobile-context-toolbar.png",
+      "raw_id": "16",
+      "raw_file": "images/raw/16-notes-mobile.png",
+      "box_px": [
+        0,
+        0,
+        852,
+        477
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        852,
+        477
+      ],
+      "sha256": "f7500770c1d9a727cd93d5886b6902c45c08cdea6f4d45160f95cfca8d1c332b",
+      "spec": "specs/06-notes-workspace.md",
+      "title": "Complete mobile navigation, metadata and formatting panel",
+      "written_override": "Restore readable note context in single-column view; compact timer identifies its independent context."
+    },
+    {
+      "id": "notes-mobile-document",
+      "file": "images/crops/notes-mobile-document.png",
+      "raw_id": "16",
+      "raw_file": "images/raw/16-notes-mobile.png",
+      "box_px": [
+        0,
+        477,
+        852,
+        1846
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        852,
+        1369
+      ],
+      "sha256": "b7beffa968d02cb1f98e9718932c7b9c248b347a564a025767b9b5e1786933bd",
+      "spec": "specs/06-notes-workspace.md",
+      "title": "Mobile document content panel",
+      "written_override": "Illustrative body copy; no content rewrite is specified."
+    },
+    {
+      "id": "link-picker-desktop",
+      "file": "images/crops/link-picker-desktop.png",
+      "raw_id": "17",
+      "raw_file": "images/raw/17-link-picker-desktop.png",
+      "box_px": [
+        715,
+        320,
+        1506,
+        751
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        791,
+        431
+      ],
+      "sha256": "81e262d46781225b547888f57629702d70fc354921858a322f0234f5cff61a8d",
+      "spec": "specs/07-search-and-linking.md",
+      "title": "Entire desktop autocomplete panel",
+      "written_override": "Remove visible Link a note header and ALL scope tabs; results start immediately. Query remains inline."
+    },
+    {
+      "id": "link-picker-mobile",
+      "file": "images/crops/link-picker-mobile.png",
+      "raw_id": "18",
+      "raw_file": "images/raw/18-link-picker-mobile.png",
+      "box_px": [
+        20,
+        746,
+        832,
+        1288
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        812,
+        542
+      ],
+      "sha256": "2d3c6a18e94317014a47840ce1ff1b71e58d2dd39c7f55f9fc3b129d4a556fca",
+      "spec": "specs/07-search-and-linking.md",
+      "title": "Entire mobile autocomplete panel",
+      "written_override": "Remove header, close control and scope row; do not leave a blank header band."
+    },
+    {
+      "id": "search-desktop-results",
+      "file": "images/crops/search-desktop-results.png",
+      "raw_id": "20",
+      "raw_file": "images/raw/20-search-desktop.png",
+      "box_px": [
+        204,
+        84,
+        1337,
+        983
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        1133,
+        899
+      ],
+      "sha256": "44cd04fb585f1420f178069fe84fdc4b78a179196343d26168785985973e4bc5",
+      "spec": "specs/07-search-and-linking.md",
+      "title": "Entire desktop mixed-result list",
+      "written_override": "Add one large query input above results; hide header search on this route. Input placement not shown in this crop."
+    },
+    {
+      "id": "search-mobile-query",
+      "file": "images/crops/search-mobile-query.png",
+      "raw_id": "21",
+      "raw_file": "images/raw/21-search-mobile.png",
+      "box_px": [
+        0,
+        0,
+        887,
+        370
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        887,
+        370
+      ],
+      "sha256": "df0a121d510b94ddddd19d18db90a78fb6deb553e7a38f3726d8fdae053269b1",
+      "spec": "specs/07-search-and-linking.md",
+      "title": "Complete mobile navigation and search-input panel",
+      "written_override": "One large input above results; no duplicate header search."
+    },
+    {
+      "id": "search-mobile-results",
+      "file": "images/crops/search-mobile-results.png",
+      "raw_id": "21",
+      "raw_file": "images/raw/21-search-mobile.png",
+      "box_px": [
+        0,
+        370,
+        887,
+        1700
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "size_px": [
+        887,
+        1330
+      ],
+      "sha256": "9d348124bd84d764bb1b95fcea4da054aaa6181a2c12df542dd74bb7c2785394",
+      "spec": "specs/07-search-and-linking.md",
+      "title": "Mobile mixed-results panel",
+      "written_override": "Metadata reflows below excerpts. Image is keyboard-dismissed, not an auto-dismiss requirement."
+    }
+  ],
+  "excluded_intermediate_renders": [
+    {
+      "original_filename": "exec-95d24e70-22ce-423e-80c9-56edea619dd1.png",
+      "reason": "Replaced in same review round by corrected segmented day bars in image 11"
+    },
+    {
+      "original_filename": "exec-4e16b9f8-19cf-4327-8f6c-20257b79fe54.png",
+      "reason": "Replaced in same clip round by corrected 1.5-unit treatment in image 24"
+    }
+  ]
+}
