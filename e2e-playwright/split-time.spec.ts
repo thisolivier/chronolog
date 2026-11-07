@@ -177,6 +177,13 @@ test.describe('desktop split', () => {
 		await expect(rightCard(page).locator('#split-right-description')).toHaveValue(description);
 		// The link reads as rendered text, not [[id]], until the field is clicked (060-DR)
 		await expect(rightCard(page).getByTestId('split-right-description-rendered')).not.toContainText('[[');
+		// The link is text inside the button (no nested buttons, no tab stops): clicking its title opens the field
+		const rendered = rightCard(page).getByTestId('split-right-description-rendered');
+		await expect(rendered.locator('button')).toHaveCount(0);
+		await rendered.locator('[data-wiki-link-text]').click();
+		await expect(rightCard(page).locator('#split-right-description')).toBeVisible();
+		await expect(rightCard(page).locator('#split-right-description')).toBeFocused();
+		await expect(rightCard(page).locator('#split-right-description')).toHaveValue(description);
 		await expect(rightCard(page).locator('#split-right-contract')).toHaveValue(data.contractId);
 		await expect(rightCard(page).locator('#split-right-work-type')).toHaveValue(data.workTypeId);
 		await expect(leftCard(page).locator('#split-left-description')).toHaveValue('');

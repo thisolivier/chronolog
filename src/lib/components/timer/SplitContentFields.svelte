@@ -57,7 +57,7 @@
 				title="Click to edit description"
 				data-testid="{idPrefix}-description-rendered"
 			>
-				<WikiLinkRenderer text={selection().description ?? ''} />
+				<WikiLinkRenderer text={selection().description ?? ''} interactive={false} />
 			</button>
 		{/if}
 		<textarea
