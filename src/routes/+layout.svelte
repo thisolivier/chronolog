@@ -104,20 +104,20 @@
 
 {#if showUpdatePrompt}
 	<div
-		class="safe-area-bottom-offset fixed right-4 bottom-4 z-50 flex items-center gap-3 rounded-lg bg-blue-600 px-4 py-3 text-sm text-white shadow-lg"
+		class="safe-area-bottom-offset fixed right-4 bottom-4 z-50 flex items-center gap-3 rounded-lg bg-primary px-4 py-3 text-sm text-on-accent shadow-lg"
 		role="alert"
 		data-testid="pwa-update-prompt"
 	>
 		<span>A new version is available</span>
 		<button
 			onclick={handleUpdateAccept}
-			class="rounded bg-white px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
+			class="rounded bg-surface px-3 py-1 text-xs font-medium text-pine-600 hover:bg-pine-50"
 		>
 			Update
 		</button>
 		<button
 			onclick={handleUpdateDismiss}
-			class="text-blue-200 hover:text-white"
+			class="text-pine-200 hover:text-on-accent"
 			aria-label="Dismiss update"
 		>
 			&times;

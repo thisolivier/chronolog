@@ -105,10 +105,10 @@
 </script>
 
 <div class="space-y-3">
-	<p class="text-xs font-medium text-stone-500">Timer stopped: save or discard this entry</p>
+	<p class="text-xs font-medium text-ink-faint">Timer stopped: save or discard this entry</p>
 
 	<div>
-		<label for="timer-description" class="block text-xs font-medium text-stone-600">
+		<label for="timer-description" class="block text-xs font-medium text-ink-muted">
 			Description
 		</label>
 		<textarea
@@ -116,13 +116,13 @@
 			bind:value={description}
 			onkeydown={handleFieldKeydown}
 			rows="2"
-			class="mt-0.5 block w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+			class="mt-0.5 block w-full rounded-md input-base px-2 py-1.5 text-sm"
 			placeholder="What did you work on?"
 		></textarea>
 	</div>
 
 	<div>
-		<label for="timer-contract" class="block text-xs font-medium text-stone-600">Contract</label>
+		<label for="timer-contract" class="block text-xs font-medium text-ink-muted">Contract</label>
 		<div class="mt-0.5">
 			<ContractSelect
 				id="timer-contract"
@@ -131,11 +131,11 @@
 				invalid={contractError !== ''}
 			/>
 		</div>
-		{#if contractError}<p class="mt-1 text-xs text-red-600" role="alert">{contractError}</p>{/if}
+		{#if contractError}<p class="mt-1 text-xs text-rust-600" role="alert">{contractError}</p>{/if}
 	</div>
 
 	<div>
-		<label for="timer-deliverable" class="block text-xs font-medium text-stone-600">Deliverable</label>
+		<label for="timer-deliverable" class="block text-xs font-medium text-ink-muted">Deliverable</label>
 		<div class="mt-0.5">
 			<DeliverableSelect
 				id="timer-deliverable"
@@ -148,7 +148,7 @@
 	</div>
 
 	<div class:hidden={!workTypesAvailable}>
-		<label for="timer-work-type" class="block text-xs font-medium text-stone-600">Work type</label>
+		<label for="timer-work-type" class="block text-xs font-medium text-ink-muted">Work type</label>
 		<div class="mt-0.5">
 			<WorkTypeSelect
 				id="timer-work-type"
@@ -161,7 +161,7 @@
 	</div>
 
 	<div>
-		<label for="timer-time" class="block text-xs font-medium text-stone-600">Time</label>
+		<label for="timer-time" class="block text-xs font-medium text-ink-muted">Time</label>
 		<div class="mt-0.5">
 			<DurationField
 				id="timer-time"
@@ -174,14 +174,14 @@
 	</div>
 
 	{#if saveError}
-		<div class="rounded-md bg-red-50 p-2 text-xs text-red-600" role="alert">{saveError}</div>
+		<div class="rounded-md bg-rust-50 p-2 text-xs text-rust-600" role="alert">{saveError}</div>
 	{/if}
 
 	<div class="flex justify-end gap-2">
 		<button
 			type="button"
 			onclick={onDiscard}
-			class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm whitespace-nowrap text-stone-700 hover:bg-stone-50"
+			class="rounded-md btn-secondary px-3 py-1.5 text-sm whitespace-nowrap"
 		>
 			Discard
 		</button>
@@ -189,7 +189,7 @@
 			type="button"
 			onclick={handleSave}
 			disabled={isSaving}
-			class="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium whitespace-nowrap text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-70"
+			class="rounded-md btn-primary px-4 py-1.5 text-sm font-medium whitespace-nowrap disabled:cursor-wait disabled:opacity-70"
 		>
 			{isSaving ? 'Saving…' : saveError ? 'Retry' : 'Save'}
 		</button>

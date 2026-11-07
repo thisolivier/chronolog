@@ -7,14 +7,14 @@
 	let { items }: { items: BreadcrumbItem[] } = $props();
 </script>
 
-<nav class="flex flex-wrap items-center gap-2 text-sm text-stone-500" aria-label="Breadcrumb">
-	<a href="/settings" class="hover:text-stone-700">Settings</a>
+<nav class="flex flex-wrap items-center gap-2 text-sm text-ink-faint" aria-label="Breadcrumb">
+	<a href="/settings" class="hover:text-ink-soft">Settings</a>
 	{#each items as item (item.label)}
-		<span class="text-stone-400">/</span>
+		<span class="text-ink-faint">/</span>
 		{#if item.href}
-			<a href={item.href} class="hover:text-stone-700">{item.label}</a>
+			<a href={item.href} class="hover:text-ink-soft">{item.label}</a>
 		{:else}
-			<span class="font-medium text-stone-900">{item.label}</span>
+			<span class="font-medium text-ink">{item.label}</span>
 		{/if}
 	{/each}
 </nav>

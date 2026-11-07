@@ -33,14 +33,14 @@
 
 {#if isFirstRun}
 	<div
-		class="flex-shrink-0 border-b border-amber-200 bg-amber-50 text-stone-700 {compact ? 'px-3 py-2 text-xs' : 'px-4 py-3 text-sm sm:px-6'}"
+		class="flex-shrink-0 border-b border-ochre-200 bg-ochre-50 text-ink-soft {compact ? 'px-3 py-2 text-xs' : 'px-4 py-3 text-sm sm:px-6'}"
 		role="note"
 		data-testid="first-run-notice"
 	>
 		<p>
-			<span class="font-medium text-stone-900">No clients yet.</span>
+			<span class="font-medium text-ink">No clients yet.</span>
 			Clients and contracts are created under
-			<a href={CLIENTS_SETTINGS_HREF} class="font-medium text-blue-700 underline hover:text-blue-900">Settings → Clients and contracts</a>.
+			<a href={CLIENTS_SETTINGS_HREF} class="font-medium text-pine-700 underline hover:text-pine-900">Settings → Clients and contracts</a>.
 			{#if !compact}Until then, time and notes can go on the starter Internal client.{/if}
 		</p>
 	</div>

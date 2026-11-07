@@ -62,7 +62,7 @@
 		disabled={isDisabled}
 		aria-haspopup={contractId ? undefined : 'menu'}
 		aria-expanded={contractId ? undefined : isMenuOpen}
-		class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-white hover:bg-blue-700
+		class="rounded-md bg-primary px-3 py-1.5 text-sm font-medium whitespace-nowrap text-on-accent hover:bg-primary-hover
 			disabled:cursor-not-allowed disabled:opacity-50"
 	>
 		New Note
@@ -74,16 +74,16 @@
 			tabindex="-1"
 			aria-label="New note for which contract?"
 			onkeydown={handleMenuKeydown}
-			class="absolute right-0 z-30 mt-1 max-h-80 w-64 overflow-y-auto rounded-md border border-stone-200 bg-white py-1 shadow-lg"
+			class="absolute right-0 z-30 mt-1 max-h-80 w-64 overflow-y-auto rounded-md menu-panel py-1"
 			data-testid="new-note-contract-menu"
 		>
-			<p class="px-3 py-1 text-[11px] font-semibold uppercase text-stone-400">New note for</p>
+			<p class="px-3 py-1 text-[11px] font-semibold uppercase text-ink-faint">New note for</p>
 			{#each clientContracts as contract (contract.id)}
 				<button
 					type="button"
 					role="menuitem"
 					onclick={() => choose(contract.id)}
-					class="block w-full truncate px-3 py-1.5 text-left text-sm text-stone-700 hover:bg-stone-100 focus:bg-stone-100 focus:outline-none"
+					class="block w-full truncate px-3 py-1.5 text-left text-sm menu-item"
 				>
 					{withClientNames ? `${contract.clientName} · ${contract.name}` : contract.name}
 				</button>

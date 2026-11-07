@@ -48,9 +48,9 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div bind:this={listElement} onkeydown={handleKeydown} data-testid="search-results">
-	<p class="mb-2 px-3 text-xs text-stone-500" data-testid="search-summary">{searchSummary(result)}</p>
+	<p class="mb-2 px-3 text-xs text-ink-faint" data-testid="search-summary">{searchSummary(result)}</p>
 	{#if items.length === 0}
-		<p class="px-3 py-2 text-sm text-stone-400">Nothing matches.</p>
+		<p class="px-3 py-2 text-sm text-ink-faint">Nothing matches.</p>
 	{:else}
 		<ul class="space-y-0.5" aria-label="Search results">
 			{#each items as item (`${item.kind}:${item.hit.id}`)}

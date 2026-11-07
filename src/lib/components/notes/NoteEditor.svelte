@@ -358,7 +358,7 @@
 	}
 </script>
 
-<div class="flex flex-col h-full border border-stone-200 rounded-lg overflow-hidden bg-white">
+<div class="flex flex-col h-full border border-divider rounded-lg overflow-hidden bg-surface">
 	<!-- Hidden file input for the toolbar Attach button -->
 	<input
 		bind:this={fileInput}
@@ -373,7 +373,7 @@
 	{#if !readonly}
 		<!-- One bottom rule under the toolbar and the Rich toggle; the toolbar scrolls
 		     sideways on narrow screens instead of wrapping. -->
-		<div class="flex items-center border-b border-stone-200 bg-stone-50">
+		<div class="flex items-center border-b border-divider bg-chalk-50">
 			<div class="min-w-0 flex-grow overflow-x-auto">
 				<EditorToolbar {editor} {transactionCount} onAttachFile={handleAttachFileClick} />
 			</div>
@@ -381,7 +381,7 @@
 				type="button"
 				onclick={toggleEditorMode}
 				class="px-3 py-1.5 text-xs rounded transition-colors mx-2 whitespace-nowrap border pointer-coarse:min-h-11
-					{editorMode === 'raw' ? 'bg-blue-100 text-blue-700 border-blue-200 font-semibold' : 'text-stone-500 hover:bg-stone-100 border-stone-200'}"
+					{editorMode === 'raw' ? 'bg-pine-100 text-pine-700 border-pine-200 font-semibold' : 'text-ink-faint hover:bg-chalk-100 border-divider'}"
 				title="Toggle raw markdown view"
 			>
 				{editorMode === 'raw' ? '◆ Raw' : '◇ Rich'}
@@ -396,7 +396,7 @@
 				bind:value={rawMarkdownContent}
 				oninput={handleRawInput}
 				data-raw-markdown
-				class="w-full h-full min-h-[300px] p-4 font-mono text-sm resize-none outline-none bg-white"
+				class="w-full h-full min-h-[300px] p-4 font-mono text-sm resize-none outline-none bg-surface"
 				placeholder="Write markdown here..."
 			></textarea>
 		{/if}
@@ -417,7 +417,7 @@
 	}
 
 	:global(.tiptap p.is-editor-empty:first-child::before) {
-		color: #adb5bd;
+		color: var(--color-chalk-400);
 		content: attr(data-placeholder);
 		float: left;
 		height: 0;
@@ -492,7 +492,7 @@
 	}
 
 	:global(.tiptap li::marker) {
-		color: #78716c;
+		color: var(--color-ink-faint);
 	}
 
 	:global(.tiptap li > p) {
@@ -526,7 +526,7 @@
 		width: 1em;
 		height: 1em;
 		cursor: pointer;
-		accent-color: #2563eb;
+		accent-color: var(--color-primary);
 	}
 
 	:global(.tiptap ul[data-type='taskList'] > li > div) {
@@ -546,42 +546,42 @@
 	}
 
 	:global(.tiptap ul[data-type='taskList'] > li[data-checked='true'] > div > p) {
-		color: #a8a29e;
+		color: var(--color-ink-faint);
 		text-decoration: line-through;
 	}
 
 	:global(.tiptap hr) {
 		border: none;
-		border-top: 2px solid #e5e7eb;
+		border-top: 2px solid var(--color-divider);
 		margin: 1.5em 0;
 	}
 
 	:global(.tiptap a) {
-		color: #3b82f6;
+		color: var(--color-pine-600);
 		text-decoration: underline;
 		cursor: pointer;
 	}
 
 	:global(.tiptap a:hover) {
-		color: #2563eb;
+		color: var(--color-pine-700);
 	}
 
 	:global(.tiptap code) {
-		background-color: #f3f4f6;
+		background-color: var(--color-sunken);
 		padding: 0.2em 0.4em;
 		border-radius: 0.25em;
-		font-family: monospace;
+		font-family: var(--font-mono);
 		font-size: 0.9em;
 	}
 
 	:global(.tiptap pre) {
 		position: relative;
-		background-color: #f6f8fa;
-		color: #24292e;
+		background-color: var(--color-chalk-50);
+		color: var(--color-ink);
 		padding: 0.75rem 1rem;
 		border-radius: 0.5em;
 		overflow-x: auto;
-		border: 1px solid #e1e4e8;
+		border: 1px solid var(--color-divider);
 	}
 
 	:global(.tiptap pre code) {
@@ -616,16 +616,16 @@
 	:global(.tiptap pre code .hljs-deletion) { color: #b31d28; background: #ffeef0; }
 
 	:global(.tiptap blockquote) {
-		border-left: 4px solid #e5e7eb;
+		border-left: 4px solid var(--color-divider);
 		padding-left: 1em;
 		margin-left: 0;
 		font-style: italic;
-		color: #6b7280;
+		color: var(--color-ink-muted);
 	}
 
 	:global(.tiptap .wiki-link) {
-		color: #6366f1;
-		background: #eef2ff;
+		color: var(--color-pine-600);
+		background: var(--color-pine-50);
 		padding: 1px 4px;
 		border-radius: 3px;
 		cursor: pointer;
@@ -634,14 +634,14 @@
 	}
 
 	:global(.tiptap .wiki-link:hover) {
-		background: #e0e7ff;
-		color: #4f46e5;
+		background: var(--color-pine-100);
+		color: var(--color-pine-700);
 	}
 
 	/* A link to a note in the trash (sprint 037-CL): muted and struck through; click offers a restore */
 	:global(.tiptap .wiki-link.wiki-link-deleted) {
-		color: #a8a29e;
-		background: #f5f5f4;
+		color: var(--color-ink-faint);
+		background: var(--color-sunken);
 		text-decoration: line-through;
 		font-weight: 400;
 	}
@@ -667,8 +667,8 @@
 		display: inline-block;
 		min-width: 8rem;
 		min-height: 2rem;
-		border: 1px dashed #d6d3d1;
-		background: #fafaf9;
+		border: 1px dashed var(--color-line);
+		background: var(--color-canvas);
 	}
 
 	/* An attached file (PDF): a link with a document icon; clicking opens it in a new tab */
@@ -688,9 +688,9 @@
 
 	/* A link to a deleted attachment (sprint 043-CL): the missing-image placeholder look, no click */
 	:global(.tiptap .attachment-link-missing) {
-		color: #a8a29e;
-		border: 1px dashed #d6d3d1;
-		background: #fafaf9;
+		color: var(--color-ink-faint);
+		border: 1px dashed var(--color-line);
+		background: var(--color-canvas);
 		border-radius: 3px;
 		padding: 0 3px;
 		text-decoration: line-through;
@@ -705,6 +705,6 @@
 	}
 
 	:global(.tiptap img.ProseMirror-selectednode) {
-		outline: 2px solid #3b82f6;
+		outline: 2px solid var(--color-focus);
 	}
 </style>

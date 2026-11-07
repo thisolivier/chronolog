@@ -20,7 +20,7 @@ describe('computeColorSegments', () => {
 			{ clientId: 'client-a', clientColorIndex: 0, durationMinutes: 30 }
 		]);
 		expect(segments).toHaveLength(1);
-		expect(segments[0]).toEqual({ clientId: 'client-a', colorClass: 'bg-rose-400', percentage: 100 });
+		expect(segments[0]).toEqual({ clientId: 'client-a', colorClass: 'bg-id-rust', percentage: 100 });
 
 		const keys = segments.map((segment) => segment.clientId);
 		expect(new Set(keys).size).toBe(keys.length);
@@ -33,8 +33,8 @@ describe('computeColorSegments', () => {
 			{ clientId: 'client-a', clientColorIndex: 0, durationMinutes: 30 }
 		]);
 		expect(segments).toHaveLength(2);
-		expect(segments[0]).toEqual({ clientId: 'client-a', colorClass: 'bg-rose-400', percentage: 75 });
-		expect(segments[1]).toEqual({ clientId: 'client-b', colorClass: 'bg-sky-400', percentage: 25 });
+		expect(segments[0]).toEqual({ clientId: 'client-a', colorClass: 'bg-id-rust', percentage: 75 });
+		expect(segments[1]).toEqual({ clientId: 'client-b', colorClass: 'bg-id-juniper', percentage: 25 });
 
 		const percentageTotal = segments.reduce((sum, segment) => sum + segment.percentage, 0);
 		expect(percentageTotal).toBeCloseTo(100);
@@ -54,6 +54,6 @@ describe('computeColorSegments', () => {
 			{ clientId: 'client-a', clientColorIndex: 0, durationMinutes: 0 },
 			{ clientId: 'client-b', clientColorIndex: 2, durationMinutes: 45 }
 		]);
-		expect(segments).toEqual([{ clientId: 'client-b', colorClass: 'bg-violet-400', percentage: 100 }]);
+		expect(segments).toEqual([{ clientId: 'client-b', colorClass: 'bg-id-heather', percentage: 100 }]);
 	});
 });

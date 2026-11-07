@@ -13,6 +13,8 @@ export interface ContractLabel {
 	name: string;
 	clientName: string;
 	clientId: string;
+	/** The client's palette slot (client-colors.ts), for the contract mark */
+	clientColorIndex: number;
 }
 
 /** What `replaceAll` needs at least; the rest defaults (tests pass only names) */
@@ -39,7 +41,12 @@ class ContractDirectory {
 		Object.fromEntries(
 			this.contracts.map((contract) => [
 				contract.id,
-				{ name: contract.name, clientName: contract.clientName, clientId: contract.clientId }
+				{
+					name: contract.name,
+					clientName: contract.clientName,
+					clientId: contract.clientId,
+					clientColorIndex: contract.clientColorIndex
+				}
 			])
 		)
 	);

@@ -66,16 +66,16 @@
 </script>
 
 <!-- On a short landscape phone screen the strip scrolls away, so the entries get the height (047-QA) -->
-<div class="sticky top-0 z-10 border-b border-stone-200 bg-white [@media(max-height:500px)]:static">
+<div class="sticky top-0 z-10 border-b border-divider bg-surface [@media(max-height:500px)]:static">
 	<!-- Week navigation row -->
 	<div class="flex items-center justify-between px-2 py-1.5 sm:px-4">
 		<div class="flex items-center gap-1.5">
 			<button
 				onclick={onPrevWeek}
-				class="rounded px-1.5 py-0.5 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-700 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+				class="rounded px-1.5 py-0.5 text-sm btn-quiet pointer-coarse:min-h-11 pointer-coarse:min-w-11"
 				aria-label="Previous week"
 			>&#9664;<span class="ml-1 hidden sm:inline">Week {prevWeekNumber}</span></button>
-			<span class="text-sm font-medium text-stone-700">
+			<span class="text-sm font-medium text-ink-soft">
 				Week {weekNumber} &middot; {formatWeekRange(weekStart)}
 			</span>
 		</div>
@@ -85,13 +85,13 @@
 					onclick={onToday}
 					disabled={isCurrentWeek}
 					title={isCurrentWeek ? 'Already on this week' : 'Go to today'}
-					class="rounded border border-stone-300 px-2 py-0.5 text-xs font-medium pointer-coarse:py-2 text-stone-600 hover:bg-stone-100 hover:text-stone-800 disabled:cursor-default disabled:border-stone-200 disabled:text-stone-300 disabled:hover:bg-transparent"
+					class="rounded border border-line px-2 py-0.5 text-xs font-medium pointer-coarse:py-2 btn-quiet disabled:cursor-default disabled:border-divider disabled:text-chalk-300 disabled:hover:bg-transparent"
 					data-testid="week-today-button"
 				>Today</button>
 			{/if}
 			<button
 				onclick={onNextWeek}
-				class="rounded px-1.5 py-0.5 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-700 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+				class="rounded px-1.5 py-0.5 text-sm btn-quiet pointer-coarse:min-h-11 pointer-coarse:min-w-11"
 				aria-label="Next week"
 			><span class="mr-1 hidden sm:inline">Week {nextWeekNumber}</span>&#9654;</button>
 		</div>
@@ -108,12 +108,12 @@
 					onclick={() => onDayClick(dayData.date)}
 					aria-label="Go to {dayData.date}"
 					class="flex min-w-0 flex-col items-center rounded px-0.5 py-1.5 transition-colors
-						{isToday ? 'bg-amber-100 border-b-2 border-amber-400 hover:bg-amber-50' : 'hover:bg-stone-50'}
+						{isToday ? 'bg-ochre-100 border-b-2 border-ochre-400 hover:bg-ochre-50' : 'hover:bg-chalk-50'}
 						cursor-pointer"
 				>
-					<span class="text-xs text-stone-500">{DAY_ABBREVIATIONS[dayIndex]}</span>
-					<span class="text-sm font-medium text-stone-800">{getDayNumber(dayData.date)}</span>
-					<span class="text-[11px] whitespace-nowrap tabular-nums text-stone-400 sm:text-xs">{formatDayHours(dayData.totalMinutes)}</span>
+					<span class="text-xs text-ink-faint">{DAY_ABBREVIATIONS[dayIndex]}</span>
+					<span class="text-sm font-medium text-ink">{getDayNumber(dayData.date)}</span>
+					<span class="text-[11px] whitespace-nowrap tabular-nums text-ink-faint sm:text-xs">{formatDayHours(dayData.totalMinutes)}</span>
 					<!-- Color proportion bar -->
 					<div class="mt-1 flex h-1.5 w-full overflow-hidden rounded-full">
 						{#each colorSegments as segment (segment.clientId)}
@@ -129,7 +129,7 @@
 
 		<!-- Week summary area -->
 		<div class="ml-2 flex w-24 shrink-0 flex-col items-end justify-center gap-1.5 sm:ml-4 sm:w-32">
-			<span class="text-base font-semibold whitespace-nowrap tabular-nums text-stone-800">{weeklyTotalHours}</span>
+			<span class="text-base font-semibold whitespace-nowrap tabular-nums text-ink">{weeklyTotalHours}</span>
 			<WeekStatusMenu {currentStatus} {onStatusChange} />
 		</div>
 	</div>

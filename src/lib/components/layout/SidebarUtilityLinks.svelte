@@ -10,10 +10,10 @@
 	let { withDivider = false }: { withDivider?: boolean } = $props();
 
 	const rowClass =
-		'flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-xs font-semibold uppercase text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600 pointer-coarse:py-3.5';
+		'flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-xs font-semibold uppercase text-ink-faint transition-colors hover:bg-chalk-100 hover:text-ink-muted pointer-coarse:py-3.5';
 </script>
 
-<div class={withDivider ? 'mt-3 border-t border-stone-200 pt-2' : ''}>
+<div class={withDivider ? 'mt-3 border-t border-divider pt-2' : ''}>
 	<a href={TRASH_PATH} class={rowClass} data-testid="sidebar-trash-link">
 		<svg class="h-3 w-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 			<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />

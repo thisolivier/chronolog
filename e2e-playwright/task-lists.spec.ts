@@ -64,7 +64,7 @@ test('a task list typed in the editor: nested, ticked, still ticked after a relo
 	// the toolbar button makes a second task list from a plain line
 	await page.keyboard.type('Later');
 	await page.locator('[data-toolbar-task-list]').click();
-	await expect(page.locator('[data-toolbar-task-list]')).toHaveClass(/bg-blue-100/);
+	await expect(page.locator('[data-toolbar-task-list]')).toHaveClass(/bg-pine-100/);
 
 	await expect(taskItems(page)).toHaveCount(6);
 	await expect(editor(page).locator('ul[data-type="taskList"] ul[data-type="taskList"] > li')).toHaveCount(2);

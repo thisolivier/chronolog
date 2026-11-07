@@ -88,57 +88,57 @@
 <svelte:head><title>Chronolog · API tokens</title></svelte:head>
 
 <div class="mx-auto max-w-2xl">
-	<nav class="mb-6 flex items-center gap-2 text-sm text-stone-500" aria-label="Breadcrumb">
-		<a href="/settings" class="hover:text-stone-700">Settings</a>
-		<span class="text-stone-400">/</span>
-		<span class="font-medium text-stone-900">API tokens</span>
+	<nav class="mb-6 flex items-center gap-2 text-sm text-ink-faint" aria-label="Breadcrumb">
+		<a href="/settings" class="hover:text-ink-soft">Settings</a>
+		<span class="text-ink-faint">/</span>
+		<span class="font-medium text-ink">API tokens</span>
 	</nav>
 
-	<h1 class="mb-2 text-2xl font-bold text-stone-900">API tokens</h1>
-	<p class="mb-8 text-stone-600">
-		A token lets the <code class="rounded bg-stone-100 px-1">chronolog</code> CLI (and Claude on your
+	<h1 class="mb-2 text-2xl font-bold text-ink">API tokens</h1>
+	<p class="mb-8 text-ink-muted">
+		A token lets the <code class="rounded bg-chalk-100 px-1">chronolog</code> CLI (and Claude on your
 		laptop) act as you through the API. It does not replace the device key: requests still need the
-		<code class="rounded bg-stone-100 px-1">X-Device-Key</code> header. Create one per laptop and revoke
+		<code class="rounded bg-chalk-100 px-1">X-Device-Key</code> header. Create one per laptop and revoke
 		it if the laptop is lost.
 	</p>
 
 	{#if errorMessage}
-		<div class="mb-6 rounded-md bg-red-50 p-4 text-sm text-red-700" role="alert">{errorMessage}</div>
+		<div class="mb-6 rounded-md bg-rust-50 p-4 text-sm text-rust-700" role="alert">{errorMessage}</div>
 	{/if}
 
 	{#if createdRawToken}
-		<div class="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-5" data-testid="created-token">
-			<p class="mb-2 font-medium text-amber-900">
+		<div class="mb-6 rounded-lg border border-ochre-300 bg-ochre-50 p-5" data-testid="created-token">
+			<p class="mb-2 font-medium text-ochre-900">
 				Copy the token for “{createdTokenName}” now. It is not shown again.
 			</p>
 			<div class="flex flex-wrap items-center gap-2">
 				<code
-					class="block min-w-0 flex-1 overflow-x-auto rounded border border-amber-200 bg-white px-3 py-2 font-mono text-sm break-all text-stone-900"
+					class="block min-w-0 flex-1 overflow-x-auto rounded border border-ochre-200 bg-surface px-3 py-2 font-mono text-sm break-all text-ink"
 					data-testid="raw-token">{createdRawToken}</code
 				>
 				<button
 					type="button"
 					onclick={copyToken}
-					class="rounded-md bg-amber-600 px-3 py-2 text-sm text-white hover:bg-amber-700"
+					class="rounded-md bg-ochre-600 px-3 py-2 text-sm text-on-accent hover:bg-ochre-700"
 				>
 					{hasCopied ? 'Copied' : 'Copy'}
 				</button>
 				<button
 					type="button"
 					onclick={dismissCreatedToken}
-					class="rounded-md border border-amber-300 bg-white px-3 py-2 text-sm text-amber-900 hover:bg-amber-100"
+					class="rounded-md border border-ochre-300 bg-surface px-3 py-2 text-sm text-ochre-900 hover:bg-ochre-100"
 				>
 					Done
 				</button>
 			</div>
-			<p class="mt-3 text-sm text-amber-900">
-				On the laptop: <code class="rounded bg-white px-1">chronolog init</code> and paste it when asked.
+			<p class="mt-3 text-sm text-ochre-900">
+				On the laptop: <code class="rounded bg-surface px-1">chronolog init</code> and paste it when asked.
 			</p>
 		</div>
 	{/if}
 
-	<form onsubmit={createToken} class="mb-8 rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
-		<label for="token-name" class="block text-sm font-medium text-stone-700">New token name</label>
+	<form onsubmit={createToken} class="mb-8 rounded-lg border border-divider bg-surface p-5 shadow-sm">
+		<label for="token-name" class="block text-sm font-medium text-ink-soft">New token name</label>
 		<div class="mt-1 flex flex-wrap gap-2">
 			<input
 				id="token-name"
@@ -146,33 +146,33 @@
 				bind:value={newTokenName}
 				maxlength="80"
 				placeholder="MacBook CLI"
-				class="block min-w-0 flex-1 rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+				class="block min-w-0 flex-1 rounded-md input-base px-3 py-2"
 			/>
 			<button
 				type="submit"
 				disabled={isBusy || newTokenName.trim() === ''}
-				class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+				class="rounded-md btn-primary px-4 py-2 disabled:opacity-50"
 			>
 				Create token
 			</button>
 		</div>
 	</form>
 
-	<h2 class="mb-3 font-semibold text-stone-900">Your tokens</h2>
+	<h2 class="mb-3 font-semibold text-ink">Your tokens</h2>
 	{#if tokens.length === 0}
-		<p class="text-sm text-stone-500">No tokens yet.</p>
+		<p class="text-sm text-ink-faint">No tokens yet.</p>
 	{:else}
-		<ul class="divide-y divide-stone-200 rounded-lg border border-stone-200 bg-white" data-testid="token-list">
+		<ul class="divide-y divide-divider rounded-lg border border-divider bg-surface" data-testid="token-list">
 			{#each tokens as token (token.id)}
 				<li class="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
 					<div class="min-w-0">
-						<p class="font-medium text-stone-900">
+						<p class="font-medium text-ink">
 							{token.name}
 							{#if token.revokedAt}
-								<span class="ml-2 rounded bg-stone-200 px-1.5 py-0.5 text-xs text-stone-600">revoked</span>
+								<span class="ml-2 rounded bg-chalk-200 px-1.5 py-0.5 text-xs text-ink-muted">revoked</span>
 							{/if}
 						</p>
-						<p class="text-xs text-stone-500">
+						<p class="text-xs text-ink-faint">
 							Created {formatWhen(token.createdAt)} · last used {formatWhen(token.lastUsedAt)}
 							{#if token.revokedAt}· revoked {formatWhen(token.revokedAt)}{/if}
 						</p>
@@ -181,7 +181,7 @@
 						<button
 							type="button"
 							onclick={() => revokeToken(token)}
-							class="rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm text-red-700 hover:bg-red-50"
+							class="rounded-md border border-rust-300 bg-surface px-3 py-1.5 text-sm text-rust-700 hover:bg-rust-50"
 						>
 							Revoke
 						</button>

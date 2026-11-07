@@ -64,10 +64,10 @@
 
 <svelte:head><title>{query ? `Chronolog · Search · ${query}` : 'Chronolog · Search'}</title></svelte:head>
 
-<div class="safe-area-shell min-h-dvh bg-stone-50">
-	<header class="border-b border-stone-200 bg-white shadow-sm">
+<div class="safe-area-shell min-h-dvh bg-chalk-50">
+	<header class="border-b border-divider bg-surface shadow-sm">
 		<div class="mx-auto flex max-w-3xl items-center gap-3 px-4 py-2.5">
-			<a href={navigation.workspaceHref} class="hidden text-lg font-bold text-stone-900 sm:block">Chronolog</a>
+			<a href={navigation.workspaceHref} class="hidden text-lg font-bold text-ink sm:block">Chronolog</a>
 			<div class="hidden md:block"><HistoryButtons /></div>
 			<GlobalSearchField
 				initialQuery={query}
@@ -77,7 +77,7 @@
 			/>
 			<a
 				href={navigation.workspaceHref}
-				class="flex-shrink-0 rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
+				class="flex-shrink-0 rounded-md btn-secondary px-3 py-1.5 text-sm"
 				data-testid="search-back-to-app"
 			>
 				Back<span class="hidden sm:inline">&nbsp;to app</span>
@@ -88,11 +88,11 @@
 
 	<main class="mx-auto max-w-3xl px-2 py-4 sm:px-4 sm:py-6">
 		{#if query.length < MINIMUM_QUERY_LENGTH}
-			<p class="px-3 text-sm text-stone-500">
+			<p class="px-3 text-sm text-ink-faint">
 				{query ? 'Type at least two characters.' : 'Search the titles and text of every note, and every time entry description.'}
 			</p>
 		{:else if errorMessage}
-			<p class="px-3 text-sm text-red-600" role="alert">{errorMessage}</p>
+			<p class="px-3 text-sm text-rust-600" role="alert">{errorMessage}</p>
 		{:else if result}
 			<SearchResults
 				bind:this={resultsComponent}
@@ -100,7 +100,7 @@
 				{clientColorIndexes}
 				onOpenNote={openNote} onOpenEntry={openEntry} onLeaveTop={focusSearchField} />
 		{:else if isSearching}
-			<p class="px-3 text-sm text-stone-500">Searching…</p>
+			<p class="px-3 text-sm text-ink-faint">Searching…</p>
 		{/if}
 	</main>
 </div>

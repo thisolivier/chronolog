@@ -84,19 +84,19 @@
 	});
 </script>
 
-<div class="flex h-full flex-col overflow-y-auto bg-stone-50">
+<div class="flex h-full flex-col overflow-y-auto bg-chalk-50" data-note-print-root>
 	<FindBar mode="editor" />
 	{#if panel.isLoading}
 		<div class="flex flex-1 items-center justify-center">
-			<p class="text-stone-500">Loading note...</p>
+			<p class="text-ink-faint">Loading note...</p>
 		</div>
 	{:else if panel.fetchError}
 		<div class="flex flex-1 items-center justify-center">
 			<div class="text-center">
-				<p class="text-red-600">{panel.fetchError}</p>
+				<p class="text-rust-600">{panel.fetchError}</p>
 				<button
 					onclick={() => navigation.selectedNoteId && panel.openExistingNote(navigation.selectedNoteId)}
-					class="mt-2 text-sm text-blue-600 hover:text-blue-800"
+					class="mt-2 text-sm text-pine-600 hover:text-pine-800"
 				>
 					Try again
 				</button>
@@ -142,7 +142,7 @@
 		{/if}
 	{:else}
 		<div class="flex flex-1 items-center justify-center">
-			<p class="text-stone-400">Select a note to view</p>
+			<p class="text-ink-faint">Select a note to view</p>
 		</div>
 	{/if}
 </div>

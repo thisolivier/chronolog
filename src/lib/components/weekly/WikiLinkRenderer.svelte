@@ -80,15 +80,15 @@
             <button
                 type="button"
                 class={trashed
-                    ? 'inline cursor-pointer text-stone-400 line-through decoration-stone-300'
-                    : 'inline text-indigo-600 hover:text-indigo-800 underline decoration-indigo-300 hover:decoration-indigo-500 cursor-pointer font-medium'}
+                    ? 'inline cursor-pointer text-ink-faint line-through decoration-chalk-300'
+                    : 'inline text-pine-600 hover:text-pine-800 underline decoration-pine-300 hover:decoration-pine-500 cursor-pointer font-medium'}
                 data-deleted={trashed ? '' : undefined}
                 onclick={(event) => handleLinkClick(event, segment.noteId, segment.label)}
                 title={trashed ? `${segment.noteId} (deleted: click to restore)` : segment.noteId}
             >
                 <!-- The linked note's title (fetched and cached), the ID until it arrives -->
                 {wikiLinkDisplayText(segment.noteId, segment.label)}
-            </button>{#if trashed}<span class="text-xs text-stone-400"> (deleted)</span>{/if}
+            </button>{#if trashed}<span class="text-xs text-ink-faint"> (deleted)</span>{/if}
         {/if}
     {/each}
 </span>

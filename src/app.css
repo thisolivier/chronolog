@@ -1,4 +1,25 @@
 @import "tailwindcss";
+@import "./lib/styles/tokens.css";
+@import "./lib/styles/recipes.css";
+
+/* Base: system sans stack, warm ink on the chalk canvas */
+html {
+	font-family: var(--font-sans);
+	color: var(--color-ink);
+	background-color: var(--color-canvas);
+}
+
+/* Reduced motion: no pulsing, spinning or sliding; a running dot stays as a static dot (DS-01) */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}
 
 /*
  * iPhone (sprint 047-QA). Unlayered on purpose, so these win over Tailwind's text-sm / text-xs

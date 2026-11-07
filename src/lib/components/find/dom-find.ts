@@ -75,10 +75,10 @@ export function installFindStyles(): void {
 	const style = document.createElement('style');
 	style.id = STYLE_ELEMENT_ID;
 	style.textContent = `
-::highlight(${MATCH_HIGHLIGHT}) { background-color: #fde68a; color: inherit; }
-::highlight(${CURRENT_HIGHLIGHT}) { background-color: #f59e0b; color: #1c1917; }
-.chronolog-find-match { background-color: #fde68a; border-radius: 2px; }
-.chronolog-find-current { background-color: #f59e0b; color: #1c1917; }
+::highlight(${MATCH_HIGHLIGHT}) { background-color: var(--color-ochre-200); color: inherit; }
+::highlight(${CURRENT_HIGHLIGHT}) { background-color: var(--color-ochre-600); color: var(--color-on-accent); }
+.chronolog-find-match { background-color: var(--color-ochre-200); border-radius: 2px; }
+.chronolog-find-current { background-color: var(--color-ochre-600); color: var(--color-on-accent); outline: 2px solid var(--color-ochre-700); }
 `;
 	document.head.appendChild(style);
 }

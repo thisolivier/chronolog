@@ -1,0 +1,171 @@
+/*
+ * Design tokens (design r1, sprint 052-DR). Imported by src/app.css after Tailwind.
+ *
+ * `@theme static` so every variable reaches :root even when no utility uses it: component
+ * <style> blocks (NoteEditor, TimerIndicator) read them with var(--color-*).
+ * Palette scales come from the Field Notes mood board (chalk, moss, pine, bark, rust, ochre) plus
+ * a brighter `leaf` green for running / success. Semantic roles below point at the scales; prefer
+ * the roles in new code. Contrast pairings are recorded in docs/sprints/sprint-052-DR.md.
+ */
+@theme static {
+	/* Fonts: system stacks only, no bundled font (decision 2026-11-07) */
+	--font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+	--font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+
+	/* Chalk: warm neutrals from paper to bark-black (replaces stone) */
+	--color-chalk-50: #f8f6f0;
+	--color-chalk-100: #f0ece3;
+	--color-chalk-200: #e3ddd0;
+	--color-chalk-300: #d0c7b6;
+	--color-chalk-400: #a89d89;
+	--color-chalk-500: #746957;
+	--color-chalk-600: #655b4b;
+	--color-chalk-700: #4e463a;
+	--color-chalk-800: #3a342b;
+	--color-chalk-900: #27231d;
+	--color-chalk-950: #1a1713;
+
+	/* Pine: primary actions, links, selection (replaces blue, indigo, sky). 600 is the mood-board pine */
+	--color-pine-50: #eef3ec;
+	--color-pine-100: #dde8d9;
+	--color-pine-200: #bcd2b8;
+	--color-pine-300: #8fb08f;
+	--color-pine-400: #5c8a6a;
+	--color-pine-500: #3d6b51;
+	--color-pine-600: #294c3b;
+	--color-pine-700: #1f3b2e;
+	--color-pine-800: #182e24;
+	--color-pine-900: #11211a;
+
+	/* Moss: quiet sage accents. 400 is the mood-board moss */
+	--color-moss-50: #f2f4ec;
+	--color-moss-100: #e4e9da;
+	--color-moss-200: #ccd4bc;
+	--color-moss-300: #adb996;
+	--color-moss-400: #879473;
+	--color-moss-500: #6b785a;
+	--color-moss-600: #556046;
+	--color-moss-700: #434c38;
+	--color-moss-800: #33392a;
+	--color-moss-900: #23281d;
+
+	/* Bark: structural browns (review day headings later). 600 is the mood-board bark */
+	--color-bark-50: #f6f1ec;
+	--color-bark-100: #ebe1d6;
+	--color-bark-200: #d8c5b3;
+	--color-bark-300: #bda289;
+	--color-bark-400: #977860;
+	--color-bark-500: #7a5c46;
+	--color-bark-600: #624735;
+	--color-bark-700: #4e3829;
+	--color-bark-800: #3b2a1f;
+	--color-bark-900: #2a1e16;
+
+	/* Rust: destructive, stop, errors (replaces red). 500 is the mood-board rust */
+	--color-rust-50: #fbf0ec;
+	--color-rust-100: #f5ddd5;
+	--color-rust-200: #ebbdb0;
+	--color-rust-300: #db9482;
+	--color-rust-400: #c76d58;
+	--color-rust-500: #ad4c3b;
+	--color-rust-600: #963f30;
+	--color-rust-700: #7c3327;
+	--color-rust-800: #62281f;
+	--color-rust-900: #4a1e17;
+
+	/* Ochre: today, warnings (replaces amber, yellow). 400 is the mood-board ochre */
+	--color-ochre-50: #fbf5e7;
+	--color-ochre-100: #f5e8c7;
+	--color-ochre-200: #ecd59f;
+	--color-ochre-300: #dabb78;
+	--color-ochre-400: #bc9859;
+	--color-ochre-500: #9c7a3c;
+	--color-ochre-600: #7e612c;
+	--color-ochre-700: #654d23;
+	--color-ochre-800: #503d1c;
+	--color-ochre-900: #3c2d15;
+
+	/* Leaf: running timer, success (replaces green, emerald); brighter than moss so it reads on chalk */
+	--color-leaf-50: #edf5ec;
+	--color-leaf-100: #d7ead5;
+	--color-leaf-200: #b1d5ae;
+	--color-leaf-300: #83ba80;
+	--color-leaf-400: #4f9a55;
+	--color-leaf-500: #367f42;
+	--color-leaf-600: #2a6835;
+	--color-leaf-700: #22552b;
+	--color-leaf-800: #1b4322;
+	--color-leaf-900: #14321a;
+
+	/* Semantic roles: surfaces and lines */
+	--color-canvas: var(--color-chalk-50);
+	--color-surface: #fffefa;
+	--color-sunken: var(--color-chalk-100);
+	--color-line: var(--color-chalk-300);
+	--color-divider: var(--color-chalk-200);
+
+	/* Semantic roles: text (all AA on surface, canvas and sunken, except ink-fainter) */
+	--color-ink: var(--color-chalk-900);
+	--color-ink-soft: var(--color-chalk-700);
+	--color-ink-muted: var(--color-chalk-600);
+	--color-ink-faint: var(--color-chalk-500);
+	/* Below AA (2.65:1 on surface): only for deliberately muted / inactive states, never sole content */
+	--color-ink-fainter: var(--color-chalk-400);
+	--color-on-accent: #fffefa;
+
+	/* Semantic roles: actions and states */
+	--color-primary: var(--color-pine-600);
+	--color-primary-hover: var(--color-pine-700);
+	--color-primary-wash: var(--color-pine-50);
+	--color-danger: var(--color-rust-600);
+	--color-danger-hover: var(--color-rust-700);
+	--color-danger-wash: var(--color-rust-50);
+	--color-warning: var(--color-ochre-700);
+	--color-warning-wash: var(--color-ochre-50);
+	--color-today: var(--color-ochre-100);
+	--color-success: var(--color-leaf-700);
+	--color-success-wash: var(--color-leaf-50);
+	--color-running: var(--color-leaf-500);
+	--color-selection: var(--color-pine-100);
+	--color-selection-edge: var(--color-pine-600);
+	--color-focus: var(--color-pine-500);
+
+	/* Client identity colours (client-colors.ts): strong mark, pale wash, text on the wash */
+	--color-id-rust: #ad4c3b;
+	--color-id-rust-wash: #f8e7e2;
+	--color-id-rust-ink: #6e2b20;
+	--color-id-juniper: #3b6a6e;
+	--color-id-juniper-wash: #e3eeee;
+	--color-id-juniper-ink: #24474a;
+	--color-id-heather: #7a4e68;
+	--color-id-heather-wash: #f1e6ec;
+	--color-id-heather-ink: #55334a;
+	--color-id-ochre: #bc9859;
+	--color-id-ochre-wash: #f6edd9;
+	--color-id-ochre-ink: #5e4720;
+	--color-id-lake: #46597a;
+	--color-id-lake-wash: #e6eaf2;
+	--color-id-lake-ink: #2c3a55;
+	--color-id-bark: #624735;
+	--color-id-bark-wash: #efe6dd;
+	--color-id-bark-ink: #4e3829;
+	--color-id-moss: #879473;
+	--color-id-moss-wash: #ecefe4;
+	--color-id-moss-ink: #434c38;
+	--color-id-clay: #a15a33;
+	--color-id-clay-wash: #f7e9df;
+	--color-id-clay-ink: #6a3a1f;
+
+	/* Radius and shadow (warm-tinted shadows instead of Tailwind's cool black) */
+	--radius-control: 0.375rem;
+	--radius-panel: 0.5rem;
+	--radius-mark: 0.25rem;
+	--shadow-panel: 0 1px 2px 0 rgb(39 35 29 / 0.06), 0 1px 3px 0 rgb(39 35 29 / 0.08);
+	--shadow-menu: 0 4px 12px -2px rgb(39 35 29 / 0.14), 0 2px 4px -2px rgb(39 35 29 / 0.08);
+
+	/* Identity sizing: contract mark squares and the mark-to-label gap (DS-05: about 40% under the old 8px) */
+	--size-mark-sm: 1rem;
+	--size-mark-md: 1.25rem;
+	--size-mark-lg: 1.75rem;
+	--spacing-mark-gap: 5px;
+}

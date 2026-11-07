@@ -70,13 +70,13 @@
 	class="block w-full border font-medium tabular-nums focus:ring-1 focus:outline-none {sizeClasses}
 		{align === 'right' ? 'text-right' : ''}
 		{hasError
-		? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-		: 'border-stone-300 focus:border-blue-500 focus:ring-blue-500'}"
+		? 'border-rust-400 focus:border-rust-500 focus:ring-rust-500'
+		: 'border-line focus:border-focus focus:ring-focus'}"
 />
 {#if hasError}
-	<p id={messageId} class="mt-1 text-xs text-red-600" role="alert">{errorMessage}</p>
+	<p id={messageId} class="mt-1 text-xs text-rust-600" role="alert">{errorMessage}</p>
 {:else if warningText}
-	<p id={messageId} class="mt-1 text-xs text-amber-700">{warningText}</p>
+	<p id={messageId} class="mt-1 text-xs text-ochre-700">{warningText}</p>
 {:else if previewText}
-	<p id={messageId} class="mt-1 text-xs text-stone-400 tabular-nums">{previewText}</p>
+	<p id={messageId} class="mt-1 text-xs text-ink-faint tabular-nums">{previewText}</p>
 {/if}

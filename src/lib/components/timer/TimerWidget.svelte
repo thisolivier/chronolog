@@ -425,23 +425,23 @@
 
 <div
 	class={placement === 'footer'
-		? 'border-t border-stone-200 bg-white px-4 py-3'
-		: 'rounded-lg border border-stone-200 bg-white p-3 shadow-sm'}
+		? 'border-t border-divider bg-surface px-4 py-3'
+		: 'rounded-lg border border-divider bg-surface p-3 shadow-sm'}
 	data-testid="timer-widget-{placement}"
 >
 	{#if isLoading}
-		<div class="py-2 text-center text-sm text-stone-400">Loading timer...</div>
+		<div class="py-2 text-center text-sm text-ink-faint">Loading timer...</div>
 	{:else if timerState === 'idle'}
 		<div class="flex gap-2">
 			<button
 				onclick={handleStart}
-				class="flex-1 rounded-md bg-green-600 px-2 py-2.5 text-sm font-medium whitespace-nowrap text-white hover:bg-green-700"
+				class="flex-1 rounded-md bg-leaf-600 px-2 py-2.5 text-sm font-medium whitespace-nowrap text-on-accent hover:bg-leaf-700"
 			>
 				Start Timer
 			</button>
 			<button
 				onclick={() => (showAddEntryModal = true)}
-				class="flex-1 rounded-md border border-stone-300 bg-white px-2 py-2.5 text-sm font-medium whitespace-nowrap text-stone-700 hover:bg-stone-50"
+				class="flex-1 rounded-md btn-secondary px-2 py-2.5 text-sm font-medium whitespace-nowrap"
 			>
 				Add Entry
 			</button>
@@ -452,7 +452,7 @@
 				<TimerDisplay {elapsedSeconds} isPaused={false} />
 				<button
 					onclick={handleStop}
-					class="rounded-md bg-red-600 px-3 py-1 text-sm font-medium whitespace-nowrap text-white hover:bg-red-700 pointer-coarse:min-h-11 pointer-coarse:px-5"
+					class="rounded-md btn-danger px-3 py-1 text-sm font-medium whitespace-nowrap pointer-coarse:min-h-11 pointer-coarse:px-5"
 				>
 					Stop
 				</button>
@@ -462,21 +462,21 @@
 			<!-- Draft contract and description while timer is running -->
 			<div class="space-y-2">
 				<div>
-					<label for="draft-contract" class="block text-xs font-medium text-stone-600">
+					<label for="draft-contract" class="block text-xs font-medium text-ink-muted">
 						Contract
 					</label>
 					<div class="mt-0.5">
 						<ContractSelect id="draft-contract" bind:selectedContractId={draftContractId} compact />
 					</div>
 					{#if !draftContractId}
-						<p class="mt-1 text-xs text-stone-500" data-testid="timer-no-contract-hint">
+						<p class="mt-1 text-xs text-ink-faint" data-testid="timer-no-contract-hint">
 							No contract yet: pick one now or when you stop
 						</p>
 					{/if}
 				</div>
 				<div>
 					<div class="flex items-center justify-between">
-						<label for="draft-description" class="block text-xs font-medium text-stone-600">
+						<label for="draft-description" class="block text-xs font-medium text-ink-muted">
 							Description
 						</label>
 						{#if draftContractId}
@@ -488,7 +488,7 @@
 						bind:value={draftDescription}
 						oninput={handleDescriptionInput}
 						rows="2"
-						class="mt-0.5 block w-full rounded border border-stone-300 px-1.5 py-1 text-xs shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-0.5 block w-full rounded input-base px-1.5 py-1 text-xs"
 						placeholder="What are you working on?"
 					></textarea>
 				</div>
@@ -507,7 +507,7 @@
 	{/if}
 
 	{#if errorMessage}
-		<div class="mt-2 rounded-md bg-red-50 p-2 text-xs text-red-600">
+		<div class="mt-2 rounded-md bg-rust-50 p-2 text-xs text-rust-600">
 			{errorMessage}
 		</div>
 	{/if}

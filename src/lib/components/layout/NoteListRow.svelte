@@ -34,24 +34,24 @@
 <div class="group relative" data-testid="note-list-row" data-note-id={note.id} data-pinned={note.isPinned ? 'true' : undefined}>
 	<button
 		onclick={() => onOpen(note)}
-		class="block w-full text-left transition-colors hover:bg-stone-100
-			{isSelected ? 'border-l-2 border-blue-600 bg-blue-50' : 'border-l-2 border-transparent'}"
+		class="block w-full text-left transition-colors hover:bg-chalk-100
+			{isSelected ? 'border-l-2 border-pine-600 bg-pine-50' : 'border-l-2 border-transparent'}"
 	>
 		<div class="py-3 pr-9 pl-4">
 			<span class="mb-0.5 flex items-center gap-1.5">
-				<span class="truncate text-sm font-semibold text-stone-900">{title}</span>
+				<span class="truncate text-sm font-semibold text-ink">{title}</span>
 				<OutboxMarker resourceKey="note:{note.id}" otherKey={note.clientRequestId ? `note:${note.clientRequestId}` : null} />
 			</span>
 			{#if contractName && contractOnOwnLine}
-				<div class="truncate text-xs font-medium text-stone-600" data-testid="note-row-contract">{contractName}</div>
+				<div class="truncate text-xs font-medium text-ink-muted" data-testid="note-row-contract">{contractName}</div>
 			{/if}
-			<div class="truncate text-xs text-stone-500">
+			<div class="truncate text-xs text-ink-faint">
 				{#if contractName && !contractOnOwnLine}
-					<span class="mr-1.5 font-medium text-stone-600" data-testid="note-row-contract">{contractName}</span>
+					<span class="mr-1.5 font-medium text-ink-muted" data-testid="note-row-contract">{contractName}</span>
 				{/if}
 				<span class="font-medium">{formatSmartDate(note[dateField])}</span>
 				{#if note.secondLine}
-					<span class="ml-1.5 text-stone-400">{note.secondLine}</span>
+					<span class="ml-1.5 text-ink-faint">{note.secondLine}</span>
 				{/if}
 			</div>
 		</div>
@@ -59,10 +59,10 @@
 	<button
 		type="button"
 		onclick={() => onTogglePin(note)}
-		class="absolute top-2.5 right-2 rounded p-1 transition-opacity pointer-coarse:top-0 pointer-coarse:right-0 pointer-coarse:p-[15px] hover:bg-stone-200 focus-visible:opacity-100
+		class="absolute top-2.5 right-2 rounded p-1 transition-opacity pointer-coarse:top-0 pointer-coarse:right-0 pointer-coarse:p-[15px] hover:bg-chalk-200 focus-visible:opacity-100
 			{note.isPinned
-			? 'text-amber-500 opacity-100'
-			: 'text-stone-400 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-50'}"
+			? 'text-ochre-600 opacity-100'
+			: 'text-ink-faint opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-50'}"
 		aria-pressed={note.isPinned}
 		aria-label="{note.isPinned ? 'Unpin' : 'Pin'} “{title}”"
 		title={note.isPinned ? 'Pinned: click to unpin' : 'Pin to the top'}

@@ -162,13 +162,13 @@
         oninput={handleInput}
         onkeydown={handleKeydown}
         onblur={handleBlur}
-        class="block w-full border-0 border-b border-stone-200 bg-transparent px-0 py-0.5 text-sm text-stone-600 focus:border-blue-400 focus:ring-0 focus:outline-none"
+        class="block w-full border-0 border-b border-divider bg-transparent px-0 py-0.5 text-sm text-ink-muted focus:border-pine-400 focus:ring-0 focus:outline-none"
     />
 
     {#if showDropdown}
-        <div class="absolute left-0 top-full z-50 mt-1 w-72 rounded-md border border-stone-200 bg-white py-1 shadow-lg">
+        <div class="absolute left-0 top-full z-50 mt-1 w-72 rounded-md menu-panel py-1">
             {#if searchResults.length === 0}
-                <div class="px-3 py-2 text-xs text-stone-400">
+                <div class="px-3 py-2 text-xs text-ink-faint">
                     {searchQuery.length > 0 ? 'No matching notes' : 'Type to search notes...'}
                 </div>
             {:else}
@@ -176,12 +176,12 @@
                     <button
                         type="button"
                         class="block w-full px-3 py-1.5 text-left text-sm transition-colors
-                            {index === selectedIndex ? 'bg-blue-50 text-blue-700' : 'text-stone-700 hover:bg-stone-50'}"
+                            {index === selectedIndex ? 'bg-pine-50 text-pine-700' : 'text-ink-soft hover:bg-chalk-50'}"
                         onmousedown={() => selectResult(result)}
                     >
-                        <span class="font-mono text-xs text-stone-400">{result.id}</span>
+                        <span class="font-mono text-xs text-ink-faint">{result.id}</span>
                         {#if result.title}
-                            <span class="ml-1 text-stone-500">&middot;</span>
+                            <span class="ml-1 text-ink-faint">&middot;</span>
                             <span class="ml-1">{result.title}</span>
                         {/if}
                     </button>

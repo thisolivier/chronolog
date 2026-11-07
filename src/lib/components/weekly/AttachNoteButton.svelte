@@ -43,12 +43,12 @@
 	aria-label="Attach note"
 	title={tooltip}
 	data-testid="attach-note-button"
-	class="flex h-6 w-6 items-center justify-center rounded text-stone-400 transition-opacity
-		hover:bg-blue-50 hover:text-blue-600 focus-visible:opacity-100
-		aria-disabled:cursor-not-allowed aria-disabled:hover:bg-transparent aria-disabled:hover:text-stone-400
+	class="flex h-6 w-6 items-center justify-center rounded text-ink-faint transition-opacity
+		hover:bg-pine-50 hover:text-pine-600 focus-visible:opacity-100
+		aria-disabled:cursor-not-allowed aria-disabled:hover:bg-transparent aria-disabled:hover:text-ink-faint
 		pointer-coarse:h-8 pointer-coarse:w-8 pointer-coarse:opacity-100
 		{isAttaching || alwaysVisible ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'}
-		{blockedReason ? 'text-stone-300' : ''}"
+		{blockedReason ? 'text-chalk-300' : ''}"
 >
 	<!-- A page with a plus: a new note -->
 	<svg class="h-4 w-4 {isAttaching ? 'animate-pulse' : ''}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">

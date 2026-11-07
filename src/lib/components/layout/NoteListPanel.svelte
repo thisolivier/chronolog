@@ -240,10 +240,10 @@
 	});
 </script>
 
-<div class="flex h-full flex-col bg-stone-50">
+<div class="flex h-full flex-col bg-chalk-50">
 	<!-- Header -->
 	<!-- Rule 4: the client and contract on their own row, so long names are not squeezed by the actions -->
-	<div class="border-b border-stone-200 bg-white px-4 pt-3 pb-2">
+	<div class="border-b border-divider bg-surface px-4 pt-3 pb-2">
 		<div
 			class="min-w-0"
 			data-testid="note-list-context"
@@ -256,21 +256,21 @@
 					: undefined}
 		>
 			{#if isAllNotesView}
-				<p class="truncate text-xs text-stone-500">Every contract, newest first</p>
-				<h2 class="truncate text-sm font-semibold text-stone-900">{ALL_NOTES_LABEL}</h2>
+				<p class="truncate text-xs text-ink-faint">Every contract, newest first</p>
+				<h2 class="truncate text-sm font-semibold text-ink">{ALL_NOTES_LABEL}</h2>
 			{:else if viewedClientId}
-				<p class="truncate text-xs text-stone-500">All contracts</p>
-				<h2 class="truncate text-sm font-semibold text-stone-900">{viewedClientName ?? 'Notes'}</h2>
+				<p class="truncate text-xs text-ink-faint">All contracts</p>
+				<h2 class="truncate text-sm font-semibold text-ink">{viewedClientName ?? 'Notes'}</h2>
 			{:else}
-				<p class="truncate text-xs text-stone-500">{contractLabel?.clientName ?? 'Notes'}</p>
-				<h2 class="truncate text-sm font-semibold text-stone-900">{contractLabel?.name ?? 'Notes'}</h2>
+				<p class="truncate text-xs text-ink-faint">{contractLabel?.clientName ?? 'Notes'}</p>
+				<h2 class="truncate text-sm font-semibold text-ink">{contractLabel?.name ?? 'Notes'}</h2>
 			{/if}
 		</div>
 		<div class="mt-2 flex items-center justify-between gap-2">
 			<button
 				type="button"
 				onclick={toggleSortOrder}
-				class="-ml-2 rounded px-2 py-1 text-xs whitespace-nowrap text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+				class="-ml-2 rounded px-2 py-1 text-xs whitespace-nowrap btn-quiet"
 				title="Change sort order"
 				data-testid="note-sort-toggle"
 			>
@@ -290,7 +290,7 @@
 		<div
 			role="status"
 			data-testid="move-feedback"
-			class="border-b border-green-200 bg-green-50 px-4 py-2 text-xs text-green-700"
+			class="border-b border-leaf-200 bg-leaf-50 px-4 py-2 text-xs text-leaf-700"
 		>
 			{moveFeedback}
 		</div>
@@ -299,18 +299,18 @@
 	<div class="flex-1 overflow-y-auto">
 		{#if isLoading}
 			<div class="flex items-center justify-center py-8">
-				<div class="text-sm text-stone-500">Loading notes...</div>
+				<div class="text-sm text-ink-faint">Loading notes...</div>
 			</div>
 		{:else if fetchError}
-			<div class="mx-4 mt-4 rounded-md bg-red-50 p-4">
-				<p class="text-sm text-red-800">{fetchError}</p>
+			<div class="mx-4 mt-4 rounded-md bg-rust-50 p-4">
+				<p class="text-sm text-rust-800">{fetchError}</p>
 			</div>
 		{:else}
-			<div class="divide-y divide-stone-200">
+			<div class="divide-y divide-divider">
 				{#if isDraftOpen}
-					<div class="border-l-2 border-blue-600 bg-blue-50 px-4 py-3" data-testid="draft-note-row">
-						<div class="text-sm font-semibold text-stone-500 italic">New note</div>
-						<div class="text-xs text-stone-400">Not saved until you type</div>
+					<div class="border-l-2 border-pine-600 bg-pine-50 px-4 py-3" data-testid="draft-note-row">
+						<div class="text-sm font-semibold text-ink-faint italic">New note</div>
+						<div class="text-xs text-ink-faint">Not saved until you type</div>
 					</div>
 				{/if}
 				{#each sortedNotes as note (note.id)}
@@ -331,8 +331,8 @@
 			</div>
 			{#if notesList.length === 0 && !isDraftOpen}
 				<div class="flex flex-col items-center justify-center px-4 py-8 text-center">
-					<div class="text-sm text-stone-500">No notes yet</div>
-					<p class="mt-1 text-xs text-stone-400">Create a note to start writing.</p>
+					<div class="text-sm text-ink-faint">No notes yet</div>
+					<p class="mt-1 text-xs text-ink-faint">Create a note to start writing.</p>
 				</div>
 			{/if}
 		{/if}

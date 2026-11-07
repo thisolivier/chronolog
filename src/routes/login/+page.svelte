@@ -85,17 +85,17 @@
 
 <svelte:head><title>Chronolog · Sign in</title></svelte:head>
 
-<div class="safe-area-shell flex min-h-dvh items-center justify-center bg-stone-50">
-	<div class="w-[calc(100%-2rem)] max-w-md space-y-8 rounded-lg bg-white p-6 shadow-md sm:p-8">
+<div class="safe-area-shell flex min-h-dvh items-center justify-center bg-chalk-50">
+	<div class="w-[calc(100%-2rem)] max-w-md space-y-8 rounded-lg bg-surface p-6 shadow-md sm:p-8">
 		<div class="text-center">
-			<h1 class="text-3xl font-bold text-stone-900">Chronolog</h1>
-			<p class="mt-2 text-stone-600">
+			<h1 class="text-3xl font-bold text-ink">Chronolog</h1>
+			<p class="mt-2 text-ink-muted">
 				{requiresTwoFactor ? 'Enter your 2FA code' : 'Sign in to your account'}
 			</p>
 		</div>
 
 		{#if errorMessage}
-			<div class="rounded-md bg-red-50 p-4 text-sm text-red-700">
+			<div class="rounded-md bg-rust-50 p-4 text-sm text-rust-700">
 				{errorMessage}
 			</div>
 		{/if}
@@ -103,7 +103,7 @@
 		{#if requiresTwoFactor}
 			<form onsubmit={handleTwoFactorVerification} class="space-y-6">
 				<div>
-					<label for="totp-code" class="block text-sm font-medium text-stone-700">
+					<label for="totp-code" class="block text-sm font-medium text-ink-soft">
 						Authentication Code
 					</label>
 					<input
@@ -114,7 +114,7 @@
 						maxlength="6"
 						bind:value={totpCode}
 						required
-						class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-1 block w-full rounded-md input-base px-3 py-2"
 						placeholder="Enter 6-digit code"
 					/>
 				</div>
@@ -122,7 +122,7 @@
 				<button
 					type="submit"
 					disabled={isLoading || !isHydrated}
-					class="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+					class="w-full rounded-md btn-primary px-4 py-2 disabled:opacity-50"
 				>
 					{isLoading ? 'Verifying...' : 'Verify'}
 				</button>
@@ -130,19 +130,19 @@
 		{:else}
 			<form onsubmit={handleLogin} class="space-y-6">
 				<div>
-					<label for="email" class="block text-sm font-medium text-stone-700">Email</label>
+					<label for="email" class="block text-sm font-medium text-ink-soft">Email</label>
 					<input
 						id="email"
 						type="email"
 						bind:value={email}
 						required
-						class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-1 block w-full rounded-md input-base px-3 py-2"
 						placeholder="you@example.com"
 					/>
 				</div>
 
 				<div>
-					<label for="password" class="block text-sm font-medium text-stone-700">
+					<label for="password" class="block text-sm font-medium text-ink-soft">
 						Password
 					</label>
 					<input
@@ -150,7 +150,7 @@
 						type="password"
 						bind:value={password}
 						required
-						class="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						class="mt-1 block w-full rounded-md input-base px-3 py-2"
 						placeholder="Your password"
 					/>
 				</div>
@@ -158,16 +158,16 @@
 				<button
 					type="submit"
 					disabled={isLoading || !isHydrated}
-					class="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+					class="w-full rounded-md btn-primary px-4 py-2 disabled:opacity-50"
 				>
 					{isLoading ? 'Signing in...' : 'Sign in'}
 				</button>
 			</form>
 		{/if}
 
-		<p class="text-center text-sm text-stone-600">
+		<p class="text-center text-sm text-ink-muted">
 			Don't have an account?
-			<a href="/register" class="font-medium text-blue-600 hover:text-blue-500">Register</a>
+			<a href="/register" class="font-medium text-pine-600 hover:text-pine-500">Register</a>
 		</p>
 	</div>
 </div>

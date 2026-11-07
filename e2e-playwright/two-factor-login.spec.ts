@@ -108,7 +108,7 @@ test('register, enable TOTP, sign out, sign in with a code, land in the app', as
 	const wrongCode = String((Number(goodCode) + 500_000) % 1_000_000).padStart(6, '0');
 	await page.locator('#totp-code').fill(wrongCode);
 	await page.getByRole('button', { name: 'Verify' }).click();
-	await expect(page.locator('.bg-red-50')).toBeVisible();
+	await expect(page.locator('.bg-rust-50')).toBeVisible();
 	await expect(page).toHaveURL(/\/login$/);
 
 	// The right code signs in and lands in the app
