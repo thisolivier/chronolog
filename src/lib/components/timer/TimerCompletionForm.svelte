@@ -5,54 +5,46 @@
 	import WorkTypeSelect from './WorkTypeSelect.svelte';
 	import DurationField from './DurationField.svelte';
 	import { describeSaveError } from './save-error';
-	import { parseDuration, formatDurationInput } from '$lib/utils/duration';
+	import { parseDuration } from '$lib/utils/duration';
+	import { captureDraft } from '$lib/stores/capture-draft.svelte';
 	import type { TimerSaveData } from './timer-api';
 
-
+	/*
+	 * The fields live in the shared capture store (sprint 053-DR), opened by TimerWidget when the
+	 * timer stopped: collapse, phone Back, another route or a reload all find them again. Only
+	 * the transient state (saving, error messages) is local.
+	 */
 	let {
-		startTime,
-		endTime,
-		elapsedSeconds,
-		initialContractId = '',
-		initialDescription = '',
 		onSave,
 		onDiscard
 	}: {
-		startTime: string;
-		endTime: string;
-		elapsedSeconds: number;
-		initialContractId?: string;
-		initialDescription?: string;
 		/** Resolves when saved; rejects with the error to show */
 		onSave: (data: TimerSaveData) => Promise<void>;
 		onDiscard: () => void;
 	} = $props();
 
-	// The form edits its own copy; later prop changes must not overwrite what the user typed
-	const measuredTimeText = untrack(() =>
-		formatDurationInput(Math.max(1, Math.ceil(elapsedSeconds / 60)), startTime || null, endTime || null)
-	);
-
-	let selectedContractId = $state(untrack(() => initialContractId));
-	let selectedDeliverableId = $state('');
-	let selectedWorkTypeId = $state('');
+	const fields = $derived(captureDraft.fields);
 	let workTypesAvailable = $state(false);
-	let description = $state(untrack(() => initialDescription));
-	let timeText = $state(measuredTimeText);
 	let isSaving = $state(false);
 
 	let contractError = $state('');
 	let timeError = $state('');
 	let saveError = $state('');
 
-	// A deliverable belongs to a contract: changing the contract clears the deliverable chain
-	let previousContractId = untrack(() => initialContractId);
+	// Every edit is written through, so a remount or reload restores it
 	$effect(() => {
-		const contractId = selectedContractId;
+		void JSON.stringify(captureDraft.fields);
+		untrack(() => captureDraft.persist());
+	});
+
+	// A deliverable belongs to a contract: changing the contract clears the deliverable chain
+	let previousContractId = untrack(() => captureDraft.fields.contractId);
+	$effect(() => {
+		const contractId = fields.contractId;
 		untrack(() => {
 			if (contractId !== previousContractId) {
-				selectedDeliverableId = '';
-				selectedWorkTypeId = '';
+				captureDraft.fields.deliverableId = '';
+				captureDraft.fields.workTypeId = '';
 				previousContractId = contractId;
 			}
 			if (contractId) contractError = '';
@@ -60,25 +52,25 @@
 	});
 
 	$effect(() => {
-		void timeText;
+		void fields.timeText;
 		untrack(() => (timeError = ''));
 	});
 
 	async function handleSave() {
 		if (isSaving) return;
 		saveError = '';
-		contractError = selectedContractId ? '' : 'Pick a contract';
+		contractError = fields.contractId ? '' : 'Pick a contract';
 
-		const timeChanged = timeText.trim() !== measuredTimeText;
-		const parsedTime = timeChanged ? parseDuration(timeText) : null;
+		const timeChanged = fields.timeText.trim() !== fields.measuredTimeText;
+		const parsedTime = timeChanged ? parseDuration(fields.timeText) : null;
 		timeError = parsedTime && !parsedTime.ok ? parsedTime.error : '';
-		if (!selectedContractId || timeError) return;
+		if (!fields.contractId || timeError) return;
 
 		const saveData: TimerSaveData = {
-			contractId: selectedContractId,
-			deliverableId: selectedDeliverableId,
-			workTypeId: selectedWorkTypeId,
-			description
+			contractId: fields.contractId,
+			deliverableId: fields.deliverableId,
+			workTypeId: fields.workTypeId,
+			description: fields.description
 		};
 		if (parsedTime && parsedTime.ok) {
 			saveData.durationMinutes = parsedTime.durationMinutes;
@@ -105,7 +97,7 @@
 </script>
 
 <div class="space-y-3">
-	<p class="text-xs font-medium text-ink-faint">Timer stopped: save or discard this entry</p>
+	<p class="text-xs font-medium text-ink-faint" data-testid="timer-finish-heading">Finish entry: save or discard it</p>
 
 	<div>
 		<label for="timer-description" class="block text-xs font-medium text-ink-muted">
@@ -113,7 +105,7 @@
 		</label>
 		<textarea
 			id="timer-description"
-			bind:value={description}
+			bind:value={captureDraft.fields.description}
 			onkeydown={handleFieldKeydown}
 			rows="2"
 			class="mt-0.5 block w-full rounded-md input-base px-2 py-1.5 text-sm"
@@ -126,7 +118,7 @@
 		<div class="mt-0.5">
 			<ContractSelect
 				id="timer-contract"
-				bind:selectedContractId
+				bind:selectedContractId={captureDraft.fields.contractId}
 				compact={true}
 				invalid={contractError !== ''}
 			/>
@@ -139,8 +131,8 @@
 		<div class="mt-0.5">
 			<DeliverableSelect
 				id="timer-deliverable"
-				contractId={selectedContractId}
-				bind:selectedDeliverableId
+				contractId={fields.contractId}
+				bind:selectedDeliverableId={captureDraft.fields.deliverableId}
 				compact={true}
 				alwaysRender={true}
 			/>
@@ -152,8 +144,8 @@
 		<div class="mt-0.5">
 			<WorkTypeSelect
 				id="timer-work-type"
-				deliverableId={selectedDeliverableId}
-				bind:selectedWorkTypeId
+				deliverableId={fields.deliverableId}
+				bind:selectedWorkTypeId={captureDraft.fields.workTypeId}
 				bind:hasWorkTypes={workTypesAvailable}
 				compact={true}
 			/>
@@ -165,7 +157,7 @@
 		<div class="mt-0.5">
 			<DurationField
 				id="timer-time"
-				bind:value={timeText}
+				bind:value={captureDraft.fields.timeText}
 				errorMessage={timeError}
 				compact={true}
 				onkeydown={handleFieldKeydown}

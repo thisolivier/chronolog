@@ -15,16 +15,16 @@ The panels are hosted by `src/routes/(workspace)/+layout.svelte`, which covers `
 │  240px      │  flex-grow                                    │
 │  collapsible│  WeekStrip + day sections                     │
 └─────────────┴───────────────────────────────────────────────┘
-  Top bar: hamburger toggle | Chronolog | ‹ › | search field (left-aligned) ... TimerIndicator
+  Top bar: hamburger toggle | Chronolog | ‹ › ........ TimerIndicator (only while no timer widget is on screen) | search field (far right)
 ```
 
 ### Mobile (<768px, single panel push/pop)
 
 ```
 Level 0: sidebar (contracts + timer widget)   top bar: "Chronolog"
-Level 1: note list (notes mode)               top bar: "← <Back label>" [›] <context title> | TimerIndicator
-         time entries (time mode)
-Level 2: note editor (notes mode only)        top bar: "← <Back label>" <context title> | TimerIndicator
+Level 1: note list (notes mode)               top bar: "← <Back label>" [›] <context title> | TimerIndicator (no widget on screen)
+         time entries (time mode, footer timer widget: no TimerIndicator)
+Level 2: note editor (notes mode only)        top bar: "← <Back label>" <context title> | TimerIndicator (no widget on screen)
 ```
 
 ### Notes Mode (3 panels)
@@ -50,7 +50,13 @@ Tablet and desktop share one DOM branch, so crossing 1024px never remounts the e
 
 ### AppShell.svelte
 
-Mode-aware layout container. It picks the branch from the breakpoints above. On desktop the top bar always shows the hamburger sidebar toggle and the TimerIndicator; in time mode Panel 2 is hidden (sidebar + content), in notes mode the three-panel layout with a resizable Panel 2 is shown. On mobile a permanent top bar shows "Chronolog" at level 0. Deeper levels show "← <where Back goes>" (for example "← Week 45" or "← Acme Corp · Rocket Build"), then a context title (for example "Acme Corp · Rocket Build" or "Time entries · Week 45"), then the TimerIndicator. Back uses the in-app history when it can (see `$lib/stores/README.md`). Level 1 renders Panel 2 only in notes mode and goes straight to Panel 3 (time entries) in time mode. Tapping the mobile TimerIndicator returns to level 0 where the timer widget lives. `ConnectionStatus` is rendered here, showing the offline banner. The top bar also holds Back / Forward (`HistoryButtons`, sprint 050-UI) and, right after them and left-aligned, the global search field (`$lib/components/search/GlobalSearchField.svelte`, sprint 042-CL); the phone bar adds a › after "← Back" when a step is ahead; on a phone a search icon in the header links to `/search`. iPhone (sprint 047-QA): both branches are `h-dvh` (not 100vh, which runs under Safari's toolbar) with `.safe-area-shell` padding (notch, home indicator; `app.html` has `viewport-fit=cover`); on the week or a note the phone title bar also has a Find button (the touch route to find in page, see `$lib/components/find/README.md`). Touch screens get 44 px targets through Tailwind's `pointer-coarse:` variant here and in the sidebar, note list, week and editor components; the global phone rules (16 px fields, safe areas, the stacked Settings table) are in `src/app.css`.
+Mode-aware layout container. It picks the branch from the breakpoints above. On desktop the top bar always shows the hamburger sidebar toggle and the TimerIndicator; in time mode Panel 2 is hidden (sidebar + content), in notes mode the three-panel layout with a resizable Panel 2 is shown. On mobile a permanent top bar shows "Chronolog" at level 0. Deeper levels show "← <where Back goes>" (for example "← Week 45" or "← Acme Corp · Rocket Build"), then a context title (for example "Acme Corp · Rocket Build" or "Time entries · Week 45"), then the TimerIndicator. Back uses the in-app history when it can (see `$lib/stores/README.md`). Level 1 renders Panel 2 only in notes mode and goes straight to Panel 3 (time entries) in time mode. Tapping the mobile TimerIndicator returns to level 0 where the timer widget lives. `ConnectionStatus` is rendered here, showing the offline banner. The top bar also holds Back / Forward (`HistoryButtons`, sprint 050-UI) by the app name and, at the far right of the bar (SH-05, sprint 053-DR), the global search field (`$lib/components/search/GlobalSearchField.svelte`, sprint 042-CL); the phone bar adds a › after "← Back" when a step is ahead; on a phone a search icon in the header links to `/search`. iPhone (sprint 047-QA): both branches are `h-dvh` (not 100vh, which runs under Safari's toolbar) with `.safe-area-shell` padding (notch, home indicator; `app.html` has `viewport-fit=cover`); on the week or a note the phone title bar also has a Find button (the touch route to find in page, see `$lib/components/find/README.md`). Touch screens get 44 px targets through Tailwind's `pointer-coarse:` variant here and in the sidebar, note list, week and editor components; the global phone rules (16 px fields, safe areas, the stacked Settings table) are in `src/app.css`.
+
+**One visible timer (sprint 053-DR, SH-04).** The TimerIndicator shows only while no TimerWidget is on screen: `headerReflectionFor(status, presentation)` in `$lib/components/timer/timer-visibility.ts` decides from the layout mode, the desktop hide preference (`panel1Collapsed`), the tablet overlay state and the number of mounted widgets (`timer-widget-registry`), never from "mounted" alone (a hidden sidebar is 0px wide with its widget still mounted). Clicking it on desktop or tablet shows the sidebar (`openSidebar`; chosen over a popover as the simpler path); on a phone it opens the capture screen (home, level 0). A phone opened straight on a note has no widget, so AppShell reads the capture once, read-only, through `timer-reflection.ts`. AppShell also writes `shell-presentation.svelte.ts` (`layoutMode`, `sidebarOnScreen`, `timerWidgetOnScreen`) for components outside the shell, such as the notes list header (stage 3b).
+
+### shell-presentation.svelte.ts
+
+Read-only (outside AppShell) record of what the shell presents: `sidebarOnScreen` is false with the desktop sidebar hidden, the tablet overlay closed, or a phone screen other than home; `timerWidgetOnScreen` mirrors the SH-04 rule. Written by AppShell only.
 
 ### HistoryButtons.svelte
 
@@ -64,22 +70,24 @@ Offline banner, rendered by AppShell and by `SettingsShell`. It reads `src/lib/s
 
 Panel 1 sidebar content. One scrolling list (`sidebar-scroll`): Time Entries, the "Notes" heading (a button that opens all notes, `/notes/all`, `aria-current` while shown; sprint 051-UI), the contracts by client, the Archived item, then Trash and Settings (`SidebarUtilityLinks`). Below the list there is only the timer widget. New contracts are made in Settings → Clients and contracts (the 049 `+` next to the heading was removed in 051 at the owner's request; the no-contracts hint links there). It loads the contracts (archived ones included) into the contract directory store, which splits them into the active clients and the Archived section; the sidebar only draws them. Note counts refresh on `notes-changed` and `note-moved` window events, and the list reloads whenever the sidebar mounts again (coming back from Settings).
 
-Hierarchy (sprint 033-CL):
-- A client with two or more active contracts is a heading (colour dot + name) with its contracts indented under it.
-- A client with exactly one active contract is one row at the client's indent: the dot, the contract name, and the client name beneath it in small muted text. Archived contracts do not count towards the one.
+Hierarchy (sprint 033-CL; design r1 restyle in 053-DR, SH-02):
+- A client with two or more active contracts is a pale tinted section (`bg-sunken`) holding its heading (the name, no colour dot) and its contracts. Each contract row is a ContractMark (`size="sm"`, client colour + initials), the name at the `gap-mark-gap` token (DS-05) and the note count at the right. The heading text and the child marks share one inset inside the section.
+- A client with exactly one active contract is one flattened row at the outer inset (the owner-selected looser alignment: its mark sits left of the grouped marks): the mark, the contract name, and the client name beneath it in small muted text. Archived contracts do not count towards the one.
+- The selected contract (and the viewed client's name) is a punch-out in the surface colour with a soft edge (`bg-surface shadow-panel ring-1 ring-divider`), not a blue or pine wash. Time Entries and the "Notes" heading use the sage `bg-selection` when current.
+- **Muting (SH-03).** While Time Entries is selected, one wrapper (`sidebar-notes-section`, `data-muted`) sets 50% opacity on everything from the "Notes" heading to Settings; Time Entries and the timer stay at full opacity. Nothing inside uses opacity for its own muting while the wrapper is on (inactive contracts use `text-ink-fainter`; archived and inactive ContractMarks drop their own `muted` when `sectionMuted`), so nothing reaches 25%. Everything stays enabled, clickable and focusable.
 - **Archived**, after the last active client and only when something is archived: a toggle button (`aria-expanded`, count badge of archived contracts, and a chevron in the same right-hand column as the client chevrons, 051-UI), collapsed by default and remembered per browser. It lists archived clients with their contracts and the archived contracts of active clients under their client's name, in the same grammar but muted.
 
 Sprint 039-CL:
-- A client heading is the client's name with its dot, which opens the client view (`aria-current` and pine while it is shown), and a chevron (collapse) at the row's right edge; the client chevrons and the Archived chevron share one right inset and box size (`h-5 w-5`, `w-8` on touch), so they form one column (049-UI, 051-UI). Collapsing hides the client's contracts except the open one; the choice is remembered per browser in `client-collapse-state.ts` (`chronolog:sidebar-collapsed-clients`, never collapsed by default). A single-contract client has no chevron and no client-view entry (its row opens the contract).
+- A client heading is the client's name, which opens the client view (`aria-current` and the punch-out while it is shown), and a chevron (collapse) at the row's right edge; the client chevrons and the Archived chevron share one right inset and box size (`h-5 w-5`, `w-8` on touch), so they form one column (049-UI, 051-UI). Collapsing hides the client's contracts except the open one; the choice is remembered per browser in `client-collapse-state.ts` (`chronolog:sidebar-collapsed-clients`, never collapsed by default). A single-contract client has no chevron and no client-view entry (its row opens the contract).
 - Active clients can be reordered: drag a client's name (or its single row) onto another client (native HTML5 drag and drop, drop line above or below), or Alt+ArrowUp / Alt+ArrowDown on it, announced in a polite live region (`sidebar-reorder-announcement`). `client-reorder.svelte.ts` applies the order to the directory store at once and saves it with `PATCH /api/clients/reorder`; a failed save reloads the list.
 
-The contract open in the URL is highlighted (`aria-current`, pine) and the heading of the group holding it turns pine. When that contract is archived the Archived item expands (without changing the remembered choice), and a newly selected row is scrolled into view. On the phone home nothing is highlighted, including Time Entries.
+The contract open in the URL is highlighted (`aria-current`, the surface punch-out). When that contract is archived the Archived item expands (without changing the remembered choice), and a newly selected row is scrolled into view. On the phone home nothing is highlighted, including Time Entries.
 
-Stable test hooks: `sidebar-scroll`, `sidebar-notes-heading`, `[data-testid="sidebar-client-group"]` (aria-label = client name, `data-client-id`) per active client, `sidebar-client-heading`, `sidebar-client-chevron`, `sidebar-client-name`, `[data-client-reorder-handle]`, `sidebar-single-contract-row`, `sidebar-row-client-name`, `sidebar-note-count`; `data-contract-id` on every contract button; `sidebar-archived-section`, `sidebar-archived-toggle`, `sidebar-archived-count`, `sidebar-archived-chevron` and `sidebar-archived-client-group`; `sidebar-trash-link`, `sidebar-settings-link`.
+Stable test hooks: `sidebar-scroll`, `sidebar-notes-heading`, `[data-testid="sidebar-client-group"]` (aria-label = client name, `data-client-id`) per active client, `sidebar-client-heading`, `sidebar-client-chevron`, `sidebar-client-name`, `[data-client-reorder-handle]`, `sidebar-single-contract-row`, `sidebar-row-client-name`, `sidebar-note-count`; `data-contract-id` on every contract button; `sidebar-archived-section`, `sidebar-archived-toggle`, `sidebar-archived-count`, `sidebar-archived-chevron` and `sidebar-archived-client-group`; `sidebar-trash-link`, `sidebar-settings-link`; `sidebar-time-entries`, `sidebar-notes-section` (053-DR) and `contract-mark` inside each contract row.
 
 ### SidebarClientGroup.svelte
 
-One client in the sidebar: the heading plus children, or the single-contract row. `muted` greys it for the Archived section (no chevron, no client view, no reorder). Optional props add the chevron (`isCollapsed`, `onToggleCollapse`), the client view (`onOpenClient`, `viewedClientId`) and reordering (`reorder`, a `ClientReorderController`).
+One client in the sidebar: the tinted section with heading plus children, or the flattened single-contract row. `muted` quietens it by colour for the Archived section (no chevron, no client view, no reorder); `sectionMuted` says the Time Entries wrapper is already at 50%. Optional props add the chevron (`isCollapsed`, `onToggleCollapse`), the client view (`onOpenClient`, `viewedClientId`) and reordering (`reorder`, a `ClientReorderController`).
 
 ### SidebarArchivedSection.svelte
 
@@ -87,7 +95,7 @@ The Archived toggle and its list. The expanded preference is read and written th
 
 ### SidebarUtilityLinks.svelte
 
-"Trash" (sprint 043-CL, the trash page `/notes/trash`) and "Settings" (sprint 051-UI, formerly a fixed footer above the timer) under the Archived item, in the same muted style: icon and label. The sidebar was chosen for the trash over the foot of the note list because it spans every contract and is rarely needed.
+"Trash" (sprint 043-CL, the trash page `/notes/trash`) and "Settings" (sprint 051-UI, formerly a fixed footer above the timer) under the Archived item, in the same style as Archived (053-DR: sentence case, 16px icon and label, `text-ink-muted`). The sidebar was chosen for the trash over the foot of the note list because it spans every contract and is rarely needed.
 
 ### TimeEntriesPanel.svelte
 
@@ -127,7 +135,8 @@ The URL is the state. All layout components read the navigation context from `$l
 - `$lib/stores/navigation-routes.ts`: URL <-> workspace route parsing (used by AppShell and navigation-labels)
 - `$lib/components/layout/navigation-labels.ts`: Back and title labels (used by AppShell)
 - `$lib/stores/timer-state.svelte.ts`: Shared timer display state (for TimerIndicator)
-- `$lib/utils/client-colors.ts`: Client color palette (for ContractsSidebar dots)
+- `$lib/components/identity/ContractMark.svelte`: Contract marks in the sidebar rows (client colour from `$lib/utils/client-colors.ts`)
+- `$lib/components/timer/timer-visibility.ts`, `timer-widget-registry.svelte.ts`, `timer-reflection.ts`: the one-visible-timer rule (AppShell)
 - `$lib/components/timer/TimerWidget.svelte`: Timer widget in sidebar
 - `$lib/components/weekly/WeekStrip.svelte`: Sticky week strip (used by TimeEntriesPanel)
 - `$lib/components/weekly/TimerIndicator.svelte`: Top bar timer (used by AppShell)

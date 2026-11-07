@@ -124,7 +124,8 @@ test('task 3: a client with one active contract is one row; a second contract br
 	const soloRow = contractRow(page, retainer);
 	await expect(soloRow).toContainText('Retainer');
 	await expect(soloRow.getByTestId('sidebar-row-client-name')).toHaveText(soloName);
-	await expect(soloRow.locator('span.rounded-full')).toHaveCount(1);
+	// 053-DR: the colour dot became the contract mark (client colour + initials)
+	await expect(soloRow.getByTestId('contract-mark')).toHaveCount(1);
 
 	// Two active contracts keep the heading plus children
 	const pairGroup = activeGroup(page, pairName);
@@ -136,7 +137,7 @@ test('task 3: a client with one active contract is one row; a second contract br
 	await soloRow.click();
 	await expect(page).toHaveURL(`/notes/${retainer}`);
 	await expect(soloRow).toHaveAttribute('aria-current', 'page');
-	await expect(soloRow).toHaveClass(/bg-pine-50/);
+	await expect(soloRow).toHaveClass(/bg-surface/);
 	await expect(page.getByTestId('note-list-context')).toContainText(soloName);
 	await expect(page.getByTestId('note-list-context')).toContainText('Retainer');
 

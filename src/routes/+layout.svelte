@@ -10,6 +10,7 @@
 	import { DelegatingDataService } from '$lib/services/delegating-data-service';
 	import { OfflineDataService } from '$lib/offline/offline-data-service';
 	import { startOfflineSession } from '$lib/offline/offline-session.svelte';
+	import { captureDraft } from '$lib/stores/capture-draft.svelte';
 	import { registerServiceWorker, watchServiceWorkerUpdates } from '$lib/offline/service-worker-updates';
 
 	let { children, data } = $props();
@@ -72,6 +73,13 @@
 	if (browser) untrack(() => data.user?.id && startOfflineSession(data.user.id));
 	$effect(() => {
 		if (data.user?.id) startOfflineSession(data.user.id);
+	});
+
+	// The unfinished capture's completion fields are kept per user (sprint 053-DR). Configured
+	// before the panels mount, so the first TimerWidget finds them.
+	if (browser) untrack(() => captureDraft.configure(data.user?.id ?? '', safeStorage(() => window.localStorage)));
+	$effect(() => {
+		captureDraft.configure(data.user?.id ?? '', safeStorage(() => window.localStorage));
 	});
 
 	// A new version of the app's service worker is waiting (src/service-worker.ts, sprint 045-CL)

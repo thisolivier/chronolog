@@ -25,6 +25,12 @@ export interface TimerDisplayState {
 	clientColorIndex: number;
 	/** Client short code of the timer's contract, shown in the desktop menu bar */
 	contractShortCode?: string;
+	/** The capture's own identity (sprint 053-DR): contract name, its client, never the browsed one */
+	contractTitle?: string;
+	clientName?: string;
+	/** Local start (`HH:MM:SS`) and date, so the header clock can tick with no widget mounted */
+	startTime?: string;
+	startDate?: string;
 }
 
 export interface TimerStateContext {
@@ -34,6 +40,10 @@ export interface TimerStateContext {
 	description: string;
 	contractName: string;
 	clientColorIndex: number;
+	contractTitle: string;
+	clientName: string;
+	startTime: string;
+	startDate: string;
 
 	// Actions (called by TimerWidget)
 	update: (newState: Partial<TimerDisplayState>) => void;
@@ -51,7 +61,11 @@ export function createTimerState(): TimerStateContext {
 		description: '',
 		contractName: '',
 		clientColorIndex: 0,
-		contractShortCode: ''
+		contractShortCode: '',
+		contractTitle: '',
+		clientName: '',
+		startTime: '',
+		startDate: ''
 	});
 
 	// Desktop app only (src-tauri): mirror the timer into the menu bar. Browsers skip this.
@@ -81,6 +95,18 @@ export function createTimerState(): TimerStateContext {
 		get clientColorIndex() {
 			return state.clientColorIndex;
 		},
+		get contractTitle() {
+			return state.contractTitle ?? '';
+		},
+		get clientName() {
+			return state.clientName ?? '';
+		},
+		get startTime() {
+			return state.startTime ?? '';
+		},
+		get startDate() {
+			return state.startDate ?? '';
+		},
 
 		update(newState: Partial<TimerDisplayState>) {
 			Object.assign(state, newState);
@@ -93,6 +119,10 @@ export function createTimerState(): TimerStateContext {
 			state.contractName = '';
 			state.clientColorIndex = 0;
 			state.contractShortCode = '';
+			state.contractTitle = '';
+			state.clientName = '';
+			state.startTime = '';
+			state.startDate = '';
 		}
 	};
 }

@@ -1,7 +1,8 @@
 /**
  * Sprint 050-UI: Back and Forward through the user's journey, for the Mac app and the installed
  * PWA (no browser buttons there). Every navigation is a step, paging weeks included; typing is
- * not. Desktop: ‹ › before the search field, Cmd/Ctrl+[ ] and Alt+arrows. Phone: "← Back" and a ›
+ * not. Desktop: ‹ › by the app name, global search at the far right of the app bar (053-DR; the
+ * /search page keeps its own header with ‹ › left of the field), Cmd/Ctrl+[ ] and Alt+arrows. Phone: "← Back" and a ›
  * that shows only when there is a step ahead. Each test signs up its own user.
  * Screenshots: `UPDATE_SPRINT_SCREENSHOTS=1` writes them to docs/review/screenshots/sprint-050/.
  */
@@ -107,6 +108,13 @@ test.describe('desktop 1280', () => {
 		expect(journey.at(-1)).toBe(`/notes/client/${data.clientId}`);
 
 		await expect(forwardButton(page)).toBeDisabled();
+		// SH-05 (053-DR): ‹ › stay left with the app name; global search sits at the far right
+		const topBarBox = (await page.getByTestId('app-top-bar').boundingBox())!;
+		const appFieldBox = (await page.getByTestId('global-search-input').boundingBox())!;
+		const appButtonsBox = (await page.getByTestId('history-buttons').boundingBox())!;
+		expect(appButtonsBox.x + appButtonsBox.width).toBeLessThan(topBarBox.x + topBarBox.width / 2);
+		expect(appFieldBox.x).toBeGreaterThan(topBarBox.x + topBarBox.width / 2);
+		expect(topBarBox.x + topBarBox.width - (appFieldBox.x + appFieldBox.width)).toBeLessThanOrEqual(48);
 		await page.screenshot({ path: path.join(SCREENSHOTS, 'desktop-01-end-of-journey.png') });
 		await page.getByTestId('app-top-bar').screenshot({ path: path.join(SCREENSHOTS, 'desktop-02-top-bar-forward-disabled.png') });
 		// Typing in the search field is not a step either

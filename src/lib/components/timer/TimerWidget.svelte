@@ -18,7 +18,12 @@
 	import { untrack } from 'svelte';
 	import { formatContractLabel } from './contract-label';
 	import { localDateString, localTimeString } from './local-date';
-	import { registerSidebarTimerWidget } from './timer-widget-registry.svelte';
+	import { registerTimerWidget } from './timer-widget-registry.svelte';
+	import TimerIdentityHeader from './TimerIdentityHeader.svelte';
+	import { captureDraft } from '$lib/stores/capture-draft.svelte';
+	import { captureKeyFor, intervalKeyFor } from '$lib/stores/capture-draft';
+	import { formatDurationInput } from '$lib/utils/duration';
+	import { readTimerCompact, writeTimerCompact } from './timer-compact-preference';
 	import { dispatchTimeEntrySaved } from '$lib/components/weekly/time-entry-events';
 	import { getWeekDates } from '$lib/utils/iso-week';
 	import type { ContractOption } from '$lib/services/types';
@@ -35,9 +40,7 @@
 		addEntryDate?: string;
 	} = $props();
 
-	$effect(() => {
-		if (placement === 'sidebar') return registerSidebarTimerWidget();
-	});
+	$effect(() => registerTimerWidget(placement));
 
 	const dataService = getDataService();
 	const sharedTimerState = getTimerStateContext();
@@ -62,6 +65,23 @@
 
 	// Modal state
 	let showAddEntryModal = $state(false);
+
+	// Collapse (SH-06): a presentation of this same widget, desktop / tablet sidebar only. The body
+	// stays mounted (hidden) while compact, and the completion fields live in the capture store.
+	let compactPreference = $state(readTimerCompact());
+	const canCollapse = $derived(placement === 'sidebar' && navigation.layoutMode !== 'mobile');
+	const isCompact = $derived.by(() => canCollapse && compactPreference && timerState !== 'idle' && !isLoading);
+	function toggleCompact() {
+		compactPreference = !compactPreference;
+		writeTimerCompact(compactPreference);
+	}
+
+	// "Change" reveals the contract select (TC-02); the chevron never chooses a contract
+	let isChangingContract = $state(false);
+	function startChangingContract() {
+		isChangingContract = true;
+	}
+	const showContractSelect = $derived(!draftContractId || isChangingContract);
 
 	// Rule 5, create from context: the modal opens on the contract being viewed (notes mode) and,
 	// in the timesheet, on the week being viewed (today when today is in that week)
@@ -93,6 +113,28 @@
 		return contractList.find((contract) => contract.id === draftContractId);
 	}
 
+	// The capture's identity: the running draft's contract, or the one chosen in the completion form
+	const identityContractId = $derived.by(() =>
+		timerState === 'stopped' ? captureDraft.fields.contractId : draftContractId
+	);
+	const identityContract = $derived(contractList.find((contract) => contract.id === identityContractId));
+
+	/** Open (or resume) the completion fields for the capture that just stopped */
+	function openCompletion() {
+		const durationMinutes = Math.max(1, Math.ceil(elapsedSeconds / 60));
+		const measuredTimeText = formatDurationInput(durationMinutes, startTime || null, endTime || null);
+		// The interval key: a split, resume or move elsewhere changes it, which resets the time text
+		const intervalKey = intervalKeyFor({ date: timerDate, startTime, endTime, durationMinutes });
+		captureDraft.open(captureKeyFor({ entryId, date: timerDate, startTime }), intervalKey, {
+			contractId: draftContractId,
+			deliverableId: '',
+			workTypeId: '',
+			description: draftDescription,
+			timeText: measuredTimeText,
+			measuredTimeText
+		});
+	}
+
 	/*
 	 * The timer never picks a contract by itself. Start Timer uses the contract open in
 	 * the sidebar (notes mode) if there is one; otherwise it runs with no contract, in the
@@ -117,12 +159,14 @@
 					endTime = data.timer.endTime;
 					elapsedSeconds = data.timer.durationMinutes * 60;
 					timerState = 'stopped';
+					openCompletion();
 				} else {
 					elapsedSeconds = startTime ? calculateElapsedFromStartTime(startTime, timerDate) : 0;
 					timerState = 'running';
 				}
-			} else {
-				restorePendingTimer();
+			} else if (!restorePendingTimer()) {
+				// The server and this browser hold no capture: any completion fields are stale
+				captureDraft.clear();
 			}
 		} catch {
 			restorePendingTimer();
@@ -130,9 +174,10 @@
 		isLoading = false;
 	}
 
-	function restorePendingTimer() {
+	/** Restore the browser-only timer; false when there is none */
+	function restorePendingTimer(): boolean {
 		const pendingTimer = readPendingTimer();
-		if (!pendingTimer) return;
+		if (!pendingTimer) return false;
 		entryId = '';
 		startTime = pendingTimer.startTime;
 		timerDate = pendingTimer.date;
@@ -142,10 +187,12 @@
 			endTime = pendingTimer.endTime;
 			elapsedSeconds = secondsBetweenTimes(pendingTimer.startTime, pendingTimer.endTime);
 			timerState = 'stopped';
+			openCompletion();
 		} else {
 			elapsedSeconds = calculateElapsedFromStartTime(pendingTimer.startTime, pendingTimer.date);
 			timerState = 'running';
 		}
+		return true;
 	}
 
 	function savePendingTimer() {
@@ -201,6 +248,7 @@
 		if (!chosenContractId || timerState !== 'running') return;
 		const existingEntryId = entryId;
 		untrack(() => {
+			isChangingContract = false;
 			if (!existingEntryId) {
 				createServerDraft(chosenContractId);
 				return;
@@ -213,23 +261,23 @@
 
 	// Sync local timer state to the shared context so TimerIndicator can read it
 	$effect(() => {
-		if (timerState === 'running') {
-			const selectedContract = findSelectedContract();
-			sharedTimerState.update({
-				status: timerState,
-				elapsedSeconds: elapsedSeconds,
-				description: draftDescription,
-				contractName: selectedContract
-					? formatContractLabel(selectedContract.clientName, selectedContract.name)
-					: '',
-				clientColorIndex: selectedContract?.clientColorIndex ?? 0,
-				contractShortCode: selectedContract?.clientShortCode ?? ''
-			});
-		} else if (timerState === 'idle') {
+		if (timerState === 'idle') {
 			sharedTimerState.reset();
-		} else if (timerState === 'stopped') {
-			sharedTimerState.update({ status: 'stopped' });
+			return;
 		}
+		const contract = identityContract;
+		sharedTimerState.update({
+			status: timerState,
+			elapsedSeconds: elapsedSeconds,
+			description: timerState === 'stopped' ? captureDraft.fields.description : draftDescription,
+			contractName: contract ? formatContractLabel(contract.clientName, contract.name) : '',
+			clientColorIndex: contract?.clientColorIndex ?? 0,
+			contractShortCode: contract?.clientShortCode ?? '',
+			contractTitle: contract?.name ?? '',
+			clientName: contract?.clientName ?? '',
+			startTime: timerState === 'running' ? startTime : '',
+			startDate: timerState === 'running' ? timerDate : ''
+		});
 	});
 
 	// Debounced description update (server draft), or straight to storage while pending
@@ -325,6 +373,7 @@
 			elapsedSeconds = Math.max(60, secondsBetweenTimes(startTime, endTime));
 			timerState = 'stopped';
 			savePendingTimer();
+			openCompletion();
 			return;
 		}
 
@@ -349,6 +398,8 @@
 			elapsedSeconds = stoppedEntry.durationMinutes * 60;
 			draftDescription = draftDescription || stoppedEntry.description || '';
 			timerState = 'stopped';
+			isChangingContract = false;
+			openCompletion();
 		} catch {
 			errorMessage = 'Failed to stop timer';
 		}
@@ -409,7 +460,9 @@
 		errorMessage = '';
 		draftContractId = '';
 		draftDescription = '';
+		isChangingContract = false;
 		clearPendingTimer();
+		captureDraft.clear();
 		sharedTimerState.reset();
 		if (descriptionDebounceTimer) {
 			clearTimeout(descriptionDebounceTimer);
@@ -424,10 +477,11 @@
 </script>
 
 <div
-	class={placement === 'footer'
+	class="relative {placement === 'footer'
 		? 'border-t border-divider bg-surface px-4 py-3'
-		: 'rounded-lg border border-divider bg-surface p-3 shadow-sm'}
+		: 'rounded-lg border border-divider bg-surface p-3 shadow-sm'} {isCompact ? '!py-2' : ''}"
 	data-testid="timer-widget-{placement}"
+	data-compact={isCompact ? 'true' : undefined}
 >
 	{#if isLoading}
 		<div class="py-2 text-center text-sm text-ink-faint">Loading timer...</div>
@@ -446,64 +500,89 @@
 				Add Entry
 			</button>
 		</div>
-	{:else if timerState === 'running'}
-		<div class="space-y-3">
-			<div class="flex items-center justify-between gap-2">
-				<TimerDisplay {elapsedSeconds} isPaused={false} />
-				<button
-					onclick={handleStop}
-					class="rounded-md btn-danger px-3 py-1 text-sm font-medium whitespace-nowrap pointer-coarse:min-h-11 pointer-coarse:px-5"
-				>
-					Stop
-				</button>
-			</div>
-			<TimerStartField {startTime} startDate={timerDate} onChangeStart={handleChangeStart} />
-
-			<!-- Draft contract and description while timer is running -->
-			<div class="space-y-2">
-				<div>
-					<label for="draft-contract" class="block text-xs font-medium text-ink-muted">
-						Contract
-					</label>
-					<div class="mt-0.5">
-						<ContractSelect id="draft-contract" bind:selectedContractId={draftContractId} compact />
-					</div>
-					{#if !draftContractId}
-						<p class="mt-1 text-xs text-ink-faint" data-testid="timer-no-contract-hint">
-							No contract yet: pick one now or when you stop
-						</p>
-					{/if}
-				</div>
-				<div>
-					<div class="flex items-center justify-between">
-						<label for="draft-description" class="block text-xs font-medium text-ink-muted">
-							Description
-						</label>
-						{#if draftContractId}
-							<AttachNoteButton alwaysVisible onAttach={attachNoteToRunningTimer} />
-						{/if}
-					</div>
-					<textarea
-						id="draft-description"
-						bind:value={draftDescription}
-						oninput={handleDescriptionInput}
-						rows="2"
-						class="mt-0.5 block w-full rounded input-base px-1.5 py-1 text-xs"
-						placeholder="What are you working on?"
-					></textarea>
-				</div>
-			</div>
-		</div>
-	{:else if timerState === 'stopped'}
-		<TimerCompletionForm
-			{startTime}
-			{endTime}
+	{:else}
+		<TimerIdentityHeader
+			status={timerState}
+			contractName={identityContract?.name ?? ''}
+			clientName={identityContract?.clientName ?? ''}
+			clientColorIndex={identityContract?.clientColorIndex ?? 0}
 			{elapsedSeconds}
-			initialContractId={draftContractId}
-			initialDescription={draftDescription}
-			onSave={handleSave}
-			onDiscard={handleDiscard}
+			compact={isCompact}
+			{canCollapse}
+			onToggleCompact={toggleCompact}
+			onChangeContract={timerState === 'running' ? startChangingContract : undefined}
+			{isChangingContract}
+			bleedClass={placement === 'footer' ? '-mx-4 -mt-3' : '-mx-3 -mt-3 rounded-t-[7px]'}
 		/>
+		<!-- Collapsed: the body stays mounted and is only hidden, so nothing typed is lost -->
+		<div hidden={isCompact} data-testid="timer-widget-body">
+			{#if timerState === 'running'}
+				<div class="space-y-3">
+					<div class="flex items-center justify-between gap-2">
+						<TimerDisplay {elapsedSeconds} isPaused={false} />
+						<button
+							onclick={handleStop}
+							class="rounded-md btn-danger px-3 py-1 text-sm font-medium whitespace-nowrap pointer-coarse:min-h-11 pointer-coarse:px-5"
+						>
+							Stop
+						</button>
+					</div>
+					<TimerStartField {startTime} startDate={timerDate} onChangeStart={handleChangeStart} />
+
+					<!-- Contract (shown until one is chosen, then behind "Change") and description -->
+					<div class="space-y-2">
+						{#if showContractSelect}
+							<div>
+								<label for="draft-contract" class="block text-xs font-medium text-ink-muted">
+									Contract
+								</label>
+								<div class="mt-0.5">
+									<ContractSelect
+										id="draft-contract"
+										bind:selectedContractId={draftContractId}
+										compact
+										autofocus={isChangingContract}
+									/>
+								</div>
+								{#if !draftContractId}
+									<p class="mt-1 text-xs text-ink-faint" data-testid="timer-no-contract-hint">
+										No contract yet: pick one now or when you stop
+									</p>
+								{:else}
+									<button
+										type="button"
+										class="mt-1 text-xs text-ink-faint underline underline-offset-2 hover:text-ink"
+										onclick={() => (isChangingContract = false)}
+									>
+										Keep this contract
+									</button>
+								{/if}
+							</div>
+						{/if}
+						<div>
+							<div class="flex items-center justify-between">
+								<label for="draft-description" class="block text-xs font-medium text-ink-muted">
+									Description
+								</label>
+								{#if draftContractId}
+									<AttachNoteButton alwaysVisible onAttach={attachNoteToRunningTimer} />
+								{/if}
+							</div>
+							<textarea
+								id="draft-description"
+								bind:value={draftDescription}
+								oninput={handleDescriptionInput}
+								rows="2"
+								class="mt-0.5 block w-full rounded input-base px-1.5 py-1 text-xs"
+								placeholder="What are you working on?"
+							></textarea>
+						</div>
+					</div>
+				</div>
+			{:else if timerState === 'stopped'}
+				<TimerCompletionForm onSave={handleSave} onDiscard={handleDiscard} />
+			{/if}
+		</div>
 	{/if}
 
 	{#if errorMessage}
