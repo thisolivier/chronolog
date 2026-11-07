@@ -63,7 +63,7 @@ describe('getClientMarkTextClass', () => {
 describe('getClientBgClass', () => {
 	it('returns the wash bg class', () => {
 		expect(getClientBgClass(0)).toBe('bg-id-rust-wash');
-		expect(getClientBgClass(4)).toBe('bg-id-pine-wash');
+		expect(getClientBgClass(4)).toBe('bg-id-lake-wash');
 	});
 
 	it('wraps around for index > 7', () => {

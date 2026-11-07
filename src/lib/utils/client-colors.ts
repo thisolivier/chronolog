@@ -4,7 +4,7 @@
  * Each client is assigned a colour slot (0-7) stored as `clients.color_index`. The palette wraps
  * around for indices beyond 7 using modulo arithmetic. The values live in src/lib/styles/tokens.css
  * as `--color-id-<name>` (strong mark), `-wash` (pale background) and `-ink` (text on the wash).
- * Slots keep their old hue family where one exists (Rose to Rust, Sky to Juniper, ...), so a
+ * Slots keep their old hue family where one exists (Rose to Rust, Sky to Juniper, Teal to Lake, ...), so a
  * client's colour shifts tone, not meaning, and no migration is needed.
  *
  * `borderClass` is a LEFT-border-only utility (`border-l-*`). Cards and the new-entry row also
@@ -61,12 +61,12 @@ export const CLIENT_COLORS: readonly ClientColor[] = [
 		washTextClass: 'text-id-ochre-ink'
 	},
 	{
-		name: 'Pine',
-		borderClass: 'border-l-id-pine',
-		dotClass: 'bg-id-pine',
+		name: 'Lake',
+		borderClass: 'border-l-id-lake',
+		dotClass: 'bg-id-lake',
 		markTextClass: 'text-on-accent',
-		bgClass: 'bg-id-pine-wash',
-		washTextClass: 'text-id-pine-ink'
+		bgClass: 'bg-id-lake-wash',
+		washTextClass: 'text-id-lake-ink'
 	},
 	{
 		name: 'Bark',
