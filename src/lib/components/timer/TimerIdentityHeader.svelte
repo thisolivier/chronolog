@@ -129,7 +129,7 @@
 		{@render mark('lg')}
 		<span class="flex min-w-0 flex-1 flex-col leading-tight">
 			<span class="truncate text-sm font-semibold text-ink" data-testid="timer-identity-contract">{contractText}</span>
-			<span class="flex min-w-0 items-baseline gap-1.5">
+			<span class="flex min-h-4 min-w-0 items-baseline gap-1.5">
 				{#if clientName}
 					<span class="truncate text-xs text-ink-muted" data-testid="timer-identity-client">{clientName}</span>
 				{/if}
