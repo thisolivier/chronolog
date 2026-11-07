@@ -2,14 +2,13 @@
 	Week overview (design r1 TR-01, sprint 057-DR): week navigation, Today, week total and status on
 	one row; seven day cells (weekday and date on one line, duration below, a thin segmented bar of
 	the day's client colours from the actual entries). A day cell scrolls to that day's heading; it
-	is not a filter. Week numbers follow calendar-week.ts (Week 1 contains 1 January).
+	is not a filter. Week numbers are ISO 8601 (iso-week.ts).
 	Phone: the total and status move to their own row, with `phoneActions` (capture access when no
 	timer runs) beside them.
 -->
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { getMondayOfWeek } from '$lib/utils/iso-week';
-	import { calendarWeekNumber } from '$lib/utils/calendar-week';
+	import { getMondayOfWeek, isoWeekNumber } from '$lib/utils/iso-week';
 	import { formatMinutes, formatMinutesCompact } from '$lib/utils/duration';
 	import WeekStatusMenu from './WeekStatusMenu.svelte';
 	import { computeColorSegments, type WeekStripDayEntry as DayEntry } from './week-strip-segments';
@@ -50,7 +49,7 @@
 		phoneActions?: Snippet;
 	} = $props();
 
-	const weekNumber = $derived(calendarWeekNumber(weekStart));
+	const weekNumber = $derived(isoWeekNumber(weekStart));
 	const neighbours = $derived(neighbourWeekNumbers(weekStart));
 
 	const todayDateString = $derived(formatTodayDate());

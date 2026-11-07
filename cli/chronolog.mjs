@@ -32,7 +32,7 @@ import { noticeVersionDrift } from './lib/version-drift.mjs';
 const USAGE = `Usage: chronolog <command> [arguments] [--json]      (chronolog --version)
 
   init                                   save server URL, API token, device key
-  me                                     who you are, today, current week (Week 1 contains 1 January)
+  me                                     who you are, today, current ISO 8601 week
   clients [--all]                        list clients (--all: archived too)
   contracts [client] [--all]             list contracts (optionally one client's)
   week [2026-W45] [--client X | --contract X]   entries and totals for a week (default: current)

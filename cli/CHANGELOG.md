@@ -4,6 +4,16 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 `chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
 030, 033 and 035 changed nothing in the CLI and are not listed.
 
+## Unreleased (sprint 061-DR): weeks are ISO 8601 again
+
+- **Week numbering is ISO 8601 again.** `week`, `status` and `me` number weeks as ISO 8601 (week 1
+  contains the year's first Thursday), as every CLI before 1.5.0 did. `2026-W53` is 28 Dec 2026 –
+  3 Jan 2027 and is accepted again (2026 has 53 ISO weeks); `2027-W01` starts 4 Jan 2027; `2025-W53`
+  is refused. `GET /api/me` returns `week` and `isoWeek` with the same ISO value.
+- The 1.5.0 calendar-year note below no longer applies, and its **"update every CLI before 28 Dec
+  2026" warning is withdrawn**: a 1.4.x or older CLI already uses ISO weeks. A 1.5.0 CLI still uses
+  the calendar-year rule, which agrees with ISO through 27 Dec 2026; `git pull` before then.
+
 ## 1.5.0 (sprints 055-DR, 056-DR UI, 057-DR, 059-DR, 2026-11-07): capture, split, time review, search in the shell
 
 - Design r1 checkpoint B/C: stable completion form with Save/Discard and sole-option auto-selection,
@@ -12,6 +22,8 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
   output is unchanged apart from the week numbering described next.
 
 ### Week numbering (sprint 057-DR)
+
+*Superseded by sprint 061-DR (Unreleased, above): weeks are ISO 8601 again.*
 
 - **Weeks count from 1 January.** `week`, `status` and `me` use Chronolog's week rule: Week 1 is the
   Monday-start week containing 1 January (owner decision 2026-11-07), not ISO 8601. The two agree

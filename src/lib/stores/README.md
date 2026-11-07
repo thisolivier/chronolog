@@ -72,7 +72,7 @@ Pure functions that map workspace URLs to routes and back. No Svelte.
 | URL | Route | Meaning |
 |---|---|---|
 | `/` | `home` | Phone: the sidebar. Wider screens: this week's timesheet. |
-| `/time/YYYY-Www` | `time` | The timesheet for that week (Week 1 contains 1 January, `calendar-week.ts`); an ISO-only key such as `2026-W53` opens the same Monday's week |
+| `/time/YYYY-Www` | `time` | The timesheet for that ISO 8601 week (`iso-week.ts`); W53 only in 53-week years (`2026-W53` yes, `2025-W53` is a 404) |
 | `/notes/<contractId>` | `notes` | A contract's note list |
 | `/notes/<contractId>/<noteId>` | `notes` | A note open under its contract |
 | `/notes/<contractId>/new` | `notes`, `draft` | An unsaved new-note draft for that contract |

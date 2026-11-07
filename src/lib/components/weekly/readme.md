@@ -30,8 +30,7 @@ TimeEntriesPanel (in `components/layout`) shows all seven days of the selected w
 
 ## Related Files
 
-- `src/lib/utils/calendar-week.ts` — Week numbering (Week 1 contains 1 January) and keys
-- `src/lib/utils/iso-week.ts` — Week dates and formatting
+- `src/lib/utils/iso-week.ts` — ISO 8601 week numbering and keys, week dates and formatting
 - `src/lib/utils/duration.ts` — Duration parsing and formatting for time inputs and totals
 - `src/lib/utils/client-colors.ts` — Client color palette (left-border, dot and background classes)
 - `src/lib/stores/timer-state.svelte.ts` — Shared timer display state

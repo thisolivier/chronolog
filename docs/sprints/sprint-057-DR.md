@@ -1,5 +1,7 @@
 # Sprint 057-DR — Design r1 stage 6: weekly time review and inline editing
 
+**Week numbering superseded by sprint 061-DR (ISO 8601 again).**
+
 **Status:** ready for review · branch `design-r1-stage6` (from `design-r1` at 0b01e71) · spec
 `docs/design/r1/specs/05-time-review.md` (TR-01..TR-08), DS-02 / DS-04.
 

@@ -214,8 +214,9 @@ export class FetchDataService implements DataService {
 		await deleteRequest(`/api/time-entries/${entryId}`);
 	}
 
-	async updateWeeklyStatus(year: number, weekNumber: number, status: string): Promise<void> {
-		await postJson('/api/time-entries/weekly-statuses', { year, weekNumber, status });
+	/** Posts the Monday, never a week number, so the client cannot disagree with the server's rule (061-DR) */
+	async updateWeeklyStatus(weekStart: string, status: string): Promise<void> {
+		await postJson('/api/time-entries/weekly-statuses', { weekStart, status });
 	}
 
 	// -- Timer --

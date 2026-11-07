@@ -12,7 +12,6 @@
 	import { getTimerStateContext } from '$lib/stores/timer-state.svelte';
 	import { dispatchTimeEntrySaved } from '$lib/components/weekly/time-entry-events';
 	import { getMondayOfWeek, getWeekDates, formatDayHeader } from '$lib/utils/iso-week';
-	import { calendarWeekOf } from '$lib/utils/calendar-week';
 	import { formatDayHeading, formatWeekHeading } from '$lib/components/weekly/week-labels';
 	import { dayJumpScrollTop } from '$lib/components/weekly/day-jump';
 	import { formatMinutes } from '$lib/utils/duration';
@@ -293,11 +292,10 @@
 
 	/** Recordkeeping only: the week's status changes and nothing is sent (TR-07) */
 	async function handleStatusChange(weekStart: string, newStatus: string) {
-		// Week 1 contains 1 January (calendar-week.ts); the server stores the status by its Monday
-		const { year, weekNumber } = calendarWeekOf(weekStart);
+		// The week is sent as its Monday, the server's key; no week number (061-DR)
 		statusError = '';
 		try {
-			await dataService.updateWeeklyStatus(year, weekNumber, newStatus);
+			await dataService.updateWeeklyStatus(weekStart, newStatus);
 
 			const weekIndex = loadedWeeks.findIndex((week) => week.weekStart === weekStart);
 			if (weekIndex !== -1) {

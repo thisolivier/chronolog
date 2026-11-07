@@ -73,8 +73,8 @@ Tracked via a backlinks index, extracted from `[[wiki-link]]` syntax in markdown
 |-------|------|-------|
 | id | UUID | |
 | week_start | DATE | Monday of the week |
-| year | INT | Week-numbering year: the year of the week's Sunday (Week 1 contains 1 January; decision 2026-11-07, not ISO) |
-| week_number | INT | 1–53 under the same rule. The week's identity is `week_start`; lookups go by it (sprint 057-DR) |
+| year | INT | ISO 8601 week-numbering year: the year of the week's Thursday (week 1 contains the year's first Thursday; decision 2026-11-07, "ISO 8601 after all", sprint 061-DR) |
+| week_number | INT | ISO week, 1–53 (2026 has 53: 2026-W53 is 28 Dec 2026 – 3 Jan 2027). The week's identity is `week_start`; lookups go by it (sprint 057-DR) |
 | status | TEXT | Free text: "Unsubmitted", "Draft ready", "Submitted", etc. |
 | updated_at | TIMESTAMP | |
 

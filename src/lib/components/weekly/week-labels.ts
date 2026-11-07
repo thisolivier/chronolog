@@ -1,9 +1,9 @@
 /**
  * Labels for the time review (sprint 057-DR, TR-01 / TR-02): the week heading and the day
  * headings, in the day-month order of the design ("2–8 Nov 2026", "Thursday, 5 November").
- * Week numbers come from calendar-week.ts (Week 1 contains 1 January).
+ * Week numbers are ISO 8601 (iso-week.ts), so a 53-week year shows Week 53.
  */
-import { calendarWeekNumber, shiftCalendarWeek } from '$lib/utils/calendar-week';
+import { isoWeekNumber, shiftWeek } from '$lib/utils/iso-week';
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -31,14 +31,14 @@ export function formatWeekSpan(weekStart: string): string {
 
 /** "Week 45 · 2–8 Nov 2026" */
 export function formatWeekHeading(weekStart: string): string {
-	return `Week ${calendarWeekNumber(weekStart)} · ${formatWeekSpan(weekStart)}`;
+	return `Week ${isoWeekNumber(weekStart)} · ${formatWeekSpan(weekStart)}`;
 }
 
 /** Number of the week before / after, for the ‹ › buttons (no wrap at 52: 2027 Week 1 follows 2026 Week 52) */
 export function neighbourWeekNumbers(weekStart: string): { previous: number; next: number } {
 	return {
-		previous: calendarWeekNumber(shiftCalendarWeek(weekStart, -1)),
-		next: calendarWeekNumber(shiftCalendarWeek(weekStart, 1))
+		previous: isoWeekNumber(shiftWeek(weekStart, -1)),
+		next: isoWeekNumber(shiftWeek(weekStart, 1))
 	};
 }
 

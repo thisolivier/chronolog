@@ -19,7 +19,7 @@
 	import NoteTrashToastHost from '$lib/components/notes/NoteTrashToastHost.svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
-	import { calendarWeekNumber } from '$lib/utils/calendar-week';
+	import { isoWeekNumber } from '$lib/utils/iso-week';
 	import { currentMonday } from '$lib/stores/navigation-routes';
 	import { ALL_NOTES_LABEL } from '$lib/components/layout/navigation-labels';
 
@@ -35,7 +35,7 @@
 		if (nav.isTimeEntriesMode) {
 			return nav.isHome && nav.layoutMode === 'mobile'
 				? 'Chronolog'
-				: `Chronolog · Time entries · Week ${calendarWeekNumber(nav.selectedWeek ?? currentMonday())}`;
+				: `Chronolog · Time entries · Week ${isoWeekNumber(nav.selectedWeek ?? currentMonday())}`;
 		}
 		if (nav.isAllNotesView) return `Chronolog · Notes · ${ALL_NOTES_LABEL}`;
 		const contractName = nav.listClientId

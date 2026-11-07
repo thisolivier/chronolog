@@ -3,7 +3,7 @@
  * fresh user. Sticky day headings replace each other at the boundary; a day jump leaves the
  * heading and first entry uncovered; several Amplitude contracts keep their marks and names in
  * chronological order; inline editing keeps the row's height; Submitted changes only the status;
- * year-boundary week labels follow the Week 1 rule. Review screenshots go to
+ * year-boundary week labels are ISO 8601 (061-DR). Review screenshots go to
  * docs/review/screenshots/sprint-057/ with UPDATE_SPRINT_SCREENSHOTS=1.
  */
 import { test, expect, type Page, type Locator } from '@playwright/test';
@@ -285,19 +285,24 @@ test.describe('Time review (057-DR)', () => {
 		await expect(page.getByRole('button', { name: /^Week status: Submitted/ })).toBeVisible();
 	});
 
-	test('year boundary: Week 1 is the week containing 1 January; old ISO-only URLs still open their week', async ({ page }) => {
-		await open(page, '/time/2027-W01');
-		await expect(page.getByTestId('week-heading')).toHaveText('Week 1 · 28 Dec 2026 – 3 Jan 2027');
+	test('year boundary: ISO 8601 weeks, Week 53 in a 53-week year, no W53 in a 52-week year', async ({ page }) => {
+		await open(page, '/time/2026-W53');
+		await expect(page.getByTestId('week-heading')).toHaveText('Week 53 · 28 Dec 2026 – 3 Jan 2027');
 		await expect(page.getByRole('button', { name: 'Previous week' })).toHaveAttribute('title', 'Week 52');
-		await expect(page.getByRole('button', { name: 'Next week' })).toHaveAttribute('title', 'Week 2');
+		await expect(page.getByRole('button', { name: 'Next week' })).toHaveAttribute('title', 'Week 1');
 		await expect(page.getByRole('button', { name: 'Go to 2027-01-01' })).toBeVisible();
+		await page.getByRole('button', { name: 'Next week' }).click();
+		await expect(page).toHaveURL(/\/time\/2027-W01$/);
+		await expect(page.getByTestId('week-heading')).toHaveText('Week 1 · 4–10 Jan 2027');
+		await page.getByRole('button', { name: 'Previous week' }).click();
 		await page.getByRole('button', { name: 'Previous week' }).click();
 		await expect(page).toHaveURL(/\/time\/2026-W52$/);
 		await expect(page.getByTestId('week-heading')).toHaveText('Week 52 · 21–27 Dec 2026');
+		await expect(page.getByRole('button', { name: 'Next week' })).toHaveAttribute('title', 'Week 53');
 
-		// An old ISO-only bookmark opens the same Monday's week
-		await open(page, '/time/2026-W53');
-		await expect(page.getByTestId('week-heading')).toHaveText('Week 1 · 28 Dec 2026 – 3 Jan 2027');
+		// 2025 has 52 ISO weeks: its W53 is not a week URL
+		const missingWeek = await page.goto('/time/2025-W53');
+		expect(missingWeek?.status()).toBe(404);
 	});
 });
 
