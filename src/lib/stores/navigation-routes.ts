@@ -2,7 +2,7 @@
  * Workspace URLs <-> navigation state (sprint 027-CL). Pure functions, no Svelte.
  *
  *   /                                 home: phone = sidebar (level 0); wider = this week's timesheet
- *   /time/2026-W45                    timesheet for ISO week 45 of 2026
+ *   /time/2026-W45                    timesheet for Week 45 of 2026 (Week 1 contains 1 January, calendar-week.ts)
  *   /notes/<contractId>               a contract's note list
  *   /notes/<contractId>/<noteId>      a note open under its contract
  *   /notes/<contractId>/new           an unsaved new-note draft for that contract
@@ -13,7 +13,8 @@
  *   /notes/all/<contractId>/<noteId>  a note open with all notes as the list (`/new`: a draft)
  *   /notes/trash                      not a workspace URL: the trash page (043-CL)
  */
-import { getIsoWeekNumber, getIsoYear, getMondayOfIsoWeek, getMondayOfWeek } from '$lib/utils/iso-week';
+import { getMondayOfWeek } from '$lib/utils/iso-week';
+import { calendarWeekKey, legacyIsoWeekRedirect, parseCalendarWeekKey } from '$lib/utils/calendar-week';
 
 export type WorkspaceRoute =
 	| { kind: 'home' }
@@ -38,23 +39,17 @@ export const TRASH_PATH = `/notes/${TRASH_SEGMENT}`;
 /** Path segment used for a new-note draft (note IDs look like `ACME.20261103.005`, never `new`) */
 export const DRAFT_SEGMENT = 'new';
 
-const ISO_WEEK_PATTERN = /^(\d{4})-W(\d{2})$/;
+const WEEK_PARAM_PATTERN = /^\d{4}-W\d{2}$/;
 
 /** `2026-11-02` (a Monday) -> `2026-W45` */
 export function weekParamFromMonday(monday: string): string {
-	return `${getIsoYear(monday)}-W${String(getIsoWeekNumber(monday)).padStart(2, '0')}`;
+	return calendarWeekKey(monday);
 }
 
-/** `2026-W45` -> `2026-11-02`; null for anything that is not a real ISO week */
+/** `2026-W45` -> `2026-11-02`; null unless it is the canonical key of a week that exists */
 export function mondayFromWeekParam(param: string): string | null {
-	const match = ISO_WEEK_PATTERN.exec(param);
-	if (!match) return null;
-	const year = Number(match[1]);
-	const weekNumber = Number(match[2]);
-	if (weekNumber < 1 || weekNumber > 53) return null;
-	const monday = getMondayOfIsoWeek(year, weekNumber);
-	// Week 53 only exists in some years: reject it when it rolls into the next year's week 1
-	return getIsoYear(monday) === year && getIsoWeekNumber(monday) === weekNumber ? monday : null;
+	if (!WEEK_PARAM_PATTERN.test(param)) return null;
+	return parseCalendarWeekKey(param)?.weekStart ?? null;
 }
 
 export function todayDateString(now: Date = new Date()): string {
@@ -71,7 +66,9 @@ export function parseWorkspacePath(pathname: string, fallbackWeek: string): Work
 	if (segments.length === 0) return { kind: 'home' };
 	if (segments[0] === 'time' && segments.length <= 2) {
 		if (segments.length === 1) return { kind: 'time', week: fallbackWeek };
-		const monday = mondayFromWeekParam(segments[1]);
+		// An old ISO-only bookmark (`2026-W53`) opens the same Monday's week (057-DR)
+		const legacyKey = legacyIsoWeekRedirect(segments[1]);
+		const monday = mondayFromWeekParam(legacyKey ?? segments[1]);
 		return monday ? { kind: 'time', week: monday } : null;
 	}
 	// The trash (`/notes/trash`, sprint 043-CL) is its own page, not a workspace URL

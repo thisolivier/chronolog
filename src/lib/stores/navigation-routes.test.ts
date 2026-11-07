@@ -22,13 +22,16 @@ const FALLBACK_WEEK = '2026-11-02';
 const weekRoundTripCases = [
 	{ description: 'a 2026 Monday in week 45', monday: '2026-11-02', weekParam: '2026-W45' },
 	{ description: 'a 2026 Monday in week 44', monday: '2026-10-26', weekParam: '2026-W44' },
-	{ description: 'a December Monday that is week 1 of the next ISO year', monday: '2025-12-29', weekParam: '2026-W01' },
-	{ description: 'week 53 of 2020 (a 53-week year)', monday: '2020-12-28', weekParam: '2020-W53' }
+	{ description: 'a December Monday whose week contains 1 January', monday: '2025-12-29', weekParam: '2026-W01' },
+	{ description: '28 Dec 2026 is 2027 Week 1 (ISO would say 2026-W53)', monday: '2026-12-28', weekParam: '2027-W01' },
+	{ description: 'week 53 of 2023 (a 53-week year: 1 Jan 2023 was a Sunday)', monday: '2023-12-25', weekParam: '2023-W53' }
 ];
 
 const invalidWeekParamCases = [
 	{ description: 'week 00', weekParam: '2026-W00' },
 	{ description: 'week 54', weekParam: '2026-W54' },
+	{ description: 'week 53 of a 52-week year (redirected by the route, not parsed)', weekParam: '2026-W53' },
+	{ description: 'a one-digit week (not canonical)', weekParam: '2026-W5' },
 	{ description: 'missing the year', weekParam: 'W45' },
 	{ description: 'missing the W marker', weekParam: '2026-45' },
 	{ description: 'empty string', weekParam: '' }
@@ -39,6 +42,7 @@ const parseCases: Array<{ description: string; pathname: string; expected: Works
 	{ description: 'bare /time uses the fallback week', pathname: '/time', expected: { kind: 'time', week: FALLBACK_WEEK } },
 	{ description: '/time/<week> resolves to its Monday', pathname: '/time/2026-W44', expected: { kind: 'time', week: '2026-10-26' } },
 	{ description: 'an invalid week param is not a route', pathname: '/time/garbage', expected: null },
+	{ description: 'an old ISO-only key opens the same Monday (2026-W53 = 2027 Week 1)', pathname: '/time/2026-W53', expected: { kind: 'time', week: '2026-12-28' } },
 	{
 		description: 'a contract list',
 		pathname: '/notes/abc',

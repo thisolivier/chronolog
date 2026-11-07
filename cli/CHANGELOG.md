@@ -4,6 +4,13 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 `chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
 030, 033 and 035 changed nothing in the CLI and are not listed.
 
+## Unreleased (sprint 057-DR, 2026-11-07): week numbering
+
+- **Weeks count from 1 January.** `week`, `status` and `me` use Chronolog's week rule: Week 1 is the
+  Monday-start week containing 1 January (owner decision 2026-11-07), not ISO 8601. The two agree
+  through 2026; `2027-W01` is now 28 Dec 2026 – 3 Jan 2027 (ISO's 2026-W53), and `2026-W53` is
+  refused (2026 has 52 weeks). `GET /api/me` returns `week` (older servers: `isoWeek`, read as a fallback).
+
 ## 1.3.0 (sprints 043–044-CL, 2026-11-04): version drift notice, undo of imported notes
 
 - Sprint 044-CL: **version drift notice.** `GET /api/me` now returns `serverCommit` (the commit the

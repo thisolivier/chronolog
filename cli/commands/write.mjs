@@ -2,9 +2,9 @@
 
 import { resolveContract } from '../lib/resolve.mjs';
 import { resolveEntryDeliverable, resolveEntryWorkType } from '../lib/entry-references.mjs';
-import { formatMinutes, parseIsoWeek, resolveDateWord } from '../lib/dates.mjs';
+import { formatMinutes, parseWeekKey, resolveDateWord } from '../lib/dates.mjs';
 import { UsageError } from '../lib/args.mjs';
-import { fetchContracts } from './read.mjs';
+import { currentWeekKey, fetchContracts } from './read.mjs';
 import { recordLastEntry } from '../lib/history.mjs';
 import { readBody } from '../lib/note-body.mjs';
 
@@ -71,9 +71,9 @@ export async function status({ api, print, positionals }) {
 	const [weekWord, ...stateWords] = positionals;
 	const stateWord = stateWords.join(' ').toLowerCase();
 	if (!weekWord || !stateWord) throw new UsageError('Usage: chronolog status <2026-W45|current> <unsubmitted|draft-ready|submitted>');
-	const weekKey = weekWord === 'current' || weekWord === 'this' ? (await api.get('/api/me')).isoWeek : weekWord;
-	const parsedWeek = parseIsoWeek(weekKey);
-	if (!parsedWeek) throw new UsageError(`Week must look like 2026-W45, not “${weekWord}”.`);
+	const weekKey = weekWord === 'current' || weekWord === 'this' ? currentWeekKey(await api.get('/api/me')) : weekWord;
+	const parsedWeek = parseWeekKey(weekKey);
+	if (!parsedWeek) throw new UsageError(`Week must look like 2026-W45 (Week 1 contains 1 January), not “${weekWord}”.`);
 	const state = WEEK_STATES[stateWord];
 	if (!state) throw new UsageError('State must be unsubmitted, draft-ready or submitted.');
 

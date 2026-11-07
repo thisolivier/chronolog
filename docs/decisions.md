@@ -96,3 +96,16 @@ owner settled the four that blocked the token and identity work:
 - **Week numbering (O05 / TR-07): Week 1 is the Monday-start week that contains 1 January.** 29 Dec
   2025 to 4 Jan 2026 is 2026 Week 1. Replaces ISO numbering in the label; the storage and URL keys
   are decided in the time-review stage.
+
+## 2026-11-07 — Week keys: the Monday is the identity, `YYYY-Www` keys use the new numbering (057-DR)
+
+The owner's rule (Week 1 contains 1 January) needed a storage and URL key. Chosen, with no schema
+migration: a week is identified by its **Monday date** everywhere (`weekly_statuses.week_start`, which
+every row already stored); statuses are looked up by it. `/time/YYYY-Www`, `GET /api/me` (`week`, with
+`isoWeek` kept as an alias of the same value) and the CLI keep the `YYYY-Www` form, numbered by the new
+rule. Why: the two numberings agree for every week of 2024–2026, so existing bookmarks and stored rows
+mean the same week; the first difference is 28 Dec 2026 (ISO 2026-W53, now 2027 Week 1). The only ISO
+key that no longer exists, a week 53 in a 52-week year, still opens the same Monday's week.
+`year`/`week_number` stay as stored labels; a status write renumbers any ISO-numbered row first so the
+unique key cannot collide. Rejected: `/time/<monday-date>` URLs (every bookmark and the CLI's `2026-W45`
+arguments would change for no gain while the numberings agree). See `docs/sprints/sprint-057-DR.md`.

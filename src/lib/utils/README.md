@@ -4,7 +4,8 @@ Pure utility modules with no server or framework dependencies. Usable on both cl
 
 ## Modules
 
-- **iso-week.ts** — ISO week date calculations (Monday-of-week, week number, year, date ranges, formatting).
+- **calendar-week.ts** — Chronolog's week numbering (Week 1 is the Monday-start week containing 1 January; decision 2026-11-07, not ISO): `calendarWeekOf`, `calendarWeekKey` (`2026-W45`), `parseCalendarWeekKey`, `mondayOfCalendarWeek`, `weeksInYear`, `shiftCalendarWeek`, `legacyIsoWeekRedirect` (old ISO-only bookmarks). UTC arithmetic. The week's identity is its Monday.
+- **iso-week.ts** — Week dates and formatting (Monday-of-week, the seven dates, day and week labels). No week numbers (those are in calendar-week.ts); the name is historical.
 - **format-date.ts** — Smart date formatting (today as HH:mm, last 7 days as day name, older as DD/MM/YYYY).
 - **duration.ts** — The one duration parser and formatter for every time entry form. `parseDuration()` accepts decimal hours (`1.5`), hours and minutes (`1h30m`, `2h 30`, `1:30`), bare minutes (`90`, `90m`) and time ranges (`09:00-11:15`, `9-10:30`). It rejects zero, anything over 24 hours and a range that ends before it starts, and warns above 12 hours. Also provides `formatMinutes` ("2h 15m"), `formatMinutesCompact` (week strip), `formatTimeRange`, `formatDurationInput` and `validateDurationMinutes` (used by the API routes). Tested in `duration.test.ts`.
 - **extract-preview-lines.ts** — Extracts the first two non-empty text lines (every text block, list items included) from TipTap JSON content for note list previews. A wiki-link reads as its label, else the target's title (`resolveNoteTitle` option), else its ID (sprint 043-CL).

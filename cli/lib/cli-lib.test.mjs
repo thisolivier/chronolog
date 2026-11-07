@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseArguments, UsageError } from './args.mjs';
 import { resolveContract, ReferenceError_ } from './resolve.mjs';
-import { isoWeekRange, parseIsoWeek, resolveDateWord, formatMinutes } from './dates.mjs';
+import { weekRange, parseWeekKey, resolveDateWord, formatMinutes } from './dates.mjs';
 
 const contracts = [
 	{ id: '11111111-1111-1111-1111-111111111111', name: 'Website rebuild', clientName: 'Acme Ltd', clientShortCode: 'ACME', isActive: true },
@@ -48,9 +48,15 @@ describe('contract resolution never guesses', () => {
 
 describe('CLI dates', () => {
 	it('maps ISO weeks to Monday–Sunday', () => {
-		expect(parseIsoWeek('2026-W45')).toMatchObject({ year: 2026, weekNumber: 45 });
-		expect(isoWeekRange(2026, 45)).toEqual({ from: '2026-11-02', to: '2026-11-08' });
-		expect(isoWeekRange(2026, 1)).toEqual({ from: '2025-12-29', to: '2026-01-04' });
+		expect(parseWeekKey('2026-W45')).toMatchObject({ year: 2026, weekNumber: 45 });
+		expect(weekRange(2026, 45)).toEqual({ from: '2026-11-02', to: '2026-11-08' });
+		expect(weekRange(2026, 1)).toEqual({ from: '2025-12-29', to: '2026-01-04' });
+		// Week 1 contains 1 January (decision 2026-11-07), not ISO: the boundary cases
+		expect(weekRange(2027, 1)).toEqual({ from: '2026-12-28', to: '2027-01-03' });
+		expect(weekRange(2027, 2)).toEqual({ from: '2027-01-04', to: '2027-01-10' });
+		expect(weekRange(2025, 1)).toEqual({ from: '2024-12-30', to: '2025-01-05' });
+		expect(parseWeekKey('2026-W53')).toBeNull();
+		expect(parseWeekKey('2023-W53')).toMatchObject({ key: '2023-W53' });
 	});
 
 	it('resolves date words against today', () => {

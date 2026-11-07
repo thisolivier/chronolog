@@ -1,10 +1,12 @@
 /**
- * "Today" and the current ISO week in a given IANA timezone (pure; used by `GET /api/me`).
+ * "Today" and the current week in a given IANA timezone (pure; used by `GET /api/me`). Week keys
+ * (`2026-W45`) follow Chronolog's rule in `calendar-week.ts` (Week 1 contains 1 January), not ISO.
  * A machine client sends its own timezone (`?tz=` or `X-Timezone`); without one the server's
  * zone is used.
  */
 
-import { getIsoWeekNumber, getIsoYear, getMondayOfIsoWeek, getSundayOfWeek } from './iso-week';
+import { getSundayOfWeek } from './iso-week';
+import { calendarWeekKey, calendarWeekOf } from './calendar-week';
 
 export function isValidTimezone(timezone: string): boolean {
 	try {
@@ -26,26 +28,12 @@ export function localDateString(instant: Date, timezone: string): string {
 	}).format(instant);
 }
 
-/** `2026-W45` for a `YYYY-MM-DD` date. */
-export function isoWeekKey(dateString: string): string {
-	return `${getIsoYear(dateString)}-W${String(getIsoWeekNumber(dateString)).padStart(2, '0')}`;
-}
-
-const ISO_WEEK_PATTERN = /^(\d{4})-W(\d{1,2})$/i;
-
-/** Parses `2026-W45`; null when malformed or out of range. */
-export function parseIsoWeekKey(weekKey: string): { year: number; weekNumber: number } | null {
-	const match = weekKey.trim().match(ISO_WEEK_PATTERN);
-	if (!match) return null;
-	const year = Number(match[1]);
-	const weekNumber = Number(match[2]);
-	if (weekNumber < 1 || weekNumber > 53) return null;
-	return { year, weekNumber };
-}
-
 export interface LocalCalendar {
 	timezone: string;
 	today: string;
+	/** `2026-W45` under Chronolog's week rule */
+	week: string;
+	/** Deprecated alias of `week` (same value) kept for older CLIs; not an ISO 8601 week */
 	isoWeek: string;
 	weekStart: string;
 	weekEnd: string;
@@ -53,8 +41,9 @@ export interface LocalCalendar {
 
 export function localCalendar(instant: Date, timezone: string): LocalCalendar {
 	const today = localDateString(instant, timezone);
-	const weekStart = getMondayOfIsoWeek(getIsoYear(today), getIsoWeekNumber(today));
-	return { timezone, today, isoWeek: isoWeekKey(today), weekStart, weekEnd: getSundayOfWeek(weekStart) };
+	const { weekStart } = calendarWeekOf(today);
+	const week = calendarWeekKey(today);
+	return { timezone, today, week, isoWeek: week, weekStart, weekEnd: getSundayOfWeek(weekStart) };
 }
 
 const CALENDAR_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;

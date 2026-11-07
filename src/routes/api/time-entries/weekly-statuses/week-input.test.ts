@@ -1,11 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { checkWeekKey, checkWeekStatus, checkYearAndWeek } from './week-input';
+import { checkWeekKey, checkWeekStart, checkWeekStatus, checkYearAndWeek } from './week-input';
 
 describe('weekly-status input', () => {
-	it('accepts years 2000–2100 and weeks 1–53, as numbers or digit strings', () => {
-		expect(checkYearAndWeek(2026, 45)).toEqual({ ok: true, value: { year: 2026, weekNumber: 45 } });
-		expect(checkYearAndWeek('2000', '1')).toEqual({ ok: true, value: { year: 2000, weekNumber: 1 } });
-		expect(checkYearAndWeek(2100, 53).ok).toBe(true);
+	it('accepts years 2000–2100 and the weeks that year has, as numbers or digit strings, with their Monday', () => {
+		expect(checkYearAndWeek(2026, 45)).toEqual({ ok: true, value: { year: 2026, weekNumber: 45, weekStart: '2026-11-02' } });
+		expect(checkYearAndWeek('2000', '1')).toEqual({ ok: true, value: { year: 2000, weekNumber: 1, weekStart: '1999-12-27' } });
+		expect(checkYearAndWeek(2027, 1)).toEqual({ ok: true, value: { year: 2027, weekNumber: 1, weekStart: '2026-12-28' } });
+		expect(checkYearAndWeek(2023, 53).ok).toBe(true);
+	});
+
+	it('takes a Monday as weekStart', () => {
+		expect(checkWeekStart('2026-12-28')).toEqual({ ok: true, value: { year: 2027, weekNumber: 1, weekStart: '2026-12-28' } });
+		expect(checkWeekStart('2026-12-29').ok).toBe(false);
+		expect(checkWeekStart('2026-02-30').ok).toBe(false);
+		expect(checkWeekStart(20261228).ok).toBe(false);
 	});
 
 	it.each([
@@ -16,6 +24,8 @@ describe('weekly-status input', () => {
 		[2026.5, 10],
 		[2026, 0],
 		[2026, 54],
+		[2026, 53],
+		[2100, 53],
 		[2026, 'abc'],
 		[null, 1]
 	])('rejects year %j week %j', (year, weekNumber) => {
@@ -25,7 +35,7 @@ describe('weekly-status input', () => {
 	});
 
 	it('parses week keys and rejects malformed ones', () => {
-		expect(checkWeekKey('2026-W45')).toEqual({ ok: true, value: { year: 2026, weekNumber: 45 } });
+		expect(checkWeekKey('2026-W45')).toEqual({ ok: true, value: { year: 2026, weekNumber: 45, weekStart: '2026-11-02' } });
 		expect(checkWeekKey('2026-45').ok).toBe(false);
 		expect(checkWeekKey('1900-W01').ok).toBe(false);
 		expect(checkWeekKey('2026-W60').ok).toBe(false);
