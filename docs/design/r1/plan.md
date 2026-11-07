@@ -5,7 +5,7 @@ Written 2026-11-07 after the stage 1 source maps (`source-map/`). Follows the se
 (solid marks for now, system sans, integration branch with checkpoints, Week 1 contains 1 January).
 
 Branch model: `design-r1` is the integration branch. Each stage runs in `.claude/worktrees/design-r1-<stage>`
-on a branch `design-r1/<stage>`, gets a sprint doc under `docs/sprints/`, is reviewed, and merges into
+on a branch `design-r1-<stage>`, gets a sprint doc under `docs/sprints/`, is reviewed, and merges into
 `design-r1`. `design-r1` merges to `main` at the checkpoints below.
 
 | Stage | Sprint | Work | Depends on | Exit condition |
