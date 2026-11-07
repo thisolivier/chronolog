@@ -1,13 +1,15 @@
 <!--
 	Note editor header: note ID (click to copy, 051-UI), save status (a fixed-width pill), and the
 	Move / Export / Delete actions (menus without chevrons since 051-UI; `aria-haspopup` says so).
-	Delete asks for confirmation inline (no native confirm(), which Tauri can suppress).
+	Delete asks for confirmation inline (no native confirm(), which Tauri can suppress). The contract
+	mark (052-DR) sits before the client / contract context.
 -->
 <script lang="ts">
 	import { getDataService } from '$lib/services/context';
 	import SaveStatusIndicator from './SaveStatusIndicator.svelte';
 	import NoteCodeCopyButton from './NoteCodeCopyButton.svelte';
 	import OutboxMarker from '$lib/offline/OutboxMarker.svelte';
+	import ContractMark from '$lib/components/identity/ContractMark.svelte';
 	import type { SaveStatus } from './note-autosave';
 	import type { ContractOption } from '$lib/services/types';
 	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
@@ -77,9 +79,12 @@
 >
 	<div class="flex min-w-0 items-center gap-3 max-md:gap-2">
 		{#if contractLabel}
-			<span class="min-w-0 truncate text-xs text-ink-muted" data-testid="note-editor-context">
-				{contractLabel.clientName} <span class="text-ink-faint">/</span>
-				<span class="font-medium text-ink">{contractLabel.name}</span>
+			<span class="flex min-w-0 items-center gap-mark-gap">
+				<ContractMark contractName={contractLabel.name} colorIndex={contractLabel.clientColorIndex} size="sm" />
+				<span class="min-w-0 truncate text-xs text-ink-muted" data-testid="note-editor-context">
+					{contractLabel.clientName} <span class="text-ink-faint">/</span>
+					<span class="font-medium text-ink">{contractLabel.name}</span>
+				</span>
 			</span>
 		{/if}
 		{#if noteId}
