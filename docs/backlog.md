@@ -50,6 +50,37 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 6. **iOS build: owner steps left.** 047 and 048 done. Owner: App ID `dev.thisolivier.chronolog`, App Store Connect record, "Chronolog App Store" profile, then `scripts/ios/ship-ios.sh 1` (the `testflight-setup` skill walks it; `docs/IOS-RELEASE.md`). Follow-ups: attachments open with `window.open`, which the iOS shell does not support (web-side fix); iPhone landscape locked because the shell reports stale safe-area insets after rotation; signed-in flows against production untried in the app until the first TestFlight install. Running side by side with the installable PWA (web app manifest, Apple home-screen tags, real icons; added 2026-11-04) to decide whether the shell earns its keep.
 7. **Key rotation (IF-4) and per-device keys (IF-5).** Discuss with the owner before starting. An `enc2:` envelope with a key id and a re-encrypt walker; several device keys so one lost device can be revoked alone.
 
+## Owner-requested (2026-11-07): revisit week numbering before 28 December
+
+The design overhaul (057-DR, v1.5.0) replaced ISO week numbering with "Week 1 is the Monday-start
+week containing 1 January". The owner flagged this as rushed and wants a proper discussion of what
+ISO weeks are and which convention Chronolog should support. Nothing diverges until 28 Dec 2026, so
+the decision can wait, but it must land before then (the two rules disagree from that date through
+all of 2027).
+
+Facts for the discussion:
+
+- **ISO 8601 weeks.** Weeks start Monday. Week 1 is the week containing the year's first Thursday
+  (equivalently, the week containing 4 January). A year has 52 or 53 weeks; up to three days of
+  early January can belong to the previous ISO year (e.g. 1–3 Jan 2027 are 2026-W53) and up to three
+  days of late December to the next. This is what most European clients, payroll systems, Outlook
+  and Google Calendar (with Monday start) and `date +%V` use. It is what the app used until v1.5.0
+  and what `weekly_statuses.year/week_number` rows written before then hold.
+- **Current rule (calendar-year).** Week 1 is the Monday-start week containing 1 January; a week
+  spanning two years belongs to the year of its Sunday. Every date's week number is at most one
+  higher than ISO, and only in years where 1 January falls on a Friday, Saturday or Sunday
+  (next: 2027, then 2028 and 2033). Simpler to explain, but no client or tool will agree with it.
+- **What is affected.** Week labels and the `/time/YYYY-Www` URL, `GET /api/me` (`week`, with
+  `isoWeek` kept as an alias holding the same value), `chronolog week|status|me`, and the
+  `weekly_statuses` key. Storage is keyed by the Monday date, so switching back is a label change
+  plus the renumber step in `weekly-statuses.ts`; no migration.
+- **Options.** (a) Return to ISO everywhere and delete the calendar-year helper; (b) keep the
+  calendar-year rule and accept disagreement with client timesheets; (c) ISO numbering for labels
+  with the Monday date as the only identity in URLs and the API (`/time/2026-12-28`), which avoids
+  the W53 ambiguity in bookmarks whichever rule is shown.
+- **Recommendation to discuss:** (a) or (c). Client invoicing and submitted-week records are the
+  places where a number that disagrees with the client's calendar causes real confusion.
+
 ## Owner-requested, back of the queue (2026-11-04)
 
 All done in sprints 039–042 and 046 (2026-11-04). Open from them: global search does not resolve wiki-links to titles; saved titles keep a linked note's old title after a rename; the editor header has no pin control (list row only); the tablet overlay sidebar stays open when switching client views; `notes.is_pinned` is still written alongside `pinned_at` (drop later); find in page skips the raw markdown mode and wiki-link titles; `NoteEditor.svelte` is about 690 lines (move its CSS out); a client created after a reorder lands at the bottom.
