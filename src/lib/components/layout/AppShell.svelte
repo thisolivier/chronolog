@@ -3,6 +3,8 @@
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import { getTimerStateContext } from '$lib/stores/timer-state.svelte';
 	import TimerIndicator from '$lib/components/weekly/TimerIndicator.svelte';
+	import PhoneCaptureScreen from '$lib/components/timer/PhoneCaptureScreen.svelte';
+	import { captureScreen } from '$lib/components/timer/capture-screen.svelte';
 	import ConnectionStatus from './ConnectionStatus.svelte';
 	import GlobalSearchField from '$lib/components/search/GlobalSearchField.svelte';
 	import HistoryButtons from './HistoryButtons.svelte';
@@ -248,9 +250,9 @@
 				<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" /><path d="m13 13 4 4" stroke-linecap="round" /></svg>
 			</a>
 			<!-- The capture's reflection, only on screens without a timer widget (SH-04); opens the
-			     phone's capture screen (home, with the sidebar timer) -->
+			     phone's focused capture screen over this one (TC-08, sprint 055-DR) -->
 			<div class="ml-1 flex-shrink-0">
-				<TimerIndicator reflection={headerReflection} onIndicatorClick={() => navigationContext.navigateMobile(0)} />
+				<TimerIndicator reflection={headerReflection} onIndicatorClick={() => captureScreen.open()} />
 			</div>
 		</div>
 		<ConnectionStatus mode={navigationContext.mode} />
@@ -267,6 +269,7 @@
 			{/if}
 		</div>
 	</div>
+	{#if captureScreen.isOpen}<PhoneCaptureScreen />{/if}
 {:else}
 	<!-- Desktop: Multi-panel layout -->
 	<div class="safe-area-shell flex h-dvh flex-col overflow-hidden bg-surface">
