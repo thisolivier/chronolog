@@ -448,7 +448,9 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		focusDay = date;
 		state.focusDayToken++;
 		const week = getMondayOfWeek(date);
-		if (state.route.kind === 'time' && state.route.week === week) return;
+		// Already on that week's page: the timesheet scrolls (focusDayToken). Off the workspace (e.g.
+		// /search) state.route still holds the week left behind, so go there (059-DR review fix)
+		if (state.route.kind === 'time' && state.route.week === week && currentPath === buildWorkspacePath(state.route)) return;
 		// Another week is a step, also from inside the timesheet (Today, a search hit; 050-UI)
 		go({ kind: 'time', week }, { replace: false });
 	};

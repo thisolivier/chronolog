@@ -31,7 +31,7 @@ test('wiki-links, "Linked from" chips and search open notes in their own contrac
 	const sourceId = await createNote(page, sourceTitle);
 	await page.keyboard.press('Enter');
 	await page.keyboard.type(`See [[${targetId}`);
-	await expect(page.locator('body > div.absolute.z-50')).toContainText(targetId);
+	await expect(page.getByRole('listbox', { name: 'Link a note' })).toContainText(targetId);
 	await page.keyboard.press('Enter');
 	await expect(page.getByTestId('save-status')).toHaveAttribute('data-status', 'saved', { timeout: 10000 });
 

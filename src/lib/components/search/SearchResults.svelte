@@ -1,6 +1,8 @@
 <!--
-	Global search results: notes and time entries in one list, newest first (sprint 046-CL; the
-	server still sends two groups, see search-interleave.ts), under a summary line of the counts.
+	Global search results: notes and time entries in one list in the server's shared rank order,
+	newest first within a rank (sprints 046-CL, 058-DR; the server still sends two groups, merged in
+	search-interleave.ts without re-sorting), under a summary line of the counts. Rows are divided
+	by hairlines (059-DR, SR-02).
 	Each hit is a button; Up and Down walk the list in order (Up from the first goes back to the
 	search field, via `onLeaveTop`).
 -->
@@ -11,14 +13,12 @@
 
 	interface Props {
 		result: GlobalSearchResponse;
-		/** Client id → colour index, for the dot on each hit */
-		clientColorIndexes: Map<string, number>;
 		onOpenNote: (hit: NoteHit) => void;
 		onOpenEntry: (hit: TimeEntryHit) => void;
 		onLeaveTop: () => void;
 	}
 
-	let { result, clientColorIndexes, onOpenNote, onOpenEntry, onLeaveTop }: Props = $props();
+	let { result, onOpenNote, onOpenEntry, onLeaveTop }: Props = $props();
 
 	const items = $derived(interleaveSearchHits(result));
 
@@ -48,16 +48,15 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div bind:this={listElement} onkeydown={handleKeydown} data-testid="search-results">
-	<p class="mb-2 px-3 text-xs text-ink-faint" data-testid="search-summary">{searchSummary(result)}</p>
+	<p class="border-b border-divider px-3 pb-2 text-sm text-ink-muted" data-testid="search-summary">{searchSummary(result)}</p>
 	{#if items.length === 0}
-		<p class="px-3 py-2 text-sm text-ink-faint">Nothing matches.</p>
+		<p class="px-3 py-3 text-sm text-ink-muted" data-testid="search-status" data-state="empty">Nothing matches “{result.query}”.</p>
 	{:else}
-		<ul class="space-y-0.5" aria-label="Search results">
+		<ul class="divide-y divide-divider border-b border-divider" aria-label="Search results">
 			{#each items as item (`${item.kind}:${item.hit.id}`)}
 				<li>
 					<SearchHitRow
 						{item}
-						clientColorIndex={clientColorIndexes.get(item.hit.clientId)}
 						onOpen={() => (item.kind === 'note' ? onOpenNote(item.hit) : onOpenEntry(item.hit))}
 					/>
 				</li>

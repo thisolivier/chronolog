@@ -64,10 +64,12 @@ export function searchSummary(result: Pick<GlobalSearchResponse, 'notes' | 'time
 	].join(' · ');
 }
 
-/** "Oct 20": an entry's date on a phone, where the full day header does not fit */
-export function formatEntryDateShort(dateString: string): string {
-	return new Date(`${dateString}T00:00:00`).toLocaleDateString('en-US', {
+/** "Oct 20" (with the year when it is not this year): an entry's quiet date on a search hit */
+export function formatEntryDateShort(dateString: string, now: Date = new Date()): string {
+	const date = new Date(`${dateString}T00:00:00`);
+	return date.toLocaleDateString('en-US', {
 		month: 'short',
-		day: 'numeric'
+		day: 'numeric',
+		...(date.getFullYear() === now.getFullYear() ? {} : { year: 'numeric' })
 	});
 }

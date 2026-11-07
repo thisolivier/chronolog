@@ -26,7 +26,7 @@ WikiLink inline node extension that renders `[[note-links]]` in the editor. Supp
 - `[[NOTE_ID#heading]]` -- link to heading
 - `[[NOTE_ID#heading|label]]` -- heading link with display text
 
-Integrates TipTap's Suggestion utility (triggered by `[[`) to provide autocomplete when typing wiki-links. The suggestion popup calls `/api/notes/search` (ranked: exact ID, ID prefix, title, ID substring, body). The note being edited is excluded through `editor.storage.wikiLink.getCurrentNoteId`, and an empty query lists recent notes (`recent=1`). Each `WikiLinkSuggestionItem` carries `firstLine`/`secondLine` content previews alongside `noteId`/`title`. Inserted links carry no label, so the chip keeps showing the target's live title.
+Integrates TipTap's Suggestion utility (triggered by `[[`) to provide autocomplete when typing wiki-links. Since 059-DR the plugin's own `items` is empty and the popup (`wiki-link-picker.svelte.ts`) queries for itself through the shared picker in `src/lib/components/search/` (`/api/notes/search`, the shared matcher of 058-DR; an empty query lists recent notes of every contract, `recent=1`). Link targets are notes only. The note being edited is excluded through `editor.storage.wikiLink.getCurrentNoteId`. A dismissed token (Escape, outside press, blur) is recorded in `editor.storage.wikiLink.dismissedFrom` and the suggestion's `allow` keeps it closed while typing on; `onTransaction` forgets it once that `[[` is gone. Inserted links carry no label, so the chip keeps showing the target's live title; insertion replaces only the `[[query` range with the node plus a space, in one transaction (one undo).
 
 **Node view.** The node renders the linked note's title from the shared title cache (`../note-titles.svelte.ts`), with the note ID as a tooltip. The document still stores only the ID, so markdown stays `[[id]]`.
 
@@ -37,9 +37,9 @@ Integrates TipTap's Suggestion utility (triggered by `[[`) to provide autocomple
 
 Also exports `parseWikiLinkText(raw)` for parsing the interior of `[[...]]` tokens and `formatWikiLinkText(noteId, headingAnchor, label)` for the inverse. Tests live in `wiki-link.test.ts` (jsdom).
 
-### SuggestionDropdown.ts
+### wiki-link-picker.svelte.ts (sprint 059-DR)
 
-Vanilla JS dropdown component for the WikiLink suggestion popup. Each item shows the note ID, the first content line (falling back to title, then ID) and an optional truncated second line. Supports keyboard navigation (arrow keys, Enter, Escape) and mouse selection. Positions itself relative to the cursor, showing above or below depending on viewport space.
+The suggestion `render` for `[[` (replaces the vanilla `SuggestionDropdown.ts`). Mounts the shared `LinkPicker.svelte` in a `position: fixed` layer on `<body>` (`[data-link-picker-layer]`), feeds each query to `createLinkPickerSearch` (150 ms debounce, stale replies ignored, loading / no matches / failure), and places it with `placeLinkPicker` against `window.visualViewport` (anchored to the token on desktop, flipped and clamped at the edges; full width above the software keyboard on a phone). Focus stays in the editor: arrows move the active row, Enter / click / tap inserts (the panel prevents `mousedown`, so a tap neither blurs the editor nor drops the phone keyboard). Escape, a press outside the editor and the list, or the editor's blur close it for good and unmount it.
 
 ### markdown-text.ts
 
