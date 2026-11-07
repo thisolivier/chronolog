@@ -35,4 +35,21 @@ describe('contractInitials', () => {
 		expect(contractInitials('')).toBe('?');
 		expect(contractInitials('  — ')).toBe('?');
 	});
+
+	it('keeps combining marks with their letter (decomposed input)', () => {
+		expect(contractInitials('E\u0301quipe E\u0301ditoriale')).toBe('ÉÉ');
+		expect(contractInitials('Cafe\u0301 Ole\u0301')).toBe('CO');
+		expect(contractInitials('a\u0308rger')).toBe('ÄR');
+	});
+
+	it('takes whole code points, not UTF-16 halves', () => {
+		expect(contractInitials('𝒜lpha 𝒷eta')).toBe('𝒜𝒷'.toUpperCase());
+		expect(Array.from(contractInitials('𝔄𝔅')).length).toBeLessThanOrEqual(3);
+	});
+
+	it('never grows past three letters when uppercasing (ß becomes SS)', () => {
+		expect(contractInitials('ßa ßb ßc')).toBe('SSS');
+		expect(contractInitials('Straße')).toBe('ST');
+		expect(contractInitials('ßß')).toBe('SSS');
+	});
 });
