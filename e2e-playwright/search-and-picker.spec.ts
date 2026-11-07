@@ -358,6 +358,9 @@ test.describe('desktop', () => {
 
 		// Prompt (no query)
 		await page.goto('/search');
+		// A deep link gets the app root put under it once loaded (two navigations): let them settle,
+		// or WebKit reports the next goto as interrupted (checkpoint B/C flake)
+		await page.waitForLoadState('networkidle');
 		await expect(page.getByTestId('search-status')).toHaveAttribute('data-state', 'prompt');
 		await expectOneLargeField();
 
