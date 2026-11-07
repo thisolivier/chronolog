@@ -76,9 +76,9 @@ export function installFindStyles(): void {
 	style.id = STYLE_ELEMENT_ID;
 	style.textContent = `
 ::highlight(${MATCH_HIGHLIGHT}) { background-color: var(--color-ochre-200); color: inherit; }
-::highlight(${CURRENT_HIGHLIGHT}) { background-color: var(--color-ochre-300); color: var(--color-ink); }
+::highlight(${CURRENT_HIGHLIGHT}) { background-color: var(--color-ochre-600); color: var(--color-on-accent); }
 .chronolog-find-match { background-color: var(--color-ochre-200); border-radius: 2px; }
-.chronolog-find-current { background-color: var(--color-ochre-300); color: var(--color-ink); }
+.chronolog-find-current { background-color: var(--color-ochre-600); color: var(--color-on-accent); outline: 2px solid var(--color-ochre-700); }
 `;
 	document.head.appendChild(style);
 }
