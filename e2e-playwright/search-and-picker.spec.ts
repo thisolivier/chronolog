@@ -289,6 +289,41 @@ test.describe('desktop', () => {
 		await expect(page.getByTestId('link-picker')).toHaveAttribute('data-status', 'ready');
 	});
 
+	test('picker: Enter while a newer query loads inserts from that reply, never the older rows', async ({ page, baseURL }) => {
+		await signInAsFreshUser(page, baseURL, 'picker-early-enter');
+		const seeded = await seed(page);
+		await openNote(page, seeded.generalContractId, seeded.notes.scratch, 'Links go here.');
+		await newLineAfter(page, 'Links go here.');
+		await page.route('**/api/notes/search?*', async (route) => {
+			if (new URL(route.request().url()).searchParams.get('q') === 'Daniel') await new Promise((resolve) => setTimeout(resolve, 1500));
+			await route.continue().catch(() => {});
+		});
+		await page.keyboard.type('[[');
+		// Recent notes on screen; the newest (the Internal note) is the active row
+		await expect.poll(() => pickerIds(page)).toEqual([seeded.notes.internal, seeded.notes.hungryCall, seeded.notes.poc, seeded.notes.roles]);
+		await page.keyboard.type('Daniel');
+		await page.keyboard.press('Enter');
+		await page.waitForTimeout(400);
+		await expect(editor(page).locator('[data-wiki-link]')).toHaveCount(0);
+		await expect(editor(page)).toContainText('[[Daniel');
+		// The reply for "Daniel" lands: its active row (the only match) is inserted
+		await expect(editor(page).locator('[data-wiki-link]')).toHaveCount(1, { timeout: 5000 });
+		await expect(editor(page).locator(`[data-wiki-link][data-note-id="${seeded.notes.roles}"]`)).toHaveCount(1);
+		await expect(editor(page).locator(`[data-wiki-link][data-note-id="${seeded.notes.internal}"]`)).toHaveCount(0);
+	});
+
+	test('picker: an unclosed [[ followed by a long sentence closes the picker instead of failing', async ({ page, baseURL }) => {
+		await signInAsFreshUser(page, baseURL, 'picker-long');
+		const seeded = await seed(page);
+		await openNote(page, seeded.generalContractId, seeded.notes.scratch, 'Links go here.');
+		await newLineAfter(page, 'Links go here.');
+		await page.keyboard.type('[[');
+		await expect(picker(page)).toBeVisible();
+		await page.keyboard.type('this bracket was never closed and the sentence keeps going well past any sensible note title length');
+		await expect(page.locator('[data-link-picker-layer]')).toHaveCount(0);
+		await expect(page.getByTestId('link-picker-status').filter({ hasText: 'load' })).toHaveCount(0);
+	});
+
 	test('/search keeps one large field in every state, inside the shell, with the timer pill', async ({ page, baseURL }, testInfo) => {
 		await signInAsFreshUser(page, baseURL, 'search-states');
 		const seeded = await seed(page);

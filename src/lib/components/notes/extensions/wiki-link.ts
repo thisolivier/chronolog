@@ -27,6 +27,9 @@ export interface WikiLinkCommandProps {
 
 export const WikiLinkPluginKey = new PluginKey('wikiLink');
 
+/** Longest `[[` query the picker follows (059-DR review); longer text is treated as no token */
+export const MAX_PICKER_QUERY_LENGTH = 80;
+
 /** Parse the interior text of a `[[...]]` wiki-link (pure; shared with previews and titles). */
 import { parseWikiLinkText } from '$lib/utils/wiki-link-text';
 export { parseWikiLinkText };
@@ -190,6 +193,10 @@ export const WikiLink = Node.create<{
 				// The picker queries for itself (debounced, stale replies ignored; 059-DR), so the
 				// plugin's own awaited items stay empty and can never overwrite newer results
 				items: () => [],
+
+				// A `[[` never closed and followed by a sentence is not a link query (the endpoint refuses
+				// over 200 characters): no picker past 80 characters
+				shouldShow: ({ query }: { query: string }) => query.length <= MAX_PICKER_QUERY_LENGTH && !query.includes('\n'),
 
 				// A dismissed token stays closed until its `[[` is removed (see dismissedFrom)
 				allow: ({ editor, range }: { editor: Editor; range: Range }) =>

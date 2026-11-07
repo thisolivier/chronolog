@@ -40,6 +40,8 @@ export function createWikiLinkPickerRenderer(pluginKey: PluginKey) {
 		let layer: HTMLDivElement | null = null;
 		let instance: ReturnType<typeof mount> | null = null;
 		let cleanups: Array<() => void> = [];
+		/** Enter pressed while the current query was still loading: insert from ITS reply */
+		let enterPending = false;
 		const idPrefix = `link-picker-${++pickerCount}`;
 		const view = $state({
 			items: [] as LinkPickerItem[],
@@ -62,6 +64,14 @@ export function createWikiLinkPickerRenderer(pluginKey: PluginKey) {
 			view.items = search.items;
 			view.status = search.status;
 			if (itemsChanged) view.activeIndex = 0;
+			if (enterPending && search.status !== 'loading') {
+				enterPending = false;
+				// The rows shown before were for an older query: only the current reply may be inserted
+				if (search.status === 'ready' && view.items[view.activeIndex]) {
+					choose(view.activeIndex);
+					return;
+				}
+			}
 			void tick().then(position);
 		}
 
@@ -98,6 +108,7 @@ export function createWikiLinkPickerRenderer(pluginKey: PluginKey) {
 		}
 
 		function destroy() {
+			enterPending = false;
 			search?.dispose();
 			search = null;
 			for (const cleanup of cleanups) cleanup();
@@ -175,6 +186,8 @@ export function createWikiLinkPickerRenderer(pluginKey: PluginKey) {
 
 			onUpdate(props: SuggestionProps<unknown, WikiLinkPickerCommand>) {
 				latest = props;
+				// Typing on after Enter means the earlier Enter no longer applies
+				if (props.query !== search?.query) enterPending = false;
 				search?.setQuery(props.query ?? '');
 				position();
 			},
@@ -188,6 +201,11 @@ export function createWikiLinkPickerRenderer(pluginKey: PluginKey) {
 					return true;
 				}
 				if (event.key === 'Enter') {
+					// Rows still on screen during a load belong to the previous query (review fix, 059-DR)
+					if (search.status === 'loading') {
+						enterPending = true;
+						return true;
+					}
 					if (!view.items[view.activeIndex]) return false;
 					choose(view.activeIndex);
 					return true;
