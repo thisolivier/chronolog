@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { parseArguments, UsageError } from './args.mjs';
 import { resolveContract, ReferenceError_ } from './resolve.mjs';
-import { weekRange, parseWeekKey, resolveDateWord, formatMinutes } from './dates.mjs';
+import { readFileSync } from 'node:fs';
+import { weekRange, weeksInYear, parseWeekKey, resolveDateWord, formatMinutes } from './dates.mjs';
+
+// The app's worked examples of the week rule: the CLI's copy must agree (057-DR)
+const weekFixtures = JSON.parse(readFileSync(new URL('../../src/lib/utils/calendar-week.fixtures.json', import.meta.url), 'utf8'));
 
 const contracts = [
 	{ id: '11111111-1111-1111-1111-111111111111', name: 'Website rebuild', clientName: 'Acme Ltd', clientShortCode: 'ACME', isActive: true },
@@ -72,5 +76,19 @@ describe('CLI dates', () => {
 		expect(formatMinutes(90)).toBe('1h30m');
 		expect(formatMinutes(45)).toBe('45m');
 		expect(formatMinutes(120)).toBe('2h');
+	});
+});
+
+describe('week rule matches the app (shared fixtures)', () => {
+	it.each(weekFixtures.weeks)('$year Week $weekNumber starts $weekStart', ({ year, weekNumber, weekStart }) => {
+		expect(weekRange(year, weekNumber).from).toBe(weekStart);
+		expect(parseWeekKey(`${year}-W${weekNumber}`)).toMatchObject({ year, weekNumber });
+	});
+
+	it('counts the weeks of each year', () => {
+		for (const [year, count] of Object.entries(weekFixtures.weeksInYear)) {
+			expect(weeksInYear(Number(year))).toBe(count);
+			expect(parseWeekKey(`${year}-W${count + 1}`)).toBeNull();
+		}
 	});
 });

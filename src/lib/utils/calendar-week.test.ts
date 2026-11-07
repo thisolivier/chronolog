@@ -9,6 +9,18 @@ import {
 	shiftCalendarWeek,
 	legacyIsoWeekRedirect
 } from './calendar-week';
+import fixtures from './calendar-week.fixtures.json';
+
+describe('shared fixtures (also checked against the CLI copy in cli/lib/cli-lib.test.mjs)', () => {
+	it.each(fixtures.weeks)('$date is $year Week $weekNumber', ({ date, year, weekNumber, weekStart }) => {
+		expect(calendarWeekOf(date)).toEqual({ year, weekNumber, weekStart });
+		expect(mondayOfCalendarWeek(year, weekNumber)).toBe(weekStart);
+	});
+
+	it('counts the weeks of each year', () => {
+		for (const [year, count] of Object.entries(fixtures.weeksInYear)) expect(weeksInYear(Number(year))).toBe(count);
+	});
+});
 
 /** Owner rule (decision 2026-11-07): Week 1 is the Monday-start week containing 1 January */
 describe('calendarWeekOf: the worked year-boundary examples', () => {
