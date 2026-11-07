@@ -48,11 +48,11 @@ Left: ≡, Chronolog, ‹ ›. Right: the timer reflection (when shown), then th
 | Phone home (capture screen) or timesheet (footer widget) | hidden | full widget, no chevron | unit; spec phone |
 | Phone note list / note | shown (running or Finish entry), opens home | none mounted | unit; spec phone |
 | No running or unfinished capture | none (desktop with sidebar hidden keeps the old "Timer" access) | Start Timer / Add Entry | unit |
-| Off-shell routes (`/search`, `/settings`, `/notes/trash`) | no AppShell, unchanged | none | — |
+| Off-shell routes (`/search`, `/settings`, `/notes/trash`) | no AppShell: **no timer access there**; stage 7 brings `/search` into the shell, `/settings` and `/notes/trash` are a follow-up | none | — |
 
 ### E. Shared capture state (IN-03, TC-06, SH-07)
 
-`src/lib/stores/capture-draft.svelte.ts` (`captureDraft`) with pure helpers in `capture-draft.ts`: contract, deliverable, work type, description, time text, the measured text, and the frozen end / start / date. Persisted in localStorage per user (`chronolog:capture-draft:<userId>`; the root layout calls `configure(userId, localStorage)` before the panels mount). TimerWidget calls `open(captureKey, initial)` when it stops a timer or finds a stopped draft (key `entry:<id>` or `pending:<date>T<start>`); stored fields for the same capture win over what the server knows. `TimerCompletionForm` binds to `captureDraft.fields` and writes through on every change; Save and Discard clear it; a mount that finds no server draft and no pending timer clears a stale record. The server timer model and the `expectedStartedAt` on save / discard are unchanged; there is no second timer model.
+`src/lib/stores/capture-draft.svelte.ts` (`captureDraft`) with pure helpers in `capture-draft.ts`: contract, deliverable, work type, description, time text and the measured text (the frozen interval stays on the server row or pending timer only; see review fixes). Persisted in localStorage per user (`chronolog:capture-draft:<userId>`; the root layout calls `configure(userId, localStorage)` before the panels mount). TimerWidget calls `open(captureKey, initial)` when it stops a timer or finds a stopped draft (key `entry:<id>` or `pending:<date>T<start>`); stored fields for the same capture win over what the server knows. `TimerCompletionForm` binds to `captureDraft.fields` and writes through on every change; Save and Discard clear it; a mount that finds no server draft and no pending timer clears a stale record. The server timer model and the `expectedStartedAt` on save / discard are unchanged; there is no second timer model.
 
 ### F. Owner backlog item (2026-11-05, desktop timer placement)
 
@@ -76,6 +76,7 @@ The backlog asked to hide the header pill while the sidebar timer is on screen (
   ```
   The 3 failures are `search-results-layout.spec.ts` (desktop, phone 320, phone 390): `expect(kinds).toEqual(['entry', 'note', 'note', 'note', 'entry', 'entry'])` receives `['note', 'note', 'note', 'entry', 'entry', 'entry']`. **Pre-existing, not from this sprint:** the same spec fails the same way (`3 failed, 1 passed`) against the stage 3b server on port 5183, which has none of these changes. The spec seeds an entry for today at 23:30 and expects it first; at 11:38 PST (19:38 UTC) the notes sort ahead of it, so it looks clock / time-zone dependent. The search route and API are untouched here.
 - iPhone WebKit projects, `PLAYWRIGHT_BASE_URL=http://localhost:5182 npx playwright test --project=iphone-se --project=iphone-15 --project=iphone-15-pro-max`: `2 skipped` · `20 passed (19.7s)` (includes the new phone timer test, tagged `@iphone`).
+- **After the review fixes:** check `svelte-check found 0 errors and 0 warnings`; lint clean; `npm test` `Test Files 124 passed (124)` · `Tests 1194 passed (1194)`; chromium `3 failed` · `6 skipped` · `99 passed (1.3m)` (the same 3 `search-results-layout` failures, fixed on `design-r1` by correcting the test); iPhone projects `1 flaky` · `2 skipped` · `19 passed (28.7s)` (the flaky one is `iphone-journeys.spec.ts:27` "sign in, then the week…" on iphone-15-pro-max, passed on retry; not a timer or sidebar test).
 - New specs: `timer-visibility.spec.ts` (desktop: expanded / Change / collapsed / hidden / browsed-vs-capture identity / click shows sidebar; stopped: compact Finish entry, header Finish entry with a frozen duration over 1.5 s, fields survive `/settings` and back and the 600 px crossing, Discard clears the stored record; phone: reflection on a note, ticking clock, tap opens home, Stop, Back shows Finish entry, survives reload, fields restored), `sidebar-design.spec.ts` (tint is `--color-sunken`, no dot, marks, surface selection, 5 px mark gap, count at the right, flattened row left of the grouped marks; mute: wrapper 0.5, Time Entries and timer 1, Archived / Trash / Settings / heading 0.5, inactive and archived rows and marks 0.5 not 0.25, keyboard Enter and mouse still navigate).
 - Updated: `history-buttons.spec.ts` (search field in the right half of the app bar, within 48 px of its right edge; ‹ › in the left half; the `/search` page assertion unchanged), `notes-helpers.ts` (`expectSidebarSelected`: `aria-current` + `bg-surface` instead of `/pine/`), `sidebar-archive-collapse.spec.ts` (`bg-surface`; the solo row's dot is now a `contract-mark`).
 
@@ -92,6 +93,16 @@ The backlog asked to hide the header pill while the sidebar timer is on screen (
 
 Reviewed by eye: the flattened row's selection needed the ring to read on the canvas (added); `RGM` overflowed its mark (fixed). Still reads tight: see follow-ups.
 
+## Review fixes (independent review, same day)
+
+1. **Stale time text after a server interval change (blocker).** The draft had one key (the entry id) and an in-memory early return, so after a split / resume / move elsewhere a reload restored the old time text, equal to the old measured text, and Save sent no time: the form showed 1h and the server saved 30m. Now the record has a second key, `intervalKey` (date, start, end, minutes), checked against memory and storage on every `open`: a changed interval resets the time and measured text from the server and keeps description, contract, deliverable and work type. The stored end / start / date were dropped (never read; the server is the one source). Unit test for the key change; e2e moves the stopped draft's start by `PATCH /api/timer`, reloads, and checks the Time field reads the new range while the description survives.
+2. **Focus lost on collapse (blocker, a11y).** The chevron is drawn in each layout; toggling now moves focus to the new chevron when the old one had it. Keyboard e2e: Enter collapses and expands with focus staying on the chevron.
+3. A dragged client used `opacity-50` (25% inside the muted section): now a dashed pine outline.
+4. The header pill appeared while the sidebar was still animating closed: showing it now waits 300 ms (the width transition); hiding it, phone changes and running ↔ Finish entry stay immediate. E2e checks no pill right after ≡, then the pill.
+5. The read-only header loader names a stopped capture by the completion form's chosen contract (`captureDraft.contractFor`) before the server's.
+6. `WorkTypeSelect` keeps the selected work type when loading the list fails (TC-05), so the write-through no longer persists a cleared value.
+7. Phone header: the pill is the mark and the clock (running) or the mark and the frozen duration in ochre (stopped; "Finish entry" stays in the accessible name and as screen-reader text). With the pill showing, the phone context title is dropped (3b's list and editor headers name the context) and "← Back" may use the whole left side. Screenshots 05 and 07 retaken.
+
 ## Decisions
 
 - Header click on desktop shows the sidebar (no popover).
@@ -103,7 +114,7 @@ Reviewed by eye: the flattened row's selection needed the ring to read on the ca
 
 ## Follow-ups
 
-- **Phone header is crowded** with the reflection: at 390 px "← Chronolog" truncates to "← Chron…" and the context title to one letter. Consider dropping the mark or the context title when the reflection shows (stage capture / mobile).
+- `/settings` and `/notes/trash` sit outside the app shell and have no timer access (stage 7 brings `/search` in).
 - The compact desktop row truncates contract and client hard at 240 px; the clock could go to `text-xs`.
 - `--spacing-mark-gap` (5 px) and the `sm` mark still need the DS-05 actual-size review; three-initial marks at `sm` are small (0.4rem).
 - A stopped capture's identity follows the completion form's Contract choice in the widget and header; the read-only phone loader uses the server's contract until a widget mounts.
