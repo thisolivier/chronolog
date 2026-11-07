@@ -157,11 +157,13 @@
 	const compactVisible: ToolSpec[] = [bulletList, taskList];
 	const compactOverflow: ToolSpec[] = [orderedList, rule, link, codeBlock, attach];
 
+	// Disabled (060-DR): the ink-fainter colour at full strength (about 2.7:1, legible) instead of
+	// faded ink-muted (about 2.2:1); no hover fill, so it reads as unavailable
 	const buttonClass =
-		'shrink-0 rounded px-2.5 py-1 text-sm transition-colors pointer-coarse:min-h-11 pointer-coarse:min-w-11 disabled:cursor-not-allowed disabled:opacity-50';
+		'shrink-0 rounded px-2.5 py-1 text-sm transition-colors pointer-coarse:min-h-11 pointer-coarse:min-w-11 disabled:cursor-not-allowed disabled:text-ink-fainter disabled:hover:bg-transparent';
 	const idleClass = 'text-ink-muted hover:bg-chalk-100';
 	const activeClass = 'bg-pine-100 text-pine-700 font-semibold';
-	const menuItemClass = 'flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm menu-item pointer-coarse:py-3 disabled:cursor-not-allowed disabled:opacity-40';
+	const menuItemClass = 'flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm menu-item pointer-coarse:py-3 disabled:cursor-not-allowed disabled:text-ink-fainter';
 	const headingNames = ['Normal text', 'Heading 1', 'Heading 2', 'Heading 3'] as const;
 </script>
 
