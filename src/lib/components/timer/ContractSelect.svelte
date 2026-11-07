@@ -47,8 +47,8 @@
 
 	const borderClasses = $derived(
 		invalid
-			? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-			: 'border-stone-300 focus:border-blue-500 focus:ring-blue-500'
+			? 'border-rust-400 focus:border-rust-500 focus:ring-rust-500'
+			: 'border-line focus:border-focus focus:ring-focus'
 	);
 	const sizeClasses = $derived(
 		compact ? 'rounded px-1.5 py-1 text-sm' : 'rounded-md px-2 py-1.5 text-sm shadow-sm'
@@ -62,7 +62,7 @@
 	{onkeydown}
 	{onblur}
 	aria-invalid={invalid}
-	class="block w-full min-w-0 border bg-white focus:ring-1 focus:outline-none {sizeClasses} {borderClasses}"
+	class="block w-full min-w-0 border bg-surface focus:ring-1 focus:outline-none {sizeClasses} {borderClasses}"
 	disabled={!isLoaded}
 >
 	<option value="">Select a contract…</option>

@@ -30,7 +30,7 @@
 	const cancelEditing = () => (isEditing = false);
 </script>
 
-<div class="flex items-center justify-between px-4 py-2.5 hover:bg-stone-50">
+<div class="flex items-center justify-between px-4 py-2.5 hover:bg-chalk-50">
 	{#if isEditing}
 		<form
 			method="POST"
@@ -63,13 +63,13 @@
 		</form>
 	{:else}
 		<div class="flex items-center gap-2">
-			<span class="inline-block h-1.5 w-1.5 rounded-full bg-stone-300"></span>
-			<span class="text-sm text-stone-700">{workType.name}</span>
-			<span class="text-xs text-stone-400">({workType.sortOrder})</span>
+			<span class="inline-block h-1.5 w-1.5 rounded-full bg-chalk-300"></span>
+			<span class="text-sm text-ink-soft">{workType.name}</span>
+			<span class="text-xs text-ink-faint">({workType.sortOrder})</span>
 		</div>
 		<div class="flex items-center gap-2">
-			<button onclick={startEditing} class="text-xs text-stone-500 hover:text-blue-600 pointer-coarse:min-h-11">Edit</button>
-			<button onclick={() => (isConfirmingDelete = true)} class="text-xs text-red-500 hover:text-red-700 pointer-coarse:min-h-11">Delete</button>
+			<button onclick={startEditing} class="text-xs text-ink-faint hover:text-pine-600 pointer-coarse:min-h-11">Edit</button>
+			<button onclick={() => (isConfirmingDelete = true)} class="text-xs text-rust-500 hover:text-rust-700 pointer-coarse:min-h-11">Delete</button>
 		</div>
 	{/if}
 </div>

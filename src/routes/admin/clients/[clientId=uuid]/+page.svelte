@@ -57,7 +57,7 @@
 	<FormFeedback form={reorderMessage ?? form} />
 
 	<!-- Client Header -->
-	<div class="rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
+	<div class="rounded-lg border border-divider bg-surface p-6 shadow-sm">
 		{#if isEditingClient}
 			<form
 				method="POST"
@@ -66,10 +66,10 @@
 				use:escapeCancels={() => (isEditingClient = false)}
 				class="space-y-4"
 			>
-				<h2 class="text-lg font-medium text-stone-900">Edit Client</h2>
+				<h2 class="text-lg font-medium text-ink">Edit Client</h2>
 				<div class="grid gap-4 sm:grid-cols-2">
 					<div>
-						<label for="edit-client-name" class="block text-sm font-medium text-stone-700">
+						<label for="edit-client-name" class="block text-sm font-medium text-ink-soft">
 							Name
 						</label>
 						<input
@@ -82,7 +82,7 @@
 						/>
 					</div>
 					<div>
-						<label for="edit-client-code" class="block text-sm font-medium text-stone-700">
+						<label for="edit-client-code" class="block text-sm font-medium text-ink-soft">
 							Short Code
 						</label>
 						<input
@@ -107,9 +107,9 @@
 		{:else}
 			<div class="flex items-center justify-between">
 				<div>
-					<h2 class="text-xl font-semibold text-stone-900">{data.client.name}</h2>
-					<p class="mt-1 text-sm text-stone-500">
-						Code: <span class="rounded bg-stone-100 px-2 py-0.5 font-mono text-xs">{data.client.shortCode}</span>
+					<h2 class="text-xl font-semibold text-ink">{data.client.name}</h2>
+					<p class="mt-1 text-sm text-ink-faint">
+						Code: <span class="rounded bg-chalk-100 px-2 py-0.5 font-mono text-xs">{data.client.shortCode}</span>
 					</p>
 				</div>
 				<button
@@ -125,7 +125,7 @@
 	<!-- Contracts Section -->
 	<div class="space-y-4">
 		<div class="flex items-center justify-between">
-			<h3 class="text-lg font-medium text-stone-900">Contracts</h3>
+			<h3 class="text-lg font-medium text-ink">Contracts</h3>
 			{#if !showCreateContractForm}
 				<button
 					onclick={() => (showCreateContractForm = true)}
@@ -137,8 +137,8 @@
 		</div>
 
 		{#if showCreateContractForm}
-			<div class="rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
-				<h4 class="mb-4 text-base font-medium text-stone-900">New Contract</h4>
+			<div class="rounded-lg border border-divider bg-surface p-6 shadow-sm">
+				<h4 class="mb-4 text-base font-medium text-ink">New Contract</h4>
 				<form
 					method="POST"
 					action="?/createContract"
@@ -147,7 +147,7 @@
 					class="space-y-4"
 				>
 					<div>
-						<label for="new-contract-name" class="block text-sm font-medium text-stone-700">
+						<label for="new-contract-name" class="block text-sm font-medium text-ink-soft">
 							Name
 						</label>
 						<input
@@ -160,7 +160,7 @@
 						/>
 					</div>
 					<div>
-						<label for="new-contract-description" class="block text-sm font-medium text-stone-700">
+						<label for="new-contract-description" class="block text-sm font-medium text-ink-soft">
 							Description
 						</label>
 						<textarea
@@ -172,8 +172,8 @@
 						></textarea>
 					</div>
 					<div class="flex items-center gap-2">
-						<input id="new-contract-active" name="is_active" type="checkbox" checked class="h-4 w-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500" />
-						<label for="new-contract-active" class="text-sm text-stone-700">Active</label>
+						<input id="new-contract-active" name="is_active" type="checkbox" checked class="h-4 w-4 rounded border-line text-pine-600 focus:ring-focus" />
+						<label for="new-contract-active" class="text-sm text-ink-soft">Active</label>
 					</div>
 					<div class="flex justify-end gap-2">
 						<button type="button" onclick={() => (showCreateContractForm = false)} class="rounded-md btn-secondary px-4 py-2 text-sm">
@@ -188,8 +188,8 @@
 		{/if}
 
 		{#if data.contracts.length === 0}
-			<div class="rounded-lg border border-stone-200 bg-white p-8 text-center shadow-sm">
-				<p class="text-stone-500">No contracts yet. Add a contract to this client.</p>
+			<div class="rounded-lg border border-divider bg-surface p-8 text-center shadow-sm">
+				<p class="text-ink-faint">No contracts yet. Add a contract to this client.</p>
 			</div>
 		{:else}
 			<div class="space-y-2">
@@ -205,7 +205,7 @@
 				{/each}
 			</div>
 			{#if archivedContracts.length > 0}
-				<h4 class="pt-2 text-xs font-semibold uppercase text-stone-400">Archived</h4>
+				<h4 class="pt-2 text-xs font-semibold uppercase text-ink-faint">Archived</h4>
 				<div class="space-y-2">
 					{#each archivedContracts as contract (contract.id)}
 						<ContractRow {contract} clientId={data.client.id} clientName={data.client.name} canMoveUp={false} canMoveDown={false} />

@@ -47,18 +47,18 @@ export function showRestorePrompt(
 	prompt.setAttribute('aria-label', 'Restore deleted note');
 	prompt.dataset.testid = 'trashed-link-prompt';
 	prompt.className =
-		'fixed z-50 flex max-w-xs flex-wrap items-center gap-2 rounded-md border border-stone-200 bg-white px-3 py-2 text-xs text-stone-700 shadow-lg';
+		'fixed z-50 flex max-w-xs flex-wrap items-center gap-2 rounded-md border border-divider bg-surface px-3 py-2 text-xs text-ink-soft shadow-lg';
 
 	const message = document.createElement('span');
 	message.textContent = `“${options.title}” is in the trash.`;
 	const restoreButton = document.createElement('button');
 	restoreButton.type = 'button';
 	restoreButton.textContent = 'Restore';
-	restoreButton.className = 'rounded bg-indigo-600 px-2 py-0.5 font-medium text-white hover:bg-indigo-700';
+	restoreButton.className = 'rounded bg-pine-600 px-2 py-0.5 font-medium text-on-accent hover:bg-pine-700';
 	const cancelButton = document.createElement('button');
 	cancelButton.type = 'button';
 	cancelButton.textContent = 'Cancel';
-	cancelButton.className = 'rounded px-2 py-0.5 text-stone-500 hover:bg-stone-100';
+	cancelButton.className = 'rounded px-2 py-0.5 text-ink-faint hover:bg-chalk-100';
 	prompt.append(message, restoreButton, cancelButton);
 
 	const rectangle = anchor.getBoundingClientRect();

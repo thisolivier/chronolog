@@ -36,8 +36,8 @@
 
 	<div class="flex items-center justify-between gap-4">
 		<div>
-			<h1 class="text-2xl font-semibold text-stone-900">Clients</h1>
-			<p class="mt-1 text-sm text-stone-600">Manage your consulting clients.</p>
+			<h1 class="text-2xl font-semibold text-ink">Clients</h1>
+			<p class="mt-1 text-sm text-ink-muted">Manage your consulting clients.</p>
 		</div>
 		{#if !showCreateForm}
 			<button
@@ -52,7 +52,7 @@
 	<FormFeedback {form} />
 
 	{#if sharedColors.length > 0}
-		<div class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" data-testid="shared-colour-hint">
+		<div class="rounded-md border border-ochre-200 bg-ochre-50 px-4 py-3 text-sm text-ochre-900" data-testid="shared-colour-hint">
 			<p class="font-medium">Some active clients share a colour, so they look alike in the timesheet and sidebar.</p>
 			<ul class="mt-1 list-disc pl-5">
 				{#each sharedColors as shared (shared.colorIndex)}
@@ -64,8 +64,8 @@
 	{/if}
 
 	{#if showCreateForm}
-		<div class="rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
-			<h2 class="mb-4 text-lg font-medium text-stone-900">New Client</h2>
+		<div class="rounded-lg border border-divider bg-surface p-6 shadow-sm">
+			<h2 class="mb-4 text-lg font-medium text-ink">New Client</h2>
 			<form
 				method="POST"
 				action="?/create"
@@ -75,7 +75,7 @@
 			>
 				<div class="grid gap-4 sm:grid-cols-4">
 					<div>
-						<label for="new-client-name" class="block text-sm font-medium text-stone-700">
+						<label for="new-client-name" class="block text-sm font-medium text-ink-soft">
 							Name
 						</label>
 						<input
@@ -89,7 +89,7 @@
 						/>
 					</div>
 					<div>
-						<label for="new-client-code" class="block text-sm font-medium text-stone-700">
+						<label for="new-client-code" class="block text-sm font-medium text-ink-soft">
 							Short Code
 						</label>
 						<input
@@ -103,7 +103,7 @@
 						/>
 					</div>
 					<div>
-						<label for="new-client-emoji" class="block text-sm font-medium text-stone-700">
+						<label for="new-client-emoji" class="block text-sm font-medium text-ink-soft">
 							Emoji
 						</label>
 						<input
@@ -115,14 +115,14 @@
 						/>
 					</div>
 					<div>
-						<label for="new-client-color" class="block text-sm font-medium text-stone-700">
+						<label for="new-client-color" class="block text-sm font-medium text-ink-soft">
 							Colour
 						</label>
 						<select
 							id="new-client-color"
 							name="color_index"
 							value={suggestedColorIndex}
-							class="mt-1 block w-full rounded-md input-base bg-white px-3 py-2"
+							class="mt-1 block w-full rounded-md input-base bg-surface px-3 py-2"
 						>
 							{#each CLIENT_COLORS as color, colorIndex (colorIndex)}
 								<option value={colorIndex}>{color.name}</option>
@@ -150,33 +150,33 @@
 	{/if}
 
 	{#if data.clients.length === 0}
-		<div class="rounded-lg border border-stone-200 bg-white p-8 text-center shadow-sm">
-			<p class="text-stone-500">No clients yet. Add your first client to get started.</p>
+		<div class="rounded-lg border border-divider bg-surface p-8 text-center shadow-sm">
+			<p class="text-ink-faint">No clients yet. Add your first client to get started.</p>
 		</div>
 	{:else}
-		<div class="overflow-x-auto rounded-lg border border-stone-200 bg-white shadow-sm">
+		<div class="overflow-x-auto rounded-lg border border-divider bg-surface shadow-sm">
 			<!-- stack-table (app.css): one block per client below 640px, actions in view (sprint 047-QA) -->
-			<table class="stack-table min-w-full divide-y divide-stone-200">
-				<thead class="bg-stone-50">
+			<table class="stack-table min-w-full divide-y divide-divider">
+				<thead class="bg-chalk-50">
 					<tr>
-						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-stone-500">
+						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-ink-faint">
 							Name
 						</th>
-						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-stone-500">
+						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-ink-faint">
 							Short Code
 						</th>
-						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-stone-500">
+						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-ink-faint">
 							Emoji
 						</th>
-						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-stone-500">
+						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-ink-faint">
 							Colour
 						</th>
-						<th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-stone-500">
+						<th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-ink-faint">
 							Actions
 						</th>
 					</tr>
 				</thead>
-				<tbody class="divide-y divide-stone-200">
+				<tbody class="divide-y divide-divider">
 					{#each orderedClients as client (client.id)}
 						<ClientRow {client} />
 					{/each}

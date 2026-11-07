@@ -406,8 +406,8 @@
 		class={[
 			'mb-3 transition-shadow',
 			// Today's tint bleeds 12 px into the gutter so its cards keep the same left edge as other days
-			isToday && '-mx-3 rounded-lg bg-amber-50/60 px-3 py-3',
-			highlightedDay === dayDate && 'rounded-lg ring-2 ring-blue-300'
+			isToday && '-mx-3 rounded-lg bg-ochre-50/60 px-3 py-3',
+			highlightedDay === dayDate && 'rounded-lg ring-2 ring-pine-300'
 		]
 			.filter(Boolean)
 			.join(' ')}
@@ -416,17 +416,17 @@
 	>
 		<div class="mb-1 flex items-center justify-between px-1">
 			<div class="flex items-center gap-2">
-				<h2 class="text-sm font-semibold text-stone-700">
+				<h2 class="text-sm font-semibold text-ink-soft">
 					{formatDayHeader(dayDate)}
 				</h2>
 				{#if isToday}
-					<span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-amber-700">Today</span>
+					<span class="rounded-full bg-ochre-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-ochre-700">Today</span>
 				{/if}
 				{#if !expandedAddEntry[dayDate]}
 					<button
 						onclick={() => toggleAddEntry(dayDate)}
 						data-add-entry={dayDate}
-						class="rounded px-1.5 text-sm leading-none text-stone-500 hover:text-blue-500 pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:text-lg"
+						class="rounded px-1.5 text-sm leading-none text-ink-faint hover:text-pine-500 pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:text-lg"
 						title="Add entry"
 						aria-label="Add entry for {formatDayHeader(dayDate)}"
 					>
@@ -435,7 +435,7 @@
 				{/if}
 			</div>
 			{#if totalMinutes > 0}
-				<span class="text-sm font-medium tabular-nums text-stone-500">
+				<span class="text-sm font-medium tabular-nums text-ink-faint">
 					{formatMinutes(totalMinutes)}
 				</span>
 			{/if}
@@ -461,11 +461,11 @@
 				{/each}
 			</div>
 		{:else if !expandedAddEntry[dayDate]}
-			<div class="flex items-center justify-between rounded-lg border border-dashed border-stone-300 px-4 py-3">
-				<span class="text-sm italic text-stone-400">No entries</span>
+			<div class="flex items-center justify-between rounded-lg border border-dashed border-line px-4 py-3">
+				<span class="text-sm italic text-ink-faint">No entries</span>
 				<button
 					onclick={() => toggleAddEntry(dayDate)}
-					class="text-sm font-medium text-blue-500 hover:text-blue-700"
+					class="text-sm font-medium text-pine-500 hover:text-pine-700"
 				>
 					+ Add
 				</button>
@@ -479,18 +479,18 @@
 	{@const daysWithEntries = weekData?.days.filter((day) => day.entries.length > 0) ?? []}
 	<section class="mt-6" aria-label="Week {getIsoWeekNumber(weekStart)}">
 		<div class="mb-2 flex items-center gap-3">
-			<h2 class="text-xs font-semibold tracking-widest whitespace-nowrap text-stone-500 uppercase">
+			<h2 class="text-xs font-semibold tracking-widest whitespace-nowrap text-ink-faint uppercase">
 				Week {getIsoWeekNumber(weekStart)} &middot; {formatWeekRange(weekStart)}
 			</h2>
-			<div class="h-px flex-1 bg-stone-200"></div>
-			<span class="text-xs font-medium tabular-nums text-stone-500">
+			<div class="h-px flex-1 bg-chalk-200"></div>
+			<span class="text-xs font-medium tabular-nums text-ink-faint">
 				{formatMinutes(weekData?.weeklyTotalMinutes ?? 0)}
 			</span>
 		</div>
 		{#if !weekData}
-			<p class="px-1 text-sm text-stone-400">Loading…</p>
+			<p class="px-1 text-sm text-ink-faint">Loading…</p>
 		{:else if daysWithEntries.length === 0}
-			<p class="px-1 text-sm italic text-stone-400">No entries this week</p>
+			<p class="px-1 text-sm italic text-ink-faint">No entries this week</p>
 		{:else}
 			{#each daysWithEntries as day (day.date)}
 				{@render daySection(day.date, day.entries, day.totalMinutes)}
@@ -499,7 +499,7 @@
 	</section>
 {/snippet}
 
-<div class="flex h-full flex-col overflow-hidden bg-stone-50">
+<div class="flex h-full flex-col overflow-hidden bg-chalk-50">
 	<FindBar mode="dom" />
 	<!-- WeekStrip: sticky at the top of the panel -->
 	{#if selectedWeekData}
@@ -533,7 +533,7 @@
 	<div bind:this={scrollContainer} onscroll={handleScroll} class="flex-1 overflow-y-auto px-4 py-4 sm:px-6" data-testid="timesheet-scroll">
 		{#if isLoading && loadedWeeks.length === 0}
 			<div class="flex items-center justify-center py-12">
-				<p class="text-stone-500">Loading weeks...</p>
+				<p class="text-ink-faint">Loading weeks...</p>
 			</div>
 		{:else}
 			{#each displayDays as dayDate (dayDate)}

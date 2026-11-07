@@ -17,9 +17,9 @@ export const sidebarContract = (page: Page, name: string) =>
 export const openNoteId = async (page: Page) =>
 	(await page.getByTestId('note-editor-header').locator('span.font-mono').innerText()).trim();
 
-/** The selected sidebar contract is drawn in the blue "selected" style. */
+/** The selected sidebar contract is drawn in the pine "selected" style. */
 export async function expectSidebarSelected(page: Page, name: string) {
-	await expect(sidebarContract(page, name)).toHaveClass(/blue/);
+	await expect(sidebarContract(page, name)).toHaveClass(/pine/);
 }
 
 /** Create a note in the current contract through the UI; returns its ID once saved. */

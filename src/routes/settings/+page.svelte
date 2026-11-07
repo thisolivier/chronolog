@@ -48,12 +48,12 @@
 <div class="space-y-6">
 	<div class="flex flex-wrap items-start justify-between gap-4">
 		<div>
-			<h1 class="text-2xl font-semibold text-stone-900">Settings</h1>
-			<p class="mt-1 text-stone-600">Your client hierarchy and account security.</p>
+			<h1 class="text-2xl font-semibold text-ink">Settings</h1>
+			<p class="mt-1 text-ink-muted">Your client hierarchy and account security.</p>
 		</div>
 		<div class="flex items-center gap-4">
 			{#if data.user}
-				<span class="text-sm text-stone-600">{data.user.name || data.user.email}</span>
+				<span class="text-sm text-ink-muted">{data.user.name || data.user.email}</span>
 			{/if}
 			<button
 				onclick={handleSignOut}
@@ -68,10 +68,10 @@
 		{#each sections as section (section.href)}
 			<a
 				href={section.href}
-				class="rounded-lg border border-stone-200 bg-white p-5 shadow-sm transition hover:shadow-md"
+				class="rounded-lg border border-divider bg-surface p-5 shadow-sm transition hover:shadow-md"
 			>
-				<h2 class="font-semibold text-stone-900">{section.title}</h2>
-				<p class="mt-2 text-sm text-stone-600">{section.description}</p>
+				<h2 class="font-semibold text-ink">{section.title}</h2>
+				<p class="mt-2 text-sm text-ink-muted">{section.description}</p>
 			</a>
 		{/each}
 	</div>

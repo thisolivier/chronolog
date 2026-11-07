@@ -47,7 +47,7 @@
 	const holdsSelection = $derived(group.contracts.some((contract) => contract.id === selectedContractId));
 	const isViewedClient = $derived(viewedClientId === group.clientId);
 	const dotClass = $derived(`${getClientDotClass(group.clientColorIndex)} ${muted ? 'opacity-50' : ''}`);
-	const restingRowClass = $derived(muted ? 'text-stone-500 hover:bg-stone-100' : 'text-stone-700 hover:bg-stone-100');
+	const restingRowClass = $derived(muted ? 'text-ink-faint hover:bg-chalk-100' : 'text-ink-soft hover:bg-chalk-100');
 	const canCollapse = $derived(!muted && !isSingleContract && Boolean(onToggleCollapse));
 	// Collapsed: only the open contract stays visible, so the selection is never hidden
 	const visibleContracts = $derived(
@@ -78,7 +78,7 @@
 {#snippet noteCount(count: number)}
 	{#if count > 0}
 		<span
-			class="flex-shrink-0 text-[11px] tabular-nums text-stone-400"
+			class="flex-shrink-0 text-[11px] tabular-nums text-ink-faint"
 			title="{count} {count === 1 ? 'note' : 'notes'}"
 			data-testid="sidebar-note-count"
 		>
@@ -89,13 +89,13 @@
 
 {#snippet inactiveMark(isActive: boolean)}
 	{#if !isActive}
-		<span class="ml-1 text-xs text-stone-400">(inactive)</span>
+		<span class="ml-1 text-xs text-ink-faint">(inactive)</span>
 	{/if}
 {/snippet}
 
 <div
-	class="mb-2 border-y-2 border-transparent {dropPlacement === 'before' ? '!border-t-blue-500' : ''} {dropPlacement === 'after'
-		? '!border-b-blue-500'
+	class="mb-2 border-y-2 border-transparent {dropPlacement === 'before' ? '!border-t-pine-500' : ''} {dropPlacement === 'after'
+		? '!border-b-pine-500'
 		: ''} {reorder?.draggedClientId === group.clientId ? 'opacity-50' : ''}"
 	role="group"
 	aria-label={group.clientName}
@@ -111,7 +111,7 @@
 		<button
 			onclick={() => onSelect(contract.id, contract.clientId)}
 			class="flex w-full items-start gap-2 rounded-md px-3 py-1.5 text-left text-sm transition-colors pointer-coarse:py-3 {isSelected
-				? 'bg-blue-50 text-blue-700'
+				? 'bg-pine-50 text-pine-700'
 				: restingRowClass}"
 			class:opacity-50={!contract.isActive}
 			data-contract-id={contract.id}
@@ -121,7 +121,7 @@
 		>
 			<span class="mt-1.5 inline-block h-2 w-2 flex-shrink-0 rounded-full {dotClass}" aria-hidden="true"></span>
 			<span class="min-w-0 flex-1 truncate">{contract.name}{@render inactiveMark(contract.isActive)}<span
-					class="block truncate text-[11px] leading-4 {isSelected ? 'text-blue-600' : 'text-stone-400'}"
+					class="block truncate text-[11px] leading-4 {isSelected ? 'text-pine-600' : 'text-ink-faint'}"
 					data-testid="sidebar-row-client-name">{group.clientName}</span
 				></span>
 			<span class="mt-0.5">{@render noteCount(contract.noteCount)}</span>
@@ -130,17 +130,17 @@
 		<div
 			class="flex items-center gap-1 pt-1 pb-0.5 text-xs font-semibold {canCollapse ? 'pr-1 pl-1.5' : 'px-3'} {holdsSelection ||
 			isViewedClient
-				? 'text-blue-700'
+				? 'text-pine-700'
 				: muted
-					? 'text-stone-400'
-					: 'text-stone-500'}"
+					? 'text-ink-faint'
+					: 'text-ink-faint'}"
 			data-testid="sidebar-client-heading"
 		>
 			{#if onOpenClient && !muted}
 				<button
 					type="button"
-					class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-0.5 text-left hover:bg-stone-100 pointer-coarse:py-3.5 {isViewedClient
-						? 'bg-blue-50'
+					class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-0.5 text-left hover:bg-chalk-100 pointer-coarse:py-3.5 {isViewedClient
+						? 'bg-pine-50'
 						: ''}"
 					aria-current={isViewedClient ? 'page' : undefined}
 					title="All {group.clientName} notes"
@@ -158,7 +158,7 @@
 			{#if canCollapse}
 				<button
 					type="button"
-					class="ml-auto flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-stone-400 hover:bg-stone-100 hover:text-stone-600 pointer-coarse:-my-3 pointer-coarse:h-11 pointer-coarse:w-8"
+					class="ml-auto flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-chalk-100 hover:text-ink-muted pointer-coarse:-my-3 pointer-coarse:h-11 pointer-coarse:w-8"
 					aria-expanded={!isCollapsed}
 					aria-controls={contractListId}
 					aria-label="{isCollapsed ? 'Expand' : 'Collapse'} {group.clientName}"
@@ -184,7 +184,7 @@
 				<button
 					onclick={() => onSelect(contract.id, contract.clientId)}
 					class="flex w-full items-center gap-2 rounded-md py-1.5 pr-3 pl-7 text-left text-sm transition-colors pointer-coarse:py-3 {isSelected
-						? 'bg-blue-50 text-blue-700'
+						? 'bg-pine-50 text-pine-700'
 						: restingRowClass}"
 					class:opacity-50={!contract.isActive}
 					data-contract-id={contract.id}

@@ -33,24 +33,24 @@
 	}
 </script>
 
-<ul class="divide-y divide-stone-200 rounded-md border border-stone-200 bg-white" data-testid="trash-list">
+<ul class="divide-y divide-divider rounded-md border border-divider bg-surface" data-testid="trash-list">
 	{#each notes as note (note.id)}
 		{@const rowState = rowStates[note.id]}
 		<li class="flex items-center gap-3 px-3 py-2.5 sm:px-4" data-testid="trash-row" data-note-id={note.id}>
 			<div class="min-w-0 flex-1">
-				<p class="truncate text-sm font-medium {rowState?.status === 'restored' ? 'text-stone-900' : 'text-stone-700'}" title={note.id}>
+				<p class="truncate text-sm font-medium {rowState?.status === 'restored' ? 'text-ink' : 'text-ink-soft'}" title={note.id}>
 					{note.title || note.id}
 				</p>
-				<p class="truncate text-xs text-stone-500">
+				<p class="truncate text-xs text-ink-faint">
 					<span class="font-mono">{note.contract}</span>
 					{#if rowState?.status === 'restored'}
-						· <span class="text-green-700">Restored</span>
+						· <span class="text-leaf-700">Restored</span>
 					{:else}
 						· Deleted {formatDeletedDate(note.deletedAt)} · <span data-testid="trash-days-left">{purgeLabel(note.purgeAt)}</span>
 					{/if}
 				</p>
 				{#if rowState?.status === 'failed'}
-					<p class="text-xs text-red-600" role="alert">Could not restore it. Try again.</p>
+					<p class="text-xs text-rust-600" role="alert">Could not restore it. Try again.</p>
 				{/if}
 			</div>
 			{#if rowState?.status === 'restored'}
@@ -67,7 +67,7 @@
 					type="button"
 					onclick={() => restore(note)}
 					disabled={rowState?.status === 'restoring'}
-					class="flex-shrink-0 rounded-md bg-indigo-600 px-3 py-1 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+					class="flex-shrink-0 rounded-md bg-pine-600 px-3 py-1 text-sm font-medium text-on-accent hover:bg-pine-700 disabled:opacity-50"
 					data-testid="trash-restore"
 				>
 					{rowState?.status === 'restoring' ? 'Restoring…' : 'Restore'}

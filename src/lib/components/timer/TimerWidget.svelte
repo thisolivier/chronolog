@@ -420,17 +420,17 @@
 
 <div
 	class={placement === 'footer'
-		? 'border-t border-stone-200 bg-white px-4 py-3'
-		: 'rounded-lg border border-stone-200 bg-white p-3 shadow-sm'}
+		? 'border-t border-divider bg-surface px-4 py-3'
+		: 'rounded-lg border border-divider bg-surface p-3 shadow-sm'}
 	data-testid="timer-widget-{placement}"
 >
 	{#if isLoading}
-		<div class="py-2 text-center text-sm text-stone-400">Loading timer...</div>
+		<div class="py-2 text-center text-sm text-ink-faint">Loading timer...</div>
 	{:else if timerState === 'idle'}
 		<div class="flex gap-2">
 			<button
 				onclick={handleStart}
-				class="flex-1 rounded-md bg-green-600 px-2 py-2.5 text-sm font-medium whitespace-nowrap text-white hover:bg-green-700"
+				class="flex-1 rounded-md bg-leaf-600 px-2 py-2.5 text-sm font-medium whitespace-nowrap text-on-accent hover:bg-leaf-700"
 			>
 				Start Timer
 			</button>
@@ -457,21 +457,21 @@
 			<!-- Draft contract and description while timer is running -->
 			<div class="space-y-2">
 				<div>
-					<label for="draft-contract" class="block text-xs font-medium text-stone-600">
+					<label for="draft-contract" class="block text-xs font-medium text-ink-muted">
 						Contract
 					</label>
 					<div class="mt-0.5">
 						<ContractSelect id="draft-contract" bind:selectedContractId={draftContractId} compact />
 					</div>
 					{#if !draftContractId}
-						<p class="mt-1 text-xs text-stone-500" data-testid="timer-no-contract-hint">
+						<p class="mt-1 text-xs text-ink-faint" data-testid="timer-no-contract-hint">
 							No contract yet: pick one now or when you stop
 						</p>
 					{/if}
 				</div>
 				<div>
 					<div class="flex items-center justify-between">
-						<label for="draft-description" class="block text-xs font-medium text-stone-600">
+						<label for="draft-description" class="block text-xs font-medium text-ink-muted">
 							Description
 						</label>
 						{#if draftContractId}
@@ -502,7 +502,7 @@
 	{/if}
 
 	{#if errorMessage}
-		<div class="mt-2 rounded-md bg-red-50 p-2 text-xs text-red-600">
+		<div class="mt-2 rounded-md bg-rust-50 p-2 text-xs text-rust-600">
 			{errorMessage}
 		</div>
 	{/if}

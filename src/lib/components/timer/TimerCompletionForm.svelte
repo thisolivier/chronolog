@@ -105,10 +105,10 @@
 </script>
 
 <div class="space-y-3">
-	<p class="text-xs font-medium text-stone-500">Timer stopped: save or discard this entry</p>
+	<p class="text-xs font-medium text-ink-faint">Timer stopped: save or discard this entry</p>
 
 	<div>
-		<label for="timer-description" class="block text-xs font-medium text-stone-600">
+		<label for="timer-description" class="block text-xs font-medium text-ink-muted">
 			Description
 		</label>
 		<textarea
@@ -122,7 +122,7 @@
 	</div>
 
 	<div>
-		<label for="timer-contract" class="block text-xs font-medium text-stone-600">Contract</label>
+		<label for="timer-contract" class="block text-xs font-medium text-ink-muted">Contract</label>
 		<div class="mt-0.5">
 			<ContractSelect
 				id="timer-contract"
@@ -131,11 +131,11 @@
 				invalid={contractError !== ''}
 			/>
 		</div>
-		{#if contractError}<p class="mt-1 text-xs text-red-600" role="alert">{contractError}</p>{/if}
+		{#if contractError}<p class="mt-1 text-xs text-rust-600" role="alert">{contractError}</p>{/if}
 	</div>
 
 	<div>
-		<label for="timer-deliverable" class="block text-xs font-medium text-stone-600">Deliverable</label>
+		<label for="timer-deliverable" class="block text-xs font-medium text-ink-muted">Deliverable</label>
 		<div class="mt-0.5">
 			<DeliverableSelect
 				id="timer-deliverable"
@@ -148,7 +148,7 @@
 	</div>
 
 	<div class:hidden={!workTypesAvailable}>
-		<label for="timer-work-type" class="block text-xs font-medium text-stone-600">Work type</label>
+		<label for="timer-work-type" class="block text-xs font-medium text-ink-muted">Work type</label>
 		<div class="mt-0.5">
 			<WorkTypeSelect
 				id="timer-work-type"
@@ -161,7 +161,7 @@
 	</div>
 
 	<div>
-		<label for="timer-time" class="block text-xs font-medium text-stone-600">Time</label>
+		<label for="timer-time" class="block text-xs font-medium text-ink-muted">Time</label>
 		<div class="mt-0.5">
 			<DurationField
 				id="timer-time"
@@ -174,7 +174,7 @@
 	</div>
 
 	{#if saveError}
-		<div class="rounded-md bg-red-50 p-2 text-xs text-red-600" role="alert">{saveError}</div>
+		<div class="rounded-md bg-rust-50 p-2 text-xs text-rust-600" role="alert">{saveError}</div>
 	{/if}
 
 	<div class="flex justify-end gap-2">

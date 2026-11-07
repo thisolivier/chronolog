@@ -32,7 +32,7 @@ export class SuggestionDropdown {
 
 		this.containerElement = document.createElement('div');
 		this.containerElement.className =
-			'absolute z-50 bg-white border border-stone-200 rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto';
+			'absolute z-50 bg-surface border border-divider rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto';
 
 		document.body.appendChild(this.containerElement);
 		this.renderItems();
@@ -100,7 +100,7 @@ export class SuggestionDropdown {
 
 		if (this.items.length === 0) {
 			const emptyMessage = document.createElement('div');
-			emptyMessage.className = 'px-3 py-2 text-sm text-stone-400 italic';
+			emptyMessage.className = 'px-3 py-2 text-sm text-ink-faint italic';
 			emptyMessage.textContent = 'No matching notes';
 			this.containerElement.appendChild(emptyMessage);
 			return;
@@ -113,12 +113,12 @@ export class SuggestionDropdown {
 
 			// Note ID line
 			const noteIdSpan = document.createElement('span');
-			noteIdSpan.className = 'block text-xs font-mono text-stone-400';
+			noteIdSpan.className = 'block text-xs font-mono text-ink-faint';
 			noteIdSpan.textContent = item.noteId;
 
 			// Preview line: first content line, falling back to title, then noteId
 			const previewSpan = document.createElement('span');
-			previewSpan.className = 'block text-sm text-stone-800 truncate';
+			previewSpan.className = 'block text-sm text-ink truncate';
 			previewSpan.textContent = item.firstLine || item.title || item.noteId;
 
 			itemElement.appendChild(noteIdSpan);
@@ -127,7 +127,7 @@ export class SuggestionDropdown {
 			// Optional second line of content
 			if (item.secondLine) {
 				const secondLineSpan = document.createElement('span');
-				secondLineSpan.className = 'block text-xs text-stone-400 truncate';
+				secondLineSpan.className = 'block text-xs text-ink-faint truncate';
 				secondLineSpan.textContent = item.secondLine;
 				itemElement.appendChild(secondLineSpan);
 			}
@@ -167,8 +167,8 @@ export class SuggestionDropdown {
 	 * Returns the appropriate Tailwind classes for a list item.
 	 */
 	private getItemClassName(index: number): string {
-		const baseClasses = 'w-full text-left px-3 py-2 cursor-pointer hover:bg-blue-50 block';
-		const selectedClass = index === this.selectedIndex ? ' bg-blue-50' : '';
+		const baseClasses = 'w-full text-left px-3 py-2 cursor-pointer hover:bg-pine-50 block';
+		const selectedClass = index === this.selectedIndex ? ' bg-pine-50' : '';
 		return baseClasses + selectedClass;
 	}
 

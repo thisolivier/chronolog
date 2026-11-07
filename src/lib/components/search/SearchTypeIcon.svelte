@@ -10,8 +10,8 @@
 	aria-label={label}
 	title={label}
 	class="inline-flex flex-shrink-0 items-center justify-center rounded-md {kind === 'note'
-		? 'bg-sky-50 text-sky-700'
-		: 'bg-emerald-50 text-emerald-700'} {className}"
+		? 'bg-pine-50 text-pine-700'
+		: 'bg-leaf-50 text-leaf-700'} {className}"
 	data-testid="search-hit-type-icon"
 	data-kind={kind}
 >

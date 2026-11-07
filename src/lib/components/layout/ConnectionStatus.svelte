@@ -38,12 +38,12 @@
 
 {#snippet outboxSummary()}
 	{#if outbox.otherAccountSignedIn}
-		<span class="rounded bg-white/70 px-1.5 py-px" data-testid="outbox-other-account">
+		<span class="rounded bg-surface/70 px-1.5 py-px" data-testid="outbox-other-account">
 			Another account is signed in on the server; these changes are only sent once their own account signs in again.
 		</span>
 	{/if}
 	{#if queuedCount > 0}
-		<span class="rounded bg-white/70 px-1.5 py-px" data-testid="outbox-queued-count">{changes(queuedCount)} waiting</span>
+		<span class="rounded bg-surface/70 px-1.5 py-px" data-testid="outbox-queued-count">{changes(queuedCount)} waiting</span>
 	{/if}
 	{#if heldCount > 0}
 		<button
@@ -59,35 +59,35 @@
 
 {#if connectivity.isOffline}
 	<div
-		class="flex flex-shrink-0 flex-wrap items-center gap-2 border-b border-amber-300 bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-900"
+		class="flex flex-shrink-0 flex-wrap items-center gap-2 border-b border-ochre-300 bg-ochre-100 px-3 py-1.5 text-xs font-medium text-ochre-900"
 		role="status"
 		aria-live="polite"
 		data-testid="connection-status-offline"
 	>
-		<span class="inline-block h-2 w-2 flex-shrink-0 rounded-full bg-amber-600" aria-hidden="true"></span>
+		<span class="inline-block h-2 w-2 flex-shrink-0 rounded-full bg-ochre-600" aria-hidden="true"></span>
 		<!-- In a span, so on a narrow screen the text wraps beside the dot, not under it -->
 		<span class="min-w-0 flex-[1_1_12rem]">{offlineMessage}</span>
 		{@render outboxSummary()}
 	</div>
 {:else if queuedCount > 0 || heldCount > 0}
 	<div
-		class="flex flex-shrink-0 flex-wrap items-center gap-2 border-b border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-medium text-sky-900"
+		class="flex flex-shrink-0 flex-wrap items-center gap-2 border-b border-pine-200 bg-pine-50 px-3 py-1.5 text-xs font-medium text-pine-900"
 		role="status"
 		aria-live="polite"
 		data-testid="connection-status-outbox"
 	>
-		<span class="inline-block h-2 w-2 flex-shrink-0 rounded-full bg-sky-600" aria-hidden="true"></span>
+		<span class="inline-block h-2 w-2 flex-shrink-0 rounded-full bg-pine-600" aria-hidden="true"></span>
 		<span class="min-w-0 flex-[1_1_12rem]">{queuedCount > 0 ? (outbox.replaying ? 'Sending changes made offline…' : 'Changes made offline are waiting to be sent.') : 'Changes made offline were sent, except:'}</span>
 		{@render outboxSummary()}
 	</div>
 {:else if connectivity.recentlyReconnected}
 	<div
-		class="flex flex-shrink-0 items-center gap-2 border-b border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-800"
+		class="flex flex-shrink-0 items-center gap-2 border-b border-leaf-200 bg-leaf-50 px-3 py-1.5 text-xs font-medium text-leaf-800"
 		role="status"
 		aria-live="polite"
 		data-testid="connection-status-online"
 	>
-		<span class="inline-block h-2 w-2 flex-shrink-0 rounded-full bg-green-600" aria-hidden="true"></span>
+		<span class="inline-block h-2 w-2 flex-shrink-0 rounded-full bg-leaf-600" aria-hidden="true"></span>
 		Back online.
 	</div>
 {/if}

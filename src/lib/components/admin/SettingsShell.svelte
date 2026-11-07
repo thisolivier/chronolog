@@ -11,12 +11,12 @@
 	const navigation = getNavigationContext();
 </script>
 
-<div class="safe-area-shell min-h-dvh bg-stone-50">
-	<header class="border-b border-stone-200 bg-white shadow-sm">
+<div class="safe-area-shell min-h-dvh bg-chalk-50">
+	<header class="border-b border-divider bg-surface shadow-sm">
 		<div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
 			<!-- Back / Forward through the journey (050-UI), on wider screens -->
 			<div class="flex items-center gap-3">
-				<a href={navigation.workspaceHref} class="text-lg font-bold text-stone-900">Chronolog</a>
+				<a href={navigation.workspaceHref} class="text-lg font-bold text-ink">Chronolog</a>
 				<div class="hidden md:block"><HistoryButtons /></div>
 			</div>
 			<a

@@ -46,7 +46,7 @@ export async function revealTimeEntry(entryId: string): Promise<boolean> {
 	card.focus({ preventScroll: true });
 	card.setAttribute(REVEALED_ATTRIBUTE, '');
 	const previousOutline = card.style.outline;
-	card.style.outline = '2px solid #f59e0b';
+	card.style.outline = '2px solid var(--color-ochre-400)';
 	card.style.outlineOffset = '2px';
 	setTimeout(() => {
 		card.removeAttribute(REVEALED_ATTRIBUTE);

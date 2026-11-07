@@ -83,10 +83,10 @@
 	}
 
 	const inputClass =
-		'rounded border border-stone-300 px-1 py-0.5 text-xs text-stone-700 tabular-nums focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none';
+		'rounded border border-line px-1 py-0.5 text-xs text-ink-soft tabular-nums focus:border-focus focus:ring-1 focus:ring-focus focus:outline-none';
 </script>
 
-<div class="text-xs text-stone-500" data-testid="timer-start-field">
+<div class="text-xs text-ink-faint" data-testid="timer-start-field">
 	<div class="flex flex-wrap items-center gap-1.5">
 		<label for="timer-start-time">Started</label>
 		{#if crossesMidnight}
@@ -115,21 +115,21 @@
 				disabled={isSaving}
 				class="rounded btn-primary px-2 py-0.5 text-xs font-medium disabled:opacity-50"
 			>Save</button>
-			<button type="button" onclick={cancelEditing} class="px-1 text-xs text-stone-500 hover:text-stone-700">Cancel</button>
+			<button type="button" onclick={cancelEditing} class="px-1 text-xs text-ink-faint hover:text-ink-soft">Cancel</button>
 		{/if}
 	</div>
 	{#if errorMessage}
-		<p class="mt-1 text-red-600" role="alert" data-testid="timer-start-error">{errorMessage}</p>
+		<p class="mt-1 text-rust-600" role="alert" data-testid="timer-start-error">{errorMessage}</p>
 	{/if}
 	{#if overlapMessage}
-		<div class="mt-1 rounded border border-amber-300 bg-amber-50 p-2 text-amber-900" role="alert" data-testid="timer-start-overlap">
+		<div class="mt-1 rounded border border-ochre-300 bg-ochre-50 p-2 text-ochre-900" role="alert" data-testid="timer-start-overlap">
 			<p>{overlapMessage}</p>
 			<div class="mt-1.5 flex gap-2">
 				<button
 					type="button"
 					onclick={() => saveStart(true)}
 					disabled={isSaving}
-					class="rounded bg-amber-600 px-2 py-0.5 font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+					class="rounded bg-ochre-600 px-2 py-0.5 font-medium text-on-accent hover:bg-ochre-700 disabled:opacity-50"
 				>Save anyway</button>
 				<button type="button" onclick={cancelEditing} class="rounded btn-secondary px-2 py-0.5">Cancel</button>
 			</div>

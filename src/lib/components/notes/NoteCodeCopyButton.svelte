@@ -33,14 +33,14 @@
 		onclick={copyNoteCode}
 		title="Copy note code"
 		aria-label="Copy note code {noteCode}"
-		class="cursor-pointer rounded px-1 font-mono whitespace-nowrap text-xs text-stone-400 hover:bg-stone-100 hover:text-stone-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+		class="cursor-pointer rounded px-1 font-mono whitespace-nowrap text-xs text-ink-faint hover:bg-chalk-100 hover:text-ink-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
 		data-testid="note-code-copy"
 	>
 		<span class="font-mono" bind:this={codeElement}>{noteCode}</span>
 	</button>
 	{#if confirmation}
 		<span
-			class="pointer-events-none absolute top-full left-1/2 z-20 mt-1 -translate-x-1/2 rounded bg-stone-800 px-2 py-0.5 text-[11px] whitespace-nowrap text-white shadow"
+			class="pointer-events-none absolute top-full left-1/2 z-20 mt-1 -translate-x-1/2 rounded bg-chalk-800 px-2 py-0.5 text-[11px] whitespace-nowrap text-on-accent shadow"
 			aria-hidden="true"
 			data-testid="note-code-copied"
 		>

@@ -64,10 +64,10 @@
 		enterkeyhint="search"
 		placeholder="Search notes and time"
 		aria-label="Search notes and time entries"
-		class="w-full rounded-md border border-stone-300 bg-stone-50 py-1 pr-12 pl-2.5 text-sm text-stone-800 placeholder:text-stone-400 focus:border-blue-500 focus:bg-white focus:outline-none"
+		class="w-full rounded-md border border-line bg-chalk-50 py-1 pr-12 pl-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-focus focus:bg-surface focus:outline-none"
 		data-testid="global-search-input"
 	/>
 	{#if shortcutHint && !query}
-		<kbd class="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded border border-stone-200 bg-white px-1 text-[10px] text-stone-400">{shortcutHint}</kbd>
+		<kbd class="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded border border-divider bg-surface px-1 text-[10px] text-ink-faint">{shortcutHint}</kbd>
 	{/if}
 </form>

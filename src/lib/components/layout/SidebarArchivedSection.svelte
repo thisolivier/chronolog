@@ -44,20 +44,20 @@
 	});
 </script>
 
-<div class="mt-3 border-t border-stone-200 pt-2" data-testid="sidebar-archived-section">
+<div class="mt-3 border-t border-divider pt-2" data-testid="sidebar-archived-section">
 	<!-- The chevron sits in the right-hand column shared with the client chevrons (051-UI): same
 	     box (h-5 w-5, w-8 on touch) and the same right inset (pr-1) -->
 	<button
 		type="button"
 		onclick={toggle}
-		class="flex w-full items-center gap-2 rounded-md py-1.5 pr-1 pl-3 text-left text-xs font-semibold uppercase text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600 pointer-coarse:py-3.5"
+		class="flex w-full items-center gap-2 rounded-md py-1.5 pr-1 pl-3 text-left text-xs font-semibold uppercase text-ink-faint transition-colors hover:bg-chalk-100 hover:text-ink-muted pointer-coarse:py-3.5"
 		aria-expanded={isExpanded}
 		aria-controls="sidebar-archived-list"
 		data-testid="sidebar-archived-toggle"
 	>
 		<span class="flex-1">Archived</span>
 		<span
-			class="rounded-full bg-stone-200/70 px-1.5 text-[11px] font-medium normal-case tabular-nums text-stone-500"
+			class="rounded-full bg-chalk-200/70 px-1.5 text-[11px] font-medium normal-case tabular-nums text-ink-faint"
 			title="{contractCount} archived {contractCount === 1 ? 'contract' : 'contracts'}"
 			data-testid="sidebar-archived-count"
 		>

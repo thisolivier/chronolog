@@ -53,8 +53,8 @@
 
 	const selectClasses = $derived(
 		compact
-			? 'block w-full min-w-0 rounded border border-stone-300 bg-white px-1.5 py-1 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none'
-			: 'block w-full min-w-0 rounded-md input-base bg-white px-2 py-1.5 text-sm'
+			? 'block w-full min-w-0 rounded border border-line bg-surface px-1.5 py-1 text-sm focus:border-focus focus:ring-1 focus:ring-focus focus:outline-none'
+			: 'block w-full min-w-0 rounded-md input-base bg-surface px-2 py-1.5 text-sm'
 	);
 
 	function handleChange(event: Event) {
@@ -72,7 +72,7 @@
 		{/each}
 	</select>
 {:else if alwaysRender}
-	<select {id} disabled class="{selectClasses} text-stone-400">
+	<select {id} disabled class="{selectClasses} text-ink-faint">
 		<option value="">
 			{!contractId ? 'Pick a contract first' : isLoaded ? 'No deliverables' : 'Loading...'}
 		</option>

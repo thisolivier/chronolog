@@ -8,15 +8,15 @@
 	<title>Chronolog · Unlock</title>
 </svelte:head>
 
-<div class="safe-area-shell flex min-h-dvh items-center justify-center bg-stone-50">
-	<div class="w-[calc(100%-2rem)] max-w-md space-y-8 rounded-lg bg-white p-6 shadow-md sm:p-8">
+<div class="safe-area-shell flex min-h-dvh items-center justify-center bg-chalk-50">
+	<div class="w-[calc(100%-2rem)] max-w-md space-y-8 rounded-lg bg-surface p-6 shadow-md sm:p-8">
 		<div class="text-center">
-			<h1 class="text-3xl font-bold text-stone-900">Chronolog</h1>
-			<p class="mt-2 text-stone-600">Enter this server's device access key</p>
+			<h1 class="text-3xl font-bold text-ink">Chronolog</h1>
+			<p class="mt-2 text-ink-muted">Enter this server's device access key</p>
 		</div>
 
 		{#if form?.error}
-			<div class="rounded-md bg-red-50 p-4 text-sm text-red-700" role="alert">
+			<div class="rounded-md bg-rust-50 p-4 text-sm text-rust-700" role="alert">
 				{form.error}
 			</div>
 		{/if}
@@ -24,7 +24,7 @@
 		<!-- Plain POST (no enhance): works before hydration and keeps the key out of client JS state. -->
 		<form method="POST" class="space-y-6">
 			<div>
-				<label for="device-key" class="block text-sm font-medium text-stone-700">Device key</label>
+				<label for="device-key" class="block text-sm font-medium text-ink-soft">Device key</label>
 				<input
 					id="device-key"
 					name="deviceKey"

@@ -17,8 +17,8 @@ export default defineConfig({
 				name: 'Chronolog',
 				short_name: 'Chronolog',
 				description: 'Time tracking and notes for consulting',
-				theme_color: '#2563eb',
-				background_color: '#ffffff',
+				theme_color: '#294c3b',
+				background_color: '#f8f6f0',
 				display: 'standalone',
 				start_url: '/',
 				icons: [

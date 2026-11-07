@@ -78,7 +78,7 @@
 	let leftBorderClass = $derived(
 		selectedClientColorIndex !== null
 			? `border-l-[3px] ${getClientBorderClass(selectedClientColorIndex)}`
-			: 'border-l-[3px] border-l-stone-200'
+			: 'border-l-[3px] border-l-divider'
 	);
 
 	async function handleSubmit() {
@@ -130,7 +130,7 @@
 	}
 </script>
 
-<div class="mb-2 rounded-lg border border-stone-200 bg-white p-4 {leftBorderClass}">
+<div class="mb-2 rounded-lg border border-divider bg-surface p-4 {leftBorderClass}">
 	<!-- Row 1: Description (full width) -->
 	<WikiLinkInput
 		bind:value={descriptionInput}
@@ -144,7 +144,7 @@
 	     Phone: contract on its own line, the rest two per line; wider: one row. -->
 	<div class="mt-3 grid grid-cols-2 items-start gap-x-3 gap-y-2 sm:flex">
 		<div class="col-span-2 min-w-0 sm:flex-[2]">
-			<label for="{fieldIdPrefix}-contract" class="mb-1 block text-xs font-medium text-stone-500">
+			<label for="{fieldIdPrefix}-contract" class="mb-1 block text-xs font-medium text-ink-faint">
 				Contract
 			</label>
 			<ContractSelect
@@ -155,12 +155,12 @@
 				onkeydown={handleKeydown}
 			/>
 			{#if contractError}
-				<p class="mt-1 text-xs text-red-600" role="alert">{contractError}</p>
+				<p class="mt-1 text-xs text-rust-600" role="alert">{contractError}</p>
 			{/if}
 		</div>
 
 		<div class="min-w-0 sm:flex-[1.5]">
-			<label for="{fieldIdPrefix}-deliverable" class="mb-1 block text-xs font-medium text-stone-500">
+			<label for="{fieldIdPrefix}-deliverable" class="mb-1 block text-xs font-medium text-ink-faint">
 				Deliverable
 			</label>
 			<DeliverableSelect
@@ -174,7 +174,7 @@
 
 		<!-- Work type select: only when the chosen deliverable has work types -->
 		<div class="min-w-0 sm:flex-1" class:hidden={!workTypesAvailable}>
-			<label for="{fieldIdPrefix}-work-type" class="mb-1 block text-xs font-medium text-stone-500">
+			<label for="{fieldIdPrefix}-work-type" class="mb-1 block text-xs font-medium text-ink-faint">
 				Work type
 			</label>
 			<WorkTypeSelect
@@ -187,7 +187,7 @@
 		</div>
 
 		<div class="min-w-0 sm:w-40 sm:flex-none">
-			<label for="{fieldIdPrefix}-time" class="mb-1 block text-xs font-medium text-stone-500">
+			<label for="{fieldIdPrefix}-time" class="mb-1 block text-xs font-medium text-ink-faint">
 				Time
 			</label>
 			<DurationField
@@ -203,7 +203,7 @@
 	<!-- Row 3: messages and actions -->
 	<div class="mt-3 flex items-center justify-end gap-2">
 		{#if saveError}
-			<p class="mr-auto text-xs text-red-600" role="alert">{saveError}</p>
+			<p class="mr-auto text-xs text-rust-600" role="alert">{saveError}</p>
 		{/if}
 		<button
 			onclick={onCancel}

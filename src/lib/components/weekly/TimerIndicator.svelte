@@ -17,7 +17,7 @@
 
 	let formattedTime = $derived(formatElapsedClock(elapsedSeconds));
 	// No contract yet: a neutral edge, not the colour of whichever client sits in slot 0
-	let borderClass = $derived(contractName ? getClientBorderClass(clientColorIndex) : 'border-l-stone-300');
+	let borderClass = $derived(contractName ? getClientBorderClass(clientColorIndex) : 'border-l-line');
 	let truncatedDescription = $derived(
 		description.length > 30 ? description.slice(0, 30) + '…' : description
 	);
@@ -33,7 +33,7 @@
 {#if isVisible}
 	<button
 		data-testid="timer-indicator"
-		class="flex items-center gap-2 rounded bg-stone-100 px-3 py-1.5 border-l-2 cursor-pointer hover:bg-stone-200 transition-colors {borderClass}"
+		class="flex items-center gap-2 rounded bg-chalk-100 px-3 py-1.5 border-l-2 cursor-pointer hover:bg-chalk-200 transition-colors {borderClass}"
 		onclick={onIndicatorClick}
 	>
 		{#if timerState === 'running'}
@@ -42,22 +42,22 @@
 			<span class="timer-dot-paused"></span>
 		{/if}
 
-		<span class="text-sm font-medium text-stone-700 tabular-nums">{formattedTime}</span>
+		<span class="text-sm font-medium text-ink-soft tabular-nums">{formattedTime}</span>
 
 		{#if timerState === 'paused'}
-			<span class="text-xs text-stone-400">(paused)</span>
+			<span class="text-xs text-ink-faint">(paused)</span>
 		{/if}
 
-		<span class="hidden max-w-[200px] truncate text-sm text-stone-500 sm:inline">{truncatedDescription}</span>
+		<span class="hidden max-w-[200px] truncate text-sm text-ink-faint sm:inline">{truncatedDescription}</span>
 
 		{#if timerState === 'running' && contractName}
-			<span class="hidden text-sm text-stone-400 md:inline">·</span>
-			<span class="hidden text-sm text-stone-400 md:inline">{contractName}</span>
+			<span class="hidden text-sm text-ink-faint md:inline">·</span>
+			<span class="hidden text-sm text-ink-faint md:inline">{contractName}</span>
 		{/if}
 	</button>
 {:else if isSidebarTimerHidden}
 	<button
-		class="flex items-center gap-2 rounded border-l-2 border-l-stone-300 bg-stone-100 px-3 py-1.5 text-sm text-stone-600 transition-colors hover:bg-stone-200"
+		class="flex items-center gap-2 rounded border-l-2 border-l-line bg-chalk-100 px-3 py-1.5 text-sm text-ink-muted transition-colors hover:bg-chalk-200"
 		onclick={onIndicatorClick}
 		title="Open the sidebar timer"
 		data-testid="timer-indicator-collapsed"
@@ -77,7 +77,7 @@
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
-		background-color: #22c55e;
+		background-color: var(--color-running);
 		animation: pulse-dot 2s ease-in-out infinite;
 	}
 
@@ -90,7 +90,7 @@
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
-		border: 1.5px solid #a8a29e;
+		border: 1.5px solid var(--color-chalk-400);
 		background: transparent;
 	}
 </style>

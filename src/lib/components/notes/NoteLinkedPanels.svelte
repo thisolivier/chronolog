@@ -33,8 +33,8 @@
 {/snippet}
 
 {#if isShortScreen}
-	<details class="linked-panels border-t border-stone-200 bg-white" data-testid="note-linked-panels">
-		<summary class="cursor-pointer px-6 py-2 text-xs font-semibold uppercase tracking-wider text-stone-400">
+	<details class="linked-panels border-t border-divider bg-surface" data-testid="note-linked-panels">
+		<summary class="cursor-pointer px-6 py-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">
 			Links and attachments
 		</summary>
 		{@render panels()}

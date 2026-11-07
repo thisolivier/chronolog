@@ -4,11 +4,11 @@
 </script>
 
 {#if form?.error}
-	<div class="rounded-md bg-red-50 p-3 text-sm text-red-700" role="alert" data-testid="admin-error">
+	<div class="rounded-md bg-rust-50 p-3 text-sm text-rust-700" role="alert" data-testid="admin-error">
 		{form.error}
 	</div>
 {:else if form?.message}
-	<div class="rounded-md bg-green-50 p-3 text-sm text-green-700" role="status" data-testid="admin-success">
+	<div class="rounded-md bg-leaf-50 p-3 text-sm text-leaf-700" role="status" data-testid="admin-success">
 		{form.message}
 	</div>
 {/if}

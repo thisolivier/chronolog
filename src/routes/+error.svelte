@@ -13,11 +13,11 @@
 
 <svelte:head><title>Chronolog · {isNotFound ? 'Not found' : 'Error'}</title></svelte:head>
 
-<div class="flex min-h-dvh items-center justify-center bg-stone-50 p-4">
-	<div class="w-full max-w-md rounded-lg border border-stone-200 bg-white p-8 text-center shadow-sm" data-testid="error-page">
-		<p class="text-sm font-semibold text-stone-400">{page.status}</p>
-		<h1 class="mt-2 text-2xl font-semibold text-stone-900">{heading}</h1>
-		<p class="mt-3 text-sm text-stone-600">{explanation}</p>
+<div class="flex min-h-dvh items-center justify-center bg-chalk-50 p-4">
+	<div class="w-full max-w-md rounded-lg border border-divider bg-surface p-8 text-center shadow-sm" data-testid="error-page">
+		<p class="text-sm font-semibold text-ink-faint">{page.status}</p>
+		<h1 class="mt-2 text-2xl font-semibold text-ink">{heading}</h1>
+		<p class="mt-3 text-sm text-ink-muted">{explanation}</p>
 		<div class="mt-6 flex justify-center gap-3">
 			{#if !isNotFound}
 				<button

@@ -138,14 +138,14 @@
 
 {#if isMobile}
 	<!-- Mobile: Single-panel push/pop navigation -->
-	<div class="safe-area-shell flex h-dvh flex-col overflow-hidden bg-white">
+	<div class="safe-area-shell flex h-dvh flex-col overflow-hidden bg-surface">
 		<!-- Mobile top bar: app name at the root, Back button once pushed in -->
-		<div class="flex h-12 items-center justify-between border-b border-stone-200 bg-white px-4">
+		<div class="flex h-12 items-center justify-between border-b border-divider bg-surface px-4">
 			<div class="flex min-w-0 flex-1 items-center gap-3">
 				{#if navigationContext.mobileNavigationLevel > 0}
 					<button
 						onclick={() => navigationContext.goBackMobile()}
-						class="-ml-2 flex min-h-11 max-w-[65%] flex-shrink-0 items-center px-2 text-sm font-medium text-blue-600 hover:text-blue-800"
+						class="-ml-2 flex min-h-11 max-w-[65%] flex-shrink-0 items-center px-2 text-sm font-medium text-pine-600 hover:text-pine-800"
 						aria-label="Back to {backLabel}"
 						data-testid="mobile-back"
 					>
@@ -154,9 +154,9 @@
 					<!-- Forward (050-UI): only when there is a step ahead, to keep the bar's room -->
 					<HistoryButtons variant="phone" class="-ml-3" />
 					<!-- The title gives way first; Back truncates only past 65% of the bar (long note titles) -->
-					<span class="min-w-0 truncate text-xs text-stone-500" data-testid="mobile-context-title">{mobileTitle}</span>
+					<span class="min-w-0 truncate text-xs text-ink-faint" data-testid="mobile-context-title">{mobileTitle}</span>
 				{:else}
-					<span class="text-sm font-semibold text-stone-700">Chronolog</span>
+					<span class="text-sm font-semibold text-ink-soft">Chronolog</span>
 					<HistoryButtons variant="phone" class="-ml-1" />
 				{/if}
 			</div>
@@ -207,17 +207,17 @@
 	</div>
 {:else}
 	<!-- Desktop: Multi-panel layout -->
-	<div class="safe-area-shell flex h-dvh flex-col overflow-hidden bg-white">
+	<div class="safe-area-shell flex h-dvh flex-col overflow-hidden bg-surface">
 		<!-- Top bar -->
-		<div class="flex h-12 items-center justify-between border-b border-stone-200 bg-white px-4" data-testid="app-top-bar">
+		<div class="flex h-12 items-center justify-between border-b border-divider bg-surface px-4" data-testid="app-top-bar">
 			<div class="flex items-center gap-3">
 				<button
 					onclick={toggleSidebar}
-					class="text-lg text-stone-500 hover:text-stone-700"
+					class="text-lg text-ink-faint hover:text-ink-soft"
 					aria-label="Toggle sidebar"
 					aria-expanded={sidebarVisible}
 				>≡</button>
-				<span class="text-sm font-semibold text-stone-700">Chronolog</span>
+				<span class="text-sm font-semibold text-ink-soft">Chronolog</span>
 				<!-- Back / Forward (050-UI) right before the left-aligned search field -->
 				<HistoryButtons class="ml-1" />
 				<GlobalSearchField class="w-60 lg:w-72" />
@@ -237,15 +237,15 @@
 		<div class="relative flex flex-1 overflow-hidden">
 			{#if sidebarIsOverlay && overlaySidebarOpen}
 				<button
-					class="absolute inset-0 z-20 bg-black/20"
+					class="absolute inset-0 z-20 bg-chalk-950/20"
 					aria-label="Close sidebar"
 					onclick={() => (overlaySidebarOpen = false)}
 				></button>
 			{/if}
 			<!-- Panel 1: Sidebar (collapsible; an overlay in tablet notes mode) -->
 			<div
-				class="flex-shrink-0 bg-stone-50 transition-all duration-300 {sidebarVisible
-					? 'border-r border-stone-200'
+				class="flex-shrink-0 bg-chalk-50 transition-all duration-300 {sidebarVisible
+					? 'border-r border-divider'
 					: ''} {sidebarIsOverlay
 					? 'absolute inset-y-0 left-0 z-30 shadow-xl'
 					: ''}"
@@ -260,7 +260,7 @@
 			<!-- Panel 2: List view (resizable, only in notes mode) -->
 			{#if navigationContext.isNotesMode}
 				<div
-					class="relative flex-shrink-0 border-r border-stone-200 bg-white"
+					class="relative flex-shrink-0 border-r border-divider bg-surface"
 					style="width: {isTablet ? Math.min(panel2Width, 260) : panel2Width}px;"
 				>
 					<div class="flex h-full flex-col overflow-y-auto">
@@ -269,7 +269,7 @@
 
 					<!-- Resize handle on right edge -->
 					<button
-						class="absolute right-0 top-0 h-full w-1 cursor-col-resize bg-transparent hover:bg-blue-200 active:bg-blue-300"
+						class="absolute right-0 top-0 h-full w-1 cursor-col-resize bg-transparent hover:bg-pine-200 active:bg-pine-300"
 						onmousedown={handleResizeStart}
 						aria-label="Resize panel"
 					></button>
@@ -277,7 +277,7 @@
 			{/if}
 
 			<!-- Panel 3: Content (flexible width) -->
-			<div class="flex flex-1 flex-col overflow-y-auto bg-stone-50">
+			<div class="flex flex-1 flex-col overflow-y-auto bg-chalk-50">
 				{@render panel3()}
 			</div>
 		</div>

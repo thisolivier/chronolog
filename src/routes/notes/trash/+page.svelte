@@ -33,12 +33,12 @@
 
 <svelte:head><title>Chronolog · Trash</title></svelte:head>
 
-<div class="safe-area-shell min-h-dvh bg-stone-50">
-	<header class="border-b border-stone-200 bg-white shadow-sm">
+<div class="safe-area-shell min-h-dvh bg-chalk-50">
+	<header class="border-b border-divider bg-surface shadow-sm">
 		<div class="mx-auto flex max-w-3xl items-center gap-3 px-4 py-2.5">
-			<a href={navigation.workspaceHref} class="hidden text-lg font-bold text-stone-900 sm:block">Chronolog</a>
+			<a href={navigation.workspaceHref} class="hidden text-lg font-bold text-ink sm:block">Chronolog</a>
 			<div class="hidden md:block"><HistoryButtons /></div>
-			<h1 class="min-w-0 flex-1 text-base font-semibold text-stone-800 sm:text-lg">Trash</h1>
+			<h1 class="min-w-0 flex-1 text-base font-semibold text-ink sm:text-lg">Trash</h1>
 			<a
 				href={navigation.workspaceHref}
 				class="flex-shrink-0 rounded-md btn-secondary px-3 py-1.5 text-sm"
@@ -51,14 +51,14 @@
 	<ConnectionStatus />
 
 	<main class="mx-auto max-w-3xl px-2 py-4 sm:px-4 sm:py-6">
-		<p class="mb-3 px-1 text-sm text-stone-500">Deleted notes stay here for 30 days, then they are removed for good.</p>
+		<p class="mb-3 px-1 text-sm text-ink-faint">Deleted notes stay here for 30 days, then they are removed for good.</p>
 		{#if errorMessage}
-			<p class="px-1 text-sm text-red-600" role="alert">{errorMessage}</p>
-			<button type="button" onclick={load} class="mt-2 px-1 text-sm text-blue-600 hover:text-blue-800">Try again</button>
+			<p class="px-1 text-sm text-rust-600" role="alert">{errorMessage}</p>
+			<button type="button" onclick={load} class="mt-2 px-1 text-sm text-pine-600 hover:text-pine-800">Try again</button>
 		{:else if notes === null}
-			<p class="px-1 text-sm text-stone-500">Loading…</p>
+			<p class="px-1 text-sm text-ink-faint">Loading…</p>
 		{:else if notes.length === 0}
-			<p class="px-1 text-sm text-stone-500" data-testid="trash-empty">The trash is empty.</p>
+			<p class="px-1 text-sm text-ink-faint" data-testid="trash-empty">The trash is empty.</p>
 		{:else}
 			<TrashList {notes} />
 		{/if}

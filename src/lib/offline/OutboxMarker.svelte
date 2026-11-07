@@ -11,9 +11,9 @@
 
 	const status = $derived(outbox.statusOf(resourceKey) ?? (otherKey ? outbox.statusOf(otherKey) : null));
 	const styles = {
-		queued: 'bg-amber-100 text-amber-800',
-		held: 'bg-red-100 text-red-700',
-		replayed: 'bg-green-100 text-green-800'
+		queued: 'bg-ochre-100 text-ochre-800',
+		held: 'bg-rust-100 text-rust-700',
+		replayed: 'bg-leaf-100 text-leaf-800'
 	} as const;
 	const titles = {
 		queued: 'Saved on this device; it goes to the server when you are back online',

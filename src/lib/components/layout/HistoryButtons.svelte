@@ -45,7 +45,7 @@
 	}
 
 	const desktopButtonClass =
-		'flex h-8 w-8 items-center justify-center rounded-md btn-quiet hover:text-stone-900 disabled:cursor-default disabled:text-stone-300 disabled:hover:bg-transparent';
+		'flex h-8 w-8 items-center justify-center rounded-md btn-quiet hover:text-ink disabled:cursor-default disabled:text-chalk-300 disabled:hover:bg-transparent';
 </script>
 
 <svelte:window onkeydown={handleWindowKeydown} />
@@ -85,7 +85,7 @@
 	<button
 		type="button"
 		onclick={() => navigation.goForward()}
-		class="flex h-11 w-8 flex-shrink-0 items-center justify-center rounded-md text-blue-600 hover:bg-stone-100 hover:text-blue-800 {className}"
+		class="flex h-11 w-8 flex-shrink-0 items-center justify-center rounded-md text-pine-600 hover:bg-chalk-100 hover:text-pine-800 {className}"
 		aria-label={forwardLabel}
 		title={forwardLabel}
 		data-testid="mobile-forward"

@@ -61,13 +61,13 @@
 </script>
 
 {#if linkedEntries.length > 0}
-	<div class="border-t border-stone-200 bg-white px-6 py-3" data-testid="linked-time-entries">
-		<h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">
+	<div class="border-t border-divider bg-surface px-6 py-3" data-testid="linked-time-entries">
+		<h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">
 			Linked Time Entries
 		</h4>
 		<div class="space-y-1">
 			{#each linkedEntries as entry (entry.timeEntryId)}
-				<div class="group flex items-start justify-between gap-2 rounded px-2 py-1.5 hover:bg-stone-50">
+				<div class="group flex items-start justify-between gap-2 rounded px-2 py-1.5 hover:bg-chalk-50">
 					<div
 						role="button"
 						tabindex="0"
@@ -84,11 +84,11 @@
 					>
 						<div class="flex items-center gap-2">
 							<!-- One line on a phone: the date never wraps into the description or duration (043) -->
-							<span class="shrink-0 whitespace-nowrap text-xs font-medium text-blue-600 group-hover:underline" data-testid="linked-time-entry-date">
+							<span class="shrink-0 whitespace-nowrap text-xs font-medium text-pine-600 group-hover:underline" data-testid="linked-time-entry-date">
 								{formatDate(entry.date)}
 							</span>
 							{#if entry.description}
-								<span class="min-w-0 truncate text-sm text-stone-700">
+								<span class="min-w-0 truncate text-sm text-ink-soft">
 									— <WikiLinkRenderer
 										text={entry.description}
 										onNoteLinkClick={(linkedNoteId) => noteNavigation.openNoteById(linkedNoteId)}
@@ -96,17 +96,17 @@
 								</span>
 							{/if}
 						</div>
-						<div class="text-xs text-stone-400">
+						<div class="text-xs text-ink-faint">
 							{entry.clientName} / {entry.contractName}
 						</div>
 					</div>
 					<div class="flex shrink-0 items-center gap-2">
-						<span class="whitespace-nowrap text-xs text-stone-400" data-testid="linked-time-entry-duration">
+						<span class="whitespace-nowrap text-xs text-ink-faint" data-testid="linked-time-entry-duration">
 							{formatDuration(entry.durationMinutes)}
 						</span>
 						<button
 							onclick={() => unlinkEntry(entry.timeEntryId)}
-							class="text-stone-300 opacity-0 transition-opacity hover:text-red-500 focus-visible:opacity-100 group-hover:opacity-100 pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:text-stone-400 pointer-coarse:opacity-100"
+							class="text-chalk-300 opacity-0 transition-opacity hover:text-rust-500 focus-visible:opacity-100 group-hover:opacity-100 pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:text-ink-faint pointer-coarse:opacity-100"
 							title="Unlink time entry"
 							aria-label="Unlink time entry"
 						>

@@ -32,12 +32,12 @@
 	/* Sidebar and note-list panels */
 	[data-panel='sidebar'],
 	[data-panel='note-list'],
-	/* Editor toolbar row (uses border-b bg-gray-50) */
-	.border-b.bg-gray-50,
+	/* Editor toolbar row (uses border-b bg-chalk-50) */
+	.border-b.bg-chalk-50,
 	/* Toolbar wrapper inside NoteEditor.svelte */
-	.flex.items-center:has(.border-b.bg-gray-50),
+	.flex.items-center:has(.border-b.bg-chalk-50),
 	/* Backlinks / linked time-entries section */
-	.border-t.border-gray-200.bg-white,
+	.border-t.border-divider.bg-surface,
 	/* File input for attachments */
 	input[type='file'],
 	/* Interactive buttons outside prose content */
@@ -72,10 +72,10 @@
 	}
 
 	/* Strip backgrounds, borders and shadows from layout wrappers */
-	.bg-gray-50,
-	.bg-white,
+	.bg-chalk-50,
+	.bg-surface,
 	.border,
-	.border-gray-200,
+	.border-divider,
 	.rounded-lg {
 		background: white !important;
 		border: none !important;

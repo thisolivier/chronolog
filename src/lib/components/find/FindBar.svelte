@@ -170,7 +170,7 @@
 	{#if isOpen}
 		<div
 			data-find-exclude
-			class="sticky top-0 z-20 flex flex-shrink-0 items-center gap-2 border-b border-stone-200 bg-white px-3 py-1.5 shadow-sm"
+			class="sticky top-0 z-20 flex flex-shrink-0 items-center gap-2 border-b border-divider bg-surface px-3 py-1.5 shadow-sm"
 			role="search"
 			aria-label="Find in {mode === 'editor' ? 'note' : 'week'}"
 			data-testid="find-bar"
@@ -183,13 +183,13 @@
 				type="search"
 				placeholder="Find in {mode === 'editor' ? 'note' : 'this week'}"
 				aria-label="Find in page"
-				class="min-w-0 flex-1 rounded border border-stone-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none sm:max-w-xs"
+				class="min-w-0 flex-1 rounded border border-line px-2 py-1 text-sm focus:border-focus focus:outline-none sm:max-w-xs"
 				data-testid="find-input"
 			/>
-			<span class="min-w-[5rem] shrink-0 text-xs max-sm:min-w-0 tabular-nums text-stone-500" aria-live="polite" data-testid="find-count">{countLabel}</span>
+			<span class="min-w-[5rem] shrink-0 text-xs max-sm:min-w-0 tabular-nums text-ink-faint" aria-live="polite" data-testid="find-count">{countLabel}</span>
 			<button type="button" onclick={() => move(-1)} disabled={matchCount === 0} class="rounded px-2 py-1 btn-quiet disabled:opacity-40 pointer-coarse:min-h-11 pointer-coarse:min-w-11" aria-label="Previous match" title="Previous (Shift+Enter)" data-testid="find-previous">↑</button>
 			<button type="button" onclick={() => move(1)} disabled={matchCount === 0} class="rounded px-2 py-1 btn-quiet disabled:opacity-40 pointer-coarse:min-h-11 pointer-coarse:min-w-11" aria-label="Next match" title="Next (Enter)" data-testid="find-next">↓</button>
-			<button type="button" onclick={() => close()} class="rounded px-2 py-1 text-stone-500 hover:bg-stone-100 pointer-coarse:min-h-11 pointer-coarse:min-w-11" aria-label="Close find" title="Close (Escape)" data-testid="find-close">✕</button>
+			<button type="button" onclick={() => close()} class="rounded px-2 py-1 text-ink-faint hover:bg-chalk-100 pointer-coarse:min-h-11 pointer-coarse:min-w-11" aria-label="Close find" title="Close (Escape)" data-testid="find-close">✕</button>
 		</div>
 	{/if}
 </div>
