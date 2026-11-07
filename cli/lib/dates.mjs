@@ -1,7 +1,7 @@
 /**
- * Calendar helpers for the CLI (pure): weeks (`2026-W45`) numbered by Chronolog's rule (Week 1 is
- * the Monday-start week containing 1 January; the same rule as src/lib/utils/calendar-week.ts,
- * owner decision 2026-11-07, not ISO 8601), and `--date` words
+ * Calendar helpers for the CLI (pure): ISO 8601 weeks (`2026-W45`; week 1 contains the year's first
+ * Thursday, so 2026-W53 is 28 Dec 2026 – 3 Jan 2027; the same rule as src/lib/utils/iso-week.ts,
+ * decision 2026-11-07 "ISO 8601 after all", sprint 061-DR), and `--date` words
  * (`today`, `yesterday`, weekday names meaning the most recent such day, or YYYY-MM-DD).
  */
 
@@ -20,19 +20,19 @@ export function addDays(dateString, days) {
 	return formatDate(new Date(toDate(dateString).getTime() + days * DAY_MS));
 }
 
-/** Monday (`YYYY-MM-DD`) that starts Week 1 of `year`: the Monday on or before 1 January */
+/** Monday (ms since the epoch) that starts ISO week 1 of `year`: the Monday on or before 4 January */
 function firstMonday(year) {
-	const january1st = Date.UTC(year, 0, 1);
-	const weekdayFromMonday = (new Date(january1st).getUTCDay() + 6) % 7;
-	return january1st - weekdayFromMonday * DAY_MS;
+	const january4th = Date.UTC(year, 0, 4);
+	const weekdayFromMonday = (new Date(january4th).getUTCDay() + 6) % 7;
+	return january4th - weekdayFromMonday * DAY_MS;
 }
 
-/** 52 or 53 */
+/** 52 or 53 ISO weeks */
 export function weeksInYear(year) {
 	return Math.round((firstMonday(year + 1) - firstMonday(year)) / (7 * DAY_MS));
 }
 
-/** `2026-W45` (also `2026W45`, `2026-w5`); null when malformed or the year has no such week */
+/** `2026-W45` (also `2026W45`, `2026-w5`); null when malformed or the ISO year has no such week (`2025-W53`) */
 export function parseWeekKey(weekKey) {
 	const match = String(weekKey).trim().match(/^(\d{4})-?W(\d{1,2})$/i);
 	if (!match) return null;

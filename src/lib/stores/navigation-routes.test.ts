@@ -22,15 +22,18 @@ const FALLBACK_WEEK = '2026-11-02';
 const weekRoundTripCases = [
 	{ description: 'a 2026 Monday in week 45', monday: '2026-11-02', weekParam: '2026-W45' },
 	{ description: 'a 2026 Monday in week 44', monday: '2026-10-26', weekParam: '2026-W44' },
-	{ description: 'a December Monday whose week contains 1 January', monday: '2025-12-29', weekParam: '2026-W01' },
-	{ description: '28 Dec 2026 is 2027 Week 1 (ISO would say 2026-W53)', monday: '2026-12-28', weekParam: '2027-W01' },
-	{ description: 'week 53 of 2023 (a 53-week year: 1 Jan 2023 was a Sunday)', monday: '2023-12-25', weekParam: '2023-W53' }
+	{ description: 'a December Monday that starts ISO week 1', monday: '2025-12-29', weekParam: '2026-W01' },
+	{ description: '28 Dec 2026 is 2026-W53 (2026 has 53 ISO weeks)', monday: '2026-12-28', weekParam: '2026-W53' },
+	{ description: '4 Jan 2027 starts 2027-W01', monday: '2027-01-04', weekParam: '2027-W01' },
+	{ description: '28 Dec 2020 is 2020-W53', monday: '2020-12-28', weekParam: '2020-W53' },
+	{ description: 'week 52 of 2023 (1 Jan 2023 was a Sunday, so it was 2022-W52)', monday: '2023-12-25', weekParam: '2023-W52' }
 ];
 
 const invalidWeekParamCases = [
 	{ description: 'week 00', weekParam: '2026-W00' },
 	{ description: 'week 54', weekParam: '2026-W54' },
-	{ description: 'week 53 of a 52-week year (redirected by the route, not parsed)', weekParam: '2026-W53' },
+	{ description: 'week 53 of a 52-week ISO year', weekParam: '2025-W53' },
+	{ description: 'week 53 of 2027 (52 ISO weeks)', weekParam: '2027-W53' },
 	{ description: 'a one-digit week (not canonical)', weekParam: '2026-W5' },
 	{ description: 'a year below 100 (Date.UTC would read 0026 as 1926)', weekParam: '0026-W45' },
 	{ description: 'a year after 2099', weekParam: '2100-W01' },
@@ -44,7 +47,9 @@ const parseCases: Array<{ description: string; pathname: string; expected: Works
 	{ description: 'bare /time uses the fallback week', pathname: '/time', expected: { kind: 'time', week: FALLBACK_WEEK } },
 	{ description: '/time/<week> resolves to its Monday', pathname: '/time/2026-W44', expected: { kind: 'time', week: '2026-10-26' } },
 	{ description: 'an invalid week param is not a route', pathname: '/time/garbage', expected: null },
-	{ description: 'an old ISO-only key opens the same Monday (2026-W53 = 2027 Week 1)', pathname: '/time/2026-W53', expected: { kind: 'time', week: '2026-12-28' } },
+	{ description: 'ISO week 53 of 2026 opens Monday 28 Dec', pathname: '/time/2026-W53', expected: { kind: 'time', week: '2026-12-28' } },
+	{ description: 'ISO 2027-W01 opens Monday 4 Jan', pathname: '/time/2027-W01', expected: { kind: 'time', week: '2027-01-04' } },
+	{ description: 'a week 53 the ISO year lacks is not a route', pathname: '/time/2025-W53', expected: null },
 	{
 		description: 'a contract list',
 		pathname: '/notes/abc',

@@ -73,7 +73,7 @@ export async function status({ api, print, positionals }) {
 	if (!weekWord || !stateWord) throw new UsageError('Usage: chronolog status <2026-W45|current> <unsubmitted|draft-ready|submitted>');
 	const weekKey = weekWord === 'current' || weekWord === 'this' ? currentWeekKey(await api.get('/api/me')) : weekWord;
 	const parsedWeek = parseWeekKey(weekKey);
-	if (!parsedWeek) throw new UsageError(`Week must look like 2026-W45 (Week 1 contains 1 January), not “${weekWord}”.`);
+	if (!parsedWeek) throw new UsageError(`Week must be an ISO 8601 week like 2026-W45, not “${weekWord}”.`);
 	const state = WEEK_STATES[stateWord];
 	if (!state) throw new UsageError('State must be unsubmitted, draft-ready or submitted.');
 

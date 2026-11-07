@@ -8,8 +8,8 @@ describe('local calendar', () => {
 		expect(localCalendar(instant, 'Asia/Tokyo')).toMatchObject({ today: '2026-11-09', week: '2026-W46', weekStart: '2026-11-09' });
 	});
 
-	it('numbers the year-boundary week by the week containing 1 January (not ISO 2026-W53)', () => {
-		expect(localCalendar(new Date('2027-01-01T12:00:00Z'), 'UTC')).toMatchObject({ week: '2027-W01', weekStart: '2026-12-28', weekEnd: '2027-01-03' });
+	it('numbers the year-boundary week as ISO 8601 (`week` and `isoWeek` agree)', () => {
+		expect(localCalendar(new Date('2027-01-01T12:00:00Z'), 'UTC')).toMatchObject({ week: '2026-W53', isoWeek: '2026-W53', weekStart: '2026-12-28', weekEnd: '2027-01-03' });
 	});
 
 	it('validates timezones', () => {

@@ -9,7 +9,7 @@ const MAX_WEEKS_PER_REQUEST = 60;
 
 /**
  * GET ?weeks=2026-W44,2026-W45: statuses for several weeks (`Unsubmitted` when none is stored).
- * Keys use Chronolog's week rule (Week 1 contains 1 January); each is looked up by its Monday.
+ * Keys are ISO 8601 weeks (iso-week.ts); each is looked up by its Monday.
  */
 export const GET: RequestHandler = async ({ url, locals }) => {
 	const currentUser = locals.user;

@@ -8,18 +8,20 @@ describe('week labels (057-DR)', () => {
 		expect(formatWeekSpan('2026-12-28')).toBe('28 Dec 2026 – 3 Jan 2027');
 	});
 
-	it('numbers the heading with the Week 1 rule', () => {
+	it('numbers the heading with ISO 8601 weeks', () => {
 		expect(formatWeekHeading('2026-11-02')).toBe('Week 45 · 2–8 Nov 2026');
-		expect(formatWeekHeading('2026-12-28')).toBe('Week 1 · 28 Dec 2026 – 3 Jan 2027');
+		expect(formatWeekHeading('2026-12-28')).toBe('Week 53 · 28 Dec 2026 – 3 Jan 2027');
+		expect(formatWeekHeading('2027-01-04')).toBe('Week 1 · 4–10 Jan 2027');
 	});
 
 	it('labels the neighbouring weeks without wrapping at 52 (the old ‹ › bug)', () => {
 		expect(neighbourWeekNumbers('2026-11-02')).toEqual({ previous: 44, next: 46 });
-		expect(neighbourWeekNumbers('2026-12-21')).toEqual({ previous: 51, next: 1 });
-		expect(neighbourWeekNumbers('2026-12-28')).toEqual({ previous: 52, next: 2 });
-		// 2023 has 53 weeks: Week 52 is followed by Week 53, not Week 1
-		expect(neighbourWeekNumbers('2023-12-18')).toEqual({ previous: 51, next: 53 });
-		expect(neighbourWeekNumbers('2024-01-01')).toEqual({ previous: 53, next: 2 });
+		// 2026 has 53 ISO weeks: Week 52 is followed by Week 53, not Week 1
+		expect(neighbourWeekNumbers('2026-12-21')).toEqual({ previous: 51, next: 53 });
+		expect(neighbourWeekNumbers('2026-12-28')).toEqual({ previous: 52, next: 1 });
+		expect(neighbourWeekNumbers('2027-01-04')).toEqual({ previous: 53, next: 2 });
+		// 2025 has 52: Week 52 is followed by 2026-W01 (Monday 29 Dec 2025)
+		expect(neighbourWeekNumbers('2025-12-22')).toEqual({ previous: 51, next: 1 });
 	});
 
 	it('names days', () => {

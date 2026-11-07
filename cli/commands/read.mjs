@@ -42,7 +42,7 @@ export async function contracts({ api, print, positionals, flags }) {
 	print(contractList.map(describeContract).join('\n') || 'No contracts.', contractList);
 }
 
-/** The current week's key from `GET /api/me` (`week`; `isoWeek` from servers before 057-DR) */
+/** The current week's key from `GET /api/me` (`week`; `isoWeek`, the same ISO key, from servers before 057-DR) */
 export function currentWeekKey(meResult) {
 	return meResult.week ?? meResult.isoWeek;
 }
@@ -51,7 +51,7 @@ export async function week({ api, print, positionals, flags }) {
 	let weekKey = positionals[0];
 	if (!weekKey || weekKey === 'current' || weekKey === 'this') weekKey = currentWeekKey(await api.get('/api/me'));
 	const parsedWeek = parseWeekKey(weekKey);
-	if (!parsedWeek) throw new UsageError(`Week must look like 2026-W45 (Week 1 contains 1 January), not “${weekKey}”.`);
+	if (!parsedWeek) throw new UsageError(`Week must be an ISO 8601 week like 2026-W45, not “${weekKey}”.`);
 	const { from, to } = weekRange(parsedWeek.year, parsedWeek.weekNumber);
 
 	let query = `/api/time-entries?from=${from}&to=${to}`;

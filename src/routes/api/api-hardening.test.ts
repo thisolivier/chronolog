@@ -113,8 +113,8 @@ describe('malformed JSON bodies are 400 invalid_json', () => {
 			call(weeklyStatusesRoute.POST, { userId: ownerId, body: JSON.stringify(body) });
 		expect((await post({ year: 1999, weekNumber: 10, status: 'Submitted' })).status).toBe(400);
 		expect((await post({ year: 2026, weekNumber: 54, status: 'Submitted' })).status).toBe(400);
-		// 2026 has 52 weeks under the Week 1 rule (057-DR); ISO's 2026-W53 is 2027 Week 1
-		expect((await post({ year: 2026, weekNumber: 53, status: 'Submitted' })).status).toBe(400);
+		// ISO 2025 has 52 weeks (2026 has 53)
+		expect((await post({ year: 2025, weekNumber: 53, status: 'Submitted' })).status).toBe(400);
 		expect((await post({ year: 2026, weekNumber: 10, status: '  ' })).status).toBe(400);
 		expect((await post({ year: 2026, weekNumber: 10, status: 'Draft ready' })).status).toBe(200);
 	});

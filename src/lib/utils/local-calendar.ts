@@ -1,12 +1,11 @@
 /**
  * "Today" and the current week in a given IANA timezone (pure; used by `GET /api/me`). Week keys
- * (`2026-W45`) follow Chronolog's rule in `calendar-week.ts` (Week 1 contains 1 January), not ISO.
+ * (`2026-W45`) are ISO 8601 weeks (`iso-week.ts`).
  * A machine client sends its own timezone (`?tz=` or `X-Timezone`); without one the server's
  * zone is used.
  */
 
-import { getSundayOfWeek } from './iso-week';
-import { calendarWeekKey, calendarWeekOf } from './calendar-week';
+import { getSundayOfWeek, isoWeekKey, isoWeekOf } from './iso-week';
 
 export function isValidTimezone(timezone: string): boolean {
 	try {
@@ -31,9 +30,9 @@ export function localDateString(instant: Date, timezone: string): string {
 export interface LocalCalendar {
 	timezone: string;
 	today: string;
-	/** `2026-W45` under Chronolog's week rule */
+	/** ISO 8601 week key, `2026-W45` */
 	week: string;
-	/** Deprecated alias of `week` (same value) kept for older CLIs; not an ISO 8601 week */
+	/** The same value as `week` (both ISO 8601); kept for older CLIs, which read this name */
 	isoWeek: string;
 	weekStart: string;
 	weekEnd: string;
@@ -41,8 +40,8 @@ export interface LocalCalendar {
 
 export function localCalendar(instant: Date, timezone: string): LocalCalendar {
 	const today = localDateString(instant, timezone);
-	const { weekStart } = calendarWeekOf(today);
-	const week = calendarWeekKey(today);
+	const { weekStart } = isoWeekOf(today);
+	const week = isoWeekKey(today);
 	return { timezone, today, week, isoWeek: week, weekStart, weekEnd: getSundayOfWeek(weekStart) };
 }
 
