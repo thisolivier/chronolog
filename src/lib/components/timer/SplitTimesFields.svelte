@@ -1,13 +1,15 @@
 <!--
 	SplitTimesFields — one split card's duration and From / To (SP-02). The duration is typed text
 	read by the shared parser and applied only when confirmed (Enter or leaving the field), so the
-	boundary never moves while typing or on a tick. From / To are time inputs; "Now" stands for the
-	live end. Errors (zero, negative, unreadable) show inline under the fields.
+	boundary never moves while typing or on a tick. From / To are 24-hour text fields (sprint 060-DR:
+	a native time input reads 12-hour under en-US), applied once a whole HH:MM is typed or on leaving
+	the field; "Now" stands for the live end. Errors (zero, negative, unreadable) show inline under the fields.
 -->
 <script lang="ts">
 	import { tick, untrack } from 'svelte';
 	import { formatMinutes } from '$lib/utils/duration';
 	import { clockOf } from './split-times';
+	import { isWholeClockText, parseClockText } from '$lib/utils/clock-text';
 
 	let {
 		idPrefix,
@@ -84,13 +86,25 @@
 		}
 	}
 
-	/** Apply a typed clock, then show what the session kept (it may clamp it, or refuse it) */
+	/**
+	 * Apply a typed clock, then show what the session kept (it may clamp it, or refuse it). While
+	 * typing only a whole HH:MM applies; leaving the field (change) or Enter also reads `905` or `9:05`.
+	 */
 	async function handleClockChange(event: Event, apply: (clock: string) => void, kept: () => number | null) {
 		const input = event.currentTarget as HTMLInputElement;
-		if (input.value) apply(input.value);
+		if (event.type === 'input' && !isWholeClockText(input.value)) return;
+		const clock = parseClockText(input.value);
+		if (clock) apply(clock);
 		await tick();
 		const value = kept();
 		if (value !== null) input.value = clockOf(value);
+	}
+
+	/** Enter confirms a clock as leaving the field does */
+	function handleClockKeydown(event: KeyboardEvent) {
+		if (event.key !== 'Enter') return;
+		event.preventDefault();
+		(event.currentTarget as HTMLInputElement).dispatchEvent(new Event('change'));
 	}
 
 	const message = $derived(durationError || problem);
@@ -126,9 +140,15 @@
 		<label for="{idPrefix}-from" class="text-ink-muted">From</label>
 		<input
 			id="{idPrefix}-from"
-			type="time"
+			type="text"
+			inputmode="text"
+			autocomplete="off"
+			maxlength="5"
+			placeholder="HH:MM"
 			value={clockOf(from)}
+			oninput={(event) => handleClockChange(event, onFrom, () => from)}
 			onchange={(event) => handleClockChange(event, onFrom, () => from)}
+			onkeydown={handleClockKeydown}
 			disabled={disabled || !fromEditable}
 			class="w-32 {inputClass}"
 			data-testid="{idPrefix}-from"
@@ -139,9 +159,15 @@
 		{:else}
 			<input
 				id="{idPrefix}-to"
-				type="time"
+				type="text"
+				inputmode="text"
+				autocomplete="off"
+				maxlength="5"
+				placeholder="HH:MM"
 				value={clockOf(to)}
+				oninput={(event) => handleClockChange(event, onTo, () => to)}
 				onchange={(event) => handleClockChange(event, onTo, () => to)}
+				onkeydown={handleClockKeydown}
 				disabled={disabled || !toEditable}
 				class="w-32 {inputClass}"
 				data-testid="{idPrefix}-to"
