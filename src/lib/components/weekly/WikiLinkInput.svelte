@@ -261,7 +261,9 @@
         const next = event.relatedTarget as Node | null;
         if (next && pickerLayer?.contains(next)) return;
         closePicker();
-        onBlur?.();
+        // The parent's blur (TimeEntryCard: save the description) stays deferred: a click that
+        // took the focus, such as Attach note, runs first and may take over the typed text
+        setTimeout(() => onBlur?.(), 150);
     }
 </script>
 
