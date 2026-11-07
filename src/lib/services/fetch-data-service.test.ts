@@ -709,6 +709,47 @@ describe('FetchDataService', () => {
 		});
 	});
 
+	describe('splitTimer and resumeTimer (sprint 056-DR)', () => {
+		it('splitTimer posts the split as given and returns both outcomes', async () => {
+			const answer = { replayed: false, left: { action: 'discarded', date: '2026-11-07', startTime: '09:00:00', endTime: '09:50:00' }, remainder: { kind: 'gone' } };
+			mockFetch.mockResolvedValueOnce(mockJsonResponse(answer));
+			const input = {
+				entryId: 'timer-1',
+				expectedStartedAt: '2026-11-07T09:00:00',
+				boundary: '2026-11-07T09:50:00',
+				clientRequestId: 'split-1',
+				left: { action: 'discard' as const }
+			};
+			const result = await service.splitTimer(input);
+			const [url, options] = getLastFetchCall(mockFetch);
+			expect(url).toBe('/api/timer/split');
+			expect(options?.method).toBe('POST');
+			expect(getLastFetchBody(mockFetch)).toEqual(input);
+			expect(result).toEqual(answer);
+		});
+
+		it('resumeTimer sends PATCH /api/timer with resume, and a new start only when given', async () => {
+			mockFetch.mockResolvedValue(mockJsonResponse({ id: 't1', startTime: '09:50:00', endTime: null, durationMinutes: 0 }));
+			await service.resumeTimer();
+			expect(getLastFetchCall(mockFetch)[1]?.method).toBe('PATCH');
+			expect(getLastFetchBody(mockFetch)).toEqual({ resume: true, confirmed: false });
+			await service.resumeTimer({ start: { date: '2026-11-07', startTime: '09:40:00' }, confirmed: true, expectedStartedAt: '2026-11-07T09:50:00' });
+			expect(getLastFetchBody(mockFetch)).toEqual({
+				resume: true,
+				date: '2026-11-07',
+				startTime: '09:40:00',
+				confirmed: true,
+				expectedStartedAt: '2026-11-07T09:50:00'
+			});
+		});
+
+		it('discardTimer passes expectedStartedAt when given', async () => {
+			mockFetch.mockResolvedValueOnce(mockJsonResponse({}));
+			await service.discardTimer('timer-1', { expectedStartedAt: '2026-11-07T09:00:00' });
+			expect(getLastFetchBody(mockFetch)).toEqual({ entryId: 'timer-1', expectedStartedAt: '2026-11-07T09:00:00' });
+		});
+	});
+
 	// ── Deliverables & Work Types ─────────────────────────────
 
 	describe('getDeliverables', () => {
@@ -811,6 +852,8 @@ describe('DelegatingDataService', () => {
 			stopTimer: vi.fn().mockResolvedValue({ id: `${label}-timer-stop` }),
 			saveTimer: vi.fn().mockResolvedValue(undefined),
 			discardTimer: vi.fn().mockResolvedValue(undefined),
+			splitTimer: vi.fn().mockResolvedValue(undefined),
+			resumeTimer: vi.fn().mockResolvedValue(undefined),
 			getDeliverables: vi.fn().mockResolvedValue([]),
 			getWorkTypes: vi.fn().mockResolvedValue([])
 		} as unknown as DataService & Record<string, ReturnType<typeof vi.fn>>;
@@ -913,7 +956,10 @@ describe('DelegatingDataService', () => {
 		});
 
 		await delegator.discardTimer('e1');
-		expect(inner.discardTimer).toHaveBeenCalledWith('e1');
+		expect(inner.discardTimer).toHaveBeenCalledWith('e1', undefined);
+
+		await delegator.resumeTimer({ confirmed: true });
+		expect(inner.resumeTimer).toHaveBeenCalledWith({ confirmed: true });
 
 		await delegator.getDeliverables('c1');
 		expect(inner.getDeliverables).toHaveBeenCalledWith('c1');
@@ -1002,6 +1048,8 @@ describe('DataService interface completeness', () => {
 		'stopTimer',
 		'saveTimer',
 		'discardTimer',
+		'splitTimer',
+		'resumeTimer',
 		'getDeliverables',
 		'getWorkTypes'
 	];

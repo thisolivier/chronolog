@@ -24,6 +24,9 @@ import type { TimerLocalStart,
 	TimerStatus,
 	TimerEntry,
 	SaveTimerInput,
+	SplitTimerInput,
+	SplitTimerResult,
+	ResumeTimerOptions,
 	DeliverableOption,
 	WorkTypeOption
 } from './types';
@@ -252,8 +255,21 @@ export class FetchDataService implements DataService {
 		await postJson('/api/timer/save', data);
 	}
 
-	async discardTimer(entryId: string): Promise<void> {
-		await postJson('/api/timer/discard', { entryId });
+	async discardTimer(entryId: string, options: { expectedStartedAt?: string } = {}): Promise<void> {
+		await postJson('/api/timer/discard', { entryId, ...options });
+	}
+
+	async splitTimer(input: SplitTimerInput): Promise<SplitTimerResult> {
+		return postJson<SplitTimerResult>('/api/timer/split', input);
+	}
+
+	async resumeTimer(options: ResumeTimerOptions = {}): Promise<TimerEntry> {
+		return patchJson<TimerEntry>('/api/timer', {
+			resume: true,
+			...(options.start ? { date: options.start.date, startTime: options.start.startTime } : {}),
+			confirmed: options.confirmed === true,
+			...(options.expectedStartedAt ? { expectedStartedAt: options.expectedStartedAt } : {})
+		});
 	}
 
 	// -- Deliverables & Work Types --

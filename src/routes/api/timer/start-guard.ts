@@ -22,6 +22,11 @@ export type TimerStartCheck = {
 	start: LocalMoment;
 	/** The user already confirmed an overlap (UI "Save anyway", CLI `--yes`) */
 	confirmed: boolean;
+	/**
+	 * A stopped timer's end (sprint 056-DR): the run checked for overlaps ends there instead of
+	 * now, and the future / 24-hour rules are left to the caller (`stoppedStartProblem`).
+	 */
+	runEnd?: LocalMoment;
 };
 
 const shortTime = (time: string | null) => (time ? time.slice(0, 5) : '--:--');
@@ -30,10 +35,12 @@ const shortTime = (time: string | null) => (time ? time.slice(0, 5) : '--:--');
 export async function checkTimerStart(check: TimerStartCheck): Promise<Response | null> {
 	const timezoneResult = readRequestTimezone(check.url, check.request);
 	if (!timezoneResult.ok) return timezoneResult.response;
-	const now = localMomentInTimezone(new Date(), timezoneResult.timezone);
+	const now = check.runEnd ?? localMomentInTimezone(new Date(), timezoneResult.timezone);
 
-	const problem = timerStartProblem(check.start, now);
-	if (problem) return apiError(400, problem.message, problem.code);
+	if (!check.runEnd) {
+		const problem = timerStartProblem(check.start, now);
+		if (problem) return apiError(400, problem.message, problem.code);
+	}
 	if (check.confirmed) return null;
 
 	const candidates = await listTimedEntriesBetween(check.userId, previousDate(check.start.date), now.date);

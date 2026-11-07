@@ -5,7 +5,9 @@
  * when they can. They are queued instead when the server is unreachable, when the same note or
  * entry already waits in the queue (so nothing overtakes it), or when they link a note made
  * offline that has no real ID yet. Reads lay the queue over the server copy, fresh or cached.
- * Note moves, pins, trash and attachments are not queued: offline they fail as before.
+ * Note moves, pins, trash and attachments are not queued: offline they fail as before. Timer
+ * requests are not queued either; timer split and resume (sprint 056-DR) fail offline with a
+ * clear "not available offline" error (`online-only.ts`).
  */
 import { FetchDataService } from '$lib/services/fetch-data-service';
 import { cachedReadsStartingWith, peekCachedRead } from '$lib/services/fetch-helpers';
@@ -14,6 +16,10 @@ import type {
 	CreateNoteInput,
 	CreateTimeEntryInput,
 	NoteDetail,
+	ResumeTimerOptions,
+	SplitTimerInput,
+	SplitTimerResult,
+	TimerEntry,
 	NoteSearchOptions,
 	NoteSearchResult,
 	NoteSummary,
@@ -41,6 +47,7 @@ import { cachedEntry, entryDisplayNames, knownNotes, searchCachedNotes, titlesFr
 import { isOfflineError } from './replay-transport';
 import { compareRanked, matchNote, parseSearchQuery } from '$lib/search/record-matcher';
 import { scheduleReplay, substituteExpectedUpdatedAt } from './offline-session.svelte';
+import { runOnlineOnly } from './online-only';
 
 const NOTE_FIELDS = ['title', 'content', 'contentJson'] as const;
 const ENTRY_FIELDS = ['contractId', 'deliverableId', 'workTypeId', 'date', 'startTime', 'endTime', 'durationMinutes', 'description'] as const;
@@ -412,6 +419,16 @@ export class OfflineDataService extends FetchDataService {
 			if (this.canQueueAfter(error)) return this.queueEntryRemoval(resolvedId);
 			throw error;
 		}
+	}
+
+	// -- Timer: online only, never queued --
+
+	async splitTimer(input: SplitTimerInput): Promise<SplitTimerResult> {
+		return runOnlineOnly('Splitting the timer', () => super.splitTimer(input));
+	}
+
+	async resumeTimer(options?: ResumeTimerOptions): Promise<TimerEntry> {
+		return runOnlineOnly('Resuming the timer', () => super.resumeTimer(options));
 	}
 
 	private queueEntryRemoval(entryId: string): void {

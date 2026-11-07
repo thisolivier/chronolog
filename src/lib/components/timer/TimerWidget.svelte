@@ -354,12 +354,17 @@
 		}
 	}
 
+	function expectedStartedAt(): string | undefined {
+		return timerDate && startTime ? `${timerDate}T${startTime}` : undefined;
+	}
+
 	/** Throws on failure so the completion form can show the message next to its buttons */
 	async function handleSave(data: TimerSaveData) {
 		const savedDate = timerDate || localDateString();
 		let savedEntryId = entryId;
 		if (entryId) {
-			await dataService.saveTimer({ entryId, ...data });
+			// The start this widget shows: the server refuses the save if the draft moved or was split elsewhere
+			await dataService.saveTimer({ entryId, ...data, expectedStartedAt: expectedStartedAt() });
 		} else {
 			// Never reached the server: create the entry from the browser's timer
 			const timeWasAdjusted = data.durationMinutes !== undefined;
@@ -386,7 +391,7 @@
 	async function handleDiscard() {
 		if (entryId) {
 			try {
-				await dataService.discardTimer(entryId);
+				await dataService.discardTimer(entryId, { expectedStartedAt: expectedStartedAt() });
 			} catch {
 				// Best effort discard
 			}

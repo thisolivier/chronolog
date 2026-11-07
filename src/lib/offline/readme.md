@@ -14,7 +14,9 @@ reaches the server, waits in the queue, or is held until the user decides.
    create/edit/delete to the server, or queues them when the server is unreachable, when the same
    note or entry already waits, or when they link a note made offline that has no real ID yet.
    Note moves, pins, trash, attachments and timer stop/adjust are not queued (they fail offline as
-   before); an offline timer start runs as a browser timer and its saved entry is queued.
+   before); an offline timer start runs as a browser timer and its saved entry is queued. Timer
+   split and resume (sprint 056-DR) are deliberately not queued either: `online-only.ts` fails them
+   at once offline with "… is not available offline" (`NotAvailableOfflineError`).
 3. **Queue.** One item per resource, in order of first edit (`outbox-queue.ts`), stored in
    localStorage per user, one key per item (`outbox-storage.ts`): on disk before the call returns,
    and two tabs queueing at once never overwrite each other. Items are tagged with their account.
