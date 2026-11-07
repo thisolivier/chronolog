@@ -84,7 +84,7 @@
 	});
 </script>
 
-<div class="flex h-full flex-col overflow-y-auto bg-chalk-50">
+<div class="flex h-full flex-col overflow-y-auto bg-chalk-50" data-note-print-root>
 	<FindBar mode="editor" />
 	{#if panel.isLoading}
 		<div class="flex flex-1 items-center justify-center">

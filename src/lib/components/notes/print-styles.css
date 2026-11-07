@@ -1,6 +1,10 @@
 /**
  * Print stylesheet for clean PDF export via window.print().
  *
+ * Every rule is scoped to a page showing the note editor (`data-note-print-root` on
+ * NoteEditorPanel), so other pages print normally even after this stylesheet has loaded
+ * (052-DR). Only @page (margins, A4) stays global.
+ *
  * Hides all app chrome (sidebar, note list, toolbar, backlinks, etc.)
  * and renders only the TipTap editor content at full width with
  * print-friendly typography.
@@ -16,7 +20,7 @@
 		size: A4;
 	}
 
-	body {
+	body:has([data-note-print-root]) {
 		print-color-adjust: exact;
 		-webkit-print-color-adjust: exact;
 	}
@@ -25,23 +29,23 @@
 	/* Hide app chrome                                                    */
 	/* ------------------------------------------------------------------ */
 
-	nav,
-	aside,
-	header,
-	footer,
+	body:has([data-note-print-root]) nav,
+	body:has([data-note-print-root]) aside,
+	body:has([data-note-print-root]) header,
+	body:has([data-note-print-root]) footer,
 	/* Sidebar and note-list panels */
-	[data-panel='sidebar'],
-	[data-panel='note-list'],
+	body:has([data-note-print-root]) [data-panel='sidebar'],
+	body:has([data-note-print-root]) [data-panel='note-list'],
 	/* Editor toolbar row (uses border-b bg-chalk-50) */
-	.border-b.bg-chalk-50,
+	body:has([data-note-print-root]) .border-b.bg-chalk-50,
 	/* Toolbar wrapper inside NoteEditor.svelte */
-	.flex.items-center:has(.border-b.bg-chalk-50),
+	body:has([data-note-print-root]) .flex.items-center:has(.border-b.bg-chalk-50),
 	/* Backlinks / linked time-entries section */
-	.border-t.border-divider.bg-surface,
+	body:has([data-note-print-root]) .border-t.border-divider.bg-surface,
 	/* File input for attachments */
-	input[type='file'],
+	body:has([data-note-print-root]) input[type='file'],
 	/* Interactive buttons outside prose content */
-	button {
+	body:has([data-note-print-root]) button {
 		display: none !important;
 	}
 
@@ -49,7 +53,7 @@
 	/* Make the editor content full-width and visible                     */
 	/* ------------------------------------------------------------------ */
 
-	.prose {
+	body:has([data-note-print-root]) .prose {
 		max-width: 100% !important;
 		width: 100% !important;
 		padding: 0 !important;
@@ -58,12 +62,12 @@
 	}
 
 	/* Ensure every ancestor container is visible and unstyled */
-	body,
-	body > *,
-	[data-sveltekit-body] > *,
-	main,
-	.flex-1,
-	.overflow-hidden {
+	body:has([data-note-print-root]),
+	body:has([data-note-print-root]) > *,
+	body:has([data-note-print-root]) [data-sveltekit-body] > *,
+	body:has([data-note-print-root]) main,
+	body:has([data-note-print-root]) .flex-1,
+	body:has([data-note-print-root]) .overflow-hidden {
 		visibility: visible !important;
 		overflow: visible !important;
 		height: auto !important;
@@ -71,12 +75,12 @@
 		position: static !important;
 	}
 
-	/* Strip backgrounds, borders and shadows from layout wrappers */
+	body:has([data-note-print-root]) /* Strip backgrounds, body:has([data-note-print-root]) borders and shadows from layout wrappers */
 	.bg-chalk-50,
-	.bg-surface,
-	.border,
-	.border-divider,
-	.rounded-lg {
+	body:has([data-note-print-root]) .bg-surface,
+	body:has([data-note-print-root]) .border,
+	body:has([data-note-print-root]) .border-divider,
+	body:has([data-note-print-root]) .rounded-lg {
 		background: white !important;
 		border: none !important;
 		border-radius: 0 !important;
@@ -87,8 +91,8 @@
 	/* Print typography                                                   */
 	/* ------------------------------------------------------------------ */
 
-	.tiptap,
-	.ProseMirror {
+	body:has([data-note-print-root]) .tiptap,
+	body:has([data-note-print-root]) .ProseMirror {
 		font-family: Georgia, 'Times New Roman', serif !important;
 		font-size: 12pt !important;
 		line-height: 1.6 !important;
@@ -97,23 +101,23 @@
 		min-height: auto !important;
 	}
 
-	.tiptap h1 {
+	body:has([data-note-print-root]) .tiptap h1 {
 		font-size: 24pt !important;
 		margin-top: 0 !important;
 		page-break-after: avoid !important;
 	}
 
-	.tiptap h2 {
+	body:has([data-note-print-root]) .tiptap h2 {
 		font-size: 18pt !important;
 		page-break-after: avoid !important;
 	}
 
-	.tiptap h3 {
+	body:has([data-note-print-root]) .tiptap h3 {
 		font-size: 14pt !important;
 		page-break-after: avoid !important;
 	}
 
-	.tiptap p {
+	body:has([data-note-print-root]) .tiptap p {
 		orphans: 3 !important;
 		widows: 3 !important;
 	}
@@ -122,7 +126,7 @@
 	/* Code blocks                                                        */
 	/* ------------------------------------------------------------------ */
 
-	.tiptap pre {
+	body:has([data-note-print-root]) .tiptap pre {
 		background-color: #f6f8fa !important;
 		border: 1px solid #e1e4e8 !important;
 		border-radius: 4px !important;
@@ -133,12 +137,12 @@
 		word-wrap: break-word !important;
 	}
 
-	.tiptap pre code {
+	body:has([data-note-print-root]) .tiptap pre code {
 		font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace !important;
 		font-size: 9pt !important;
 	}
 
-	.tiptap code {
+	body:has([data-note-print-root]) .tiptap code {
 		background-color: #f3f4f6 !important;
 		padding: 0.15em 0.3em !important;
 		border-radius: 3px !important;
@@ -149,12 +153,12 @@
 	/* Links — show URL after link text                                   */
 	/* ------------------------------------------------------------------ */
 
-	.tiptap a {
+	body:has([data-note-print-root]) .tiptap a {
 		color: black !important;
 		text-decoration: underline !important;
 	}
 
-	.tiptap a::after {
+	body:has([data-note-print-root]) .tiptap a::after {
 		content: ' (' attr(href) ')';
 		font-size: 0.8em;
 		color: #666;
@@ -164,7 +168,7 @@
 	/* Images                                                             */
 	/* ------------------------------------------------------------------ */
 
-	.tiptap img {
+	body:has([data-note-print-root]) .tiptap img {
 		max-width: 100% !important;
 		page-break-inside: avoid !important;
 	}
@@ -173,7 +177,7 @@
 	/* Blockquotes                                                        */
 	/* ------------------------------------------------------------------ */
 
-	.tiptap blockquote {
+	body:has([data-note-print-root]) .tiptap blockquote {
 		border-left: 3px solid #ccc !important;
 		color: #333 !important;
 		page-break-inside: avoid !important;
@@ -183,8 +187,8 @@
 	/* Lists                                                              */
 	/* ------------------------------------------------------------------ */
 
-	.tiptap ul,
-	.tiptap ol {
+	body:has([data-note-print-root]) .tiptap ul,
+	body:has([data-note-print-root]) .tiptap ol {
 		page-break-inside: avoid !important;
 	}
 
@@ -192,7 +196,7 @@
 	/* Horizontal rules                                                   */
 	/* ------------------------------------------------------------------ */
 
-	.tiptap hr {
+	body:has([data-note-print-root]) .tiptap hr {
 		border-top: 1px solid #ccc !important;
 	}
 
@@ -200,7 +204,7 @@
 	/* Wiki-links — render as plain text                                  */
 	/* ------------------------------------------------------------------ */
 
-	.tiptap .wiki-link {
+	body:has([data-note-print-root]) .tiptap .wiki-link {
 		background: none !important;
 		color: black !important;
 		padding: 0 !important;
