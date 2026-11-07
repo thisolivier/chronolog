@@ -150,6 +150,30 @@ insertion (`[[ID]]`, caret after). Replace its fetching and list with the shared
   can act on ProseMirror's stale selection (the document start); the new spec waits 150 ms. This is
   a Playwright timing effect, seen on the base branch too.
 
+## Review fixes (2026-11-07, second pass)
+
+1. **Enter during a load (blocker).** While the picker's current query is loading, the rows on
+   screen belong to the previous query. Enter is now held (`enterPending`) and, when the current
+   reply lands, inserts that reply's active row (nothing if it is empty or failed; typing on
+   cancels it). The /search route was not affected (its results clear on every new query).
+   Playwright: `picker: Enter while a newer query loads…` delays the reply for "Daniel" and presses
+   Enter at once: nothing is inserted until the reply, then the Daniel note, never the recent note.
+2. **Entry hit from the current week.** `showTimeEntryDay` returned early when `state.route` was
+   already that week, but off the workspace (/search) `state.route` still holds the week left
+   behind, so the click did nothing. It now returns early only when the URL is that week's page
+   (`currentPath`). `search.spec.ts`: `an entry hit from the week the search started on…`.
+3. **Long unclosed `[[`.** The suggestion's `shouldShow` closes the picker past 80 characters
+   (`MAX_PICKER_QUERY_LENGTH`) or on a newline, instead of sending a >200-character query that the
+   endpoint refuses ("Couldn't load notes"). Playwright case added.
+
+Both new behaviour tests fail with the fixes reverted. Re-run (`--retries=0`):
+
+- `npm run check`: `svelte-check found 0 errors and 0 warnings`
+- `npm run lint`: `> eslint .` with no output (clean)
+- `npm test`: `Test Files  128 passed (128)` / `Tests  1219 passed (1219)`
+- chromium: `8 skipped` / `121 passed (1.1m)`
+- iPhone SE / 15 / 15 Pro Max: `5 skipped` / `26 passed (22.7s)`
+
 ## Screenshots (`docs/review/screenshots/sprint-059/`)
 
 - `desktop-01-results-mixed.png` — mixed notes and an entry, first row active (sage, pine edge).
