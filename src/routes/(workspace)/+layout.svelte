@@ -6,7 +6,10 @@
 	 * `/notes/all[/<contract>/<note|new>]` (sprint 051-UI).
 	 * It is a layout so moving between those URLs never remounts the panels; the pages are empty
 	 * and the navigation store reads the URL (sprint 027-CL).
+	 * `/search` (059-DR, SR-01) lives here too, so the sidebar, Back/Forward and the timer stay
+	 * available: its page renders inside the shell in place of the list and content panels.
 	 */
+	import { page } from '$app/state';
 	import AppShell from '$lib/components/layout/AppShell.svelte';
 	import ContractsSidebar from '$lib/components/layout/ContractsSidebar.svelte';
 	import TimeEntriesPanel from '$lib/components/layout/TimeEntriesPanel.svelte';
@@ -22,9 +25,12 @@
 	let { children } = $props();
 
 	const nav = getNavigationContext();
+	const isSearchRoute = $derived(page.route.id === '/(workspace)/search');
+	const searchQuery = $derived((page.url.searchParams.get('q') ?? '').trim());
 
 	// "Chronolog · Notes · Rocket Build" / "Chronolog · Time entries · Week 45"
 	const pageTitle = $derived.by(() => {
+		if (isSearchRoute) return searchQuery ? `Chronolog · Search · ${searchQuery}` : 'Chronolog · Search';
 		if (nav.isTimeEntriesMode) {
 			return nav.isHome && nav.layoutMode === 'mobile'
 				? 'Chronolog'
@@ -42,7 +48,7 @@
 
 <svelte:head><title>{pageTitle}</title></svelte:head>
 
-<AppShell>
+<AppShell searchPage={isSearchRoute ? children : undefined}>
 	{#snippet panel1()}
 		<ContractsSidebar />
 	{/snippet}
@@ -65,4 +71,4 @@
 <!-- "Moved to trash. Undo" lives here, not in the editor panel, so it survives a phone's panel change -->
 <NoteTrashToastHost />
 
-{@render children()}
+{#if !isSearchRoute}{@render children()}{/if}

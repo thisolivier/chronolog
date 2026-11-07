@@ -117,7 +117,9 @@ describe('searchSummary', () => {
 });
 
 describe('formatEntryDateShort', () => {
-	it('gives month and day only', () => {
-		expect(formatEntryDateShort('2026-10-20')).toBe('Oct 20');
+	it('gives month and day, and the year only when it is not this year', () => {
+		const now = new Date(2026, 10, 7);
+		expect(formatEntryDateShort('2026-10-20', now)).toBe('Oct 20');
+		expect(formatEntryDateShort('2099-01-05', now)).toBe('Jan 5, 2099');
 	});
 });

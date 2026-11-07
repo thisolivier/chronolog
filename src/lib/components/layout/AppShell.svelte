@@ -12,6 +12,7 @@
 	import { isNoteListRoute, parseWorkspacePath } from '$lib/stores/navigation-routes';
 	import { getDataService } from '$lib/services/context';
 	import { untrack } from 'svelte';
+	import { goto } from '$app/navigation';
 	import {
 		headerReflectionFor,
 		isTimerWidgetOnScreen,
@@ -25,9 +26,14 @@
 		panel1: Snippet;
 		panel2: Snippet;
 		panel3: Snippet;
+		/**
+		 * The /search page (059-DR, SR-01): replaces the list and content panels (the phone's whole
+		 * panel); the header search box is not rendered, the page has its own large query field
+		 */
+		searchPage?: Snippet;
 	}
 
-	let { panel1, panel2, panel3 }: Props = $props();
+	let { panel1, panel2, panel3, searchPage }: Props = $props();
 
 	const navigationContext = getNavigationContext();
 	const timerState = getTimerStateContext();
@@ -192,6 +198,13 @@
 		else navigationContext.toggleSidebar();
 	}
 
+	// Phone "Back to app" on /search: Back when the step before is a workspace place, else go there
+	function leaveSearch() {
+		const previous = navigationContext.backTarget;
+		if (previous.isHistory && parseWorkspacePath(previous.path, '')) navigationContext.goBack();
+		else void goto(navigationContext.workspaceHref);
+	}
+
 	function openSidebar() {
 		if (sidebarIsOverlay) overlaySidebarOpen = true;
 		else if (navigationContext.panel1Collapsed) navigationContext.toggleSidebar();
@@ -206,7 +219,16 @@
 		<!-- Mobile top bar: app name at the root, Back button once pushed in -->
 		<div class="flex h-12 items-center justify-between border-b border-divider bg-surface px-4">
 			<div class="flex min-w-0 flex-1 items-center gap-3">
-				{#if navigationContext.mobileNavigationLevel > 0}
+				{#if searchPage}
+					<!-- /search (059-DR, SR-01): Back to app and capture access only, no second search -->
+					<button
+						onclick={leaveSearch}
+						class="-ml-2 flex min-h-11 flex-shrink-0 items-center px-2 text-sm font-medium text-pine-600 hover:text-pine-800"
+						data-testid="search-back-to-app"
+					>
+						&larr; Back to app
+					</button>
+				{:else if navigationContext.mobileNavigationLevel > 0}
 					<button
 						onclick={() => navigationContext.goBackMobile()}
 						class="-ml-2 flex min-h-11 {headerReflection === 'none' ? 'max-w-[65%]' : 'max-w-full'} flex-shrink-0 items-center px-2 text-sm font-medium text-pine-600 hover:text-pine-800"
@@ -228,7 +250,7 @@
 					<HistoryButtons variant="phone" class="-ml-1" />
 				{/if}
 			</div>
-			{#if mobileShowsContentPanel}
+			{#if mobileShowsContentPanel && !searchPage}
 				<button
 					type="button"
 					onclick={requestFindInPage}
@@ -240,14 +262,14 @@
 				</button>
 			{/if}
 			<!-- Global search (sprint 042-CL): the field gets the whole page on a phone -->
-			<a
+			{#if !searchPage}<a
 				href="/search"
 				class="ml-1 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md btn-quiet"
 				aria-label="Search"
 				data-testid="mobile-search-link"
 			>
 				<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" /><path d="m13 13 4 4" stroke-linecap="round" /></svg>
-			</a>
+			</a>{/if}
 			<!-- The capture's reflection, only on screens without a timer widget (SH-04); opens the
 			     phone's capture screen (home, with the sidebar timer) -->
 			<div class="ml-1 flex-shrink-0">
@@ -259,7 +281,9 @@
 		<!-- Active panel. Panel 2 (note list) only exists in notes mode; in time mode
 		     level 1 goes straight to the time entries panel. -->
 		<div class="flex flex-1 flex-col overflow-y-auto">
-			{#if navigationContext.mobileNavigationLevel === 0}
+			{#if searchPage}
+				{@render searchPage()}
+			{:else if navigationContext.mobileNavigationLevel === 0}
 				{@render panel1()}
 			{:else if navigationContext.mobileNavigationLevel === 1 && navigationContext.isNotesMode}
 				{@render panel2()}
@@ -289,7 +313,8 @@
 			     right (SH-05) -->
 			<div class="flex min-w-0 items-center justify-end gap-3" data-testid="app-top-bar-right">
 				<TimerIndicator reflection={headerReflection} showIdleAccess={showIdleTimerAccess} onIndicatorClick={openSidebar} />
-				<GlobalSearchField class="w-60 flex-shrink-0 lg:w-72" />
+				<!-- Not on /search, which has one large field above its results (SR-01) -->
+				{#if !searchPage}<GlobalSearchField class="w-60 flex-shrink-0 lg:w-72" />{/if}
 			</div>
 		</div>
 		<ConnectionStatus mode={navigationContext.mode} />
@@ -319,7 +344,7 @@
 			</div>
 
 			<!-- Panel 2: List view (resizable, only in notes mode) -->
-			{#if navigationContext.isNotesMode}
+			{#if navigationContext.isNotesMode && !searchPage}
 				<div
 					class="relative flex-shrink-0 border-r border-divider bg-surface"
 					style="width: {isTablet ? Math.min(panel2Width, 260) : panel2Width}px;"
@@ -339,7 +364,7 @@
 
 			<!-- Panel 3: Content (flexible width) -->
 			<div class="flex flex-1 flex-col overflow-y-auto bg-chalk-50">
-				{@render panel3()}
+				{#if searchPage}{@render searchPage()}{:else}{@render panel3()}{/if}
 			</div>
 		</div>
 	</div>
