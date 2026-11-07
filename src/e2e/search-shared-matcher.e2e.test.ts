@@ -64,7 +64,9 @@ beforeAll(async () => {
 	createdClientIds.push(hungryroot.clientId);
 	ids.zetaContract = (await createContract(`Zeta${run} programme`, { clientId: hungryroot.clientId })).id;
 
-	// Creation order matters: later notes are newer
+	// Creation order matters: later notes are newer. Four fillers first, so the run has nine notes
+	// and the picker's default limit of 8 can be seen cutting the list
+	for (let index = 1; index <= 4; index++) await createNote(ids.hungryrootContract, `Filler ${index} ${run}`, 'Nothing to see.');
 	noteIds.taxonomy = await createNote(ids.amplitudeContract, `Event taxonomy ${run}`, `# Event taxonomy ${run}\n\nFunnels and cohorts.`);
 	noteIds.hungryrootRoles = await createNote(ids.hungryrootContract, `Workshop ${run}`, `We mapped the roles for ${zeta}.`);
 	noteIds.hungryrootBudget = await createNote(ids.hungryrootContract, `Budget ${run}`, `Only the budget for ${zeta}.`);
@@ -107,7 +109,7 @@ describe('shared search matcher (SR-03)', () => {
 		const result = await globalSearch(`${hungryrootName} roles`);
 		expect(result.notes.hits.map((hit: NoteHit) => hit.id)).toEqual([noteIds.hungryrootRoles]);
 		const [hit] = result.notes.hits as NoteHit[];
-		expect(hit).toMatchObject({ rank: 5, matchedIn: 'body', matchedContext: ['clientName'] });
+		expect(hit).toMatchObject({ rank: 4, matchedIn: 'body', matchedContext: ['clientName'] });
 		expect(hit.snippet.matches.map((range) => hit.snippet.text.slice(range.start, range.end))).toEqual(['roles']);
 
 		const picker = await pickerSearch(`${hungryrootName} roles`);
@@ -128,7 +130,7 @@ describe('shared search matcher (SR-03)', () => {
 		const pickerOrder = (await pickerSearch(zeta)).map((note) => note.id);
 		expect(searchOrder).toEqual(expected);
 		expect(pickerOrder).toEqual(expected);
-		expect((result.notes.hits as NoteHit[]).map((hit) => hit.rank)).toEqual([2, 4, 4, 6]);
+		expect((result.notes.hits as NoteHit[]).map((hit) => hit.rank)).toEqual([2, 5, 5, 6]);
 		expect((result.notes.hits as NoteHit[])[3].matchedContext).toEqual(['contractName']);
 	});
 
@@ -149,9 +151,10 @@ describe('picker recent notes (SR-04)', () => {
 		expect(new Set(recent.map((note) => note.contractName)).size).toBe(3);
 		expect(recent[0]).toMatchObject({ rank: null, matchedIn: null });
 
-		expect((await pickerSearch('', '&recent=1')).length).toBeLessThanOrEqual(8);
-		// Every note of this run matches its run stamp: all five fit under the default limit of 8
-		expect((await pickerSearch(run)).length).toBe(5);
+		expect(await pickerSearch('', '&recent=1')).toHaveLength(8);
+		// All nine notes of this run match its stamp; the default limit returns eight of them
+		expect(await pickerSearch(run)).toHaveLength(8);
+		expect(await pickerSearch(run, '&limit=20')).toHaveLength(9);
 	});
 
 	it('an empty query without recent=1 still returns nothing', async () => {
