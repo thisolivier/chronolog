@@ -9,6 +9,7 @@
 	The parent keeps the widget body mounted (hidden) while compact, so nothing is lost.
 -->
 <script lang="ts">
+	import { tick } from 'svelte';
 	import ContractMark from '$lib/components/identity/ContractMark.svelte';
 	import TimerPulseDot from './TimerPulseDot.svelte';
 	import { getClientBgClass } from '$lib/utils/client-colors';
@@ -50,6 +51,17 @@
 	const contractText = $derived(hasContract ? contractName : 'No contract yet');
 	const washClass = $derived(hasContract ? getClientBgClass(clientColorIndex) : 'bg-sunken');
 	const frozenText = $derived(formatMinutes(Math.max(1, Math.ceil(elapsedSeconds / 60))));
+
+	// The chevron is drawn in each layout, so toggling replaces the focused button: put focus on
+	// the new one, or a keyboard user would drop to <body>
+	let chevronButton = $state<HTMLButtonElement | null>(null);
+	async function toggleCompact() {
+		const hadFocus = document.activeElement === chevronButton;
+		onToggleCompact?.();
+		if (!hadFocus) return;
+		await tick();
+		chevronButton?.focus();
+	}
 </script>
 
 {#snippet chevron()}
@@ -60,7 +72,8 @@
 			aria-label={compact ? 'Expand timer' : 'Collapse timer'}
 			aria-expanded={!compact}
 			data-testid="timer-collapse-toggle"
-			onclick={onToggleCompact}
+			bind:this={chevronButton}
+			onclick={toggleCompact}
 		>
 			<svg
 				class="h-3.5 w-3.5 transition-transform {compact ? '' : 'rotate-180'}"

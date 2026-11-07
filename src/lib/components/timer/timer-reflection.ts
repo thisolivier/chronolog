@@ -11,6 +11,8 @@ import type { TimerDisplayState } from '$lib/stores/timer-state.svelte';
 import { formatContractLabel } from './contract-label';
 import { readPendingTimer } from './pending-timer';
 import { secondsBetweenTimes } from './timer-api';
+import { captureKeyFor } from '$lib/stores/capture-draft';
+import { captureDraft } from '$lib/stores/capture-draft.svelte';
 
 export async function loadTimerReflection(
 	dataService: Pick<DataService, 'getTimerStatus' | 'getContracts'>
@@ -23,9 +25,14 @@ export async function loadTimerReflection(
 	}
 	const timer = status?.timer;
 	if (timer) {
-		const contracts = await dataService.getContracts().catch(() => []);
-		const contract = contracts.find((candidate) => candidate.id === timer.contractId);
 		const isStopped = Boolean(timer.endTime);
+		// A stopped capture is named by the contract chosen in its completion form, when there is one
+		const draftContractId = isStopped
+			? captureDraft.contractFor(captureKeyFor({ entryId: timer.id, date: timer.date ?? '', startTime: timer.startTime ?? '' }))
+			: '';
+		const contractId = draftContractId || timer.contractId;
+		const contracts = await dataService.getContracts().catch(() => []);
+		const contract = contracts.find((candidate) => candidate.id === contractId);
 		return {
 			status: isStopped ? 'stopped' : 'running',
 			elapsedSeconds: isStopped ? timer.durationMinutes * 60 : 0,
@@ -41,13 +48,20 @@ export async function loadTimerReflection(
 	}
 	const pending = readPendingTimer();
 	if (!pending) return null;
+	const pendingContractId = pending.endTime
+		? captureDraft.contractFor(captureKeyFor({ entryId: '', date: pending.date, startTime: pending.startTime }))
+		: '';
+	const pendingContract = pendingContractId
+		? (await dataService.getContracts().catch(() => [])).find((candidate) => candidate.id === pendingContractId)
+		: undefined;
 	return {
 		status: pending.endTime ? 'stopped' : 'running',
 		elapsedSeconds: pending.endTime ? Math.max(60, secondsBetweenTimes(pending.startTime, pending.endTime)) : 0,
 		description: pending.description,
-		contractName: '',
-		contractTitle: '',
-		clientName: '',
+		contractName: pendingContract ? formatContractLabel(pendingContract.clientName, pendingContract.name) : '',
+		clientColorIndex: pendingContract?.clientColorIndex ?? 0,
+		contractTitle: pendingContract?.name ?? '',
+		clientName: pendingContract?.clientName ?? '',
 		startTime: pending.endTime ? '' : pending.startTime,
 		startDate: pending.endTime ? '' : pending.date
 	};

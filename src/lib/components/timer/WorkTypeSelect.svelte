@@ -27,6 +27,7 @@
 	let lastLoadedDeliverableId = $state('');
 
 	async function loadWorkTypes(targetDeliverableId: string) {
+		let loadFailed = false;
 		if (!targetDeliverableId) {
 			workTypeList = [];
 		} else {
@@ -34,9 +35,12 @@
 				workTypeList = await dataService.getWorkTypes(targetDeliverableId);
 			} catch {
 				workTypeList = [];
+				loadFailed = true;
 			}
 		}
 		lastLoadedDeliverableId = targetDeliverableId;
+		// A failed load says nothing about validity: keep the existing value (TC-05, sprint 053-DR)
+		if (loadFailed) return;
 		// A work type belongs to one deliverable: drop a selection that no longer applies
 		const selectionStillValid = workTypeList.some((workType) => workType.id === selectedWorkTypeId);
 		if (selectedWorkTypeId && !selectionStillValid) {

@@ -111,7 +111,7 @@
 <div
 	class="mb-2 border-y-2 border-transparent {isSingleContract ? '' : 'rounded-panel bg-sunken px-1 pb-1'} {dropPlacement === 'before' ? '!border-t-pine-500' : ''} {dropPlacement === 'after'
 		? '!border-b-pine-500'
-		: ''} {reorder?.draggedClientId === group.clientId ? 'opacity-50' : ''}"
+		: ''} {reorder?.draggedClientId === group.clientId ? 'outline-2 outline-offset-1 outline-pine-400 outline-dashed' : ''}"
 	role="group"
 	aria-label={group.clientName}
 	data-testid={testId}
