@@ -5,7 +5,7 @@
  */
 import { test, expect, type Page } from '@playwright/test';
 import path from 'node:path';
-import { createContract, createNote, editor, noteListItem, openNoteId, sidebarContract } from './notes-helpers';
+import { chooseNoteAction, createContract, createNote, editor, noteListItem, openNoteId, sidebarContract } from './notes-helpers';
 import { sprintScreenshotDirectory } from './sprint-screenshots';
 
 const SCREENSHOTS = sprintScreenshotDirectory('sprint-037');
@@ -14,7 +14,7 @@ const sidebarCount = (page: Page, contractName: string) =>
 	sidebarContract(page, contractName).getByTestId('sidebar-note-count');
 
 async function deleteOpenNote(page: Page) {
-	await page.getByTestId('note-editor-header').getByRole('button', { name: 'Delete' }).click();
+	await chooseNoteAction(page, 'Delete');
 	await page.getByTestId('delete-confirm').getByRole('button', { name: 'Delete' }).click();
 }
 

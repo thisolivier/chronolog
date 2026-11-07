@@ -52,10 +52,11 @@ test.describe('Note CRUD', () => {
 		await noteListItem.click();
 		await page.waitForTimeout(500);
 
-		// Delete lives in the editor header and asks for confirmation inline (sprint 024)
-		const deleteButton = page.getByTestId('note-editor-header').getByRole('button', { name: 'Delete' });
-		await expect(deleteButton).toBeVisible({ timeout: 5000 });
-		await deleteButton.click();
+		// Delete lives in the editor header's Note actions menu (054-DR) and asks for confirmation inline (sprint 024)
+		const actionsButton = page.getByTestId('note-editor-header').getByRole('button', { name: 'Note actions' });
+		await expect(actionsButton).toBeVisible({ timeout: 5000 });
+		await actionsButton.click();
+		await page.getByRole('menuitem', { name: 'Delete' }).click();
 		await page.getByTestId('delete-confirm').getByRole('button', { name: 'Delete' }).click();
 
 		// --- VERIFY DELETION: The note should no longer appear in the note list ---

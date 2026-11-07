@@ -4,7 +4,7 @@
  * history, and the sidebar, list and editor agree on the note's client and contract.
  */
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { editor, openNoteId } from './notes-helpers';
+import { editor, moveOpenNote, openNoteId } from './notes-helpers';
 import { signInAsFreshUser } from './fresh-user';
 
 // In order, in one worker: parallel API note creates under one user race for note IDs
@@ -122,8 +122,7 @@ test('J1: settings and back keeps the note; a moved note stays open under its ne
 	await expect.poll(() => openNoteId(page)).toBe(data.noteA);
 	await expect(sidebarItem(page, data.contractA)).toHaveAttribute('aria-current', 'page');
 
-	await page.getByRole('button', { name: 'Move', exact: true }).click();
-	await page.locator('[data-move-menu]').getByRole('button', { name: new RegExp(data.nameB) }).click();
+	await moveOpenNote(page, new RegExp(data.nameB));
 	await expect(page).toHaveURL(`/notes/${data.contractB}/${data.noteA}`);
 	await expect(sidebarItem(page, data.contractB)).toHaveAttribute('aria-current', 'page');
 	await expect(page.getByTestId('note-list-context')).toContainText(data.nameB);
