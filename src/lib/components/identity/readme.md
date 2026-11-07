@@ -18,4 +18,4 @@ DS-07) are deferred by the owner's decision of 2026-11-07, so the mark is a soli
 - Use one `ContractMark` per place a contract is identified; do not redraw a similar mark per widget (DS-07).
 - Put the mark beside its label with the `gap-mark-gap` spacing token (`--spacing-mark-gap`).
 - Initials text colour comes from the palette entry (`markTextClass`), chosen per colour for AA contrast.
-- Used today in the note editor header (`notes/NoteEditorHeader.svelte`). Sidebar, timer, review and search placements come in later design stages.
+- Used in the note editor header (`notes/NoteEditorHeader.svelte`), the note list header when the navigation is hidden and on rows of lists spanning contracts (`layout/NoteListPanel.svelte`, `NoteListRow.svelte`), and on linked time entries of another contract (`notes/LinkedTimeEntries.svelte`) since 054-DR. Sidebar, timer, review and search placements come in other design stages.
