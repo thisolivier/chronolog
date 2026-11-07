@@ -22,7 +22,9 @@ const runTag = Date.now().toString(36);
 
 async function clearDraft() {
 	const { timer } = await (await authGet('/api/timer/status')).json();
-	if (timer) expect((await authPost('/api/timer/discard', { entryId: timer.id })).status).toBe(200);
+	if (!timer) return;
+	const discarded = await authPost('/api/timer/discard', { entryId: timer.id, expectedStartedAt: `${timer.date}T${timer.startTime}` });
+	expect(discarded.status).toBe(200);
 }
 
 async function startTimer(startedMinutesAgo: number) {
@@ -104,6 +106,90 @@ describe('POST /api/timer/split', () => {
 		expect(results[0].left.entry.id).toBe(results[1].left.entry.id);
 	});
 
+	it('a concurrent duplicate that discards the left part replays too (needs the row lock: no unique insert to collide on)', async () => {
+		const { id, start } = await startTimer(80);
+		const body = {
+			entryId: id,
+			expectedStartedAt: start.text,
+			expectedEndedAt: null,
+			boundary: minutesAgo(75).text,
+			clientRequestId: `split-race-discard-${runTag}`,
+			left: { action: 'discard' },
+			right: { contractId, description: 'Kept part' }
+		};
+		const answers = await Promise.all([authPost('/api/timer/split', body), authPost('/api/timer/split', body)]);
+		expect(answers.map((answer) => answer.status)).toEqual([200, 200]);
+		const results = await Promise.all(answers.map((answer) => answer.json()));
+		expect(results.map((result) => result.replayed).sort()).toEqual([false, true]);
+		expect(results.every((result) => result.remainder.timer.id === id)).toBe(true);
+	});
+
+	it('a blank remainder of a stopped draft keeps its end, also on a replay; discard + pending cannot replay (404)', async () => {
+		const { id, start } = await startTimer(40);
+		const stopped = await (await authPost('/api/timer/stop', {})).json();
+		const boundary = minutesAgo(20);
+		const body = {
+			entryId: id,
+			expectedStartedAt: start.text,
+			expectedEndedAt: `${start.date}T${stopped.endTime}`,
+			boundary: boundary.text,
+			clientRequestId: `split-pending-stopped-${runTag}`,
+			left: { action: 'save', contractId, description: 'Stopped left' }
+		};
+		const first = await (await authPost('/api/timer/split', body)).json();
+		expect(first.remainder).toMatchObject({ kind: 'pending', startTime: boundary.time, endTime: stopped.endTime });
+		const replay = await (await authPost('/api/timer/split', body)).json();
+		expect(replay.replayed).toBe(true);
+		expect(replay.remainder.endTime).toBe(stopped.endTime);
+
+		// Known gap (sprint doc): nothing is left to mark when both parts leave the server
+		const second = await startTimer(15);
+		const discardBody = {
+			entryId: second.id,
+			expectedStartedAt: second.start.text,
+			boundary: minutesAgo(5).text,
+			clientRequestId: `split-discard-pending-${runTag}`,
+			left: { action: 'discard' }
+		};
+		expect((await authPost('/api/timer/split', discardBody)).status).toBe(200);
+		expect((await authPost('/api/timer/split', discardBody)).status).toBe(404);
+	});
+
+	it('a device that missed a split cannot log the split-off time twice or delete the remainder', async () => {
+		const { id, start } = await startTimer(60);
+		const stopped = await (await authPost('/api/timer/stop', {})).json();
+		const boundary = minutesAgo(30);
+		const split = await authPost('/api/timer/split', {
+			entryId: id,
+			expectedStartedAt: start.text,
+			boundary: boundary.text,
+			clientRequestId: `split-stale-device-${runTag}`,
+			left: { action: 'save', contractId, description: 'Device A left' },
+			right: { contractId }
+		});
+		expect(split.status).toBe(200);
+
+		// Device B still shows start..end and saves with its own edited times
+		const staleTimes = { entryId: id, contractId, durationMinutes: 60, startTime: start.time, endTime: stopped.endTime };
+		const noExpected = await authPost('/api/timer/save', staleTimes);
+		expect(noExpected.status).toBe(409);
+		expect((await noExpected.json()).code).toBe('expected_start_required');
+		const oldStart = await authPost('/api/timer/save', { ...staleTimes, expectedStartedAt: start.text });
+		expect(oldStart.status).toBe(409);
+		expect((await oldStart.json()).code).toBe('timer_changed');
+		// ...and its Discard would have deleted the remainder
+		const discard = await authPost('/api/timer/discard', { entryId: id });
+		expect(discard.status).toBe(409);
+		expect((await discard.json()).code).toBe('expected_start_required');
+		const staleDiscard = await authPost('/api/timer/discard', { entryId: id, expectedStartedAt: start.text });
+		expect((await staleDiscard.json()).code).toBe('timer_changed');
+
+		const { timer } = await (await authGet('/api/timer/status')).json();
+		expect(timer).toMatchObject({ id, startTime: boundary.time, endTime: stopped.endTime });
+		// A device that has seen the split saves the remainder normally
+		expect((await authPost('/api/timer/save', { entryId: id, contractId, expectedStartedAt: boundary.text })).status).toBe(200);
+	});
+
 	it('discards the left part of a stopped draft, keeping its end', async () => {
 		const { id, start } = await startTimer(50);
 		const stopped = await (await authPost('/api/timer/stop', {})).json();
@@ -137,7 +223,7 @@ describe('POST /api/timer/split', () => {
 		});
 		expect(response.status).toBe(200);
 		const result = await response.json();
-		expect(result.remainder).toEqual({ kind: 'pending', date: boundary.date, startTime: boundary.time, description: 'The call' });
+		expect(result.remainder).toEqual({ kind: 'pending', date: boundary.date, startTime: boundary.time, endTime: null, description: 'The call' });
 		expect((await (await authGet('/api/timer/status')).json()).timer).toBeNull();
 	});
 
@@ -181,7 +267,10 @@ describe('Resume, and the draft-only guard on save and discard', () => {
 	it('resumes a stopped draft from its start (PATCH /api/timer resume)', async () => {
 		const { id, start } = await startTimer(25);
 		await authPost('/api/timer/stop', {});
-		// Earlier tests saved entries in this window: resuming over them asks first, as moving a start does
+		// An entry inside the resumed run (made here, so the test does not lean on earlier ones): resuming asks first
+		const inside = minutesAgo(10);
+		const logged = await authPost('/api/time-entries', { date: inside.date, contractId, duration: `${inside.time.slice(0, 5)}-${minutesAgo(5).time.slice(0, 5)}`, description: 'Inside the resumed run' });
+		expect(logged.status).toBe(201);
 		const asked = await authPatch('/api/timer', { resume: true, expectedStartedAt: start.text });
 		expect(asked.status).toBe(409);
 		expect((await asked.json()).code).toBe('start_overlaps_entry');
@@ -213,6 +302,23 @@ describe('Resume, and the draft-only guard on save and discard', () => {
 		expect(stale.status).toBe(409);
 		expect((await stale.json()).code).toBe('timer_changed');
 		expect((await authPost('/api/timer/discard', { entryId: id, expectedStartedAt: start.text })).status).toBe(200);
+	});
+
+	it('time overrides on save need expectedStartedAt, compared at the precision sent', async () => {
+		const plain = minutesAgo(20);
+		const startedWithSeconds = await authPost('/api/timer/start', { contractId, date: plain.date, startTime: plain.time.replace(/:00$/, ':37'), confirmed: true });
+		const { id } = await startedWithSeconds.json();
+		await authPost('/api/timer/stop', {});
+		const overrides = { entryId: id, contractId, durationMinutes: 15 };
+		const refused = await authPost('/api/timer/save', overrides);
+		expect(refused.status).toBe(409);
+		expect((await refused.json()).code).toBe('expected_start_required');
+		// HH:MM matches a start stored with seconds; a wrong second does not
+		const wrongSecond = await authPost('/api/timer/save', { ...overrides, expectedStartedAt: `${plain.text.slice(0, 16)}:00` });
+		expect((await wrongSecond.json()).code).toBe('timer_changed');
+		const saved = await authPost('/api/timer/save', { ...overrides, expectedStartedAt: plain.text.slice(0, 16) });
+		expect(saved.status).toBe(200);
+		expect((await saved.json()).durationMinutes).toBe(15);
 	});
 
 	it('a timer save links the notes in its description', async () => {

@@ -149,14 +149,19 @@ describe('Timer API', () => {
 		});
 		expect(rejected.status).toBe(400);
 
-		const saved = await authPost('/api/timer/save', {
+		const adjusted = {
 			entryId: startData.id,
 			contractId,
 			description: 'Adjusted timer entry',
 			durationMinutes: 45,
 			startTime: null,
 			endTime: null
-		});
+		};
+		// Sprint 056-DR: time overrides need the start the client saw
+		const unguarded = await authPost('/api/timer/save', adjusted);
+		expect(unguarded.status).toBe(409);
+		expect((await unguarded.json()).code).toBe('expected_start_required');
+		const saved = await authPost('/api/timer/save', { ...adjusted, expectedStartedAt: `${startData.date}T${startData.startTime}` });
 		expect(saved.ok).toBe(true);
 		const savedEntry = await saved.json();
 		expect(savedEntry.durationMinutes).toBe(45);
