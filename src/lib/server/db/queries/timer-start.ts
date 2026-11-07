@@ -27,13 +27,28 @@ export async function listTimedEntriesBetween(userId: string, fromDate: string, 
 }
 
 /**
+ * The row as the caller read it (sprint 056-DR review): each update below matches it in its WHERE
+ * clause, so a start (or end) changed by another request in between makes the update miss (null)
+ * instead of acting on a draft the caller's checks never saw.
+ */
+export type ReadDraft = { date: string; startTime: string | null; endTime: string | null };
+
+const sameDraftAsRead = (read: ReadDraft) =>
+	and(
+		eq(timeEntries.date, read.date),
+		read.startTime === null ? isNull(timeEntries.startTime) : eq(timeEntries.startTime, read.startTime),
+		read.endTime === null ? isNull(timeEntries.endTime) : eq(timeEntries.endTime, read.endTime)
+	);
+
+/**
  * Set a running timer's local start date and time. Only a draft that has not been stopped
- * moves; returns the updated row, or null when there is no such timer.
+ * moves; returns the updated row, or null when there is no such timer (or `read` is stale).
  */
 export async function moveRunningTimerStart(
 	entryId: string,
 	userId: string,
-	start: { date: string; startTime: string }
+	start: { date: string; startTime: string },
+	read?: ReadDraft
 ) {
 	const results = await database
 		.update(timeEntries)
@@ -43,7 +58,8 @@ export async function moveRunningTimerStart(
 				eq(timeEntries.id, entryId),
 				eq(timeEntries.userId, userId),
 				eq(timeEntries.isDraft, true),
-				isNull(timeEntries.endTime)
+				isNull(timeEntries.endTime),
+				read ? sameDraftAsRead(read) : undefined
 			)
 		)
 		.returning();
@@ -56,9 +72,15 @@ const decryptRow = (row: typeof timeEntries.$inferSelect) => ({
 	description: decryptNullable(row.description, 'time_entries.description')
 });
 
-/** Only a stopped draft: `end_time` is set and `is_draft` still true. */
-const stoppedDraft = (entryId: string, userId: string) =>
-	and(eq(timeEntries.id, entryId), eq(timeEntries.userId, userId), eq(timeEntries.isDraft, true), isNotNull(timeEntries.endTime));
+/** Only a stopped draft (`end_time` set, `is_draft` true), still as the caller read it. */
+const stoppedDraft = (entryId: string, userId: string, read: ReadDraft) =>
+	and(
+		eq(timeEntries.id, entryId),
+		eq(timeEntries.userId, userId),
+		eq(timeEntries.isDraft, true),
+		isNotNull(timeEntries.endTime),
+		sameDraftAsRead(read)
+	);
 
 /**
  * Move a stopped timer's start, keeping its end; `durationMinutes` is re-measured by the caller
@@ -67,12 +89,13 @@ const stoppedDraft = (entryId: string, userId: string) =>
 export async function moveStoppedTimerStart(
 	entryId: string,
 	userId: string,
-	start: { date: string; startTime: string; durationMinutes: number }
+	start: { date: string; startTime: string; durationMinutes: number },
+	read: ReadDraft
 ) {
 	const results = await database
 		.update(timeEntries)
 		.set({ date: start.date, startTime: start.startTime, durationMinutes: start.durationMinutes, updatedAt: new Date() })
-		.where(stoppedDraft(entryId, userId))
+		.where(stoppedDraft(entryId, userId, read))
 		.returning();
 	return results[0] ? decryptRow(results[0]) : null;
 }
@@ -81,11 +104,16 @@ export async function moveStoppedTimerStart(
  * Resume a stopped timer from `start` (its own start, or a new one): the end is cleared, so the
  * timer runs from there through now, time spent editing included (design r1 SP-05).
  */
-export async function resumeStoppedTimer(entryId: string, userId: string, start: { date: string; startTime: string }) {
+export async function resumeStoppedTimer(
+	entryId: string,
+	userId: string,
+	start: { date: string; startTime: string },
+	read: ReadDraft
+) {
 	const results = await database
 		.update(timeEntries)
 		.set({ date: start.date, startTime: start.startTime, endTime: null, durationMinutes: 0, updatedAt: new Date() })
-		.where(stoppedDraft(entryId, userId))
+		.where(stoppedDraft(entryId, userId, read))
 		.returning();
 	return results[0] ? decryptRow(results[0]) : null;
 }

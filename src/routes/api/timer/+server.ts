@@ -9,7 +9,8 @@ import { isCalendarDate } from '$lib/utils/local-calendar';
 import { readLocalTime } from './local-clock';
 import { checkTimerStart } from './start-guard';
 import { readExpectedStart } from './expected-start';
-import { draftEndMoment, draftStartMoment, fullTime, sameMoment, stoppedStartProblem } from './timer-moments';
+import { draftEndMoment, fullTime, stoppedStartProblem } from './timer-moments';
+import { momentMatches } from '$lib/server/db/queries/timer-draft-rules';
 
 /**
  * PATCH /api/timer — move the draft timer's start (sprint 041-CL), or resume a stopped one
@@ -22,7 +23,8 @@ import { draftEndMoment, draftStartMoment, fullTime, sameMoment, stoppedStartPro
  *   `startTime`/`date` when given) through now, editing time included. 409 `timer_running` when it
  *   is not stopped.
  * Also 400 `invalid_start`, 404 `no_running_timer`, 409 `timer_changed` when `expectedStartedAt`
- * is not the draft's start, and 409 `start_overlaps_entry` with `overlappingEntry` unless
+ * is not the draft's start (compared at the precision sent) or the draft changed between this
+ * request's read and its update (the update's WHERE re-checks the start and end), and 409 `start_overlaps_entry` with `overlappingEntry` unless
  * `confirmed`. Returns the timer entry, like `GET /api/timer/status`'s `timer`.
  */
 export const PATCH: RequestHandler = async ({ locals, request, url }) => {
@@ -46,10 +48,10 @@ export const PATCH: RequestHandler = async ({ locals, request, url }) => {
 
 	const timer = await getRunningTimer(currentUser.id);
 	if (!timer) return apiError(404, 'No running timer', 'no_running_timer');
-	const currentStart = draftStartMoment(timer);
-	if (expectedStart && (!currentStart || !sameMoment(currentStart, expectedStart))) {
-		return apiError(409, 'The timer changed since this screen loaded; reload it and try again', 'timer_changed');
-	}
+	const changed = () => apiError(409, 'The timer changed since this screen loaded; reload it and try again', 'timer_changed');
+	if (expectedStart && !momentMatches({ date: timer.date, time: timer.startTime }, expectedStart)) return changed();
+	// Every update below re-checks this read in its WHERE clause: a concurrent change makes it miss (409)
+	const read = { date: timer.date, startTime: timer.startTime, endTime: timer.endTime };
 
 	const start = {
 		date: (body.date as string | undefined) ?? timer.date,
@@ -62,13 +64,13 @@ export const PATCH: RequestHandler = async ({ locals, request, url }) => {
 		if (resume) return apiError(409, 'The timer is already running', 'timer_running');
 		const refusal = await checkTimerStart({ userId: currentUser.id, url, request, start, confirmed });
 		if (refusal) return refusal;
-		const moved = await moveRunningTimerStart(timer.id, currentUser.id, { date: start.date, startTime: start.time });
-		if (!moved) return apiError(404, 'No running timer', 'no_running_timer');
+		const moved = await moveRunningTimerStart(timer.id, currentUser.id, { date: start.date, startTime: start.time }, read);
+		if (!moved) return changed();
 	} else if (resume) {
 		const refusal = await checkTimerStart({ userId: currentUser.id, url, request, start, confirmed });
 		if (refusal) return refusal;
-		const resumed = await resumeStoppedTimer(timer.id, currentUser.id, { date: start.date, startTime: start.time });
-		if (!resumed) return apiError(404, 'No running timer', 'no_running_timer');
+		const resumed = await resumeStoppedTimer(timer.id, currentUser.id, { date: start.date, startTime: start.time }, read);
+		if (!resumed) return changed();
 	} else if (timerEnd) {
 		const problem = stoppedStartProblem(start, timerEnd);
 		if (problem) return apiError(400, problem.message, problem.code);
@@ -78,8 +80,8 @@ export const PATCH: RequestHandler = async ({ locals, request, url }) => {
 			date: start.date,
 			startTime: start.time,
 			durationMinutes: calculateTimerDurationMinutes(start.time, timerEnd.time)
-		});
-		if (!moved) return apiError(404, 'No running timer', 'no_running_timer');
+		}, read);
+		if (!moved) return changed();
 	}
 	return json(await getRunningTimer(currentUser.id));
 };
