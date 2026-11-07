@@ -444,7 +444,8 @@
 					aria-label="Add entry for {formatDayHeader(dayDate)}"
 				>
 					<span aria-hidden="true" class="text-base leading-none">+</span>
-					<span>Add entry</span>
+					<!-- Under 360 px (320-wide phones) only the + shows; the label crowded the date and total -->
+					<span class="max-[359px]:sr-only">Add entry</span>
 				</button>
 			{/if}
 			<span class="ml-auto text-sm font-semibold whitespace-nowrap tabular-nums sm:text-base" data-testid="day-total">
