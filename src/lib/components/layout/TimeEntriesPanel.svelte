@@ -11,7 +11,7 @@
 	import AddTimeEntryModal from '$lib/components/timer/AddTimeEntryModal.svelte';
 	import { getTimerStateContext } from '$lib/stores/timer-state.svelte';
 	import { dispatchTimeEntrySaved } from '$lib/components/weekly/time-entry-events';
-	import { getMondayOfWeek, getWeekDates, formatDayHeader, isoWeekOf } from '$lib/utils/iso-week';
+	import { getMondayOfWeek, getWeekDates, formatDayHeader } from '$lib/utils/iso-week';
 	import { formatDayHeading, formatWeekHeading } from '$lib/components/weekly/week-labels';
 	import { dayJumpScrollTop } from '$lib/components/weekly/day-jump';
 	import { formatMinutes } from '$lib/utils/duration';
@@ -292,11 +292,10 @@
 
 	/** Recordkeeping only: the week's status changes and nothing is sent (TR-07) */
 	async function handleStatusChange(weekStart: string, newStatus: string) {
-		// ISO 8601 week (iso-week.ts); the server stores the status by its Monday
-		const { year, weekNumber } = isoWeekOf(weekStart);
+		// The week is sent as its Monday, the server's key; no week number (061-DR)
 		statusError = '';
 		try {
-			await dataService.updateWeeklyStatus(year, weekNumber, newStatus);
+			await dataService.updateWeeklyStatus(weekStart, newStatus);
 
 			const weekIndex = loadedWeeks.findIndex((week) => week.weekStart === weekStart);
 			if (weekIndex !== -1) {

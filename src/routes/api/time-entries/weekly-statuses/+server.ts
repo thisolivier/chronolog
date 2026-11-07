@@ -41,8 +41,10 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 };
 
 /**
- * POST { year, weekNumber, status } or { weekStart, status }: set one week's status. Recordkeeping
- * only: choosing Submitted sends, exports or invoices nothing.
+ * POST { weekStart, status } (the web client, 061-DR) or { year, weekNumber, status } (ISO week; the
+ * CLI): set one week's status. `weekStart` wins when both are sent, since the Monday is the key and
+ * a number from an older client may follow a different rule. Recordkeeping only: choosing
+ * Submitted sends, exports or invoices nothing.
  */
 export const POST: RequestHandler = async ({ request, locals }) => {
 	const currentUser = locals.user;

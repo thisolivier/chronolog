@@ -74,6 +74,18 @@ no-op; W53 only in 53-week years), `cli-lib.test.mjs`, API e2e year-boundary sta
 Playwright `time-review.spec.ts` year boundary (2026-W53 heading, ‹ › titles 52 / 1 and 53, paging
 to 2027-W01 and back, `/time/2025-W53` 404).
 
+## Review hardening
+
+- The web client posts a week status as `{ weekStart, status }` (`DataService.updateWeeklyStatus(weekStart,
+  status)`), never a year and week number, so a client can't number a week differently from the server.
+  The server already prefers `weekStart` when both are sent; `{ year, weekNumber }` (ISO) stays accepted for
+  the CLI. Weekly status is not queued offline (SPEC "Not queued"), so the outbox has no replay path for it.
+- A cached v1.5.0 bundle still sends `{ year, weekNumber }` by its rule; from 28 Dec 2026 it would file
+  "2027 Week 1" under ISO 2027-W01. Bundles update on reload (service worker update notice) long before then.
+- API e2e: `weekStart` only stores by that Monday; `weekStart` wins over a conflicting `(2027, 1)`.
+- `npm run check` 0/0 · lint exit 0 · `npm test` `Tests  1348 passed (1348)` · `npm run test:e2e`
+  `Tests  152 passed (152)` · `time-review.spec.ts` chromium `1 skipped` · `7 passed (15.2s)`.
+
 ## Docs
 
 `docs/decisions.md` (new entry), `docs/backlog.md` (entry resolved), `docs/SPEC.md` (weekly status

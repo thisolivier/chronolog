@@ -74,7 +74,8 @@ export interface DataService {
 	createTimeEntry(data: CreateTimeEntryInput): Promise<{ id: string }>;
 	updateTimeEntry(entryId: string, data: Partial<TimeEntryFields>): Promise<void>;
 	deleteTimeEntry(entryId: string): Promise<void>;
-	updateWeeklyStatus(year: number, weekNumber: number, status: string): Promise<void>;
+	/** `weekStart` is the week's Monday (`YYYY-MM-DD`), its identity; no week number is sent */
+	updateWeeklyStatus(weekStart: string, status: string): Promise<void>;
 
 	// Timer
 	getTimerStatus(): Promise<TimerStatus>;

@@ -84,7 +84,7 @@ export function isoWeekKey(dateString: string): string {
 
 /**
  * Parses `2026-W45` (also `2026W45`, `2026-w5`); null when malformed or the week does not exist
- * in that year (`2026-W53`: 2026 has 52 ISO weeks). `key` is the canonical spelling.
+ * in that year (`2025-W53`: 2025 has 52 ISO weeks; 2026 has 53). `key` is the canonical spelling.
  */
 export function parseIsoWeekKey(text: string): (IsoWeek & { key: string }) | null {
 	const match = WEEK_KEY_PATTERN.exec(String(text).trim());

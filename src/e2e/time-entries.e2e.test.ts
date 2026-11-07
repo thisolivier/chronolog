@@ -266,4 +266,19 @@ describe('Time Entries API', () => {
 		expect(week53.status).toBe(400);
 		await authPost('/api/time-entries/weekly-statuses', { weekStart: '2026-12-28', status: 'Unsubmitted' });
 	});
+
+	it('POST with weekStart only (the web client, 061-DR) stores the status by that Monday', async () => {
+		const posted = await authPost('/api/time-entries/weekly-statuses', { weekStart: '2027-01-04', status: 'Draft ready' });
+		expect(posted.status).toBe(200);
+		expect((await posted.json()).status).toMatchObject({ weekStart: '2027-01-04', year: 2027, weekNumber: 1, status: 'Draft ready' });
+		const statuses = await (await authGet('/api/time-entries/weekly-statuses?weeks=2026-W53,2027-W01')).json();
+		expect(statuses.statuses['2027-W01']).toBe('Draft ready');
+		// weekStart wins over a week number numbered by another rule (v1.5.0 called 28 Dec "2027 Week 1")
+		const both = await authPost('/api/time-entries/weekly-statuses', { weekStart: '2026-12-28', year: 2027, weekNumber: 1, status: 'Submitted' });
+		expect((await both.json()).status).toMatchObject({ weekStart: '2026-12-28', year: 2026, weekNumber: 53, status: 'Submitted' });
+		const after = await (await authGet('/api/time-entries/weekly-statuses?weeks=2026-W53,2027-W01')).json();
+		expect(after.statuses).toEqual({ '2026-W53': 'Submitted', '2027-W01': 'Draft ready' });
+		await authPost('/api/time-entries/weekly-statuses', { weekStart: '2026-12-28', status: 'Unsubmitted' });
+		await authPost('/api/time-entries/weekly-statuses', { weekStart: '2027-01-04', status: 'Unsubmitted' });
+	});
 });
