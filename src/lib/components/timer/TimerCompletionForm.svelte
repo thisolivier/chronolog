@@ -4,6 +4,7 @@
 	import DurationField from './DurationField.svelte';
 	import SplitTimeButton from './SplitTimeButton.svelte';
 	import { OntologyCascade } from './ontology-cascade.svelte';
+	import { cascadeIdForSave } from './ontology-cascade';
 	import { describeSaveError } from './save-error';
 	import { formatMinutes, formatTimeRange, parseDuration } from '$lib/utils/duration';
 	import { captureDraft } from '$lib/stores/capture-draft.svelte';
@@ -45,6 +46,7 @@
 	const cascade = new OntologyCascade(dataService, () => captureDraft.fields);
 	$effect(() => {
 		untrack(() => cascade.start());
+		return () => cascade.dispose();
 	});
 
 	const fields = $derived(captureDraft.fields);
@@ -71,7 +73,7 @@
 	});
 
 	async function handleSave() {
-		if (isSaving) return;
+		if (isSaving || captureDraft.isResolving) return;
 		isSaving = true;
 		saveError = '';
 		try {
@@ -85,8 +87,8 @@
 
 			const saveData: TimerSaveData = {
 				contractId: fields.contractId,
-				deliverableId: fields.deliverableId,
-				workTypeId: fields.workTypeId,
+				deliverableId: cascadeIdForSave(fields.deliverableId),
+				workTypeId: cascadeIdForSave(fields.workTypeId),
 				description: fields.description
 			};
 			if (parsedTime && parsedTime.ok) {
@@ -110,6 +112,8 @@
 	}
 
 	const isScreen = $derived(layout === 'screen');
+	// A Save or Discard in flight anywhere (this form, another widget): neither may start another
+	const isResolving = $derived(isSaving || captureDraft.isResolving);
 </script>
 
 <div
@@ -186,14 +190,15 @@
 		<button
 			type="button"
 			onclick={onDiscard}
-			class="rounded-control btn-secondary px-3 py-1.5 text-sm whitespace-nowrap {isScreen ? 'min-h-11 flex-1' : ''}"
+			disabled={isResolving}
+			class="rounded-control btn-secondary disabled:cursor-wait disabled:opacity-60 px-3 py-1.5 text-sm whitespace-nowrap {isScreen ? 'min-h-11 flex-1' : ''}"
 		>
 			Discard
 		</button>
 		<button
 			type="button"
 			onclick={handleSave}
-			disabled={isSaving}
+			disabled={isResolving}
 			class="rounded-control btn-primary px-4 py-1.5 text-sm font-medium whitespace-nowrap disabled:cursor-wait disabled:opacity-70 {isScreen
 				? 'min-h-11 flex-1'
 				: ''}"

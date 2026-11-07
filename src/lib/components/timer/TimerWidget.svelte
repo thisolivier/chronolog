@@ -67,6 +67,12 @@
 		announceCaptureChange(widgetId);
 	}
 
+	// Answers that arrive after unmount must not navigate or close a screen reopened since
+	let isMounted = true;
+	$effect(() => () => {
+		isMounted = false;
+	});
+
 	const isScreen = $derived(placement === 'screen');
 	const splitHandler = splitHandlerFor();
 
@@ -170,7 +176,8 @@
 	 */
 	let isCreatingServerDraft = false;
 
-	async function checkExistingTimer() {
+	/** Read the capture; false when the status could not be read and `keepOnFailure` left state alone */
+	async function checkExistingTimer(keepOnFailure = false): Promise<boolean> {
 		try {
 			const data = await dataService.getTimerStatus();
 			if (data.timer) {
@@ -196,9 +203,14 @@
 				captureDraft.clear();
 			}
 		} catch {
+			if (keepOnFailure) {
+				isLoading = false;
+				return false;
+			}
 			restorePendingTimer();
 		}
 		isLoading = false;
+		return true;
 	}
 
 	/** Restore the browser-only timer; false when there is none */
@@ -441,7 +453,26 @@
 	}
 
 	/** Throws on failure so the completion form can show the message next to its buttons */
-	async function handleSave(data: TimerSaveData) {
+	/**
+	 * Save or Discard: one at a time across every mounted widget (captureDraft.isResolving), so a
+	 * Back and reopen mid-save cannot resolve the same capture twice
+	 */
+	async function resolveCapture(resolve: () => Promise<void>) {
+		if (captureDraft.isResolving) return;
+		captureDraft.isResolving = true;
+		try {
+			await resolve();
+		} finally {
+			captureDraft.isResolving = false;
+		}
+	}
+
+	/** Throws on failure so the completion form can show the message next to its buttons */
+	function handleSave(data: TimerSaveData) {
+		return resolveCapture(() => saveCapture(data));
+	}
+
+	async function saveCapture(data: TimerSaveData) {
 		const savedDate = timerDate || localDateString();
 		let savedEntryId = entryId;
 		if (entryId) {
@@ -453,6 +484,7 @@
 				if (!conflict) throw caughtError;
 				// Stale capture: never retry blindly; show the server's current state and say why
 				await reloadFromServer(describeTimerConflict(conflict, 'save'));
+				announceChange();
 				return;
 			}
 		} else {
@@ -476,11 +508,16 @@
 		announceChange();
 		// A timer entry is dated the local day it was started; the view follows it there
 		dispatchTimeEntrySaved({ entryId: savedEntryId, date: savedDate });
+		if (!isMounted) return;
 		navigation.showTimeEntryDay(savedDate);
 		onLeave?.();
 	}
 
-	async function handleDiscard() {
+	function handleDiscard() {
+		return resolveCapture(discardCapture);
+	}
+
+	async function discardCapture() {
 		if (entryId) {
 			try {
 				await dataService.discardTimer(entryId, { expectedStartedAt: expectedStartedAt() });
@@ -488,6 +525,7 @@
 				const conflict = timerConflictFrom(caughtError);
 				if (conflict) {
 					await reloadFromServer(describeTimerConflict(conflict, 'discard'));
+					announceChange();
 					return;
 				}
 				// Otherwise best effort, as before: a draft left on the server comes back on the next load
@@ -495,7 +533,7 @@
 		}
 		resetTimer();
 		announceChange();
-		onLeave?.();
+		if (isMounted) onLeave?.();
 	}
 
 	/**
@@ -505,6 +543,16 @@
 	 */
 	async function reloadFromServer(message = '') {
 		if (descriptionDebounceTimer) clearTimeout(descriptionDebounceTimer);
+		const previous = {
+			timerState,
+			entryId,
+			startTime,
+			timerDate,
+			endTime,
+			elapsedSeconds,
+			draftContractId,
+			draftDescription
+		};
 		isLoading = true;
 		timerState = 'idle';
 		entryId = '';
@@ -516,7 +564,16 @@
 		draftDescription = '';
 		isChangingContract = false;
 		errorMessage = '';
-		await checkExistingTimer();
+		const reloaded = await checkExistingTimer(true);
+		if (!reloaded) {
+			// No connection: keep what this widget showed (a stopped capture stays stopped) and say so
+			({ timerState, entryId, startTime, timerDate, endTime, elapsedSeconds, draftContractId, draftDescription } = previous);
+			if (timerState === 'stopped') openCompletion();
+			errorMessage = message
+				? 'This timer changed or was resolved on another device, and it could not be reloaded. Check your connection, then try again.'
+				: 'The timer could not be reloaded. Check your connection.';
+			return;
+		}
 		errorMessage = message;
 	}
 

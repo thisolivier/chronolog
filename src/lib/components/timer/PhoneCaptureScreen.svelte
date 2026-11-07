@@ -13,6 +13,7 @@
 	import TimerWidget from './TimerWidget.svelte';
 	import { captureScreen } from './capture-screen.svelte';
 	import { VisualViewportBox } from './visual-viewport.svelte';
+	import { captureDraft } from '$lib/stores/capture-draft.svelte';
 
 	const viewportBox = new VisualViewportBox();
 	$effect(() => viewportBox.track());
@@ -22,6 +23,8 @@
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key !== 'Escape' || event.target instanceof HTMLSelectElement) return;
+		// Not while a Save or Discard is in flight: leaving and reopening could resolve it twice
+		if (captureDraft.isResolving) return;
 		// The Add Time Entry modal opened from here handles its own Escape
 		if (document.querySelector('[data-testid="add-entry-backdrop"]')) return;
 		captureScreen.close();
@@ -42,7 +45,9 @@
 		<button
 			type="button"
 			onclick={() => captureScreen.close()}
-			class="flex min-h-11 items-center px-2 text-sm font-medium text-pine-600 hover:text-pine-800"
+			disabled={captureDraft.isResolving}
+			title={captureDraft.isResolving ? 'Saving…' : undefined}
+			class="flex min-h-11 items-center px-2 text-sm font-medium text-pine-600 hover:text-pine-800 disabled:cursor-wait disabled:opacity-50"
 			data-testid="capture-screen-back"
 		>
 			&larr; Back

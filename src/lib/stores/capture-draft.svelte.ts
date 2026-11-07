@@ -43,6 +43,12 @@ export class CaptureDraftStore {
 	/** The interval the time text was measured from */
 	intervalKey = $state<string | null>(null);
 	fields = $state<CaptureDraftFields>(emptyFields());
+	/**
+	 * True while a Save or Discard of the capture is in flight (sprint 055-DR review). Shared by
+	 * every mounted widget and the phone capture screen: Save, Discard, Back and Escape wait for
+	 * it, so leaving and reopening mid-save can never resolve the same capture twice.
+	 */
+	isResolving = $state(false);
 
 	#userId = '';
 	#storage: Storage | null = null;

@@ -12,6 +12,7 @@
 	import CascadeFields from './CascadeFields.svelte';
 	import DurationField from './DurationField.svelte';
 	import { OntologyCascade, type CascadeSelection } from './ontology-cascade.svelte';
+	import { cascadeIdForSave } from './ontology-cascade';
 	import { describeSaveError } from './save-error';
 	import { localDateString } from './local-date';
 	import { VisualViewportBox, revealFocusedField } from './visual-viewport.svelte';
@@ -47,6 +48,7 @@
 	const cascade = new OntologyCascade(dataService, () => selection);
 	$effect(() => {
 		untrack(() => cascade.start());
+		return () => cascade.dispose();
 	});
 
 	let isSaving = $state(false);
@@ -96,8 +98,8 @@
 				date: entryDate,
 				durationMinutes: parsed.durationMinutes,
 				contractId: selection.contractId,
-				deliverableId: selection.deliverableId || null,
-				workTypeId: selection.workTypeId || null,
+				deliverableId: cascadeIdForSave(selection.deliverableId) || null,
+				workTypeId: cascadeIdForSave(selection.workTypeId) || null,
 				description: description.trim() || undefined
 			};
 			if (parsed.kind === 'range') {
