@@ -3,7 +3,7 @@ import { type Editor } from '@tiptap/core';
 import { PluginKey } from '@tiptap/pm/state';
 import { Suggestion, type SuggestionOptions } from '@tiptap/suggestion';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
-import { SuggestionDropdown } from './SuggestionDropdown.js';
+import { createWikiLinkPickerRenderer } from './wiki-link-picker.svelte.js';
 import { isNoteInTrash, subscribeToNoteTitles, wikiLinkDisplayText } from '../note-titles.svelte.js';
 
 /**
@@ -93,6 +93,11 @@ const WIKI_LINK_TOKEN_TYPE = 'wiki_link';
 /** `editor.storage.wikiLink` (besides the tiptap-markdown spec) */
 export interface WikiLinkStorage {
 	getCurrentNoteId: () => string | null;
+	/**
+	 * Start of a `[[` token whose picker was dismissed (Escape, outside press, blur; 059-DR): the
+	 * suggestion stays closed while typing on in it. Cleared once that `[[` is gone.
+	 */
+	dismissedFrom: number | null;
 }
 
 /**
@@ -182,36 +187,13 @@ export const WikiLink = Node.create<{
 				allowSpaces: true,
 				pluginKey: WikiLinkPluginKey,
 
-				items: async ({ query, editor }: { query: string; editor: Editor }) => {
-					// Never offer the note being edited; an empty `[[` lists recent notes.
-					const storage = (editor.storage as unknown as Record<string, WikiLinkStorage | undefined>)
-						.wikiLink;
-					const currentNoteId = storage?.getCurrentNoteId() ?? null;
-					const parameters = new URLSearchParams({ q: query ?? '', recent: '1', limit: '8' });
-					if (currentNoteId) parameters.set('exclude', currentNoteId);
+				// The picker queries for itself (debounced, stale replies ignored; 059-DR), so the
+				// plugin's own awaited items stay empty and can never overwrite newer results
+				items: () => [],
 
-					try {
-						const response = await fetch(`/api/notes/search?${parameters}`);
-						if (!response.ok) return [];
-						const data = await response.json();
-						// Map API shape { id, title, firstLine, secondLine } to WikiLinkSuggestionItem
-						return (data.notes ?? []).map(
-							(note: {
-								id: string;
-								displayTitle?: string | null;
-								firstLine?: string;
-								secondLine?: string;
-							}) => ({
-								noteId: note.id,
-								title: note.displayTitle || note.id,
-								firstLine: note.firstLine ?? '',
-								secondLine: note.secondLine ?? '',
-							})
-						);
-					} catch {
-						return [];
-					}
-				},
+				// A dismissed token stays closed until its `[[` is removed (see dismissedFrom)
+				allow: ({ editor, range }: { editor: Editor; range: Range }) =>
+					(editor.storage as unknown as Record<string, WikiLinkStorage | undefined>).wikiLink?.dismissedFrom !== range.from,
 
 				command: ({
 					editor,
@@ -242,43 +224,7 @@ export const WikiLink = Node.create<{
 						.run();
 				},
 
-				render: () => {
-					let dropdown: SuggestionDropdown | null = null;
-
-					return {
-						onStart(props) {
-							dropdown = new SuggestionDropdown({
-								items: props.items,
-								command: (item: WikiLinkSuggestionItem) => {
-									// No explicit label: the chip shows the note's live title
-									props.command({ noteId: item.noteId, label: item.noteId });
-								},
-								clientRect: props.clientRect ?? null,
-							});
-						},
-
-						onUpdate(props) {
-							dropdown?.update({
-								items: props.items,
-								command: (item: WikiLinkSuggestionItem) => {
-									// No explicit label: the chip shows the note's live title
-									props.command({ noteId: item.noteId, label: item.noteId });
-								},
-								clientRect: props.clientRect ?? null,
-							});
-						},
-
-						onKeyDown(props) {
-							if (!dropdown) return false;
-							return dropdown.onKeyDown(props.event);
-						},
-
-						onExit() {
-							dropdown?.destroy();
-							dropdown = null;
-						},
-					};
-				},
+				render: createWikiLinkPickerRenderer(WikiLinkPluginKey),
 			},
 		};
 	},
@@ -287,6 +233,7 @@ export const WikiLink = Node.create<{
 		return {
 			// NoteEditor replaces this so `[[` suggestions exclude the note being edited
 			getCurrentNoteId: () => null,
+			dismissedFrom: null,
 			// tiptap-markdown node spec: see MarkdownNodeSpec in tiptap-markdown.
 			markdown: {
 				serialize(state: MarkdownSerializerStateLike, node: ProseMirrorNode) {
@@ -438,6 +385,17 @@ export const WikiLink = Node.create<{
 				},
 			}),
 		];
+	},
+
+	onTransaction({ transaction }) {
+		// Forget a dismissed token once its `[[` has gone (deleted, or replaced by a link)
+		const storage = this.storage as unknown as WikiLinkStorage;
+		if (storage.dismissedFrom === null || !transaction.docChanged) return;
+		const mapped = transaction.mapping.mapResult(storage.dismissedFrom);
+		const doc = transaction.doc;
+		const stillThere =
+			!mapped.deleted && mapped.pos + 2 <= doc.content.size && doc.textBetween(mapped.pos, mapped.pos + 2) === '[[';
+		storage.dismissedFrom = stillThere ? mapped.pos : null;
 	},
 
 	addProseMirrorPlugins() {
