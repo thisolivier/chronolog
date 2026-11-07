@@ -1,7 +1,10 @@
 /**
- * Sprint 046-CL: /search shows notes and time entries in one list, newest first, each with a type
- * icon ("Note" / "Time entry") and its client / contract; at phone width the icon sits on the
- * client/contract line and nothing scrolls sideways. Hits still open their note or entry.
+ * Sprint 046-CL: /search shows notes and time entries in one list, each with a type icon ("Note" /
+ * "Time entry") and its client / contract; at phone width the icon sits on the client/contract line
+ * and nothing scrolls sideways. Hits still open their note or entry.
+ *
+ * Since 058-DR (design r1 SR-02/SR-03) the list is ordered by the shared search rank, then newest
+ * first within a rank; it is no longer plain newest-first.
  */
 import { test, expect, type Page } from '@playwright/test';
 import path from 'node:path';
@@ -13,10 +16,15 @@ const SCREENSHOTS = sprintScreenshotDirectory('sprint-046');
 type Seeded = { word: string; clientName: string; contractName: string; otherClientName: string; noteIds: Record<string, string> };
 
 /**
- * Two clients. Three notes written now (a backdated note keeps today's last-modified time, which is
- * what the page shows and sorts by) under the first; entries under the second at 23:30 today and
- * on Oct 22 and Oct 20. Newest first: today's late entry, the three notes, Oct 22, Oct 20.
- * (Run just before midnight the 23:30 entry is older than the notes; not worth guarding.)
+ * Two clients. Three notes written now under the first (a backdated note keeps today's last-modified
+ * time, which is what the page shows and breaks rank ties by): the kick-off and workshop notes have
+ * the word in their title (rank TITLE), the follow-up only in its body (rank CONTENT). Entries under
+ * the second have the word in their description (rank CONTENT), dated 2099-01-05 (newer than any
+ * run), Oct 22 and Oct 20. Expected order, independent of the clock:
+ *   workshop, kick-off (TITLE, the later-written first), then within CONTENT newest first:
+ *   2099 entry, follow-up note, Oct 22 entry, Oct 20 entry.
+ * The 2099 entry shows rank beats recency (it is the newest hit but sits below the title matches)
+ * and that a rank still interleaves notes and entries by recency.
  */
 async function seed(page: Page, browserName: string): Promise<Seeded> {
 	const suffix = `${Math.random().toString(36).slice(2, 5)}${browserName.slice(0, 1)}`;
@@ -39,7 +47,7 @@ async function seed(page: Page, browserName: string): Promise<Seeded> {
 			for (const [key, createdAt, title] of [
 				['kickoff', '2026-10-19', `Kick-off notes ${word}`],
 				['workshop', '2026-10-21', `Workshop ${word} actions`],
-				['followUp', null, `Follow-up on ${word}`]
+				['followUp', null, `Follow-up on the scope`]
 			] as const) {
 				const { note } = await post('/api/notes', {
 					contractId: (contract.contract ?? contract).id,
@@ -49,10 +57,8 @@ async function seed(page: Page, browserName: string): Promise<Seeded> {
 				});
 				noteIds[key] = note.id;
 			}
-			const now = new Date();
-			const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 			for (const [date, startTime, description] of [
-				[today, '23:30', `Reviewed the ${word} feedback`],
+				['2099-01-05', '09:00', `Reviewed the ${word} feedback`],
 				['2026-10-20', '09:00', `Call about ${word} rollout`],
 				['2026-10-22', '08:00', `Drafted the ${word} budget section`]
 			]) {
@@ -77,8 +83,11 @@ const noteHit = (page: Page, title: string) => page.getByTestId('search-hit-note
 async function expectInterleaved(page: Page, seeded: Seeded) {
 	await expect(hits(page)).toHaveCount(6);
 	const kinds = await hits(page).evaluateAll((buttons) => buttons.map((button) => button.getAttribute('data-search-hit')));
-	expect(kinds).toEqual(['entry', 'note', 'note', 'note', 'entry', 'entry']);
-	await expect(hits(page).nth(0)).toContainText('Reviewed the');
+	expect(kinds).toEqual(['note', 'note', 'entry', 'note', 'entry', 'entry']);
+	await expect(hits(page).nth(0)).toContainText('Workshop');
+	await expect(hits(page).nth(1)).toContainText('Kick-off notes');
+	await expect(hits(page).nth(2)).toContainText('Reviewed the');
+	await expect(hits(page).nth(3)).toContainText('Follow-up on the scope');
 	await expect(hits(page).nth(4)).toContainText('Drafted the');
 	await expect(hits(page).nth(5)).toContainText('Call about');
 	await expect(page.getByTestId('search-summary')).toHaveText('3 notes · 3 time entries');
@@ -86,10 +95,10 @@ async function expectInterleaved(page: Page, seeded: Seeded) {
 	await expect(page.getByRole('img', { name: 'Note', exact: true })).toHaveCount(3);
 	await expect(page.getByRole('img', { name: 'Time entry', exact: true })).toHaveCount(3);
 	await expect(noteHit(page, 'Follow-up on').getByTestId('search-hit-context')).toContainText(`${seeded.clientName} / ${seeded.contractName}`);
-	await expect(hits(page).nth(0).getByTestId('search-hit-context')).toContainText(`${seeded.otherClientName} / Grant bid`);
+	await expect(hits(page).nth(2).getByTestId('search-hit-context')).toContainText(`${seeded.otherClientName} / Grant bid`);
 }
 
-test('desktop: one list newest first, type icon column, client and contract, hits open', async ({ page, browserName }) => {
+test('desktop: one list by rank then recency, type icon column, client and contract, hits open', async ({ page, browserName }) => {
 	const seeded = await seed(page, browserName);
 	await page.setViewportSize({ width: 1100, height: 800 });
 	await page.goto(`/search?q=${seeded.word}`);
