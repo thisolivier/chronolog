@@ -35,6 +35,22 @@ ISO-numbered row of the user is renumbered (two passes, so the unique key never 
 returns `week`; `isoWeek` stays as an alias of the same value for older CLIs. The route matcher is now
 `[[week=week]]` (`src/params/week.ts`).
 
+**Installed CLIs must be updated before 28 Dec 2026.** An older CLI reads `isoWeek` and computes
+ranges with ISO rules, so from 28 Dec 2026 to 3 Jan 2027 it shows the wrong week and posts statuses
+for a different week (and every `2027-Wnn` argument means another week to it). `git pull` on each
+machine; the drift notice prompts it. Recorded in `cli/CHANGELOG.md`.
+
+**Review fixes (after the first report):**
+- Legacy duplicate Mondays: the old validation let `2025-W53` roll over to 2025-12-29, which may also
+  be stored as 2026 Week 1, so a renumber could hit the unique key and block every later status write.
+  A write now first keeps the most recently updated row per Monday, deletes (and logs) the others,
+  then renumbers, all in the write's transaction; reads take the newest row for a Monday. DB-backed
+  test seeds that case (`weekly-statuses.test.ts`).
+- One fixture file of worked examples, `src/lib/utils/calendar-week.fixtures.json`, read by both
+  `calendar-week.test.ts` and the CLI's `cli-lib.test.mjs`, so the two copies of the rule cannot
+  drift (it caught a wrong expectation of mine: 2028 has 53 weeks).
+- Week URLs only for years 2000–2099 (`/time/0026-W45` is a 404; `Date.UTC` reads 0026 as 1926).
+
 Also fixed: the ‹ › labels wrapped at 52 (`WeekStrip.svelte:42-43`); they now come from the helper
 (2026 Week 52 → Week 1 → Week 2; 2023 Week 52 → Week 53). The Submitted hint reads "Marked as submitted
 (a record only; nothing is sent)". A failed status save shows "Couldn't save “Draft ready”. Try again."
@@ -109,4 +125,6 @@ under the status (`week-status-error`) and the status stays as it was.
 - No online conflict handling for inline edits (unchanged).
 - The phone week controls take ~265px on an iPhone SE when Start timer / Add Entry show; consider
   icon-only capture buttons after review.
+- The phone's Start timer (no capture) opens the sidebar capture widget (`navigateMobile(0)`), while
+  stage 4's header pill opens its new capture screen; stage 5/8 should unify the two.
 - The CLI's `chronolog` version is unchanged; the CHANGELOG has an Unreleased entry.

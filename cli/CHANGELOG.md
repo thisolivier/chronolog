@@ -10,6 +10,11 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
   Monday-start week containing 1 January (owner decision 2026-11-07), not ISO 8601. The two agree
   through 2026; `2027-W01` is now 28 Dec 2026 – 3 Jan 2027 (ISO's 2026-W53), and `2026-W53` is
   refused (2026 has 52 weeks). `GET /api/me` returns `week` (older servers: `isoWeek`, read as a fallback).
+- **Update every installed CLI before 28 Dec 2026.** An older CLI computes week ranges with ISO
+  rules and reads `isoWeek` from the server: from 28 Dec 2026 to 3 Jan 2027 `chronolog week` would
+  show the wrong week and `chronolog status current …` would post the status for a different week
+  (and throughout 2027 a `2027-Wnn` argument means a different week to it). Run `git pull` on each
+  machine; the version drift notice (044-CL) prompts it.
 
 ## 1.3.0 (sprints 043–044-CL, 2026-11-04): version drift notice, undo of imported notes
 
