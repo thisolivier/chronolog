@@ -37,6 +37,7 @@ on a branch `design-r1-<stage>`, gets a sprint doc under `docs/sprints/`, is rev
 | 5 (056-DR UI) | merged into design-r1 after review |
 | 7 (059-DR) | merged into design-r1 after review |
 | B + C | QA pass done on `design-r1-qa-bc` (`docs/review/2026-11-07-checkpoint-bc.md`): suites green, shared cascade adopted in weekly/, one phone Start timer path, WikiLinkInput on the shared picker; awaiting owner look, then merge and deploy |
+| Polish (060-DR) | ready for review on `design-r1-polish` (`docs/sprints/sprint-060-DR.md`): the eight checkpoint B/C and A polish items, suites green |
 | 8 | after B/C |
 
 Owner rule added 2026-11-07: any database migration needs a halt-and-ask first. None so far.
