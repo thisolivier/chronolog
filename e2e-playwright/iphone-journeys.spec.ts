@@ -36,6 +36,8 @@ test('sign in, then the week: add, edit and delete an entry @iphone', async ({ p
 	await page.locator('#password').fill('FreshUser044!pass');
 	await page.locator('button[type="submit"]').click();
 	await page.waitForURL((url) => url.pathname === '/');
+	// Under a full-suite load the sign-in's own client navigation to / can still be settling (060-DR)
+	await page.waitForLoadState('networkidle');
 
 	await open(page, '/time');
 	await expect(page.getByTestId('time-entry-card').first()).toBeVisible();

@@ -2,6 +2,7 @@
  * Checkpoint A owner screenshots (design r1). Off by default; writes into
  * docs/review/screenshots/checkpoint-a/ with
  *   CHECKPOINT_SCREENSHOTS=1 npx playwright test e2e-playwright/checkpoint-a-screenshots.spec.ts --project=chromium --project=iphone-15
+ * SCREENSHOTS_DIR=sprint-060/checkpoint-a writes into another folder under docs/review/screenshots/ instead.
  * Desktop shots run in chromium at 1280×800, phone shots in the iphone-15 project at 390×844.
  * Seeds the mock-up names (Amplitude: Hungryroot, Daily Pay, Rank Group; EasyJet; Internal).
  */
@@ -12,7 +13,7 @@ import { signInAsFreshUser } from './fresh-user';
 import { editor } from './notes-helpers';
 import { seedCheckpoint } from './checkpoint-a-seed';
 
-const OUTPUT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'review', 'screenshots', 'checkpoint-a');
+const OUTPUT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'review', 'screenshots', process.env.SCREENSHOTS_DIR ?? 'checkpoint-a');
 const enabled = process.env.CHECKPOINT_SCREENSHOTS === '1';
 const widget = (page: Page) => page.getByTestId('timer-widget-sidebar');
 
