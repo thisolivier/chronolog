@@ -7,15 +7,12 @@
 	import { captureScreen } from '$lib/components/timer/capture-screen.svelte';
 	import ConnectionStatus from './ConnectionStatus.svelte';
 	import GlobalSearchField from '$lib/components/search/GlobalSearchField.svelte';
-	import HistoryButtons from './HistoryButtons.svelte';
+	import AppBarHome from './AppBarHome.svelte';
 	import { requestFindInPage } from '$lib/components/find/shortcuts';
-	import { labelForPath, titleForRoute } from './navigation-labels';
+	import { titleForRoute } from './navigation-labels';
 	import { phoneTitleBarNamesContext } from './note-context-ownership';
-	import { requestNoteTitles, subscribeToNoteTitles } from '$lib/components/notes/note-titles.svelte';
-	import { isNoteListRoute, parseWorkspacePath } from '$lib/stores/navigation-routes';
 	import { getDataService } from '$lib/services/context';
 	import { untrack } from 'svelte';
-	import { goto } from '$app/navigation';
 	import {
 		headerReflectionFor,
 		isTimerWidgetOnScreen,
@@ -123,21 +120,14 @@
 		overlaySidebarOpen = false;
 	});
 
-	// Phone title bar: Back names where it goes, the title names where you are (rule 4).
-	// Note titles arrive asynchronously, so re-read the labels when the title cache fills.
-	let titleCacheVersion = $state(0);
-	$effect(() => subscribeToNoteTitles(() => titleCacheVersion++));
-	$effect(() => {
-		const previous = parseWorkspacePath(navigationContext.backTarget.path, '');
-		if (previous && isNoteListRoute(previous) && previous.noteId) requestNoteTitles([previous.noteId]);
-	});
-	const backLabel = $derived.by(() => {
-		void titleCacheVersion;
-		return labelForPath(navigationContext.backTarget.path, navigationContext.selectedWeek ?? '');
-	});
+	// Phone title bar: Chronolog ‹ › (062-DR, AppBarHome), then the title naming where you are
+	// (rule 4); ‹ names where it goes in its accessible name
 	const mobileTitle = $derived(titleForRoute(navigationContext.route));
-	// Notes screens: the list and editor headers name the context, so no title above them (060-DR)
-	const mobileTitleShown = $derived(phoneTitleBarNamesContext(navigationContext.route.kind));
+	// Notes screens: the list and editor headers name the context, so no title above them (060-DR);
+	// none at the root either, where "Chronolog" already says it
+	const mobileTitleShown = $derived(
+		navigationContext.mobileNavigationLevel > 0 && phoneTitleBarNamesContext(navigationContext.route.kind)
+	);
 	// The week or a note is on screen (panel 3): the title bar offers Find, the phone's route to
 	// find in page (sprint 047-QA)
 	const mobileShowsContentPanel = $derived(
@@ -203,13 +193,6 @@
 		else navigationContext.toggleSidebar();
 	}
 
-	// Phone "Back to app" on /search: Back when the step before is a workspace place, else go there
-	function leaveSearch() {
-		const previous = navigationContext.backTarget;
-		if (previous.isHistory && parseWorkspacePath(previous.path, '')) navigationContext.goBack();
-		else void goto(navigationContext.workspaceHref);
-	}
-
 	function openSidebar() {
 		if (sidebarIsOverlay) overlaySidebarOpen = true;
 		else if (navigationContext.panel1Collapsed) navigationContext.toggleSidebar();
@@ -221,45 +204,24 @@
 {#if isMobile}
 	<!-- Mobile: Single-panel push/pop navigation -->
 	<div class="safe-area-shell flex h-dvh flex-col overflow-hidden bg-surface">
-		<!-- Mobile top bar: app name at the root, Back button once pushed in -->
-		<div class="flex h-12 items-center justify-between border-b border-divider bg-surface px-4">
-			<div class="flex min-w-0 flex-1 items-center gap-3">
-				{#if searchPage}
-					<!-- /search (059-DR, SR-01): Back to app and capture access only, no second search -->
-					<button
-						onclick={leaveSearch}
-						class="-ml-2 flex min-h-11 flex-shrink-0 items-center px-2 text-sm font-medium text-pine-600 hover:text-pine-800"
-						data-testid="search-back-to-app"
-					>
-						&larr; Back to app
-					</button>
-				{:else if navigationContext.mobileNavigationLevel > 0}
-					<button
-						onclick={() => navigationContext.goBackMobile()}
-						class="-ml-2 flex min-h-11 {headerReflection === 'none' ? 'max-w-[65%]' : 'max-w-full'} flex-shrink-0 items-center px-2 text-sm font-medium text-pine-600 hover:text-pine-800"
-						aria-label="Back to {backLabel}"
-						data-testid="mobile-back"
-					>
-						<span class="truncate">&larr; {backLabel}</span>
-					</button>
-					<!-- Forward (050-UI): only when there is a step ahead, to keep the bar's room -->
-					<HistoryButtons variant="phone" class="-ml-3" />
-					<!-- The title gives way first; Back truncates only past 65% of the bar (long note titles).
-					     With the timer pill showing, the context title is dropped: the list and editor
-					     headers already name the context (053-DR) -->
-					{#if headerReflection === 'none' && mobileTitleShown}
-						<span class="min-w-0 truncate text-xs text-ink-faint" data-testid="mobile-context-title">{mobileTitle}</span>
-					{/if}
-				{:else}
-					<span class="text-sm font-semibold text-ink-soft">Chronolog</span>
-					<HistoryButtons variant="phone" class="-ml-1" />
+		<!-- Mobile top bar (062-DR): Chronolog (home) ‹ › on every screen, /search included, then
+		     the title, which truncates before anything else gives way -->
+		<!-- Room at 320 px: 12 px gutters, no gaps beside the 44 px icons (their own whitespace spaces
+		     them), the pill drops its mark below 420 px and, below 360 px, Find gives way to the pill -->
+		<div class="flex h-12 items-center justify-between border-b border-divider bg-surface px-3">
+			<div class="flex min-w-0 flex-1 items-center">
+				<AppBarHome variant="phone" />
+				<!-- With the timer pill showing, the context title is dropped: the list and editor
+				     headers already name the context (053-DR) -->
+				{#if !searchPage && headerReflection === 'none' && mobileTitleShown}
+					<span class="ml-1 min-w-0 truncate text-xs text-ink-faint" data-testid="mobile-context-title">{mobileTitle}</span>
 				{/if}
 			</div>
 			{#if mobileShowsContentPanel && !searchPage}
 				<button
 					type="button"
 					onclick={requestFindInPage}
-					class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md btn-quiet"
+					class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md btn-quiet {headerReflection === 'none' ? '' : 'max-[359px]:hidden'}"
 					aria-label="Find in page"
 					data-testid="mobile-find-button"
 				>
@@ -269,7 +231,7 @@
 			<!-- Global search (sprint 042-CL): the field gets the whole page on a phone -->
 			{#if !searchPage}<a
 				href="/search"
-				class="ml-1 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md btn-quiet"
+				class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md btn-quiet"
 				aria-label="Search"
 				data-testid="mobile-search-link"
 			>
@@ -277,7 +239,7 @@
 			</a>{/if}
 			<!-- The capture's reflection, only on screens without a timer widget (SH-04); opens the
 			     phone's focused capture screen over this one (TC-08, sprint 055-DR) -->
-			<div class="ml-1 flex-shrink-0">
+			<div class="flex-shrink-0">
 				<TimerIndicator reflection={headerReflection} onIndicatorClick={() => captureScreen.open()} />
 			</div>
 		</div>
@@ -310,9 +272,8 @@
 					aria-label="Toggle sidebar"
 					aria-expanded={sidebarVisible}
 				>≡</button>
-				<span class="text-sm font-semibold text-ink-soft">Chronolog</span>
-				<!-- Back / Forward (050-UI) -->
-				<HistoryButtons class="ml-1" />
+				<!-- Chronolog (home) then Back / Forward (050-UI, 062-DR) -->
+				<AppBarHome />
 			</div>
 			<!-- Right: the capture's reflection when no sidebar timer is on screen (SH-04; clicking it
 			     shows the sidebar, where the same widget lives), then global search at the far

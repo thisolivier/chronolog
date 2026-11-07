@@ -416,7 +416,7 @@ test.describe('phone', () => {
 		if (!isPhoneProject(testInfo)) await page.setViewportSize({ width: 390, height: 844 });
 	});
 
-	test('search on a phone: Back to app and the timer only, one large field, results @iphone', async ({ page, baseURL }, testInfo) => {
+	test('search on a phone: Chronolog ‹ › and the timer only, one large field, results @iphone', async ({ page, baseURL }, testInfo) => {
 		await signInAsFreshUser(page, baseURL, 'phone-search');
 		const seeded = await seed(page);
 		expect(
@@ -436,7 +436,9 @@ test.describe('phone', () => {
 		await expect(field).toHaveCount(1);
 		await expect(page.getByTestId('mobile-search-link')).toHaveCount(0);
 		await expect(page.getByTestId('mobile-find-button')).toHaveCount(0);
-		await expect(page.getByTestId('search-back-to-app')).toBeVisible();
+		// 062-DR: the home and history group replaces "← Back to app"
+		await expect(page.getByTestId('search-back-to-app')).toHaveCount(0);
+		await expect(page.getByTestId('app-home-button')).toBeVisible();
 		await expect(page.getByTestId('timer-indicator').getByTestId('timer-running-dot')).toBeVisible();
 		await field.fill('roles');
 		await field.press('Enter');
@@ -447,8 +449,10 @@ test.describe('phone', () => {
 		await field.blur();
 		if (testInfo.project.name === 'iphone-15') await page.screenshot({ path: path.join(SCREENSHOTS, 'iphone-04-search-results.png'), scale: 'css' });
 
-		// Back to app returns to the note it came from
-		await page.getByTestId('search-back-to-app').click();
+		// ‹ walks back through the search (Enter was a step) to the note it came from
+		await page.getByTestId('mobile-back').click();
+		await expect(page).toHaveURL(/\/search$/);
+		await page.getByTestId('mobile-back').click();
 		await expect(page).toHaveURL(new RegExp(`/notes/${seeded.generalContractId}/${seeded.notes.scratch}$`));
 	});
 

@@ -153,6 +153,11 @@ export interface NavigationContext {
 	setLayoutMode: (mode: LayoutMode) => void;
 	navigateMobile: (level: MobileNavigationLevel) => void;
 	goBackMobile: () => void;
+	/**
+	 * The app bar's "Chronolog" home button (062-DR): a new step to `/` (the phone's home screen,
+	 * this week's timesheet on wider screens), from the workspace, settings, search or the trash
+	 */
+	goHome: () => void;
 	/** One step back / forward through this tab's in-app history; nothing when there is none */
 	goBack: () => void;
 	goForward: () => void;
@@ -498,13 +503,19 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 	};
 
 	const goBackMobile = () => {
-		if (state.route.kind === 'home') return;
-		if (history.previous && adapter) {
+		// A step before, wherever this is (home after the home button, /search entered from home):
+		// the same history step goBack takes (062-DR review)
+		if (history.canGoBack && adapter) {
 			moveThroughHistory(-1);
 			return;
 		}
-		// Nothing in the app before this entry: go one level up in place
+		// Nothing in the app before this entry: go one level up in place; at home there is no level up
+		if (state.route.kind === 'home') return;
 		go(parentRoute(state.route), { replace: true });
+	};
+
+	const goHome = () => {
+		go({ kind: 'home' }, { replace: false });
 	};
 
 	/** Ask the browser for one step; counted as pending until it lands, so quick presses stay in the app */
@@ -619,6 +630,7 @@ export function createNavigationState(options: NavigationOptions = {}): Navigati
 		setLayoutMode,
 		navigateMobile,
 		goBackMobile,
+		goHome,
 		goBack,
 		goForward,
 		syncFromUrl

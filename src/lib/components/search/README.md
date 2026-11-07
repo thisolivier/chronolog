@@ -15,8 +15,8 @@ one-visible-timer rule) stay available. On this route the shell renders no heade
 the page shows one large query field above the results in every state: prompt, loading
 ("Searching…"), no matches, failure (with Try again; the query stays) and results. Each search has a
 sequence number and an AbortController, so an older reply never replaces a newer one. On a phone
-the title bar has "← Back to app" (`search-back-to-app`: Back when the step before is a workspace
-place, else the last workspace place) and the timer pill, with no search icon or Find.
+the title bar has Chronolog ‹ › (home and history, sprint 062-DR; it replaced "← Back to app") and
+the timer pill, with no search icon or Find.
 
 ## Components
 

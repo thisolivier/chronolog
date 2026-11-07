@@ -3,8 +3,8 @@
  * PWA (no browser buttons there). Every navigation is a step, paging weeks included; typing is
  * not. Desktop: ‹ › by the app name, global search at the far right of the app bar (053-DR; since
  * 059-DR /search is inside the shell: the same ‹ ›, no header field, one large field above the
- * results), Cmd/Ctrl+[ ] and Alt+arrows. Phone: "← Back" and a ›
- * that shows only when there is a step ahead. Each test signs up its own user.
+ * results), Cmd/Ctrl+[ ] and Alt+arrows. Phone (062-DR): the same ‹ › right of the "Chronolog"
+ * home button, 44 px, › disabled when there is no step ahead (it was hidden before 062-DR). Each test signs up its own user.
  * Screenshots: `UPDATE_SPRINT_SCREENSHOTS=1` writes them to docs/review/screenshots/sprint-050/.
  */
 import { expect, test, type Page } from '@playwright/test';
@@ -189,11 +189,11 @@ test.describe('desktop 1280', () => {
 test.describe('phone 390', () => {
 	test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-	test('Back walks the journey; › appears only with a step ahead and replays it', async ({ page, baseURL }) => {
+	test('Back walks the journey; › is enabled only with a step ahead and replays it', async ({ page, baseURL }) => {
 		await signInAsFreshUser(page, baseURL, 'history-phone');
 		const data = await seed(page);
 		const forward = page.getByTestId('mobile-forward');
-		await expect(forward).toHaveCount(0);
+		await expect(forward).toBeDisabled();
 
 		const journey = ['/'];
 		journey.push(await stepTo(page, () => page.getByRole('button', { name: 'Time Entries' }).click()));
@@ -201,15 +201,15 @@ test.describe('phone 390', () => {
 		journey.push(await stepTo(page, () => page.getByRole('button', { name: 'Previous week' }).click()));
 		journey.push(await stepTo(page, () => page.getByTitle(data.noteId).first().click()));
 		await expect(editor(page)).toBeVisible();
-		await expect(forward).toHaveCount(0);
+		await expect(forward).toBeDisabled();
 
 		await page.getByTestId('mobile-back').click();
 		await expect(page).toHaveURL(journey[3]);
-		await expect(forward).toBeVisible();
+		await expect(forward).toBeEnabled();
 		await expect(forward).toHaveAttribute('aria-label', `Forward to ${data.noteTitle}`);
 		const box = await forward.boundingBox();
-		expect(box!.width).toBeGreaterThanOrEqual(32);
-		expect(box!.height).toBeGreaterThanOrEqual(32);
+		expect(box!.width).toBeGreaterThanOrEqual(44);
+		expect(box!.height).toBeGreaterThanOrEqual(44);
 		await page.screenshot({ path: path.join(SCREENSHOTS, 'phone-01-back-and-forward.png') });
 
 		for (let position = 2; position >= 0; position--) {
@@ -217,19 +217,19 @@ test.describe('phone 390', () => {
 			await expect(page).toHaveURL(journey[position]);
 		}
 		// Home (the sidebar): Forward still offered next to the app name
-		await expect(forward).toBeVisible();
+		await expect(forward).toBeEnabled();
 		await page.screenshot({ path: path.join(SCREENSHOTS, 'phone-02-home-forward.png') });
 		for (let position = 1; position < journey.length; position++) {
 			await forward.click();
 			await expect(page).toHaveURL(journey[position]);
 		}
-		await expect(forward).toHaveCount(0);
+		await expect(forward).toBeDisabled();
 
 		// The narrowest phone: no sideways scroll with Back and › both showing
 		await page.getByTestId('mobile-back').click();
 		await expect(page).toHaveURL(journey[3]);
 		await page.setViewportSize({ width: 320, height: 640 });
-		await expect(forward).toBeVisible();
+		await expect(forward).toBeEnabled();
 		await expectNoSidewaysScroll(page);
 		await page.screenshot({ path: path.join(SCREENSHOTS, 'phone-03-320-wide.png') });
 	});
