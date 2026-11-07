@@ -32,6 +32,8 @@ const invalidWeekParamCases = [
 	{ description: 'week 54', weekParam: '2026-W54' },
 	{ description: 'week 53 of a 52-week year (redirected by the route, not parsed)', weekParam: '2026-W53' },
 	{ description: 'a one-digit week (not canonical)', weekParam: '2026-W5' },
+	{ description: 'a year below 100 (Date.UTC would read 0026 as 1926)', weekParam: '0026-W45' },
+	{ description: 'a year after 2099', weekParam: '2100-W01' },
 	{ description: 'missing the year', weekParam: 'W45' },
 	{ description: 'missing the W marker', weekParam: '2026-45' },
 	{ description: 'empty string', weekParam: '' }

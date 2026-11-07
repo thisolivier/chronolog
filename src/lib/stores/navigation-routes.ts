@@ -39,7 +39,13 @@ export const TRASH_PATH = `/notes/${TRASH_SEGMENT}`;
 /** Path segment used for a new-note draft (note IDs look like `ACME.20261103.005`, never `new`) */
 export const DRAFT_SEGMENT = 'new';
 
-const WEEK_PARAM_PATTERN = /^\d{4}-W\d{2}$/;
+const WEEK_PARAM_PATTERN = /^(\d{4})-W\d{2}$/;
+
+/** Week URLs cover 2000–2099 (Date.UTC reads years below 100 as 19xx, so `0026-W45` must not parse) */
+export function isWeekParamYearInRange(param: string): boolean {
+	const year = Number(/^(\d{4})-W/.exec(param)?.[1]);
+	return year >= 2000 && year <= 2099;
+}
 
 /** `2026-11-02` (a Monday) -> `2026-W45` */
 export function weekParamFromMonday(monday: string): string {
@@ -48,7 +54,7 @@ export function weekParamFromMonday(monday: string): string {
 
 /** `2026-W45` -> `2026-11-02`; null unless it is the canonical key of a week that exists */
 export function mondayFromWeekParam(param: string): string | null {
-	if (!WEEK_PARAM_PATTERN.test(param)) return null;
+	if (!WEEK_PARAM_PATTERN.test(param) || !isWeekParamYearInRange(param)) return null;
 	return parseCalendarWeekKey(param)?.weekStart ?? null;
 }
 
@@ -67,7 +73,7 @@ export function parseWorkspacePath(pathname: string, fallbackWeek: string): Work
 	if (segments[0] === 'time' && segments.length <= 2) {
 		if (segments.length === 1) return { kind: 'time', week: fallbackWeek };
 		// An old ISO-only bookmark (`2026-W53`) opens the same Monday's week (057-DR)
-		const legacyKey = legacyIsoWeekRedirect(segments[1]);
+		const legacyKey = isWeekParamYearInRange(segments[1]) ? legacyIsoWeekRedirect(segments[1]) : null;
 		const monday = mondayFromWeekParam(legacyKey ?? segments[1]);
 		return monday ? { kind: 'time', week: monday } : null;
 	}
