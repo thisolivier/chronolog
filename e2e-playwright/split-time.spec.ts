@@ -151,6 +151,21 @@ test.describe('desktop split', () => {
 		await page.waitForTimeout(2200);
 		await expect(rightCard(page).getByTestId('split-right-from')).toHaveValue(confirmedFrom);
 		await expect(leftCard(page).getByTestId('split-left-to')).toHaveValue(confirmedFrom);
+		// 24-hour text fields (060-DR): Escape puts the applied time back and keeps the split open;
+		// unreadable text is put back on leaving the field, with a message; a pasted 12-hour time too
+		const leftTo = leftCard(page).getByTestId('split-left-to');
+		await leftTo.fill('1');
+		await leftTo.press('Escape');
+		await expect(leftTo).toHaveValue(confirmedFrom);
+		await expect(overlay(page)).toBeVisible();
+		for (const unreadable of ['12:60', '1:46 PM']) {
+			await leftTo.fill(unreadable);
+			await leftTo.blur();
+			await expect(leftTo).toHaveValue(confirmedFrom);
+			await expect(leftCard(page).getByTestId('split-left-times-error')).toHaveText('Enter a time as HH:MM.');
+		}
+		await leftTo.fill(confirmedFrom);
+		await expect(leftCard(page).getByTestId('split-left-times-error')).toHaveCount(0);
 		// Zero and negative parts are refused inline
 		await leftCard(page).getByTestId('split-left-duration').fill('0');
 		await leftCard(page).getByTestId('split-left-duration').press('Enter');
