@@ -23,6 +23,13 @@ export function parseLocalMoment(value: unknown): LocalMoment | null {
 	return validTime ? { date, time: fullTime(validTime) } : null;
 }
 
+/** As `parseLocalMoment` but keeps the time as sent (`HH:MM` or `HH:MM:SS`) for `momentMatches`. */
+export function parseExpectedMoment(value: unknown): LocalMoment | null {
+	if (typeof value !== 'string') return null;
+	const parsed = parseLocalMoment(value);
+	return parsed ? { date: parsed.date, time: value.split('T')[1] } : null;
+}
+
 /** The `YYYY-MM-DDTHH:MM:SS` text of a moment (the shape `expectedStartedAt` is sent in). */
 export function localMomentText(moment: LocalMoment): string {
 	return `${moment.date}T${fullTime(moment.time)}`;

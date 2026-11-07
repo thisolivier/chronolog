@@ -4,6 +4,7 @@ import {
 	draftStartMoment,
 	localMomentText,
 	nextDate,
+	parseExpectedMoment,
 	parseLocalMoment,
 	sameMoment,
 	splitBoundaryProblem,
@@ -22,7 +23,12 @@ describe('parseLocalMoment', () => {
 			expect(parseLocalMoment(value)).toBeNull();
 		}
 	});
-	it('round-trips and compares at second precision', () => {
+	it('parseExpectedMoment keeps the precision sent', () => {
+		expect(parseExpectedMoment('2026-11-07T09:00')).toEqual(at('2026-11-07', '09:00'));
+		expect(parseExpectedMoment('2026-11-07T09:00:37')).toEqual(at('2026-11-07', '09:00:37'));
+		expect(parseExpectedMoment('2026-11-07T9:00')).toBeNull();
+	});
+		it('round-trips and compares at second precision', () => {
 		expect(localMomentText(at('2026-11-07', '09:50'))).toBe('2026-11-07T09:50:00');
 		expect(sameMoment(at('2026-11-07', '09:50'), at('2026-11-07', '09:50:00'))).toBe(true);
 		expect(sameMoment(at('2026-11-07', '09:50'), at('2026-11-07', '09:50:01'))).toBe(false);

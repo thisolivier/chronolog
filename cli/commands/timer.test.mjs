@@ -118,7 +118,7 @@ describe('chronolog timer and timer stop', () => {
 		});
 		const printed = [];
 		await timerStop({ api, print: (text) => printed.push(text) });
-		expect(api.calls.find((call) => call.path === '/api/timer/save').body).toMatchObject({ entryId: 't-1', contractId: CONTRACT_ID, description: 'Fixing' });
+		expect(api.calls.find((call) => call.path === '/api/timer/save').body).toMatchObject({ entryId: 't-1', contractId: CONTRACT_ID, description: 'Fixing', expectedStartedAt: `${runningTimer.date}T${runningTimer.startTime}` });
 		expect(printed[0]).toContain('Saved 45m (09:30-10:15) on 2026-11-04 to ACME/Website: Fixing');
 		await expect(timerStop({ api: fakeApi({ 'GET /api/timer/status': { timer: null } }), print: () => {} })).rejects.toThrow(UsageError);
 	});
