@@ -66,7 +66,8 @@ test('sign in, then the week: add, edit and delete an entry @iphone', async ({ p
 	// Edit the description in place
 	await card.getByText('Phone entry').click();
 	// The card swaps its text for the field, so find the field by the card, not by the text
-	const descriptionField = page.locator('[data-testid="time-entry-card"] input[type="text"]').first();
+	// 057-DR: the description editor is a textarea that grows to the text
+	const descriptionField = page.locator('[data-testid="time-entry-card"] textarea').first();
 	await expect(descriptionField).toBeFocused();
 	await expectNoZoomingFields(page);
 	await descriptionField.fill('Phone entry edited');
@@ -90,6 +91,9 @@ test('timer: start, adjust the start, stop and discard @iphone', async ({ page, 
 	await signInAsFreshUser(page, baseURL, 'iphone-timer');
 	await seedIphoneData(page, uniqueSuffix());
 	await open(page, '/time');
+	// 057-DR: no footer timer bar on the phone timesheet; "Start timer" opens the capture screen
+	await expect(page.getByTestId('timer-widget-footer')).toHaveCount(0);
+	await page.getByTestId('phone-start-timer').click();
 	const widget = page.locator('[data-testid^="timer-widget-"]').first();
 	await widget.getByRole('button', { name: 'Start Timer' }).click();
 	const startField = widget.getByTestId('timer-start-time');
