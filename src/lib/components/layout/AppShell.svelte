@@ -11,7 +11,12 @@
 	import { requestNoteTitles, subscribeToNoteTitles } from '$lib/components/notes/note-titles.svelte';
 	import { isNoteListRoute, parseWorkspacePath } from '$lib/stores/navigation-routes';
 	import { getDataService } from '$lib/services/context';
-	import { headerReflectionFor, isTimerWidgetOnScreen } from '$lib/components/timer/timer-visibility';
+	import { untrack } from 'svelte';
+	import {
+		headerReflectionFor,
+		isTimerWidgetOnScreen,
+		type HeaderReflection
+	} from '$lib/components/timer/timer-visibility';
 	import { isSidebarTimerWidgetMounted, mountedTimerWidgetCount } from '$lib/components/timer/timer-widget-registry.svelte';
 	import { loadTimerReflection } from '$lib/components/timer/timer-reflection';
 	import { shellPresentation } from './shell-presentation.svelte';
@@ -137,7 +142,22 @@
 		overlaySidebarOpen,
 		mountedWidgetCount: mountedTimerWidgetCount()
 	});
-	const headerReflection = $derived(headerReflectionFor(timerState.status, presentation));
+	const reflectionNow = $derived(headerReflectionFor(timerState.status, presentation));
+	// The sidebar's width animates for 300ms when ≡ hides it: show the pill only once the widget
+	// has gone, so the two never appear together. Hiding the pill, and every change on a phone or
+	// between running and Finish entry, is immediate.
+	const SIDEBAR_TRANSITION_MS = 300;
+	let headerReflection = $state<HeaderReflection>('none');
+	$effect(() => {
+		const next = reflectionNow;
+		const shown = untrack(() => headerReflection);
+		if (next === 'none' || shown !== 'none' || presentation.layoutMode === 'mobile') {
+			headerReflection = next;
+			return;
+		}
+		const timeoutId = setTimeout(() => (headerReflection = next), SIDEBAR_TRANSITION_MS);
+		return () => clearTimeout(timeoutId);
+	});
 	// No capture and the desktop sidebar hidden: keep the pre-053 "Timer" access to Start / Add Entry
 	const showIdleTimerAccess = $derived(
 		!isMobile && navigationContext.panel1Collapsed && !sidebarIsOverlay && isSidebarTimerWidgetMounted()
@@ -188,7 +208,7 @@
 				{#if navigationContext.mobileNavigationLevel > 0}
 					<button
 						onclick={() => navigationContext.goBackMobile()}
-						class="-ml-2 flex min-h-11 max-w-[65%] flex-shrink-0 items-center px-2 text-sm font-medium text-pine-600 hover:text-pine-800"
+						class="-ml-2 flex min-h-11 {headerReflection === 'none' ? 'max-w-[65%]' : 'max-w-full'} flex-shrink-0 items-center px-2 text-sm font-medium text-pine-600 hover:text-pine-800"
 						aria-label="Back to {backLabel}"
 						data-testid="mobile-back"
 					>
@@ -196,8 +216,12 @@
 					</button>
 					<!-- Forward (050-UI): only when there is a step ahead, to keep the bar's room -->
 					<HistoryButtons variant="phone" class="-ml-3" />
-					<!-- The title gives way first; Back truncates only past 65% of the bar (long note titles) -->
-					<span class="min-w-0 truncate text-xs text-ink-faint" data-testid="mobile-context-title">{mobileTitle}</span>
+					<!-- The title gives way first; Back truncates only past 65% of the bar (long note titles).
+					     With the timer pill showing, the context title is dropped: the list and editor
+					     headers already name the context (053-DR) -->
+					{#if headerReflection === 'none'}
+						<span class="min-w-0 truncate text-xs text-ink-faint" data-testid="mobile-context-title">{mobileTitle}</span>
+					{/if}
 				{:else}
 					<span class="text-sm font-semibold text-ink-soft">Chronolog</span>
 					<HistoryButtons variant="phone" class="-ml-1" />

@@ -53,7 +53,7 @@
 		type="button"
 		data-testid="timer-indicator"
 		data-state={reflection}
-		class="relative flex h-9 max-w-[22rem] min-w-0 items-center gap-mark-gap rounded-control border border-divider bg-sunken py-1 pr-4 pl-1.5 text-left transition-colors hover:bg-chalk-200"
+		class="relative flex h-9 max-w-[22rem] min-w-0 items-center gap-mark-gap rounded-control border border-divider bg-sunken py-1 pr-3 pl-1.5 text-left transition-colors hover:bg-chalk-200 sm:pr-4"
 		aria-label={accessibleName}
 		title={reflection === 'finish' ? 'Finish this entry' : 'Open the running timer'}
 		onclick={onIndicatorClick}
@@ -70,9 +70,10 @@
 			{/if}
 		</span>
 		{#if reflection === 'finish'}
+			<!-- Phone: the mark and the frozen duration only (the words stay for screen readers) -->
 			<span class="ml-1 flex flex-shrink-0 flex-col items-end leading-tight">
-				<span class="text-xs font-semibold whitespace-nowrap text-warning">Finish entry</span>
-				<span class="text-[11px] tabular-nums text-ink-muted" data-testid="timer-indicator-frozen">{frozenText}</span>
+				<span class="sr-only text-xs font-semibold whitespace-nowrap text-warning sm:not-sr-only">Finish entry</span>
+				<span class="text-sm font-medium tabular-nums text-warning sm:text-[11px] sm:font-normal sm:text-ink-muted" data-testid="timer-indicator-frozen">{frozenText}</span>
 			</span>
 		{:else}
 			<span class="ml-1 flex-shrink-0 text-sm font-medium tabular-nums text-ink-soft" data-testid="timer-indicator-clock">{clockText}</span>
