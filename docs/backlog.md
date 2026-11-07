@@ -62,7 +62,7 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
   the 060 deploy and reopen if anything still repeats.
 - **Back/forward hides the home button.** Owner decision (2026-11-07, late): "Chronolog" is ever
   present top-left and acts as the home button; the back and forward buttons sit to its right, on
-  every layout. Sprint 062-DR.
+  every layout. Done in 062-DR (`docs/sprints/sprint-062-DR.md`).
 
 ## Owner-requested (2026-11-07): revisit week numbering before 28 December
 

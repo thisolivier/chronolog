@@ -273,7 +273,7 @@ test.describe('phone 390', () => {
 		// A note from it; Back reads "All notes" and returns there
 		await page.locator(`[data-testid="note-list-row"][data-note-id="${data.noteIds[3]}"] > button`).first().tap();
 		await expect(editor(page)).toContainText('Newest of all');
-		await expect(page.getByTestId('mobile-back')).toContainText('All notes');
+		await expect(page.getByTestId('mobile-back')).toHaveAttribute('aria-label', 'Back to All notes'); // ‹ since 062-DR
 		await expectStableHeaderWhileTyping(page, browserName === 'chromium' ? 'phone-03' : null);
 		await expectNoSidewaysScroll(page);
 

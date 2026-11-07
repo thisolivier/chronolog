@@ -3,7 +3,7 @@
 	import type { Snippet } from 'svelte';
 	import ConnectionStatus from '$lib/components/layout/ConnectionStatus.svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
-	import HistoryButtons from '$lib/components/layout/HistoryButtons.svelte';
+	import AppBarHome from '$lib/components/layout/AppBarHome.svelte';
 
 	let { children }: { children: Snippet } = $props();
 
@@ -13,12 +13,9 @@
 
 <div class="safe-area-shell min-h-dvh bg-chalk-50">
 	<header class="border-b border-divider bg-surface shadow-sm">
-		<div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-			<!-- Back / Forward through the journey (050-UI), on wider screens -->
-			<div class="flex items-center gap-3">
-				<a href={navigation.workspaceHref} class="text-lg font-bold text-ink">Chronolog</a>
-				<div class="hidden md:block"><HistoryButtons /></div>
-			</div>
+		<div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-1.5 md:py-2">
+			<!-- Chronolog (home) then Back / Forward, as in the app bar (050-UI, 062-DR) -->
+			<AppBarHome />
 			<a
 				href={navigation.workspaceHref}
 				class="rounded-md btn-secondary px-3 py-1.5 text-sm"

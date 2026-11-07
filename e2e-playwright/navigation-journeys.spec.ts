@@ -263,7 +263,8 @@ test.describe('J8: phone', () => {
 		const weekPath = pathOf(page);
 		await page.getByTitle(data.noteA).first().click();
 		await expect(editor(page)).toBeVisible();
-		await expect(page.getByTestId('mobile-back')).toContainText('Week');
+		// 062-DR: ‹ is an icon; its accessible name says where it goes
+		await expect(page.getByTestId('mobile-back')).toHaveAttribute('aria-label', /^Back to Week \d+$/);
 		await page.getByTestId('mobile-back').click();
 		await expect(page).toHaveURL(weekPath);
 
