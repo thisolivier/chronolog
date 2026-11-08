@@ -2,24 +2,19 @@
 	NoteListPanel - Panel 2 content for notes mode: one contract's notes, or one client's notes across
 	its contracts (the client view, `/notes/client/<id>`, sprint 039-CL), pinned notes first; or every
 	note (all notes, `/notes/all`, sprint 051-UI), newest first with pins not floated.
-	Header (054-DR, NT-01/NT-02): title and count, the New note icon, and the sort control below.
-	Who names the client / contract follows `note-context-ownership.ts`. When the list is one
-	contract's, the free space between the title/count and New note holds the quiet repeat of that
-	contract's pattern tile (NT-03 / DS-04, sprint 063-DR); it shrinks to nothing before the title.
+	Header: `NoteListHeader.svelte` (one row with the sidebar beside the list since 064-DR; title
+	rows otherwise). Who names the client / contract follows `note-context-ownership.ts`.
 -->
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import { getDataService } from '$lib/services/context';
 	import NoteListRow from './NoteListRow.svelte';
-	import NoteListNewNoteButton from './NoteListNewNoteButton.svelte';
-	import ContractTileRepeat from '$lib/components/identity/ContractTileRepeat.svelte';
+	import NoteListHeader from './NoteListHeader.svelte';
 	import { startNoteDraft, endNoteDraft } from '$lib/components/notes/note-draft.svelte';
 	import { onNoteEvent } from '$lib/components/notes/note-events';
 	import { sortNotes, loadSortPreference, saveSortPreference, type NoteSortOrder } from '$lib/components/notes/note-sort';
 	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
-	import { ALL_NOTES_LABEL } from './navigation-labels';
-	import ContractMark from '$lib/components/identity/ContractMark.svelte';
 	import { noteContextOwnership } from './note-context-ownership';
 	import { shellPresentation } from './shell-presentation.svelte';
 	import type { NoteSummary } from '$lib/services/types';
@@ -260,90 +255,21 @@
 </script>
 
 <div class="flex h-full flex-col bg-chalk-50">
-	<!-- Header (054-DR): title and count, the contract repeat (063-DR), New note; sort below -->
-	<div class="border-b border-divider bg-surface px-4 pt-3 pb-1.5" data-testid="note-list-header">
-		<div class="flex items-center gap-2">
-			<div
-				class="min-w-0"
-				data-testid="note-list-context"
-				data-owner={ownership.listHeader}
-				data-contract-id={ownership.listHeader === 'notes' || ownership.listHeader === 'contract'
-					? navigationContext.selectedContractId
-					: undefined}
-				data-client-id={viewedClientId ?? undefined}
-				title={ownership.listHeader === 'all'
-					? 'All notes, newest first'
-					: ownership.listHeader === 'client'
-					? `${viewedClientName ?? 'Client'} · all contracts`
-					: contractLabel
-						? `${contractLabel.clientName} · ${contractLabel.name}`
-						: undefined}
-			>
-				{#if ownership.listHeader === 'all'}
-					<p class="truncate text-xs text-ink-faint">Every contract, newest first</p>
-				{:else if ownership.listHeader === 'client'}
-					<p class="truncate text-xs text-ink-faint">All contracts</p>
-				{:else if ownership.listHeader === 'contract' && contractLabel}
-					<p class="truncate text-xs text-ink-faint" data-testid="note-list-eyebrow">{contractLabel.clientName}</p>
-				{/if}
-				<h2 class="flex min-w-0 items-baseline gap-2 text-base font-semibold text-ink">
-					{#if ownership.listHeader === 'contract' && contractLabel}
-						<span class="flex min-w-0 items-center gap-mark-gap self-center">
-							<ContractMark
-								contractName={contractLabel.name}
-								contractId={navigationContext.selectedContractId}
-								colorIndex={contractLabel.clientColorIndex}
-								size="sm"
-							/>
-							<span class="truncate" data-testid="note-list-title">{contractLabel.name}</span>
-						</span>
-					{:else}
-						<span class="truncate" data-testid="note-list-title">
-							{ownership.listHeader === 'all'
-								? ALL_NOTES_LABEL
-								: ownership.listHeader === 'client'
-									? (viewedClientName ?? 'Notes')
-									: 'Notes'}
-						</span>
-						{#if ownership.listHeader === 'notes' && contractLabel}
-							<!-- The sidebar shows the contract; screen readers still hear whose notes these are -->
-							<span class="sr-only" data-testid="note-list-context-sr">: {contractLabel.clientName} / {contractLabel.name}</span>
-						{/if}
-					{/if}
-					{#if !isLoading && !fetchError}
-						<span
-							class="shrink-0 text-sm font-normal tabular-nums text-ink-faint"
-							data-testid="note-list-count"
-							aria-label="{noteCount} {noteCount === 1 ? 'note' : 'notes'}">{noteCount}</span
-						>
-					{/if}
-				</h2>
-			</div>
-			<!-- The contract repeat (NT-03): one contract's list only, never in the client or all-notes views -->
-			<div class="flex min-w-0 flex-1 items-center" aria-hidden="true" data-testid="note-list-header-space">
-				{#if repeatContractId && contractLabel}
-					<ContractTileRepeat contractId={repeatContractId} colorIndex={contractLabel.clientColorIndex} />
-				{/if}
-			</div>
-			<NoteListNewNoteButton
-				contractId={viewedClientId || isAllNotesView ? null : navigationContext.selectedContractId}
-				clientContracts={viewedClientId || isAllNotesView ? clientContracts : []}
-				withClientNames={isAllNotesView}
-				onCreate={handleCreateNote}
-			/>
-		</div>
-		<div class="mt-1 flex items-center">
-			<button
-				type="button"
-				onclick={toggleSortOrder}
-				class="-ml-2 rounded px-2 py-1 text-xs whitespace-nowrap btn-quiet pointer-coarse:min-h-11"
-				title="Change sort order"
-				data-testid="note-sort-toggle"
-			>
-				{sortOrder === 'modified' ? 'Modified ↓' : 'Created ↓'}
-			</button>
-		</div>
-	</div>
+	<NoteListHeader
+		listHeader={ownership.listHeader}
+		selectedContractId={navigationContext.selectedContractId}
+		{contractLabel}
+		{viewedClientId}
+		{viewedClientName}
+		{repeatContractId}
+		noteCount={isLoading || fetchError ? null : noteCount}
+		{sortOrder}
+		onToggleSort={toggleSortOrder}
+		newNoteContractId={viewedClientId || isAllNotesView ? null : navigationContext.selectedContractId}
+		newNoteContracts={viewedClientId || isAllNotesView ? clientContracts : []}
+		newNoteWithClientNames={isAllNotesView}
+		onCreate={handleCreateNote}
+	/>
 
 	<!-- Transient confirmation after a note is moved to another contract -->
 	{#if moveFeedback}
