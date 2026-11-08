@@ -1,6 +1,6 @@
 # Sprint 064-DR — Owner polish round: timesheet bars, notes headers, timer contract picker
 
-**Branches:** `design-r1-polish-time` (timesheet and timer) and `design-r1-polish-notes` (notes), both from `design-r1` at `3d58241` (v1.6.0); merged back into `design-r1`. **Status:** in progress. No new dependencies, no migrations, nothing in `src-tauri/`.
+**Branches:** `design-r1-polish-time` (timesheet and timer) and `design-r1-polish-notes` (notes), both from `design-r1` at `3d58241` (v1.6.0); merged into `design-r1` as one merge. **Status:** ready for owner review. No new dependencies, no migrations, nothing in `src-tauri/`.
 
 Source: owner instruction 2026-11-08 (verbatim in the next section), with the follow-up "Feel free to carry these over to the non-noted platform where it makes sense": a change written for desktop also applies on the phone (and the other way round) unless the layout there makes it meaningless.
 
@@ -65,4 +65,29 @@ Drop the "Linked time · N" heading. Each row starts with a small clock glyph (i
 
 ## Results
 
-_Filled in by the PM after merge._
+Two Opus engineers worked the branches in parallel; the PM merged `design-r1-polish-notes` into `design-r1-polish-time` (clean) and fast-forwarded `design-r1`.
+
+### What shipped, and where it departs from the reading above
+
+- **T1** The day heading cancels the scroller's gutter (`--timesheet-gutter`: 0.75rem, 1.5rem from 640 px) and pads itself back, so date, Add entry, Today tag and total keep their positions; the ochre Today marker is at the true edge. Quiet bars and older-week sections follow.
+- **T2** Wide card (desktop): the row's actions column has a fixed width (`--size-entry-action`, 1.5rem, 2rem on touch) and the bar's right padding matches it, so durations and time ranges end on the day total. **Narrow card (phone): departure.** Insetting the total pushed it about 76 px in and crowded today's bar, so there the delete and attach icons sit between the contract name and the time, and the time ends on the row's right edge under the total (rejected variant kept as `T2-phone-alternative-inset-total-rejected.png`). `polish-time.spec.ts` measures bar edges, date position and every time against the total within 1 px at 1280, 520 and the three iPhones.
+- **T3** `TimerPulseDot.svelte` deleted with its three uses and spec assertions. `--color-running` stays: the split-time overlay still draws a static dot with it (open question below).
+- **T4** The Contract field, hint and "Keep this contract" are gone from both running layouts. New `timer/TimerContractMenu.svelte` (positioning and keyboard rules in `contract-menu.ts`, 9 unit tests): opens from "Select" (no contract, no tile region) or "Change"; items are `menuitemradio` with `aria-checked` and a check glyph (`menuitem` cannot carry `aria-checked`); `position: fixed` so neither the sidebar overflow nor the capture screen clips it; flips above only when fewer than about three rows fit below; outside click, Escape, Tab and collapsing close it unchanged. After an outside click focus returns to the trigger only if it would otherwise be lost. `isChangingContract` removed. Six specs and `qa-driver.mjs` share a `chooseTimerContract` helper; new `timer-contract-picker.spec.ts`.
+- **N1** Ten-tile cap removed; the repeat ends within one gap of the actions ellipsis (spec updated to assert that).
+- **N2** Header extracted to `layout/NoteListHeader.svelte` (`data-layout="one-row" | "title-rows"`). Owner `notes`: one row, sort toggle / repeat / New note, the same height as the editor header beside it; title, contract and count stay for screen readers. **Phone: no one-row case exists** since the sidebar is never beside the list there (owner is always `contract`); the phone gets the borderless 44 px New note button. The New note icon is now muted (matches the ellipsis) rather than primary green.
+- **N3** Rows extracted to `notes/LinkedTimeEntryRow.svelte`: clock glyph, accessible name "Linked time entry, …", no heading. × swaps the right-hand group for "Unlink? Unlink / Cancel"; one row at a time; focus to Unlink, back to × on cancel, to the next (or previous) row's × after unlinking. Same on the phone and inside the short-screen disclosure.
+
+### Verification on the merged tree
+
+- `npm run check`: 0 errors, 0 warnings. `npm run lint`: clean. `npm test`: 142 files, 1382 tests passed (9 new).
+- `npm run test:playwright`, all projects, once: 379 passed, 67 skipped, 2 flaky, 2 failed (4.4 min).
+  - Failed: `checkpoint-bc-acceptance.spec.ts:43` on chromium and webkit. Pre-existing: `checkpoint-bc-seed.ts` builds six days, so on a Sunday the "today" entries it waits for are never seeded. Fails only on Sundays; on the backlog.
+  - Flaky (passed on retry): `checkpoint-bc-acceptance.spec.ts:92` (chromium) and the new `timer-contract-picker.spec.ts:156` on iphone-15 (`page.goto('/')` "interrupted by another navigation" under full-suite load; the agent's own runs were clean).
+- Screenshots: `docs/review/screenshots/sprint-064-DR/` (`T*` and `n*` prefixes, before and after; 1280 × 800 chromium, phone from iphone-15).
+
+### Open for the owner
+
+1. Phone T2: accept delete and attach between the contract name and the time?
+2. New note icon muted grey (as the ellipsis) or back to green? One class.
+3. Should the split-time overlay's static green dot go too, for consistency with T3?
+4. After unlinking the last linked entry the section disappears and focus falls to the page; moving it into the editor needs a hook from the editor panel. Left as is.
