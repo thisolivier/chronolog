@@ -404,7 +404,7 @@ test.describe('desktop', () => {
 		await expect(page.getByTestId('app-top-bar').getByTestId('history-buttons')).toBeVisible();
 		await expect(page.getByTestId('timer-widget-sidebar')).toBeVisible();
 		await page.getByRole('button', { name: 'Toggle sidebar' }).click();
-		await expect(page.getByTestId('timer-indicator').getByTestId('timer-running-dot')).toBeVisible();
+		await expect(page.getByTestId('timer-indicator').getByTestId('timer-indicator-clock')).toBeVisible();
 		await page.getByRole('button', { name: 'Toggle sidebar' }).click();
 	});
 });
@@ -439,7 +439,7 @@ test.describe('phone', () => {
 		// 062-DR: the home and history group replaces "← Back to app"
 		await expect(page.getByTestId('search-back-to-app')).toHaveCount(0);
 		await expect(page.getByTestId('app-home-button')).toBeVisible();
-		await expect(page.getByTestId('timer-indicator').getByTestId('timer-running-dot')).toBeVisible();
+		await expect(page.getByTestId('timer-indicator').getByTestId('timer-indicator-clock')).toBeVisible();
 		await field.fill('roles');
 		await field.press('Enter');
 		await expect(page.getByTestId('search-hit-note')).toHaveCount(3);

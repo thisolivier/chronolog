@@ -6,6 +6,7 @@
  *   card's wiki-link focus is in the opened note's editor.
  */
 import { test, expect, type Page } from '@playwright/test';
+import { chooseTimerContract } from './timer-contract-picker';
 
 // One worker per file: the seeds share one user and its client short codes
 test.describe.configure({ mode: 'default' });
@@ -259,7 +260,7 @@ test.describe('Sprint 030 task 7: timer and week header agree on today (Europe/L
 			const widget = page.locator('[data-testid^="timer-widget-"]').first();
 			await widget.getByRole('button', { name: 'Start Timer' }).click();
 			await expect(widget.getByTestId('timer-start-time')).toHaveValue(timezoneCase.localStart);
-			await widget.locator('#draft-contract').selectOption({ label: seeded.targetLabel });
+			await chooseTimerContract(page, widget, { label: seeded.targetLabel });
 			await expect
 				.poll(async () => page.evaluate(async () => (await (await fetch('/api/timer/status')).json()).timer?.date ?? null))
 				.toBe(timezoneCase.localDate);

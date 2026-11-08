@@ -112,10 +112,10 @@
 		writeTimerCompact(compactPreference);
 	}
 
-	// "Change" reveals the contract select (TC-02); the chevron never chooses a contract
-	let isChangingContract = $state(false);
-	function startChangingContract() {
-		isChangingContract = true;
+	// The header's picker ("Select" / "Change", 064-DR) chooses the running capture's contract;
+	// the $effect below creates or moves the server draft. The chevron never chooses a contract.
+	function chooseContract(contractId: string) {
+		draftContractId = contractId;
 	}
 
 	// Rule 5, create from context: the modal opens on the contract being viewed (notes mode) and,
@@ -294,7 +294,6 @@
 		if (!chosenContractId || timerState !== 'running') return;
 		const existingEntryId = entryId;
 		untrack(() => {
-			isChangingContract = false;
 			if (!existingEntryId) {
 				createServerDraft(chosenContractId);
 				return;
@@ -448,7 +447,6 @@
 			elapsedSeconds = stoppedEntry.durationMinutes * 60;
 			draftDescription = draftDescription || stoppedEntry.description || '';
 			timerState = 'stopped';
-			isChangingContract = false;
 			openCompletion();
 			announceChange();
 		} catch {
@@ -570,7 +568,6 @@
 		elapsedSeconds = 0;
 		draftContractId = '';
 		draftDescription = '';
-		isChangingContract = false;
 		errorMessage = '';
 		const reloaded = await checkExistingTimer(true);
 		if (!reloaded) {
@@ -596,7 +593,6 @@
 		errorMessage = '';
 		draftContractId = '';
 		draftDescription = '';
-		isChangingContract = false;
 		clearPendingTimer();
 		captureDraft.clear();
 		sharedTimerState.reset();
@@ -706,8 +702,9 @@
 			compact={isCompact}
 			{canCollapse}
 			onToggleCompact={toggleCompact}
-			onChangeContract={timerState === 'running' ? startChangingContract : undefined}
-			{isChangingContract}
+			contractOptions={contractList}
+			onChooseContract={timerState === 'running' ? chooseContract : undefined}
+			onContractMenuOpen={loadContractList}
 			bleedClass={isScreen ? 'mx-4 mt-3 rounded-panel shrink-0' : placement === 'footer' ? '-mx-4 -mt-3' : '-mx-3 -mt-3 rounded-t-[7px]'}
 		/>
 		{#if isScreen && errorMessage}
@@ -724,9 +721,8 @@
 					startDate={timerDate}
 					onChangeStart={handleChangeStart}
 					onStop={handleStop}
-					bind:draftContractId
+					{draftContractId}
 					bind:draftDescription
-					bind:isChangingContract
 					onDescriptionInput={handleDescriptionInput}
 					onAttachNote={attachNoteToRunningTimer}
 					onSplit={splitEntry.onSplit}

@@ -12,6 +12,7 @@
  */
 import { test, expect, type Page, type TestInfo } from '@playwright/test';
 import { sprintScreenshotDirectory } from './sprint-screenshots';
+import { chooseTimerContract } from './timer-contract-picker';
 
 const SCREENSHOT_DIRECTORY = sprintScreenshotDirectory('sprint-041');
 
@@ -99,7 +100,7 @@ test.describe('Sprint 041 task 1: editable timer start', () => {
 
 		const widget = timerWidget(page);
 		await widget.getByRole('button', { name: 'Start Timer' }).click();
-		await widget.locator('#draft-contract').selectOption({ label: seeded.label });
+		await chooseTimerContract(page, widget, { label: seeded.label });
 		await expect
 			.poll(async () => page.evaluate(async () => (await (await fetch('/api/timer/status')).json()).timer?.id ?? null))
 			.not.toBeNull();
@@ -163,7 +164,9 @@ test.describe('Sprint 041 task 1: editable timer start', () => {
 
 		const widget = timerWidget(page);
 		await widget.getByRole('button', { name: 'Start Timer' }).click();
-		await expect(widget.getByTestId('timer-no-contract-hint')).toBeVisible();
+		// No contract yet: the header offers "Select" and draws no pattern region (064-DR)
+		await expect(widget.getByTestId('timer-select-contract')).toBeVisible();
+		await expect(widget.getByTestId('timer-identity').getByTestId('contract-mark')).toHaveCount(0);
 		const startField = widget.getByTestId('timer-start-time');
 		// An unreadable time is refused in place and never stored (060-DR review: "12:60" saved "null:00")
 		for (const unreadable of ['12:60', '1:46 PM']) {
@@ -183,7 +186,7 @@ test.describe('Sprint 041 task 1: editable timer start', () => {
 		await page.reload();
 		await page.waitForLoadState('networkidle');
 		await expect(timerWidget(page).getByTestId('timer-start-time')).toHaveValue(clockMinutesAgo(45));
-		await timerWidget(page).locator('#draft-contract').selectOption({ label: seeded.label });
+		await chooseTimerContract(page, timerWidget(page), { label: seeded.label });
 		await expect
 			.poll(async () => page.evaluate(async () => (await (await fetch('/api/timer/status')).json()).timer?.startTime ?? null))
 			.toBe(`${clockMinutesAgo(45)}:00`);

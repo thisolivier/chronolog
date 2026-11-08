@@ -1,7 +1,7 @@
 <!--
 	PhoneCaptureScreen — the phone's focused capture surface (design r1 TC-08, sprint 055-DR).
 	The header pill opens it over the screen the user was on; "Back" closes it and that screen is
-	still there. Running: the large clock, start, contract, description, then Add note and Stop
+	still there. Running: the contract picker in the identity header (064-DR), the large clock, start, description, then Add note and Stop
 	pinned at the bottom. Stopped: the whole completion form with Save and Discard pinned. No
 	collapse chevron and no header timer (the surface covers the app bar). The surface fills the
 	visual viewport, so the pinned actions sit just above the software keyboard and the home
@@ -22,7 +22,8 @@
 	$effect(() => () => captureScreen.close());
 
 	function handleKeydown(event: KeyboardEvent) {
-		if (event.key !== 'Escape' || event.target instanceof HTMLSelectElement) return;
+		// (An open menu, such as the header's contract picker, handles its own Escape first)
+		if (event.key !== 'Escape' || event.defaultPrevented || event.target instanceof HTMLSelectElement) return;
 		// Not while a Save or Discard is in flight: leaving and reopening could resolve it twice
 		if (captureDraft.isResolving) return;
 		// The Add Time Entry modal opened from here handles its own Escape
