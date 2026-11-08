@@ -184,4 +184,17 @@
 	   the left. One token so the owner's layout review (O04) can move the start point. */
 	--size-entry-identity: 11rem;
 	--spacing-entry-rule-start: calc(0.75rem + var(--size-mark-sm) + var(--spacing-mark-gap));
+	/* Entry times line up with the day total in the heading bar (sprint 064-DR, T2). In the wide
+	   card the actions column is one action button wide, after the time and the column gap, so the
+	   bar's right padding can match; an action button is 2rem on a touch screen (below). The narrow
+	   card puts its actions before the time, so its time ends at the row's right edge. */
+	--size-entry-action: 1.5rem;
+	--spacing-entry-column-gap: 1rem;
+}
+
+/* Touch screens: the row's action buttons are larger (unlayered, so it wins over @theme's layer) */
+@media (pointer: coarse) {
+	:root {
+		--size-entry-action: 2rem;
+	}
 }
