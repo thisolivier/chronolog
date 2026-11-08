@@ -126,7 +126,7 @@
 	</div>
 {:else}
 	<div
-		class="relative mb-3 flex items-center gap-2.5 py-2.5 pr-3 pl-3 {bleedClass} {washClass}"
+		class="relative mb-3 flex items-center gap-2 py-2.5 pl-3 {canCollapse ? 'pr-1' : 'pr-3'} {bleedClass} {washClass}"
 		data-testid="timer-identity"
 		data-state={status}
 	>
