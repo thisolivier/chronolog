@@ -320,6 +320,7 @@
 			clientColorIndex: contract?.clientColorIndex ?? 0,
 			contractShortCode: contract?.clientShortCode ?? '',
 			contractTitle: contract?.name ?? '',
+			contractId: contract?.id ?? '',
 			clientName: contract?.clientName ?? '',
 			startTime: timerState === 'running' ? startTime : '',
 			startDate: timerState === 'running' ? timerDate : ''
@@ -698,6 +699,7 @@
 		<TimerIdentityHeader
 			status={timerState}
 			contractName={identityContract?.name ?? ''}
+			contractId={identityContract?.id ?? null}
 			clientName={identityContract?.clientName ?? ''}
 			clientColorIndex={identityContract?.clientColorIndex ?? 0}
 			{elapsedSeconds}

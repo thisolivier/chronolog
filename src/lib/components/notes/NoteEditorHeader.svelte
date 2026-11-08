@@ -5,8 +5,9 @@
 	confirm(), which Tauri can suppress). The note's title lives in the body only.
 	Client / contract text (NT-01): visible only in the single-column (phone) layout, where nothing
 	else names the note's own contract; elsewhere it is screen-reader text beside the mark (the
-	sidebar or the list header names it on screen). The free space after the save pill is kept for
-	the deferred contract repeat (NT-03).
+	sidebar or the list header names it on screen). The free space after the save pill holds the
+	quiet repeat of the contract's pattern tile (NT-03 / DS-04, sprint 063-DR). The single-column
+	layout has none: there the save pill and the ellipsis sit on different rows.
 -->
 <script lang="ts">
 	import { tick } from 'svelte';
@@ -15,6 +16,7 @@
 	import NoteActionsMenu from './NoteActionsMenu.svelte';
 	import OutboxMarker from '$lib/offline/OutboxMarker.svelte';
 	import ContractMark from '$lib/components/identity/ContractMark.svelte';
+	import ContractTileRepeat from '$lib/components/identity/ContractTileRepeat.svelte';
 	import type { SaveStatus } from './note-autosave';
 	import type { ContractOption } from '$lib/services/types';
 	import { contractDirectory } from '$lib/stores/contract-directory.svelte';
@@ -67,7 +69,7 @@
 {#snippet identity()}
 	{#if contractLabel}
 		<span class="flex min-w-0 items-center gap-mark-gap" title={contextText}>
-			<ContractMark contractName={contractLabel.name} colorIndex={contractLabel.clientColorIndex} size="sm" />
+			<ContractMark {contractId} contractName={contractLabel.name} colorIndex={contractLabel.clientColorIndex} size="sm" />
 			<span
 				class={showContextText ? 'min-w-0 truncate text-sm text-ink-muted' : 'sr-only'}
 				data-testid="note-editor-context"
@@ -144,8 +146,12 @@
 		<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
 			{@render identity()}
 			{@render codeAndStatus()}
-			<!-- Kept free for the contract repeat (NT-03, deferred 2026-11-07) -->
-			<div class="min-w-0 flex-1" aria-hidden="true"></div>
+			<!-- The contract repeat (NT-03): fills what the row leaves, shrinks to nothing first -->
+			<div class="flex min-w-0 flex-1 items-center" aria-hidden="true" data-testid="note-editor-header-space">
+				{#if contractLabel}
+					<ContractTileRepeat {contractId} colorIndex={contractLabel.clientColorIndex} />
+				{/if}
+			</div>
 			{@render actions()}
 		</div>
 	{/if}

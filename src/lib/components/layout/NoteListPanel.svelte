@@ -3,8 +3,9 @@
 	its contracts (the client view, `/notes/client/<id>`, sprint 039-CL), pinned notes first; or every
 	note (all notes, `/notes/all`, sprint 051-UI), newest first with pins not floated.
 	Header (054-DR, NT-01/NT-02): title and count, the New note icon, and the sort control below.
-	Who names the client / contract follows `note-context-ownership.ts`. The free space between the
-	title/count and New note is kept for the deferred contract repeat (NT-03).
+	Who names the client / contract follows `note-context-ownership.ts`. When the list is one
+	contract's, the free space between the title/count and New note holds the quiet repeat of that
+	contract's pattern tile (NT-03 / DS-04, sprint 063-DR); it shrinks to nothing before the title.
 -->
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
@@ -12,6 +13,7 @@
 	import { getDataService } from '$lib/services/context';
 	import NoteListRow from './NoteListRow.svelte';
 	import NoteListNewNoteButton from './NoteListNewNoteButton.svelte';
+	import ContractTileRepeat from '$lib/components/identity/ContractTileRepeat.svelte';
 	import { startNoteDraft, endNoteDraft } from '$lib/components/notes/note-draft.svelte';
 	import { onNoteEvent } from '$lib/components/notes/note-events';
 	import { sortNotes, loadSortPreference, saveSortPreference, type NoteSortOrder } from '$lib/components/notes/note-sort';
@@ -54,6 +56,8 @@
 		navigationContext.selectedContractId ? contractDirectory.labels[navigationContext.selectedContractId] : undefined
 	);
 	let viewedClientName = $derived(contractDirectory.clientName(viewedClientId));
+	/** The contract whose tile repeats in the header: only when the list is that one contract's */
+	let repeatContractId = $derived(isAllNotesView || viewedClientId ? null : navigationContext.selectedContractId);
 	/** NT-01: which header and rows name the client / contract in this layout */
 	let ownership = $derived(
 		noteContextOwnership({
@@ -256,7 +260,7 @@
 </script>
 
 <div class="flex h-full flex-col bg-chalk-50">
-	<!-- Header (054-DR): title and count, room for the deferred repeat, New note; sort below -->
+	<!-- Header (054-DR): title and count, the contract repeat (063-DR), New note; sort below -->
 	<div class="border-b border-divider bg-surface px-4 pt-3 pb-1.5" data-testid="note-list-header">
 		<div class="flex items-center gap-2">
 			<div
@@ -285,7 +289,12 @@
 				<h2 class="flex min-w-0 items-baseline gap-2 text-base font-semibold text-ink">
 					{#if ownership.listHeader === 'contract' && contractLabel}
 						<span class="flex min-w-0 items-center gap-mark-gap self-center">
-							<ContractMark contractName={contractLabel.name} colorIndex={contractLabel.clientColorIndex} size="sm" />
+							<ContractMark
+								contractName={contractLabel.name}
+								contractId={navigationContext.selectedContractId}
+								colorIndex={contractLabel.clientColorIndex}
+								size="sm"
+							/>
 							<span class="truncate" data-testid="note-list-title">{contractLabel.name}</span>
 						</span>
 					{:else}
@@ -310,8 +319,12 @@
 					{/if}
 				</h2>
 			</div>
-			<!-- Kept free for the contract repeat (NT-03, deferred 2026-11-07) -->
-			<div class="min-w-0 flex-1" aria-hidden="true" data-testid="note-list-header-space"></div>
+			<!-- The contract repeat (NT-03): one contract's list only, never in the client or all-notes views -->
+			<div class="flex min-w-0 flex-1 items-center" aria-hidden="true" data-testid="note-list-header-space">
+				{#if repeatContractId && contractLabel}
+					<ContractTileRepeat contractId={repeatContractId} colorIndex={contractLabel.clientColorIndex} />
+				{/if}
+			</div>
 			<NoteListNewNoteButton
 				contractId={viewedClientId || isAllNotesView ? null : navigationContext.selectedContractId}
 				clientContracts={viewedClientId || isAllNotesView ? clientContracts : []}

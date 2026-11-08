@@ -81,7 +81,12 @@
 				}}
 				onclick={() => onChoose(index)}
 			>
-				<span class="mt-0.5"><ContractMark contractName={item.contractName} colorIndex={item.clientColorIndex} size="md" /></span>
+				<span class="mt-0.5"><ContractMark
+						contractName={item.contractName}
+						contractId={item.contractId}
+						colorIndex={item.clientColorIndex}
+						size="md"
+					/></span>
 				<span class="min-w-0">
 					<span class="block truncate text-sm font-semibold text-ink" data-testid="link-picker-title">{item.title}</span>
 					<span class="block truncate text-xs text-ink-soft">{item.clientName} / {item.contractName}</span>
