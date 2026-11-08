@@ -37,6 +37,7 @@ describe('tile library', () => {
 		expect(style).toContain("-webkit-mask-image: url('data:image/svg+xml,");
 		expect(style).toContain('mask-size: 16px 16px');
 		expect(style).toContain('-webkit-mask-repeat: repeat-x');
+		expect(style).toContain('-webkit-mask-origin: content-box');
 		expect(tileMaskUrl(0)).not.toContain('"');
 		expect(tileMaskUrl(TILE_COUNT)).toBe(tileMaskUrl(0));
 		expect(tileMaskUrl(-1)).toBe(tileMaskUrl(TILE_COUNT - 1));

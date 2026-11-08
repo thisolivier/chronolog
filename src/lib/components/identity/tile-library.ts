@@ -8,8 +8,9 @@
  *
  * Every motif was checked on the contact sheet at the small mark size (16 px): motifs that blurred
  * into a neighbour there were dropped (fine diagonal stripes, a dotted frame, scallops, paired
- * half-discs). The order of `TILE_MOTIFS` is the allocation order: never
- * reorder or remove an entry without accepting that every contract may change pattern.
+ * half-discs; after review `target`, too close to `ring`, and `bars-3`, too close to `bars-2`). The order of `TILE_MOTIFS` is the allocation order: never
+ * reorder or remove an entry without accepting that every contract may change pattern. The order is
+ * frozen from the first deploy of this library (sprint 063-DR): only append.
  */
 
 export const TILE_VIEWBOX = 24;
@@ -107,12 +108,10 @@ export const TILE_MOTIFS: readonly TileMotif[] = [
 	{ id: 'quarter-arc', shapes: path('M0 0h20a20 20 0 0 1-20 20Z') },
 	{ id: 'quarters-opposite', shapes: path('M0 0h12a12 12 0 0 1-12 12Z') + path('M24 24h-12a12 12 0 0 1 12-12Z') },
 	{ id: 'checks-4', shapes: checks(4) },
-	{ id: 'bars-3', shapes: bars(3, 4) },
 	{ id: 'triangles-up', shapes: polygon([[0, 22], [6, 10], [12, 22]]) + polygon([[12, 22], [18, 10], [24, 22]]) },
 	{ id: 'frame', shapes: path('M2 2h20v20h-20ZM7 7v10h10v-10Z') },
 	{ id: 'bowtie', shapes: polygon([[2, 2], [12, 12], [2, 22]]) + polygon([[22, 2], [12, 12], [22, 22]]) },
 	{ id: 'steps', shapes: path('M0 24v-8h8v-8h8v-8h8v24Z') },
-	{ id: 'target', shapes: path('M12 1.5a10.5 10.5 0 1 0 0 21a10.5 10.5 0 1 0 0-21ZM12 5.5a6.5 6.5 0 1 1 0 13a6.5 6.5 0 1 1 0-13Z') + circle(12, 12, 3) },
 	{ id: 'pinwheel', shapes: polygon([[0, 0], [12, 0], [12, 12]]) + polygon([[24, 0], [24, 12], [12, 12]]) + polygon([[24, 24], [12, 24], [12, 12]]) + polygon([[0, 24], [0, 12], [12, 12]]) },
 	{ id: 'quincunx', shapes: circle(5, 5, 3.5) + circle(19, 5, 3.5) + circle(12, 12, 3.5) + circle(5, 19, 3.5) + circle(19, 19, 3.5) },
 	{ id: 'corner-l', shapes: path('M2 2h7v13h13v7h-20Z') },
@@ -153,8 +152,10 @@ export function tileMaskUrl(index: number): string {
  */
 export function tileMaskStyle(index: number, tileSize: string, repeat: 'no-repeat' | 'repeat-x' | 'repeat' = 'repeat'): string {
 	const url = tileMaskUrl(index);
+	// `mask-origin: content-box` starts the first tile after any padding (the sidebar repeat's gap)
 	const declarations = [
 		['mask-image', url],
+		['mask-origin', 'content-box'],
 		['mask-size', `${tileSize} ${tileSize}`],
 		['mask-repeat', repeat],
 		['mask-position', '0 0']
