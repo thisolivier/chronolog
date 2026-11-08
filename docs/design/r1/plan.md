@@ -39,6 +39,7 @@ on a branch `design-r1-<stage>`, gets a sprint doc under `docs/sprints/`, is rev
 | B + C | QA pass done on `design-r1-qa-bc` (`docs/review/2026-11-07-checkpoint-bc.md`): suites green, shared cascade adopted in weekly/, one phone Start timer path, WikiLinkInput on the shared picker; merged and deployed as v1.5.0 |
 | Polish (060-DR) | merged into design-r1 (`docs/sprints/sprint-060-DR.md`); awaiting owner review |
 | ISO weeks (061-DR) | merged into design-r1: ISO 8601 weeks again, Monday-date status posts; awaiting owner review |
+| Pattern tiles (063-DR) | `design-r1-tiles`: 34 procedural one-colour tiles, hash allocation, DS-04 placements (DS-03 / DS-04 / DS-07); ready for review |
 | Home button (062-DR) | merged into design-r1: Chronolog home button with ‹ › beside it on every layout; awaiting owner review |
 | Integrated run | 2026-11-08 morning pass on design-r1 (`docs/review/2026-11-08-morning.md`): suites green apart from recorded flakes |
 | 060–062 | owner approved 2026-11-08 morning; merged and deployed as v1.5.1; pre-deploy dump `~/Backups/chronolog/pre-session/pre-v1.5.1-*.dump`; no migrations |
@@ -52,3 +53,7 @@ AppShell, so 3b merges second). 4 and 6 can run side by side, then 5 and 7.
 
 Deferred by owner decision: pattern tiles and their placements (DS-03, DS-04 repeats, DS-07, O02), the
 production pattern assignment UI (O13). Layouts must leave the header space where the repeats would go.
+
+Un-deferred 2026-11-08 (`docs/decisions.md`): DS-03, the DS-04 repeats and DS-07 are done in 063-DR
+(`design-r1-tiles`, ready for review) with procedural placeholder tiles and hash allocation; the
+persisted assignment and its Settings control (O13) stay on the backlog pending a migration approval.

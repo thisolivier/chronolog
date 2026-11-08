@@ -64,6 +64,19 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
   present top-left and acts as the home button; the back and forward buttons sit to its right, on
   every layout. Done in 062-DR (`docs/sprints/sprint-062-DR.md`).
 
+## Owner-requested (2026-11-08): contract pattern tiles
+
+- **Persisted pattern assignment (needs owner approval: migration).** Sprint 063-DR draws each
+  contract's tile from a hash of its id (`tileIndexForContract`), so two contracts of one client can
+  share a motif, and any change to the library's order or size reshuffles every contract. Follow-up:
+  a `contracts.pattern_index` column, assigned on create to a motif no sibling contract of the same
+  client uses (backfilled from the current hash so nothing changes on screen), returned in the
+  contract payloads, plus a reassignment control in Settings → Contracts (O13). Halt and ask before
+  the migration (owner rule 2026-11-07).
+- **Owner-drawn tiles.** The 34 procedural motifs are placeholders; the owner will replace them.
+  Keep the 24-unit square, one colour on transparent, and check at 16 px on the contact sheet
+  (`e2e-playwright/contract-tiles.spec.ts`).
+
 ## Owner-requested (2026-11-07): revisit week numbering before 28 December
 
 Resolved by sprint 061-DR: ISO 8601 weeks everywhere again (decision 2026-11-07, "ISO 8601 after all"; `docs/sprints/sprint-061-DR.md`).

@@ -137,3 +137,27 @@ tablet and phone. The back and forward history buttons sit immediately to its ri
 replaced by this layout (sprint 062-DR). The owner also dropped the phone timesheet's Start timer and
 Add Entry buttons as nice-to-haves that cost space (sprint 060-DR); the header pill and the home
 screen widget give timer access on the phone.
+
+## 2026-11-08 — Contract pattern tiles un-deferred (063-DR)
+
+The owner: "Generate some tiles and finish off the contract tile UI elements. I'll replace them
+eventually, but we're looking at one-colour cutouts." This lifts the 2026-11-07 deferral of DS-03 /
+DS-04 / DS-07 for a placeholder set; the minimal-mark decision above is superseded as far as the
+mark's content goes (colour still names the client).
+
+- **Procedural one-colour cutouts, no new dependency.** 34 square motifs authored as plain SVG
+  shapes in `src/lib/components/identity/tile-library.ts`, each checked at the 16 px mark size on a
+  contact sheet. Drawn as a CSS mask over the client colour, so one source square serves the mark
+  and every repeat (edge to edge, clipped, never stretched).
+- **Deterministic allocation, no migration.** A contract's motif is FNV-1a (32-bit) of its id modulo
+  the library size, computed wherever a mark is drawn. Nothing is stored and no payload gained a
+  new field from the database. Two contracts, even of the same client, can share a motif; accepted
+  for now.
+- **Persisted assignment later.** A stored `contracts.pattern_index` with sibling-collision
+  avoidance and a reassignment control in Settings (O13) is on the backlog; it needs a migration and
+  so the owner's approval first. Changing the library's order or size reshuffles every contract
+  until then.
+- **Placements (DS-04):** the timer header's 1.5-tile region, the selected sidebar row's quiet
+  repeat, the notes list header (one contract's list only) and the note editor header (not in the
+  single-column phone layout). No repeats on time-entry rows, search rows or note bodies. See
+  `docs/sprints/sprint-063-DR.md`.
