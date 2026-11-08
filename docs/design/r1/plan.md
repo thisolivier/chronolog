@@ -41,7 +41,8 @@ on a branch `design-r1-<stage>`, gets a sprint doc under `docs/sprints/`, is rev
 | ISO weeks (061-DR) | merged into design-r1: ISO 8601 weeks again, Monday-date status posts; awaiting owner review |
 | Home button (062-DR) | merged into design-r1: Chronolog home button with ‹ › beside it on every layout; awaiting owner review |
 | Integrated run | 2026-11-08 morning pass on design-r1 (`docs/review/2026-11-08-morning.md`): suites green apart from recorded flakes |
-| Next | v1.5.1 deploy of design-r1 after the owner's look, then stage 8 native checks |
+| 060–062 | owner approved 2026-11-08 morning; merged and deployed as v1.5.1; pre-deploy dump `~/Backups/chronolog/pre-session/pre-v1.5.1-*.dump`; no migrations |
+| Next | stage 8 native checks (owner at the Mac) |
 | 8 | after the v1.5.1 deploy |
 
 Owner rule added 2026-11-07: any database migration needs a halt-and-ask first. None so far.

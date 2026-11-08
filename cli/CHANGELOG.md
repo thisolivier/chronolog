@@ -4,7 +4,12 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 `chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
 030, 033 and 035 changed nothing in the CLI and are not listed.
 
-## Unreleased (sprint 061-DR): weeks are ISO 8601 again
+## 1.5.1 (sprints 060-DR, 061-DR, 062-DR, 2026-11-08): ISO weeks again, home button, polish
+
+- Design r1 polish after checkpoint B/C: note titles instead of IDs in search and split cards,
+  24-hour time fields with inline errors, compact phone week controls, "Chronolog" as an
+  ever-present home button with ‹ › beside it. The CLI output is unchanged apart from the week
+  numbering described next.
 
 - **Week numbering is ISO 8601 again.** `week`, `status` and `me` number weeks as ISO 8601 (week 1
   contains the year's first Thursday), as every CLI before 1.5.0 did. `2026-W53` is 28 Dec 2026 –
@@ -23,7 +28,7 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 
 ### Week numbering (sprint 057-DR)
 
-*Superseded by sprint 061-DR (Unreleased, above): weeks are ISO 8601 again.*
+*Superseded by sprint 061-DR (1.5.1, above): weeks are ISO 8601 again.*
 
 - **Weeks count from 1 January.** `week`, `status` and `me` use Chronolog's week rule: Week 1 is the
   Monday-start week containing 1 January (owner decision 2026-11-07), not ISO 8601. The two agree
