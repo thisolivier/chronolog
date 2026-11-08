@@ -4,6 +4,12 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 `chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
 030, 033 and 035 changed nothing in the CLI and are not listed.
 
+## 1.6.0 (sprint 063-DR, 2026-11-08): contract pattern tiles
+
+- Design r1 pattern tiles: every contract mark in the app is now one of 32 one-colour tiles in the
+  client's colour, chosen from the contract id, with the DS-04 repeats in the timer header, the
+  selected sidebar contract and the notes headers. The CLI output is unchanged; no database change.
+
 ## 1.5.1 (sprints 060-DR, 061-DR, 062-DR, 2026-11-08): ISO weeks again, home button, polish
 
 - Design r1 polish after checkpoint B/C: note titles instead of IDs in search and split cards,
