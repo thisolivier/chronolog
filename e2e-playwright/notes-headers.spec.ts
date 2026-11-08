@@ -2,7 +2,8 @@
  * Sprint 054-DR (design r1 stage 3b): notes workspace headers, toolbar, linked time, note position.
  * - NT-01: three columns with one contract never show the client / contract in all three headers;
  *   hiding the navigation brings it back in the list header; all-notes rows carry contract marks.
- * - NT-02: New note is an icon named "New note"; the count sits beside Notes.
+ * - NT-02: New note is an icon named "New note"; the count sits beside Notes (screen-reader only
+ *   beside the sidebar since 064-DR, see notes-polish.spec.ts).
  * - NT-04: one "Note actions" menu runs Move, Export and Delete (confirm, then Undo).
  * - NT-05: phone toolbar keeps core formatting and puts the rest under "Formatting".
  * - NT-06: linked time names a contract only when it is not the note's.
@@ -106,9 +107,11 @@ test.describe('desktop 1280', () => {
 
 		const listContext = page.getByTestId('note-list-context');
 		const editorContext = page.getByTestId('note-editor-context');
-		// Sidebar names the contract; the list says Notes and the count; the editor shows the mark only
+		// Sidebar names the contract; the list header is one row (064-DR: Notes and the count only for
+		// screen readers); the editor shows the mark only
 		await expect(page.getByTestId('app-sidebar').getByText(data.contractName).first()).toBeVisible();
 		await expect(listContext).toHaveAttribute('data-owner', 'notes');
+		await expect(listContext).toHaveClass(/sr-only/);
 		await expect(listContext.locator('h2 > span').first()).toHaveText('Notes');
 		await expect(page.getByTestId('note-list-count')).toHaveText('2');
 		// Only screen-reader text names the contract in the list and editor headers
