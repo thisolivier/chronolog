@@ -1,10 +1,10 @@
 /**
  * Validation for the weekly-status route (ported by hand from `fix/weekly-status-input-validation`
  * in sprint 029-CL): year 2000–2100, a week that exists in that year under Chronolog's rule
- * (calendar-week.ts, Week 1 contains 1 January; 52 or 53 weeks), status one of the UI's states.
+ * (ISO 8601, iso-week.ts; 52 or 53 weeks), status one of the UI's states.
  * Each check also yields the week's Monday, which is what identifies a stored status.
  */
-import { calendarWeekOf, mondayOfCalendarWeek, weeksInYear } from '$lib/utils/calendar-week';
+import { isoWeekOf, mondayOfIsoWeek, isoWeeksInYear } from '$lib/utils/iso-week';
 import { isCalendarDate } from '$lib/utils/local-calendar';
 
 export const WEEK_STATUSES = ['Unsubmitted', 'Draft ready', 'Submitted'] as const;
@@ -33,9 +33,9 @@ export function checkYearAndWeek(rawYear: unknown, rawWeekNumber: unknown): Chec
 	if (!(weekNumber >= 1 && weekNumber <= 53)) {
 		return { ok: false, error: 'weekNumber must be between 1 and 53', code: 'invalid_week' };
 	}
-	const weekStart = mondayOfCalendarWeek(year, weekNumber);
+	const weekStart = mondayOfIsoWeek(year, weekNumber);
 	if (!weekStart) {
-		return { ok: false, error: `${year} has ${weeksInYear(year)} weeks (Week 1 contains 1 January)`, code: 'invalid_week' };
+		return { ok: false, error: `${year} has ${isoWeeksInYear(year)} ISO weeks`, code: 'invalid_week' };
 	}
 	return { ok: true, value: { year, weekNumber, weekStart } };
 }
@@ -72,6 +72,6 @@ export function checkWeekStatus(rawStatus: unknown): Checked<WeekStatus> {
 }
 
 function weekOfMonday(weekStart: string): CheckedWeek {
-	const { year, weekNumber } = calendarWeekOf(weekStart);
+	const { year, weekNumber } = isoWeekOf(weekStart);
 	return { year, weekNumber, weekStart };
 }

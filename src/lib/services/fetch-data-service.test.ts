@@ -575,16 +575,13 @@ describe('FetchDataService', () => {
 		it('calls POST /api/time-entries/weekly-statuses', async () => {
 			mockFetch.mockResolvedValueOnce(mockJsonResponse({}));
 
-			await service.updateWeeklyStatus(2026, 6, 'submitted');
+			await service.updateWeeklyStatus('2026-12-28', 'submitted');
 
 			const [url, options] = getLastFetchCall(mockFetch);
 			expect(url).toBe('/api/time-entries/weekly-statuses');
 			expect(options?.method).toBe('POST');
-			expect(getLastFetchBody(mockFetch)).toEqual({
-				year: 2026,
-				weekNumber: 6,
-				status: 'submitted'
-			});
+			// The Monday only: no year or week number that a stale bundle could number differently
+			expect(getLastFetchBody(mockFetch)).toEqual({ weekStart: '2026-12-28', status: 'submitted' });
 		});
 	});
 
@@ -928,8 +925,8 @@ describe('DelegatingDataService', () => {
 		await delegator.deleteTimeEntry('te1');
 		expect(inner.deleteTimeEntry).toHaveBeenCalledWith('te1');
 
-		await delegator.updateWeeklyStatus(2026, 6, 'submitted');
-		expect(inner.updateWeeklyStatus).toHaveBeenCalledWith(2026, 6, 'submitted');
+		await delegator.updateWeeklyStatus('2026-02-02', 'submitted');
+		expect(inner.updateWeeklyStatus).toHaveBeenCalledWith('2026-02-02', 'submitted');
 
 		await delegator.getTimerStatus();
 		expect(inner.getTimerStatus).toHaveBeenCalledOnce();

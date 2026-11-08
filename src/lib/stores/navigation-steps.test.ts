@@ -146,3 +146,58 @@ describe('Back and Forward through the journey', () => {
 		expect(nav.nextPath).toBe('/time/2026-W44');
 	});
 });
+
+describe('the home button (062-DR)', () => {
+	it('goHome is one step to / that Back undoes', async () => {
+		const { nav, calls, settle } = setup(`/notes/${CONTRACT_A}/ACME.1`);
+		await enter(nav, `/notes/${CONTRACT_A}/ACME.1`, 'navigate');
+		nav.goHome();
+		await settle();
+		expect(calls.at(-1)).toEqual({ path: '/', replace: false });
+		expect(nav.isHome).toBe(true);
+		expect(nav.mobileNavigationLevel).toBe(0);
+		expect(nav.previousPath).toBe(`/notes/${CONTRACT_A}/ACME.1`);
+	});
+
+	it('goes home from settings even when home was the last workspace place', async () => {
+		const { nav, calls, settle } = setup('/');
+		await nav.syncFromUrl(new URL('http://app/settings'), 'link');
+		nav.goHome();
+		await settle();
+		expect(calls.at(-1)).toEqual({ path: '/', replace: false });
+	});
+
+	it('the phone Back at home, after the home button, takes the step before (review)', async () => {
+		const { nav, settle, backCount } = setup('/');
+		await enter(nav, '/', 'navigate');
+		nav.openNote('ACME.1', CONTRACT_A, CLIENT_A);
+		await settle();
+		nav.goHome();
+		await settle();
+		expect(nav.backTarget).toEqual({ path: `/notes/${CONTRACT_A}/ACME.1`, isHistory: true });
+		nav.goBackMobile();
+		expect(backCount()).toBe(1);
+	});
+
+	it('the phone Back on /search entered from home steps back; at home with nothing before it does nothing', async () => {
+		const { nav, calls, settle, backCount } = setup('/');
+		await enter(nav, '/', 'navigate');
+		nav.goBackMobile();
+		await settle();
+		expect(backCount()).toBe(0);
+		expect(calls).toEqual([]);
+		await nav.syncFromUrl(new URL('http://app/search'), 'link');
+		expect(nav.isHome).toBe(true);
+		expect(nav.backTarget).toEqual({ path: '/', isHistory: true });
+		nav.goBackMobile();
+		expect(backCount()).toBe(1);
+	});
+
+	it('does nothing when already home', async () => {
+		const { nav, calls, settle } = setup('/');
+		await enter(nav, '/', 'navigate');
+		nav.goHome();
+		await settle();
+		expect(calls).toEqual([]);
+	});
+});

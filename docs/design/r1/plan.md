@@ -23,7 +23,7 @@ on a branch `design-r1-<stage>`, gets a sprint doc under `docs/sprints/`, is rev
 | **C** | | **Checkpoint merge** | 6, 7, QA | |
 | 8 | 059-QA | Cross-surface regression against the spec 08 acceptance matrix in browser, PWA and Tauri | all | Matrix passes or deviations recorded |
 
-## Status (2026-11-07, after the checkpoint B/C QA pass)
+## Status (2026-11-08, after the integrated morning run)
 
 | Stage | State |
 | --- | --- |
@@ -36,8 +36,14 @@ on a branch `design-r1-<stage>`, gets a sprint doc under `docs/sprints/`, is rev
 | 6 (057-DR) | merged into design-r1 after review (renumber guard, shared week fixtures) |
 | 5 (056-DR UI) | merged into design-r1 after review |
 | 7 (059-DR) | merged into design-r1 after review |
-| B + C | QA pass done on `design-r1-qa-bc` (`docs/review/2026-11-07-checkpoint-bc.md`): suites green, shared cascade adopted in weekly/, one phone Start timer path, WikiLinkInput on the shared picker; awaiting owner look, then merge and deploy |
-| 8 | after B/C |
+| B + C | QA pass done on `design-r1-qa-bc` (`docs/review/2026-11-07-checkpoint-bc.md`): suites green, shared cascade adopted in weekly/, one phone Start timer path, WikiLinkInput on the shared picker; merged and deployed as v1.5.0 |
+| Polish (060-DR) | merged into design-r1 (`docs/sprints/sprint-060-DR.md`); awaiting owner review |
+| ISO weeks (061-DR) | merged into design-r1: ISO 8601 weeks again, Monday-date status posts; awaiting owner review |
+| Home button (062-DR) | merged into design-r1: Chronolog home button with ‹ › beside it on every layout; awaiting owner review |
+| Integrated run | 2026-11-08 morning pass on design-r1 (`docs/review/2026-11-08-morning.md`): suites green apart from recorded flakes |
+| 060–062 | owner approved 2026-11-08 morning; merged and deployed as v1.5.1; pre-deploy dump `~/Backups/chronolog/pre-session/pre-v1.5.1-*.dump`; no migrations |
+| Next | stage 8 native checks (owner at the Mac) |
+| 8 | after the v1.5.1 deploy |
 
 Owner rule added 2026-11-07: any database migration needs a halt-and-ask first. None so far.
 

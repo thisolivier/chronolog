@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { weekRange, weeksInYear, parseWeekKey, resolveDateWord, formatMinutes } from './dates.mjs';
 
 // The app's worked examples of the week rule: the CLI's copy must agree (057-DR)
-const weekFixtures = JSON.parse(readFileSync(new URL('../../src/lib/utils/calendar-week.fixtures.json', import.meta.url), 'utf8'));
+const weekFixtures = JSON.parse(readFileSync(new URL('../../src/lib/utils/iso-week.fixtures.json', import.meta.url), 'utf8'));
 
 const contracts = [
 	{ id: '11111111-1111-1111-1111-111111111111', name: 'Website rebuild', clientName: 'Acme Ltd', clientShortCode: 'ACME', isActive: true },
@@ -55,12 +55,14 @@ describe('CLI dates', () => {
 		expect(parseWeekKey('2026-W45')).toMatchObject({ year: 2026, weekNumber: 45 });
 		expect(weekRange(2026, 45)).toEqual({ from: '2026-11-02', to: '2026-11-08' });
 		expect(weekRange(2026, 1)).toEqual({ from: '2025-12-29', to: '2026-01-04' });
-		// Week 1 contains 1 January (decision 2026-11-07), not ISO: the boundary cases
-		expect(weekRange(2027, 1)).toEqual({ from: '2026-12-28', to: '2027-01-03' });
-		expect(weekRange(2027, 2)).toEqual({ from: '2027-01-04', to: '2027-01-10' });
+		// ISO 8601 (061-DR): the boundary cases
+		expect(weekRange(2026, 53)).toEqual({ from: '2026-12-28', to: '2027-01-03' });
+		expect(weekRange(2027, 1)).toEqual({ from: '2027-01-04', to: '2027-01-10' });
 		expect(weekRange(2025, 1)).toEqual({ from: '2024-12-30', to: '2025-01-05' });
-		expect(parseWeekKey('2026-W53')).toBeNull();
-		expect(parseWeekKey('2023-W53')).toMatchObject({ key: '2023-W53' });
+		expect(parseWeekKey('2026-W53')).toMatchObject({ key: '2026-W53' });
+		expect(parseWeekKey('2020-W53')).toMatchObject({ key: '2020-W53' });
+		expect(parseWeekKey('2025-W53')).toBeNull();
+		expect(parseWeekKey('2023-W53')).toBeNull();
 	});
 
 	it('resolves date words against today', () => {
@@ -80,7 +82,7 @@ describe('CLI dates', () => {
 });
 
 describe('week rule matches the app (shared fixtures)', () => {
-	it.each(weekFixtures.weeks)('$year Week $weekNumber starts $weekStart', ({ year, weekNumber, weekStart }) => {
+	it.each(weekFixtures.weeks)('$date: $year-W$weekNumber starts $weekStart', ({ year, weekNumber, weekStart }) => {
 		expect(weekRange(year, weekNumber).from).toBe(weekStart);
 		expect(parseWeekKey(`${year}-W${weekNumber}`)).toMatchObject({ year, weekNumber });
 	});

@@ -184,7 +184,9 @@ test('Cmd/Ctrl+F on a timesheet week counts and steps through matches', async ({
 	await expect(scroller).toContainText('Wrote the');
 
 	// Outside the panel (the top bar), Cmd/Ctrl+F is left to the browser
-	await page.getByText('Chronolog', { exact: true }).first().click();
+	// (062-DR: "Chronolog" is the home button now, so click an empty part of the bar)
+	const topBarBox = (await page.getByTestId('app-top-bar').boundingBox())!;
+	await page.mouse.click(topBarBox.x + topBarBox.width / 2, topBarBox.y + topBarBox.height / 2);
 	await page.keyboard.press('ControlOrMeta+f');
 	await expect(findBar(page)).toHaveCount(0);
 

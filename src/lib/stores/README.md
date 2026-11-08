@@ -53,7 +53,7 @@ All notes (sprint 051-UI): `selectAllNotes()` pushes `/notes/all`, every note of
 
 Back and Forward (sprint 050-UI): `canGoBack` / `canGoForward` say whether an in-app entry is behind or ahead, `previousPath` / `nextPath` name it (the buttons build their labels from these), and `goBack()` / `goForward()` call the adapter's `back` / `forward` only then, so they never leave the app. Each call is counted as a pending move until it lands, so quick repeated presses stop at the ends too.
 
-Phone Back (`goBackMobile`) uses the in-app history mirror (`navigation-history.ts`). If the previous entry is inside the app it calls `history.back()`; otherwise it moves one level up with a replace. `backTarget` gives that path and whether it is a history entry, which the phone's Back label is built from.
+Phone Back (`goBackMobile`) uses the in-app history mirror (`navigation-history.ts`). If the previous entry is inside the app it calls `history.back()`; otherwise it moves one level up with a replace. `backTarget` gives that path and whether it is a history entry, which the phone ‹'s accessible name is built from (062-DR: an icon right of the "Chronolog" home button). `goHome` (062-DR) is the home button's action: a pushed step to `/`, from the workspace, settings, search or the trash.
 
 A fresh deep link (a URL opened directly, not by reload or Back) gets `/` put under it, so Back goes up into the app instead of out of it.
 
@@ -61,7 +61,7 @@ A fresh deep link (a URL opened directly, not by reload or Back) gets `/` put un
 
 Persistence: the sidebar-collapsed preference is in localStorage (`chronolog:sidebar-collapsed`), as is the sidebar's Archived item being expanded (`chronolog:sidebar-archived-expanded`, kept by `ContractsSidebar`, not this store). Timesheet scroll positions per week are in sessionStorage (`chronolog:timesheet-scroll`), as is the in-app history (`chronolog:in-app-history`). `showTimeEntryDay(date)` sets the week to show and the day to scroll to; `takeFocusDay()` hands that day out once and then forgets it. `openNote(…, { focusEditor: true })` (a followed wiki-link) marks the note so `takeEditorFocus(noteId)` returns true once; NoteEditorPanel then focuses the editor at the top (not on touch screens). `focusEditor: 'new-note'` (a note just made by Attach note, 049-UI) is returned as `'new-note'` and focuses the editor on touch screens too.
 
-Actions: `selectTimeEntries`, `selectContract`, `selectClient`, `selectWeek`, `selectNote`, `openNote`, `openDraft`, `clearSelectedNote`, `showTimeEntryDay`, `toggleSidebar`, `navigateMobile`, `goBackMobile`, `goBack`, `goForward`, and the timesheet scroll helpers.
+Actions: `selectTimeEntries`, `selectContract`, `selectClient`, `selectWeek`, `selectNote`, `openNote`, `openDraft`, `clearSelectedNote`, `showTimeEntryDay`, `toggleSidebar`, `navigateMobile`, `goBackMobile`, `goHome`, `goBack`, `goForward`, and the timesheet scroll helpers.
 
 Tests: `navigation.test.ts` (one group per rule), `navigation-steps.test.ts` (push/replace rules and Back/Forward, 050-UI), sharing the fake adapter in `navigation-test-setup.ts`.
 
@@ -72,7 +72,7 @@ Pure functions that map workspace URLs to routes and back. No Svelte.
 | URL | Route | Meaning |
 |---|---|---|
 | `/` | `home` | Phone: the sidebar. Wider screens: this week's timesheet. |
-| `/time/YYYY-Www` | `time` | The timesheet for that week (Week 1 contains 1 January, `calendar-week.ts`); an ISO-only key such as `2026-W53` opens the same Monday's week |
+| `/time/YYYY-Www` | `time` | The timesheet for that ISO 8601 week (`iso-week.ts`); W53 only in 53-week years (`2026-W53` yes, `2025-W53` is a 404) |
 | `/notes/<contractId>` | `notes` | A contract's note list |
 | `/notes/<contractId>/<noteId>` | `notes` | A note open under its contract |
 | `/notes/<contractId>/new` | `notes`, `draft` | An unsaved new-note draft for that contract |

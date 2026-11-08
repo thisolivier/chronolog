@@ -2,6 +2,8 @@
  * Checkpoint B/C owner screenshots (design r1, stages 4–7). Off by default; writes into
  * docs/review/screenshots/checkpoint-bc/ with
  *   CHECKPOINT_SCREENSHOTS=1 npx playwright test e2e-playwright/checkpoint-bc-screenshots.spec.ts --project=chromium --project=iphone-15
+ * The last test shoots the notes list and timesheet at 320×568 (iphone-15 project).
+ * SCREENSHOTS_DIR=sprint-060/checkpoint-bc writes into another folder under docs/review/screenshots/ instead.
  * Desktop shots run in chromium at 1280×800, phone shots in the iphone-15 project at 390×844.
  * Seed: checkpoint A's names (Amplitude: Hungryroot / Daily Pay / Rank Group; EasyJet; Internal)
  * plus an ontology and a week of entries (checkpoint-bc-seed.ts).
@@ -13,7 +15,7 @@ import { signInAsFreshUser } from './fresh-user';
 import { editor } from './notes-helpers';
 import { seedCheckpointBc, startTimerEarlier, type CheckpointBcSeed } from './checkpoint-bc-seed';
 
-const OUTPUT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'review', 'screenshots', 'checkpoint-bc');
+const OUTPUT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'review', 'screenshots', process.env.SCREENSHOTS_DIR ?? 'checkpoint-bc');
 const enabled = process.env.CHECKPOINT_SCREENSHOTS === '1';
 const widget = (page: Page) => page.getByTestId('timer-widget-sidebar');
 
@@ -94,19 +96,18 @@ test('desktop: search and pickers', async ({ page, baseURL }, testInfo) => {
 	await page.getByTestId('global-search-input').blur();
 	await shot(page, 'desktop-06-search-results.png');
 
-	await page.goto(`/notes/${data.hungryrootId}/${data.shortNoteId}`);
+	// No Enter: in Chromium an Enter here can send the caret to the top of the note (2026-11-08 review)
+	await page.goto(`/notes/${data.rankGroupId}/${data.rankGroupNoteId}`);
 	await page.waitForLoadState('networkidle');
-	await expect(editor(page)).toContainText('Share the tracking plan');
+	await expect(editor(page)).toContainText('Tiered pricing options');
 	await expect
 		.poll(async () => {
-			await editor(page).getByText('Share the tracking plan').click();
+			await editor(page).getByText('Tiered pricing options').click();
 			await page.keyboard.press('End');
 			return page.evaluate(() => Boolean(window.getSelection()?.anchorNode?.parentElement?.closest('[data-note-editor-content]')));
 		})
 		.toBe(true);
-	await page.keyboard.press('Enter');
-	await page.keyboard.press('Enter');
-	await page.keyboard.type('See [[');
+	await page.keyboard.type(' See [[');
 	await expect(page.getByTestId('link-picker')).toHaveAttribute('data-status', 'ready');
 	await shot(page, 'desktop-07-picker-in-editor.png');
 	await page.keyboard.press('Escape');
@@ -152,4 +153,21 @@ test('iPhone 390×844 @iphone', async ({ page, baseURL }, testInfo) => {
 	await expect(page.getByTestId('search-hit-note').first()).toBeVisible();
 	await page.getByTestId('global-search-input').blur();
 	await shot(page, 'phone-05-search.png');
+});
+
+test('iPhone 320 wide @iphone', async ({ page, baseURL }, testInfo) => {
+	test.skip(!enabled || testInfo.project.name !== 'iphone-15', 'CHECKPOINT_SCREENSHOTS=1, iphone-15 only');
+	test.setTimeout(90_000);
+	await page.setViewportSize({ width: 320, height: 568 });
+	await signInAsFreshUser(page, baseURL, 'bc-shots-320');
+	const data = await seedCheckpointBc(page);
+
+	await page.goto(`/notes/${data.hungryrootId}`);
+	await expect(page.getByTestId('note-list-row').first()).toBeVisible();
+	await shot(page, 'phone320-01-notes-list.png');
+
+	await openTime(page);
+	await page.getByRole('button', { name: `Go to ${data.today}` }).click();
+	await page.waitForTimeout(300);
+	await shot(page, 'phone320-02-timesheet.png');
 });

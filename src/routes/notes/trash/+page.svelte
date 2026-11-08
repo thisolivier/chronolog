@@ -7,7 +7,7 @@
 <script lang="ts">
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
 	import ConnectionStatus from '$lib/components/layout/ConnectionStatus.svelte';
-	import HistoryButtons from '$lib/components/layout/HistoryButtons.svelte';
+	import AppBarHome from '$lib/components/layout/AppBarHome.svelte';
 	import TrashList from '$lib/components/notes/TrashList.svelte';
 	import { fetchTrashedNotes, type TrashedNote } from '$lib/components/notes/trash-view';
 
@@ -35,9 +35,9 @@
 
 <div class="safe-area-shell min-h-dvh bg-chalk-50">
 	<header class="border-b border-divider bg-surface shadow-sm">
-		<div class="mx-auto flex max-w-3xl items-center gap-3 px-4 py-2.5">
-			<a href={navigation.workspaceHref} class="hidden text-lg font-bold text-ink sm:block">Chronolog</a>
-			<div class="hidden md:block"><HistoryButtons /></div>
+		<div class="mx-auto flex max-w-3xl items-center gap-3 px-4 py-1.5 md:py-2">
+			<!-- Chronolog (home) then Back / Forward, as in the app bar (050-UI, 062-DR) -->
+			<AppBarHome />
 			<h1 class="min-w-0 flex-1 text-base font-semibold text-ink sm:text-lg">Trash</h1>
 			<a
 				href={navigation.workspaceHref}

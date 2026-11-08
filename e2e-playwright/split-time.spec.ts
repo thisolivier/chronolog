@@ -151,6 +151,21 @@ test.describe('desktop split', () => {
 		await page.waitForTimeout(2200);
 		await expect(rightCard(page).getByTestId('split-right-from')).toHaveValue(confirmedFrom);
 		await expect(leftCard(page).getByTestId('split-left-to')).toHaveValue(confirmedFrom);
+		// 24-hour text fields (060-DR): Escape puts the applied time back and keeps the split open;
+		// unreadable text is put back on leaving the field, with a message; a pasted 12-hour time too
+		const leftTo = leftCard(page).getByTestId('split-left-to');
+		await leftTo.fill('1');
+		await leftTo.press('Escape');
+		await expect(leftTo).toHaveValue(confirmedFrom);
+		await expect(overlay(page)).toBeVisible();
+		for (const unreadable of ['12:60', '1:46 PM']) {
+			await leftTo.fill(unreadable);
+			await leftTo.blur();
+			await expect(leftTo).toHaveValue(confirmedFrom);
+			await expect(leftCard(page).getByTestId('split-left-times-error')).toHaveText('Enter a time as HH:MM.');
+		}
+		await leftTo.fill(confirmedFrom);
+		await expect(leftCard(page).getByTestId('split-left-times-error')).toHaveCount(0);
 		// Zero and negative parts are refused inline
 		await leftCard(page).getByTestId('split-left-duration').fill('0');
 		await leftCard(page).getByTestId('split-left-duration').press('Enter');
@@ -175,6 +190,15 @@ test.describe('desktop split', () => {
 
 		await page.getByRole('button', { name: 'Flip' }).click();
 		await expect(rightCard(page).locator('#split-right-description')).toHaveValue(description);
+		// The link reads as rendered text, not [[id]], until the field is clicked (060-DR)
+		await expect(rightCard(page).getByTestId('split-right-description-rendered')).not.toContainText('[[');
+		// The link is text inside the button (no nested buttons, no tab stops): clicking its title opens the field
+		const rendered = rightCard(page).getByTestId('split-right-description-rendered');
+		await expect(rendered.locator('button')).toHaveCount(0);
+		await rendered.locator('[data-wiki-link-text]').click();
+		await expect(rightCard(page).locator('#split-right-description')).toBeVisible();
+		await expect(rightCard(page).locator('#split-right-description')).toBeFocused();
+		await expect(rightCard(page).locator('#split-right-description')).toHaveValue(description);
 		await expect(rightCard(page).locator('#split-right-contract')).toHaveValue(data.contractId);
 		await expect(rightCard(page).locator('#split-right-work-type')).toHaveValue(data.workTypeId);
 		await expect(leftCard(page).locator('#split-left-description')).toHaveValue('');
@@ -187,10 +211,20 @@ test.describe('desktop split', () => {
 		// The left (now blank) part: Rank Group, then Save
 		await leftCard(page).locator('#split-left-description').fill('Kick-off call');
 		await leftCard(page).locator('#split-left-contract').selectOption(data.otherContractId);
+		const rightBoxBefore = await rightCard(page).boundingBox();
+		const leftBoxBefore = await leftCard(page).boundingBox();
 		await button(leftCard(page), 'Save').click();
 		await expect(leftCard(page).getByTestId('split-left-summary')).toBeVisible();
 		await expect(leftCard(page).getByTestId('split-left-summary-range')).toHaveText(`${fromBefore}–${boundaryBefore}`);
 		await expect(page.getByRole('button', { name: 'Flip' })).toHaveCount(0);
+		// SP-04 same footprint (060-DR): the right card does not move; the summary keeps the left
+		// card's width and shrinks to its content
+		const rightBoxAfter = await rightCard(page).boundingBox();
+		const leftBoxAfter = await leftCard(page).boundingBox();
+		expect(Math.abs((rightBoxAfter?.x ?? 0) - (rightBoxBefore?.x ?? 0))).toBeLessThanOrEqual(1);
+		expect(Math.abs((rightBoxAfter?.y ?? 0) - (rightBoxBefore?.y ?? 0))).toBeLessThanOrEqual(1);
+		expect(Math.abs((leftBoxAfter?.width ?? 0) - (leftBoxBefore?.width ?? 0))).toBeLessThanOrEqual(1);
+		expect(leftBoxAfter?.height ?? 0).toBeLessThan((leftBoxBefore?.height ?? 0) - 100);
 		await expect(button(overlay(page), 'Cancel')).toHaveCount(0);
 		await expect(button(rightCard(page), 'Resume')).toBeEnabled();
 		await page.screenshot({ path: path.join(SCREENSHOTS, '04-after-left-save.png') });

@@ -1,11 +1,105 @@
 /**
- * Week date utilities: Mondays, the seven dates of a week and display formats.
+ * Chronolog's weeks: ISO 8601 (owner decision 2026-11-07, "ISO 8601 after all", sprint 061-DR).
  *
- * Week NUMBERS are not computed here: they follow Chronolog's own rule (Week 1 contains
- * 1 January, owner decision 2026-11-07) in `calendar-week.ts`. The file keeps its old name
- * because many modules import its formatters.
+ * Weeks start on Monday. Week 1 of a year is the week that contains that year's first Thursday
+ * (equivalently, 4 January), so a week belongs to the year of its Thursday. A year has 52 or 53
+ * weeks: 28 Dec 2026 – 3 Jan 2027 is 2026-W53; 29 Dec 2025 – 4 Jan 2026 is 2026-W01.
+ *
+ * A week's identity everywhere is its Monday date (`weekStart`, `YYYY-MM-DD`); `YYYY-Www` keys
+ * (`2026-W45`) in URLs, the API and the CLI are labels derived from it. The CLI carries a plain-JS
+ * copy of this rule (cli/lib/dates.mjs); both are tested against `iso-week.fixtures.json`.
+ * Rule arithmetic is in UTC, so daylight-saving changes never shift a day. The display formatters
+ * below it work in local time.
  */
-import { mondayOnOrBefore } from './calendar-week';
+
+const DAY_MS = 86_400_000;
+const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+const WEEK_KEY_PATTERN = /^(\d{4})-?W(\d{1,2})$/i;
+
+export interface IsoWeek {
+	/** The ISO week-numbering year (the year of the week's Thursday) */
+	year: number;
+	/** 1–53 */
+	weekNumber: number;
+	/** The week's Monday, `YYYY-MM-DD`: its identity */
+	weekStart: string;
+}
+
+function dayNumber(dateString: string): number {
+	const match = DATE_PATTERN.exec(dateString);
+	if (!match) throw new Error(`Not a YYYY-MM-DD date: ${dateString}`);
+	return Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])) / DAY_MS;
+}
+
+function dateFromDayNumber(days: number): string {
+	return new Date(days * DAY_MS).toISOString().slice(0, 10);
+}
+
+/** Days since the epoch of the Monday on or before `days` (1970-01-01 was a Thursday) */
+function mondayDayNumber(days: number): number {
+	const weekdayFromMonday = (((days + 3) % 7) + 7) % 7; // Monday 0 … Sunday 6
+	return days - weekdayFromMonday;
+}
+
+/** The Monday that starts ISO week 1 of `year`: the Monday on or before 4 January */
+function firstMondayDayNumber(year: number): number {
+	return mondayDayNumber(Date.UTC(year, 0, 4) / DAY_MS);
+}
+
+/** The Monday on or before `dateString` */
+export function mondayOnOrBefore(dateString: string): string {
+	return dateFromDayNumber(mondayDayNumber(dayNumber(dateString)));
+}
+
+/** ISO year, week number and Monday of the week containing `dateString` */
+export function isoWeekOf(dateString: string): IsoWeek {
+	const monday = mondayDayNumber(dayNumber(dateString));
+	const year = new Date((monday + 3) * DAY_MS).getUTCFullYear(); // its Thursday's year
+	const weekNumber = (monday - firstMondayDayNumber(year)) / 7 + 1;
+	return { year, weekNumber, weekStart: dateFromDayNumber(monday) };
+}
+
+/** The week number alone ("Week 45") */
+export function isoWeekNumber(dateString: string): number {
+	return isoWeekOf(dateString).weekNumber;
+}
+
+/** 52 or 53 */
+export function isoWeeksInYear(year: number): number {
+	return (firstMondayDayNumber(year + 1) - firstMondayDayNumber(year)) / 7;
+}
+
+/** Monday of ISO week `weekNumber` of `year`; null when that week does not exist */
+export function mondayOfIsoWeek(year: number, weekNumber: number): string | null {
+	if (!Number.isInteger(year) || !Number.isInteger(weekNumber)) return null;
+	if (weekNumber < 1 || weekNumber > isoWeeksInYear(year)) return null;
+	return dateFromDayNumber(firstMondayDayNumber(year) + (weekNumber - 1) * 7);
+}
+
+/** `2026-W45` for the week containing `dateString` */
+export function isoWeekKey(dateString: string): string {
+	const { year, weekNumber } = isoWeekOf(dateString);
+	return `${year}-W${String(weekNumber).padStart(2, '0')}`;
+}
+
+/**
+ * Parses `2026-W45` (also `2026W45`, `2026-w5`); null when malformed or the week does not exist
+ * in that year (`2025-W53`: 2025 has 52 ISO weeks; 2026 has 53). `key` is the canonical spelling.
+ */
+export function parseIsoWeekKey(text: string): (IsoWeek & { key: string }) | null {
+	const match = WEEK_KEY_PATTERN.exec(String(text).trim());
+	if (!match) return null;
+	const year = Number(match[1]);
+	const weekNumber = Number(match[2]);
+	const weekStart = mondayOfIsoWeek(year, weekNumber);
+	if (!weekStart) return null;
+	return { year, weekNumber, weekStart, key: `${year}-W${String(weekNumber).padStart(2, '0')}` };
+}
+
+/** The Monday of the week before (-1) or after (+1) the week starting `weekStart` */
+export function shiftWeek(weekStart: string, weekOffset: number): string {
+	return dateFromDayNumber(mondayDayNumber(dayNumber(weekStart)) + weekOffset * 7);
+}
 
 /** Get the Monday of the week containing the given date string. */
 export function getMondayOfWeek(dateString: string): string {

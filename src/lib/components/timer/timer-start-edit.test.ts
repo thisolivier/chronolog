@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
 	localTimerStartProblem,
+	readTimerStartInput,
 	readTimerStartRejection,
 	startChangeResultFromError,
 	toTimeInputValue
@@ -19,6 +20,25 @@ describe('localTimerStartProblem', () => {
 		expect(localTimerStartProblem('2026-11-04', '15:05', now)).toMatch(/future/);
 		expect(localTimerStartProblem('2026-11-03', '14:00', now)).toMatch(/24 hours/);
 		expect(localTimerStartProblem('2026-11-04', '', now)).toMatch(/HH:MM/);
+	});
+});
+
+describe('readTimerStartInput (060-DR)', () => {
+	it('refuses minutes past 59 and other unreadable text with the format message, never a start', () => {
+		for (const text of ['12:60', '23:60', '00:75', '24:00', '1:46 PM', 'abc', '']) {
+			expect(readTimerStartInput('2026-11-04', text, now)).toEqual({ ok: false, error: 'Enter a start time as HH:MM.' });
+		}
+	});
+
+	it('the range check alone refuses 12:60 too (no roll forward)', () => {
+		expect(localTimerStartProblem('2026-11-04', '12:60', now)).toMatch(/HH:MM/);
+		expect(localTimerStartProblem('2026-11-04', '23:60', now)).toMatch(/HH:MM/);
+	});
+
+	it('reads the usual forms into HH:MM:SS and still applies the time rules', () => {
+		expect(readTimerStartInput('2026-11-04', '9:05', now)).toEqual({ ok: true, clock: '09:05', startTime: '09:05:00' });
+		expect(readTimerStartInput('2026-11-04', '1430', now)).toEqual({ ok: true, clock: '14:30', startTime: '14:30:00' });
+		expect(readTimerStartInput('2026-11-04', '15:05', now)).toMatchObject({ ok: false, error: expect.stringMatching(/future/) });
 	});
 });
 

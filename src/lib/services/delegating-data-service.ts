@@ -179,8 +179,8 @@ export class DelegatingDataService implements DataService {
 		return this.delegate.deleteTimeEntry(entryId);
 	}
 
-	updateWeeklyStatus(year: number, weekNumber: number, status: string): Promise<void> {
-		return this.delegate.updateWeeklyStatus(year, weekNumber, status);
+	updateWeeklyStatus(weekStart: string, status: string): Promise<void> {
+		return this.delegate.updateWeeklyStatus(weekStart, status);
 	}
 
 	// ── Timer ─────────────────────────────────────────────────

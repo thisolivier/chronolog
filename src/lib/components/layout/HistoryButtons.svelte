@@ -1,9 +1,11 @@
 <!--
 	Back / Forward through this tab's journey in the app (sprint 050-UI): the Mac app and the
-	installed PWA have no browser buttons. `desktop` shows ‹ › before the global search field, the
-	unavailable one disabled; `phone` shows only › next to the labelled "← Back", and only when
-	there is something ahead. Both walk the in-app history (`navigation.goBack` / `goForward`), so
-	they never leave the app, and both listen for Cmd+[ / Cmd+] and Alt+Left / Alt+Right.
+	installed PWA have no browser buttons. Since 062-DR both layouts show ‹ › right of the
+	"Chronolog" home button (AppBarHome.svelte), the unavailable one disabled. `desktop` walks the
+	in-app history (`navigation.goBack` / `goForward`); `phone` (the AppShell phone bar) keeps the
+	old "← Back" behaviour on ‹: the step before, or one level up when the app has no step before
+	(a reload), so the drill-down never strands you. Both listen for Cmd+[ / Cmd+] and Alt+Left /
+	Alt+Right. Targets are 44 px on a phone and on touch screens, 32 px with a mouse.
 -->
 <script lang="ts">
 	import { getNavigationContext } from '$lib/stores/navigation.svelte';
@@ -19,22 +21,30 @@
 	let { variant = 'desktop', class: className = '' }: Props = $props();
 
 	const navigation = getNavigationContext();
+	const isPhone = $derived(variant === 'phone');
+
+	// The phone's ‹ goes one level up when there is no step before (backTarget); desktop only walks history
+	const backPath = $derived(isPhone ? navigation.backTarget.path : navigation.previousPath);
+	const canGoBack = $derived(isPhone ? navigation.canGoBack || !navigation.isHome : navigation.canGoBack);
 
 	// Note entries are labelled with the note's title once it is known (the cache is reactive)
 	$effect(() => {
-		const noteIds = [noteIdOfPath(navigation.previousPath), noteIdOfPath(navigation.nextPath)].filter(
+		const noteIds = [noteIdOfPath(backPath), noteIdOfPath(navigation.nextPath)].filter(
 			(noteId): noteId is string => noteId !== null
 		);
 		if (noteIds.length > 0) requestNoteTitles(noteIds);
 	});
 
 	const fallbackWeek = $derived(navigation.selectedWeek ?? '');
-	const backLabel = $derived(
-		navigation.previousPath ? `Back to ${labelForPath(navigation.previousPath, fallbackWeek)}` : 'Back'
-	);
+	const backLabel = $derived(canGoBack && backPath ? `Back to ${labelForPath(backPath, fallbackWeek)}` : 'Back');
 	const forwardLabel = $derived(
 		navigation.nextPath ? `Forward to ${labelForPath(navigation.nextPath, fallbackWeek)}` : 'Forward'
 	);
+
+	function goBack() {
+		if (isPhone) navigation.goBackMobile();
+		else navigation.goBack();
+	}
 
 	function handleWindowKeydown(event: KeyboardEvent) {
 		const direction = historyShortcutDirection(event);
@@ -44,8 +54,11 @@
 		else navigation.goForward();
 	}
 
-	const desktopButtonClass =
-		'flex h-8 w-8 items-center justify-center rounded-md btn-quiet hover:text-ink disabled:cursor-default disabled:text-chalk-300 disabled:hover:bg-transparent';
+	const buttonClass = $derived(
+		`flex flex-shrink-0 items-center justify-center rounded-md btn-quiet hover:text-ink disabled:cursor-default disabled:text-chalk-300 disabled:hover:bg-transparent ${
+			isPhone ? 'h-11 w-11' : 'h-11 w-11 md:h-8 md:w-8 md:pointer-coarse:h-11 md:pointer-coarse:w-11'
+		}`
+	);
 </script>
 
 <svelte:window onkeydown={handleWindowKeydown} />
@@ -56,40 +69,27 @@
 	</svg>
 {/snippet}
 
-{#if variant === 'desktop'}
-	<div class="flex flex-shrink-0 items-center {className}" data-testid="history-buttons">
-		<button
-			type="button"
-			onclick={() => navigation.goBack()}
-			disabled={!navigation.canGoBack}
-			class={desktopButtonClass}
-			aria-label={backLabel}
-			title={backLabel}
-			data-testid="history-back"
-		>
-			{@render chevron('back')}
-		</button>
-		<button
-			type="button"
-			onclick={() => navigation.goForward()}
-			disabled={!navigation.canGoForward}
-			class={desktopButtonClass}
-			aria-label={forwardLabel}
-			title={forwardLabel}
-			data-testid="history-forward"
-		>
-			{@render chevron('forward')}
-		</button>
-	</div>
-{:else if navigation.canGoForward}
+<div class="flex flex-shrink-0 items-center {className}" data-testid="history-buttons">
+	<button
+		type="button"
+		onclick={goBack}
+		disabled={!canGoBack}
+		class={buttonClass}
+		aria-label={backLabel}
+		title={backLabel}
+		data-testid={isPhone ? 'mobile-back' : 'history-back'}
+	>
+		{@render chevron('back')}
+	</button>
 	<button
 		type="button"
 		onclick={() => navigation.goForward()}
-		class="flex h-11 w-8 flex-shrink-0 items-center justify-center rounded-md text-pine-600 hover:bg-chalk-100 hover:text-pine-800 {className}"
+		disabled={!navigation.canGoForward}
+		class={buttonClass}
 		aria-label={forwardLabel}
 		title={forwardLabel}
-		data-testid="mobile-forward"
+		data-testid={isPhone ? 'mobile-forward' : 'history-forward'}
 	>
 		{@render chevron('forward')}
 	</button>
-{/if}
+</div>

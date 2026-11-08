@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { getWeeklySummary } from '$lib/server/db/queries/time-entries-weekly';
 import { getWeeklyStatusForWeekStart } from '$lib/server/db/queries/weekly-statuses';
-import { mondayOnOrBefore } from '$lib/utils/calendar-week';
+import { mondayOnOrBefore } from '$lib/utils/iso-week';
 import { isCalendarDate } from '$lib/utils/local-calendar';
 import type { RequestHandler } from './$types';
 

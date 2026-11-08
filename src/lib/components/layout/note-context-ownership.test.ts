@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isNavigationHidden, noteContextOwnership } from './note-context-ownership';
+import { isNavigationHidden, noteContextOwnership, phoneTitleBarNamesContext } from './note-context-ownership';
 
 describe('noteContextOwnership (NT-01)', () => {
 	it('three columns, one contract: the sidebar owns it, the list says Notes, the editor shows the mark only', () => {
@@ -51,5 +51,18 @@ describe('noteContextOwnership (NT-01)', () => {
 		expect(isNavigationHidden('desktop', false)).toBe(true);
 		expect(isNavigationHidden('tablet', false)).toBe(true);
 		expect(isNavigationHidden('mobile', true)).toBe(true);
+	});
+});
+
+describe('phoneTitleBarNamesContext (060-DR)', () => {
+	it('leaves the title out on notes screens, whose headers name the context', () => {
+		expect(phoneTitleBarNamesContext('notes')).toBe(false);
+		expect(phoneTitleBarNamesContext('client')).toBe(false);
+		expect(phoneTitleBarNamesContext('all')).toBe(false);
+	});
+
+	it('keeps it on the week and home', () => {
+		expect(phoneTitleBarNamesContext('time')).toBe(true);
+		expect(phoneTitleBarNamesContext('home')).toBe(true);
 	});
 });

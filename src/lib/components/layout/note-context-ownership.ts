@@ -63,3 +63,16 @@ export function noteContextOwnership({ layoutMode, sidebarOnScreen, scope }: Not
 		editorContextVisible: layoutMode === 'mobile'
 	};
 }
+
+/**
+ * The phone title bar names the screen only when no header on it does (sprint 060-DR; checkpoint A
+ * known issue 1). On a phone the notes list header names its scope (`listHeader` is never `notes`)
+ * and the editor header shows its client and contract, so a notes screen leaves the title out
+ * instead of repeating "Client · Contract" above them; the week and home keep theirs.
+ */
+export function phoneTitleBarNamesContext(routeKind: 'home' | 'time' | 'notes' | 'client' | 'all'): boolean {
+	if (routeKind === 'home' || routeKind === 'time') return true;
+	const scope: NoteListScope = routeKind === 'notes' ? 'contract' : routeKind;
+	const ownership = noteContextOwnership({ layoutMode: 'mobile', sidebarOnScreen: false, scope });
+	return ownership.listHeader === 'notes' && !ownership.editorContextVisible;
+}

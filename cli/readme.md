@@ -33,7 +33,7 @@ Environment variables win over the file:
 ## Commands
 
 - `init`: save server URL, API token and device key (checks `GET /api/me`)
-- `me`: who you are, today, current week (Week 1 contains 1 January)
+- `me`: who you are, today, current ISO 8601 week
 - `clients [--all]`, `contracts [client] [--all]`: reference lists (`--all` adds archived ones, marked `[archived]`)
 - `week [2026-W45] [--client X | --contract X]`: entries and totals
 - `log <contract> <duration> "<desc>" [--date D] [--deliverable X [--work-type Y]] [--note ID]`
@@ -94,7 +94,7 @@ Notes may hold checkbox items, `- [ ] open` and `- [x] done` (nested by two spac
 
 ### Version
 
-`chronolog --version` prints the CLI version, the root `package.json` version (1.5.0 since the design r1 checkpoints). `chronolog me` adds the server's (`serverVersion` from `GET /api/me`) and both commits in brackets (`serverCommit`, `dev` for a server run from a checkout; this checkout's `git rev-parse HEAD`). Changes per sprint are in [CHANGELOG.md](CHANGELOG.md).
+`chronolog --version` prints the CLI version, the root `package.json` version (1.5.1 since the design r1 checkpoints). `chronolog me` adds the server's (`serverVersion` from `GET /api/me`) and both commits in brackets (`serverCommit`, `dev` for a server run from a checkout; this checkout's `git rev-parse HEAD`). Changes per sprint are in [CHANGELOG.md](CHANGELOG.md).
 
 **Version drift notice (044-CL).** At most once a day, after a command succeeds, the CLI asks `GET /api/me` for `serverCommit` and compares it with its own commit. When both are known and differ it prints one line on **stderr** (never stdout, so `--json` output is unaffected):
 
@@ -155,7 +155,7 @@ cli/lib/resolve.mjs       reference matching for contracts, clients, deliverable
 cli/lib/object-refs.mjs   fetch + resolve one client/contract/deliverable/work type from an id or path
 cli/lib/entry-references.mjs  an entry's deliverable and work type (work type only under that deliverable)
 cli/lib/confirm.mjs       remove confirmation: --yes, [y/N] on a terminal, refuse otherwise
-cli/lib/dates.mjs         weeks (Week 1 contains 1 January), --date words, duration formatting
+cli/lib/dates.mjs         ISO 8601 weeks, --date words, duration formatting
 cli/lib/history.mjs       last-entry.json: the entry `undo` deletes
 cli/lib/import-file.mjs   import file reading (JSON Lines or array, line numbers), chunking
 cli/lib/import-items.mjs  import items: references resolved once each, into batch API items

@@ -261,10 +261,11 @@ test.describe('phone 390', () => {
 		await scroll.getByTestId('sidebar-settings-link').scrollIntoViewIfNeeded();
 		await shoot('phone-01b-sidebar-settings.png');
 
-		// The heading opens all notes (level 1), titled "All notes"
+		// The heading opens all notes (level 1), its header "All notes" (no title bar copy, 060-DR)
 		await scroll.getByTestId('sidebar-notes-heading').tap();
 		await expect.poll(() => pathOf(page)).toBe('/notes/all');
-		await expect(page.getByTestId('mobile-context-title')).toHaveText('All notes');
+		await expect(page.getByTestId('note-list-header')).toContainText('All notes');
+		await expect(page.getByTestId('mobile-context-title')).toHaveCount(0);
 		await expect.poll(() => rowIds(page)).toEqual([...data.noteIds].reverse());
 		await expectNoSidewaysScroll(page);
 		await shoot('phone-02-all-notes.png');
@@ -272,7 +273,7 @@ test.describe('phone 390', () => {
 		// A note from it; Back reads "All notes" and returns there
 		await page.locator(`[data-testid="note-list-row"][data-note-id="${data.noteIds[3]}"] > button`).first().tap();
 		await expect(editor(page)).toContainText('Newest of all');
-		await expect(page.getByTestId('mobile-back')).toContainText('All notes');
+		await expect(page.getByTestId('mobile-back')).toHaveAttribute('aria-label', 'Back to All notes'); // ‹ since 062-DR
 		await expectStableHeaderWhileTyping(page, browserName === 'chromium' ? 'phone-03' : null);
 		await expectNoSidewaysScroll(page);
 

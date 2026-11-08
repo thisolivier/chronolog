@@ -110,6 +110,25 @@ key that no longer exists, a week 53 in a 52-week year, still opens the same Mon
 unique key cannot collide. Rejected: `/time/<monday-date>` URLs (every bookmark and the CLI's `2026-W45`
 arguments would change for no gain while the numberings agree). See `docs/sprints/sprint-057-DR.md`.
 
+## 2026-11-07 — Week numbering: ISO 8601 after all (061-DR)
+
+Supersedes the two entries above on week numbering (O05 / TR-07, "Week 1 is the Monday-start week
+that contains 1 January", and its 057-DR key decision as far as numbering goes). After discussing what
+ISO weeks are, the owner chose **ISO 8601** for every label, `/time/YYYY-Www` URL, `GET /api/me`
+(`week` and `isoWeek`, both ISO, same value), the weekly-status API and the CLI: weeks start Monday
+and week 1 contains the year's first Thursday, so 28 Dec 2026 – 3 Jan 2027 is 2026-W53 and 2027-W01
+starts 4 Jan 2027. ISO is what clients, payroll, calendars and `date +%V` use, so a submitted week's
+number matches theirs. The Monday date stays the week's identity.
+
+**Storage unchanged, no migration.** Statuses are looked up by `weekly_statuses.week_start`. The
+calendar-year rule (v1.5.0, live for one evening) agrees with ISO for every week up to 21 Dec 2026, so
+every stored row's `year`/`week_number` is already its ISO number; a row a v1.5.0 client might still
+write for a later week is renumbered to ISO by the existing step before the next status write (it
+reads the user's rows once and writes only rows that differ; a no-op today). `calendar-week.ts` and
+the legacy-URL redirect are deleted: ISO keys are canonical again, and v1.5.0's URLs equal ISO's
+through 2026. The "update every CLI before 28 Dec" warning is withdrawn: an older (pre-1.5.0) CLI is
+ISO already. See `docs/sprints/sprint-061-DR.md`.
+
 ## 2026-11-07 — Home button and history buttons
 
 "Chronolog" is ever present at the top left of the app bar and acts as the home button, on desktop,

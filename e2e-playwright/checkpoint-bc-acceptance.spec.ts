@@ -10,7 +10,7 @@
  *   loads inserts from its own reply.
  * - TC-08 short desktop height, absent contract, no applicable ontology: the completion form on
  *   /time at 1280×600 keeps Save reachable and saves into the week.
- * - TC-08 phone: the week's Start timer and the header pill open the same capture screen.
+ * - TC-08 phone: a timer started from the home widget is the week's header pill, which opens the capture screen (060-DR: no Start timer in the phone week).
  * Every other row of the spec 08 matrix is covered by a stage spec; see
  * docs/review/2026-11-07-checkpoint-bc.md for the table.
  */
@@ -183,29 +183,29 @@ test.describe('desktop', () => {
 });
 
 test.describe('phone @iphone', () => {
-	test('the week Start timer and the header pill open the same capture screen @iphone', async ({ page, baseURL }, testInfo) => {
+	test('a timer started on the home screen is the pill on the week, which opens the capture screen @iphone', async ({ page, baseURL }, testInfo) => {
 		test.skip(!testInfo.project.name.startsWith('iphone'), 'phone layout');
 		await signInAsFreshUser(page, baseURL, 'bc-phone-start');
 		await seedCheckpointBc(page);
 		await openTime(page);
 		const screen = page.getByTestId('phone-capture-screen');
 
-		// No timer yet: Start timer opens the capture screen, which starts it
-		await page.getByTestId('phone-start-timer').click();
-		await expect(screen).toBeVisible();
-		await screen.getByRole('button', { name: 'Start Timer' }).click();
-		await expect(screen.getByRole('button', { name: 'Stop', exact: true })).toBeVisible();
-		await screen.getByTestId('capture-screen-back').click();
-		await expect(screen).toHaveCount(0);
-
-		// Running: the week offers the pill instead, and the pill opens the same screen
+		// Owner change (060-DR): the phone week has no Start timer; the home screen's widget starts it
 		await expect(page.getByTestId('phone-start-timer')).toHaveCount(0);
+		await expect(page.getByTestId('timer-indicator')).toHaveCount(0);
+		await page.goto('/');
+		await page.waitForLoadState('networkidle');
+		await page.getByTestId('timer-widget-sidebar').getByRole('button', { name: 'Start Timer' }).click();
+		await expect(page.getByTestId('timer-widget-sidebar').getByRole('button', { name: 'Stop', exact: true })).toBeVisible();
+
+		// Running: the week shows the pill, and the pill opens the capture screen
+		await openTime(page);
 		await page.getByTestId('timer-indicator').click();
 		await expect(screen).toBeVisible();
 		await expect(screen.getByRole('button', { name: 'Stop', exact: true })).toBeVisible();
 		await screen.getByRole('button', { name: 'Stop', exact: true }).click();
 		await screen.getByRole('button', { name: /Discard/ }).click();
 		await expect(screen).toHaveCount(0);
-		await expect(page.getByTestId('phone-start-timer')).toBeVisible();
+		await expect(page.getByTestId('timer-indicator')).toHaveCount(0);
 	});
 });

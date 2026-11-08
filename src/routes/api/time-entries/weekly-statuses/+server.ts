@@ -9,7 +9,7 @@ const MAX_WEEKS_PER_REQUEST = 60;
 
 /**
  * GET ?weeks=2026-W44,2026-W45: statuses for several weeks (`Unsubmitted` when none is stored).
- * Keys use Chronolog's week rule (Week 1 contains 1 January); each is looked up by its Monday.
+ * Keys are ISO 8601 weeks (iso-week.ts); each is looked up by its Monday.
  */
 export const GET: RequestHandler = async ({ url, locals }) => {
 	const currentUser = locals.user;
@@ -41,8 +41,10 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 };
 
 /**
- * POST { year, weekNumber, status } or { weekStart, status }: set one week's status. Recordkeeping
- * only: choosing Submitted sends, exports or invoices nothing.
+ * POST { weekStart, status } (the web client, 061-DR) or { year, weekNumber, status } (ISO week; the
+ * CLI): set one week's status. `weekStart` wins when both are sent, since the Monday is the key and
+ * a number from an older client may follow a different rule. Recordkeeping only: choosing
+ * Submitted sends, exports or invoices nothing.
  */
 export const POST: RequestHandler = async ({ request, locals }) => {
 	const currentUser = locals.user;

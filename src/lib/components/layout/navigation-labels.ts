@@ -5,7 +5,7 @@
 import { parseWorkspacePath, TRASH_PATH, type WorkspaceRoute } from '$lib/stores/navigation-routes';
 import { contractDirectory } from '$lib/stores/contract-directory.svelte';
 import { getCachedNoteTitle } from '$lib/components/notes/note-titles.svelte';
-import { calendarWeekNumber } from '$lib/utils/calendar-week';
+import { isoWeekNumber } from '$lib/utils/iso-week';
 
 const MAX_LABEL_LENGTH = 24;
 
@@ -19,7 +19,7 @@ function shorten(label: string): string {
 /** "Week 45", "Rocket Build", the note's title, "Chronolog" */
 export function labelForRoute(route: WorkspaceRoute): string {
 	if (route.kind === 'home') return 'Chronolog';
-	if (route.kind === 'time') return `Week ${calendarWeekNumber(route.week)}`;
+	if (route.kind === 'time') return `Week ${isoWeekNumber(route.week)}`;
 	if (route.draft) return 'New note';
 	if (route.noteId) return shorten(getCachedNoteTitle(route.noteId)?.displayTitle || 'Note');
 	if (route.kind === 'client') return shorten(contractDirectory.clientName(route.clientId) ?? 'Notes');
@@ -46,7 +46,7 @@ export function noteIdOfPath(path: string | null): string | null {
 /** Phone title bar: where you are */
 export function titleForRoute(route: WorkspaceRoute): string {
 	if (route.kind === 'home') return 'Chronolog';
-	if (route.kind === 'time') return `Time entries · Week ${calendarWeekNumber(route.week)}`;
+	if (route.kind === 'time') return `Time entries · Week ${isoWeekNumber(route.week)}`;
 	if (route.kind === 'client') return contractDirectory.clientName(route.clientId) ?? 'Notes';
 	if (route.kind === 'all') return ALL_NOTES_LABEL;
 	return contractDirectory.contextLabel(route.contractId) ?? 'Notes';

@@ -2,7 +2,7 @@
  * Workspace URLs <-> navigation state (sprint 027-CL). Pure functions, no Svelte.
  *
  *   /                                 home: phone = sidebar (level 0); wider = this week's timesheet
- *   /time/2026-W45                    timesheet for Week 45 of 2026 (Week 1 contains 1 January, calendar-week.ts)
+ *   /time/2026-W45                    timesheet for ISO week 45 of 2026 (iso-week.ts)
  *   /notes/<contractId>               a contract's note list
  *   /notes/<contractId>/<noteId>      a note open under its contract
  *   /notes/<contractId>/new           an unsaved new-note draft for that contract
@@ -13,8 +13,7 @@
  *   /notes/all/<contractId>/<noteId>  a note open with all notes as the list (`/new`: a draft)
  *   /notes/trash                      not a workspace URL: the trash page (043-CL)
  */
-import { getMondayOfWeek } from '$lib/utils/iso-week';
-import { calendarWeekKey, legacyIsoWeekRedirect, parseCalendarWeekKey } from '$lib/utils/calendar-week';
+import { getMondayOfWeek, isoWeekKey, parseIsoWeekKey } from '$lib/utils/iso-week';
 
 export type WorkspaceRoute =
 	| { kind: 'home' }
@@ -49,13 +48,13 @@ export function isWeekParamYearInRange(param: string): boolean {
 
 /** `2026-11-02` (a Monday) -> `2026-W45` */
 export function weekParamFromMonday(monday: string): string {
-	return calendarWeekKey(monday);
+	return isoWeekKey(monday);
 }
 
-/** `2026-W45` -> `2026-11-02`; null unless it is the canonical key of a week that exists */
+/** `2026-W45` -> `2026-11-02`; null unless it is the canonical key of an ISO week that exists */
 export function mondayFromWeekParam(param: string): string | null {
 	if (!WEEK_PARAM_PATTERN.test(param) || !isWeekParamYearInRange(param)) return null;
-	return parseCalendarWeekKey(param)?.weekStart ?? null;
+	return parseIsoWeekKey(param)?.weekStart ?? null;
 }
 
 export function todayDateString(now: Date = new Date()): string {
@@ -72,9 +71,7 @@ export function parseWorkspacePath(pathname: string, fallbackWeek: string): Work
 	if (segments.length === 0) return { kind: 'home' };
 	if (segments[0] === 'time' && segments.length <= 2) {
 		if (segments.length === 1) return { kind: 'time', week: fallbackWeek };
-		// An old ISO-only bookmark (`2026-W53`) opens the same Monday's week (057-DR)
-		const legacyKey = isWeekParamYearInRange(segments[1]) ? legacyIsoWeekRedirect(segments[1]) : null;
-		const monday = mondayFromWeekParam(legacyKey ?? segments[1]);
+		const monday = mondayFromWeekParam(segments[1]);
 		return monday ? { kind: 'time', week: monday } : null;
 	}
 	// The trash (`/notes/trash`, sprint 043-CL) is its own page, not a workspace URL

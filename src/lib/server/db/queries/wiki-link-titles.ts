@@ -25,18 +25,31 @@ export async function wikiLinkPreviewOptions(userId: string, linkingNotes: Linki
 		}
 	}
 	if (targetIds.size === 0) return {};
+	const targets = await loadWikiLinkTargets(userId, targetIds);
+	return { resolveNoteTitle: (noteId) => targets.get(noteId)?.title ?? undefined };
+}
 
+/** A link target as text reads it: its display title (null when it has none) and whether it is in the trash */
+export type WikiLinkTarget = { title: string | null; deleted: boolean };
+
+/**
+ * The titles of the given notes in one query (the user's own notes, trashed ones included and
+ * flagged), for search excerpts that read `[[id]]` as the target's title (sprint 060-DR).
+ */
+export async function loadWikiLinkTargets(userId: string, noteIds: Iterable<string>): Promise<Map<string, WikiLinkTarget>> {
+	const targets = new Map<string, WikiLinkTarget>();
+	const ids = [...new Set(noteIds)];
+	if (ids.length === 0) return targets;
 	const rows = await database
-		.select({ id: notes.id, title: notes.title, content: notes.content, contentJson: notes.contentJson })
+		.select({ id: notes.id, title: notes.title, content: notes.content, contentJson: notes.contentJson, deletedAt: notes.deletedAt })
 		.from(notes)
-		.where(and(eq(notes.userId, userId), inArray(notes.id, [...targetIds])));
-	const titles = new Map<string, string>();
+		.where(and(eq(notes.userId, userId), inArray(notes.id, ids)));
 	for (const row of rows) {
 		const contentJson = decryptNullable(row.contentJson, 'notes.content_json');
 		const title =
 			noteDisplayTitle(decryptNullable(row.title, 'notes.title'), contentJson) ??
 			(contentJson ? null : extractMarkdownPreviewLines(decryptNullable(row.content, 'notes.content')).firstLine || null);
-		if (title) titles.set(row.id, title);
+		targets.set(row.id, { title, deleted: row.deletedAt !== null });
 	}
-	return { resolveNoteTitle: (noteId) => titles.get(noteId) };
+	return targets;
 }

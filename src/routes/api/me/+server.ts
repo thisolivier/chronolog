@@ -9,7 +9,8 @@ import { SERVER_VERSION, serverBuildCommit } from './server-version';
  * GET /api/me[?tz=Europe/London]
  *
  * Who is calling, how (`session` or `token`), and the calendar a client needs to resolve
- * "today" and "this week": `today`, `isoWeek` (`2026-W45`), `weekStart`, `weekEnd`, all in the
+ * "today" and "this week": `today`, `week` (ISO 8601, `2026-W45`; `isoWeek` is the same value for older CLIs),
+ * `weekStart`, `weekEnd`, all in the
  * caller's timezone (`tz` query or `X-Timezone` header; default the server's zone).
  * `POST /api/notes` dates new note IDs from the same source. `serverVersion` is the app's
  * `package.json` version and `serverCommit` the git commit the image was built from (`dev` when
