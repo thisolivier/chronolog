@@ -73,7 +73,7 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
   client uses (backfilled from the current hash so nothing changes on screen), returned in the
   contract payloads, plus a reassignment control in Settings → Contracts (O13). Halt and ask before
   the migration (owner rule 2026-11-07).
-- **Owner-drawn tiles.** The 34 procedural motifs are placeholders; the owner will replace them.
+- **Owner-drawn tiles.** The 32 procedural motifs are placeholders; the owner will replace them.
   Keep the 24-unit square, one colour on transparent, and check at 16 px on the contact sheet
   (`e2e-playwright/contract-tiles.spec.ts`).
 

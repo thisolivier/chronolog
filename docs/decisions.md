@@ -145,7 +145,7 @@ eventually, but we're looking at one-colour cutouts." This lifts the 2026-11-07 
 DS-04 / DS-07 for a placeholder set; the minimal-mark decision above is superseded as far as the
 mark's content goes (colour still names the client).
 
-- **Procedural one-colour cutouts, no new dependency.** 34 square motifs authored as plain SVG
+- **Procedural one-colour cutouts, no new dependency.** 32 square motifs authored as plain SVG
   shapes in `src/lib/components/identity/tile-library.ts`, each checked at the 16 px mark size on a
   contact sheet. Drawn as a CSS mask over the client colour, so one source square serves the mark
   and every repeat (edge to edge, clipped, never stretched).
