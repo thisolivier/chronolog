@@ -119,7 +119,9 @@ test.describe('Time review (057-DR)', () => {
 			'Hungryroot', 'Rank Group', 'Daily Pay', 'Hungryroot', 'CCX Internal', 'Native app support', 'Daily Pay', 'Rank Group', 'Hungryroot', 'Daily Pay'
 		]);
 		await expect(mondayRows.first().getByTestId('entry-client-name')).toHaveText('Amplitude');
-		await expect(mondayRows.first().getByTestId('contract-mark')).toHaveText('HU');
+		// The contract's pattern tile (063-DR), no initials text
+		await expect(mondayRows.first().getByTestId('contract-mark')).toHaveText('');
+		await expect(mondayRows.first().getByTestId('contract-mark')).toHaveAttribute('data-tile', /^[a-z0-9-]+$/);
 		// Same-contract rows line up: the contract name starts at the same x in every row
 		const nameLefts = await mondayRows.getByTestId('entry-contract-name').evaluateAll((elements) => elements.map((element) => Math.round(element.getBoundingClientRect().left)));
 		expect(new Set(nameLefts).size).toBe(1);

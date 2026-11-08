@@ -50,7 +50,12 @@
 	</div>
 
 	<div class="{textColumn} flex items-center gap-mark-gap text-sm text-ink-soft" data-testid="search-hit-context">
-		<ContractMark contractName={item.hit.contractName} colorIndex={item.hit.clientColorIndex} size="sm" />
+		<ContractMark
+			contractName={item.hit.contractName}
+			contractId={item.hit.contractId}
+			colorIndex={item.hit.clientColorIndex}
+			size="sm"
+		/>
 		<span class="min-w-0 truncate">{item.hit.clientName} / {item.hit.contractName}</span>
 	</div>
 

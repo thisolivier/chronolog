@@ -27,6 +27,8 @@ export interface TimerDisplayState {
 	contractShortCode?: string;
 	/** The capture's own identity (sprint 053-DR): contract name, its client, never the browsed one */
 	contractTitle?: string;
+	/** The capture's contract id, for its pattern tile (sprint 063-DR) */
+	contractId?: string;
 	clientName?: string;
 	/** Local start (`HH:MM:SS`) and date, so the header clock can tick with no widget mounted */
 	startTime?: string;
@@ -41,6 +43,7 @@ export interface TimerStateContext {
 	contractName: string;
 	clientColorIndex: number;
 	contractTitle: string;
+	contractId: string;
 	clientName: string;
 	startTime: string;
 	startDate: string;
@@ -63,6 +66,7 @@ export function createTimerState(): TimerStateContext {
 		clientColorIndex: 0,
 		contractShortCode: '',
 		contractTitle: '',
+		contractId: '',
 		clientName: '',
 		startTime: '',
 		startDate: ''
@@ -98,6 +102,9 @@ export function createTimerState(): TimerStateContext {
 		get contractTitle() {
 			return state.contractTitle ?? '';
 		},
+		get contractId() {
+			return state.contractId ?? '';
+		},
 		get clientName() {
 			return state.clientName ?? '';
 		},
@@ -120,6 +127,7 @@ export function createTimerState(): TimerStateContext {
 			state.clientColorIndex = 0;
 			state.contractShortCode = '';
 			state.contractTitle = '';
+			state.contractId = '';
 			state.clientName = '';
 			state.startTime = '';
 			state.startDate = '';

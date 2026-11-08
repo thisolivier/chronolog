@@ -66,7 +66,7 @@
 	>
 		<span class="contents max-[419px]:hidden" data-testid="timer-indicator-mark">
 			{#if hasContract}
-				<ContractMark contractName={timer.contractTitle} colorIndex={timer.clientColorIndex} size="md" />
+				<ContractMark contractName={timer.contractTitle} contractId={timer.contractId} colorIndex={timer.clientColorIndex} size="md" />
 			{:else}
 				<span class="size-(--size-mark-md) shrink-0 rounded-mark border border-dashed border-line" aria-hidden="true"></span>
 			{/if}

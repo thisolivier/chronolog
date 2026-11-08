@@ -115,7 +115,7 @@ Formatting toolbar (054-DR, NT-05). Desktop groups: B / I | ¶ Normal text, H1, 
 
 ### NoteEditorHeader.svelte
 
-Header above the editor (054-DR, NT-04): the contract mark, the note code with its copy icon (`NoteCodeCopyButton`), `SaveStatusIndicator`, a message line, free space kept for the deferred contract repeat (NT-03), and one "Note actions" ellipsis menu (`NoteActionsMenu.svelte`). The client / contract text (`note-editor-context`) is visible only when `showContextText` (single-column phone layout, NT-01); elsewhere it stays as screen-reader text and the mark's tooltip. Delete asks for confirmation inline (`delete-confirm`; no native `confirm()`, which Tauri can suppress). A `conflict` status offers Reload. The note title stays in the body.
+Header above the editor (054-DR, NT-04): the contract mark, the note code with its copy icon (`NoteCodeCopyButton`), `SaveStatusIndicator`, a message line, the quiet repeat of the contract's pattern tile in the free space (NT-03, `note-editor-header-space`, 063-DR; left out in the single-column layout, where Saved and the ellipsis sit on different rows), and one "Note actions" ellipsis menu (`NoteActionsMenu.svelte`). The client / contract text (`note-editor-context`) is visible only when `showContextText` (single-column phone layout, NT-01); elsewhere it stays as screen-reader text and the mark's tooltip. Delete asks for confirmation inline (`delete-confirm`; no native `confirm()`, which Tauri can suppress). A `conflict` status offers Reload. The note title stays in the body.
 
 ### NoteActionsMenu.svelte (054-DR)
 
