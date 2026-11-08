@@ -14,7 +14,7 @@ import path from 'node:path';
 import { signInAsFreshUser } from './fresh-user';
 import { seedCheckpointBc, startTimerEarlier } from './checkpoint-bc-seed';
 import { sprintScreenshotDirectory } from './sprint-screenshots';
-import { TILE_MOTIFS, tileMaskStyle } from '../src/lib/components/identity/tile-library';
+import { TILE_MOTIFS, tileIndexForContract, tileMaskStyle } from '../src/lib/components/identity/tile-library';
 
 const SCREENSHOTS = sprintScreenshotDirectory('sprint-063-DR');
 const sidebar = (page: Page) => page.getByTestId('sidebar-scroll');
@@ -26,6 +26,11 @@ const maskImageOf = (locator: Locator) =>
 		const style = getComputedStyle(element) as CSSStyleDeclaration & { webkitMaskImage?: string };
 		return style.maskImage && style.maskImage !== 'none' ? style.maskImage : (style.webkitMaskImage ?? 'none');
 	});
+
+/** The motif every surface must draw for a contract (the shared hash) */
+const tileFor = (contractId: string) => TILE_MOTIFS[tileIndexForContract(contractId)].id;
+/** The tile a contract's sidebar row draws */
+const sidebarTile = (page: Page, contractId: string) => sidebarRow(page, contractId).getByTestId('contract-mark').getAttribute('data-tile');
 
 async function shot(page: Page, name: string, target?: Locator) {
 	await page.waitForTimeout(300);
@@ -45,7 +50,7 @@ test('a contract draws one tile on every surface; the quiet repeats sit where DS
 	await expect(selectedRow).toHaveAttribute('aria-current', 'page');
 	const mark = selectedRow.getByTestId('contract-mark');
 	const tile = await mark.getAttribute('data-tile');
-	expect(TILE_MOTIFS.map((motif) => motif.id)).toContain(tile);
+	expect(tile).toBe(tileFor(data.hungryrootId));
 	await expect(mark).toHaveText('');
 	expect(await maskImageOf(mark.locator('span'))).toContain('data:image/svg+xml');
 
@@ -56,10 +61,21 @@ test('a contract draws one tile on every surface; the quiet repeats sit where DS
 	await expect(rowRepeat).toHaveText('');
 	expect(await maskImageOf(rowRepeat)).toContain('data:image/svg+xml');
 	const repeatBox = (await rowRepeat.boundingBox())!;
+	// Whole-px tiles (no WebKit seams): the repeat's height and its mask tile size are integers
+	expect(Number.isInteger(repeatBox.height)).toBe(true);
 	expect(Math.round(repeatBox.height)).toBe(16);
+	const repeatMaskSize = await rowRepeat.evaluate((element) => {
+		const style = getComputedStyle(element) as CSSStyleDeclaration & { webkitMaskSize?: string };
+		return style.maskSize || style.webkitMaskSize || '';
+	});
+	expect(repeatMaskSize).toMatch(/^16px( 16px)?$/);
 	expect(repeatBox.width).toBeGreaterThan(16);
 	const countBox = (await selectedRow.getByTestId('sidebar-note-count').boundingBox())!;
 	expect(repeatBox.x + repeatBox.width).toBeLessThanOrEqual(countBox.x);
+	// The repeat swallows one row gap: its box starts at the name's edge (the gap is its padding), so
+	// squeezed to nothing it leaves one gap between the name and the count, not two
+	const nameBox = (await selectedRow.locator('span.truncate').first().boundingBox())!;
+	expect(Math.abs(repeatBox.x - (nameBox.x + nameBox.width))).toBeLessThanOrEqual(0.5);
 	await expect(sidebarRow(page, data.dailyPayId).getByTestId('contract-tile-repeat')).toHaveCount(0);
 	await expect(sidebar(page).getByTestId('contract-tile-repeat')).toHaveCount(1);
 
@@ -74,8 +90,8 @@ test('a contract draws one tile on every surface; the quiet repeats sit where DS
 	expect(editorRepeatBox.x + editorRepeatBox.width).toBeLessThanOrEqual(actionsBox.x);
 
 	// Another contract has its own deterministic tile, the same in the sidebar and in search
-	const rankTile = await sidebarRow(page, data.rankGroupId).getByTestId('contract-mark').getAttribute('data-tile');
-	expect(rankTile).toBeTruthy();
+	const rankTile = await sidebarTile(page, data.rankGroupId);
+	expect(rankTile).toBe(tileFor(data.rankGroupId));
 
 	// Timer: the 1.5:1 pattern region at the large tile size, then the small mark when compact
 	await startTimerEarlier(page, data.hungryrootId, 24, 'Follow-up notes');
@@ -105,7 +121,45 @@ test('a contract draws one tile on every surface; the quiet repeats sit where DS
 	const entryRows = page.getByTestId('time-entry-card');
 	await expect(entryRows.first()).toBeVisible();
 	await expect(entryRows.getByTestId('contract-tile-repeat')).toHaveCount(0);
-	await expect(entryRows.first().getByTestId('contract-mark')).toHaveAttribute('data-tile', /^[a-z0-9-]+$/);
+	// Every row draws its own contract's tile, the one its sidebar row draws
+	const contractIdByName: Record<string, string> = {
+		Hungryroot: data.hungryrootId,
+		'Daily Pay': data.dailyPayId,
+		'Rank Group': data.rankGroupId,
+		'Crew Rostering': data.easyJetContractId,
+		General: data.generalContractId
+	};
+	const sidebarTiles: Record<string, string | null> = {};
+	for (const [name, contractId] of Object.entries(contractIdByName)) sidebarTiles[name] = await sidebarTile(page, contractId);
+	const rowCount = await entryRows.count();
+	expect(rowCount).toBeGreaterThan(5);
+	for (let index = 0; index < rowCount; index += 1) {
+		const row = entryRows.nth(index);
+		const contractName = (await row.getByTestId('entry-contract-name').textContent())!.trim();
+		expect(sidebarTiles[contractName], contractName).toBe(tileFor(contractIdByName[contractName]));
+		await expect(row.getByTestId('contract-mark')).toHaveAttribute('data-tile', sidebarTiles[contractName]!);
+	}
+});
+
+test("the header pill shows the running capture's tile, not the open note's", async ({ page, baseURL }) => {
+	await signInAsFreshUser(page, baseURL, 'contract-tiles-pill');
+	const data = await seedCheckpointBc(page);
+	await startTimerEarlier(page, data.rankGroupId, 12, 'Pricing call');
+	// Single-column layout above the 420 px cut-off, so the pill shows and keeps its mark; the page
+	// opens straight on a note, so the pill is fed by the timer reflection (no widget mounted yet)
+	await page.setViewportSize({ width: 600, height: 900 });
+	await page.goto(`/notes/${data.hungryrootId}/${data.longNoteId}`);
+	await page.waitForLoadState('networkidle');
+	const pill = page.getByTestId('timer-indicator');
+	await expect(pill).toBeVisible();
+	await expect(pill.getByTestId('contract-mark')).toHaveAttribute('data-tile', tileFor(data.rankGroupId));
+	await expect(page.getByTestId('note-editor-header').getByTestId('contract-mark')).toHaveAttribute('data-tile', tileFor(data.hungryrootId));
+	// …and the same tiles the sidebar draws for those contracts
+	await page.setViewportSize({ width: 1280, height: 800 });
+	await page.goto(`/notes/${data.hungryrootId}/${data.longNoteId}`);
+	await page.waitForLoadState('networkidle');
+	expect(await sidebarTile(page, data.rankGroupId)).toBe(tileFor(data.rankGroupId));
+	expect(await sidebarTile(page, data.hungryrootId)).toBe(tileFor(data.hungryrootId));
 });
 
 test('no header repeat in the all-notes view; the repeat gives way at a narrow width', async ({ page, baseURL }) => {
@@ -123,9 +177,13 @@ test('no header repeat in the all-notes view; the repeat gives way at a narrow w
 	await page.waitForLoadState('networkidle');
 	const editorHeader = page.getByTestId('note-editor-header');
 	await expect(editorHeader.getByRole('button', { name: /note actions/i })).toBeInViewport({ ratio: 1 });
-	const headerWidth = (await editorHeader.boundingBox())!.width;
+	const actionsBox = (await editorHeader.getByRole('button', { name: /note actions/i }).boundingBox())!;
 	const repeat = editorHeader.getByTestId('contract-tile-repeat');
-	if ((await repeat.count()) > 0) expect((await repeat.boundingBox())?.width ?? 0).toBeLessThan(headerWidth);
+	await expect(repeat).toHaveCount(1);
+	const repeatBox = (await repeat.boundingBox()) ?? { x: actionsBox.x, width: 0 };
+	expect(repeatBox.x + repeatBox.width).toBeLessThanOrEqual(actionsBox.x);
+	// Capped at ten tiles, so it never reads as one band with the list header and sidebar repeats
+	expect(repeatBox.width).toBeLessThanOrEqual(16 * 10 + 0.5);
 });
 
 test('owner screenshots: desktop surfaces and the motif contact sheet', async ({ page, baseURL }, testInfo) => {
@@ -187,7 +245,9 @@ test('phone: sidebar and timer with tiles @iphone', async ({ page, baseURL }, te
 	await page.goto('/');
 	await page.waitForLoadState('networkidle');
 	await expect(sidebar(page).getByTestId('contract-mark').first()).toBeVisible();
-	await expect(page.getByTestId('timer-widget-sidebar').getByTestId('contract-mark')).toHaveAttribute('data-tile', /^[a-z0-9-]+$/);
+	const hungryrootTile = await sidebarTile(page, data.hungryrootId);
+	expect(hungryrootTile).toBe(tileFor(data.hungryrootId));
+	await expect(page.getByTestId('timer-widget-sidebar').getByTestId('contract-mark')).toHaveAttribute('data-tile', hungryrootTile!);
 	await shot(page, 'phone-01-sidebar-and-timer.png');
 
 	// Single column editor: the repeat is left out (Saved and the ellipsis sit on different rows)
@@ -202,6 +262,6 @@ test('phone: sidebar and timer with tiles @iphone', async ({ page, baseURL }, te
 	await page.getByTestId('timer-indicator').click();
 	const screen = page.getByTestId('phone-capture-screen');
 	await expect(screen.getByRole('button', { name: 'Stop', exact: true })).toBeVisible();
-	await expect(screen.getByTestId('contract-mark').first()).toHaveAttribute('data-tile', /^[a-z0-9-]+$/);
+	await expect(screen.getByTestId('contract-mark').first()).toHaveAttribute('data-tile', hungryrootTile!);
 	await shot(page, 'phone-03-timer-running.png');
 });
