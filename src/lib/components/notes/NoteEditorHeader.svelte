@@ -149,7 +149,8 @@
 			<!-- The contract repeat (NT-03): fills what the row leaves, shrinks to nothing first -->
 			<div class="flex min-w-0 flex-1 items-center" aria-hidden="true" data-testid="note-editor-header-space">
 				{#if contractLabel}
-					<ContractTileRepeat {contractId} colorIndex={contractLabel.clientColorIndex} />
+					<!-- At most ten tiles: the list header and sidebar repeat too, so they must not read as one band -->
+					<ContractTileRepeat {contractId} colorIndex={contractLabel.clientColorIndex} class="max-w-[calc(var(--size-tile-repeat)*10)]" />
 				{/if}
 			</div>
 			{@render actions()}

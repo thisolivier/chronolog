@@ -150,7 +150,7 @@
 					data-testid="sidebar-row-client-name">{group.clientName}</span
 				></span>
 			{#if isSelected}
-				<ContractTileRepeat contractId={contract.id} colorIndex={group.clientColorIndex} class="mt-0.5" />
+				<ContractTileRepeat contractId={contract.id} colorIndex={group.clientColorIndex} absorbGap class="mt-0.5" />
 			{/if}
 			<span class="mt-0.5">{@render noteCount(contract.noteCount)}</span>
 		</button>
@@ -222,7 +222,7 @@
 					/>
 					<span class="min-w-0 truncate {isSelected ? '' : 'flex-1'}">{contract.name}{@render inactiveMark(contract.isActive)}</span>
 					{#if isSelected}
-						<ContractTileRepeat contractId={contract.id} colorIndex={group.clientColorIndex} />
+						<ContractTileRepeat contractId={contract.id} colorIndex={group.clientColorIndex} absorbGap />
 					{/if}
 					{@render noteCount(contract.noteCount)}
 				</button>

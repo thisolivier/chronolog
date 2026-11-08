@@ -7,7 +7,9 @@
 	`shape="wide"` is the timer header's pattern region: the large tile repeated edge to edge and
 	cropped at 1.5 tile widths (DS-04 / DS-05).
 	The outer span carries the size, rounding, selection ring and muting; the inner span carries the
-	mask (a mask would also clip the ring). With a `label` the mark is an image with that accessible
+	mask (a mask would also clip the ring) and opts out of forced colours, or Windows high contrast
+	would paint it the page background and the mark would vanish. The wide region's tile is snapped
+	to whole px (`--size-mark-timer-tile`) so WebKit draws no seams at the joins. With a `label` the mark is an image with that accessible
 	name; without one it is decorative (the label text beside it names the contract).
 -->
 <script lang="ts">
@@ -53,12 +55,11 @@
 		md: 'size-(--size-mark-md) text-[0.5625rem]',
 		lg: 'size-(--size-mark-lg) text-[0.75rem]'
 	} as const;
-	const tileSizes = { sm: 'var(--size-mark-sm)', md: 'var(--size-mark-md)', lg: 'var(--size-mark-lg)' } as const;
 	// Three initials (`RGM`) overflow the small square at 0.5rem: one step smaller (sprint 053-DR)
 	const narrowSmall = $derived(tileIndex === null && size === 'sm' && initials.length > 2);
 	const boxClass = $derived(
 		isWide
-			? 'h-(--size-mark-lg) w-(--size-mark-timer-wide)'
+			? 'h-(--size-mark-timer-tile) w-(--size-mark-timer-wide)'
 			: narrowSmall
 				? 'size-(--size-mark-sm) text-[0.4rem] tracking-tighter'
 				: sizeClasses[size]
@@ -81,8 +82,8 @@
 >
 	{#if tileIndex !== null}
 		<span
-			class="block size-full rounded-mark {getClientDotClass(colorIndex)}"
-			style={tileMaskStyle(tileIndex, isWide ? tileSizes.lg : '100%', isWide ? 'repeat-x' : 'no-repeat')}
+			class="block size-full rounded-mark forced-color-adjust-none {getClientDotClass(colorIndex)}"
+			style={tileMaskStyle(tileIndex, isWide ? 'var(--size-mark-timer-tile)' : '100%', isWide ? 'repeat-x' : 'no-repeat')}
 		></span>
 	{:else}
 		{initials}

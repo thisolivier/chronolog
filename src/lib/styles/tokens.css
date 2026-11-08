@@ -170,10 +170,13 @@
 	--spacing-mark-gap: 5px;
 	/* Pattern tiles (sprint 063-DR, DS-03 / DS-04 / DS-05): the timer header's pattern region is the
 	   large tile cropped at 1.5 tile widths; quiet repeats (selected contract, notes list and editor
-	   headers) are the small tile at reduced opacity, filling the row's free space. */
-	--size-mark-timer-wide: calc(var(--size-mark-lg) * 1.5);
-	--size-tile-repeat: var(--size-mark-sm);
-	--opacity-tile-repeat: 0.28;
+	   headers) are the small tile at reduced opacity, filling the row's free space. Repeated tiles are
+	   snapped to whole CSS px: WebKit draws hairline seams at joins of fractional tiles (the root font
+	   is 110%, so 1rem is 17.6px). `round()`: Safari 15.4+, Chrome 125+, Firefox 118+. */
+	--size-mark-timer-tile: round(var(--size-mark-lg), 1px);
+	--size-mark-timer-wide: calc(var(--size-mark-timer-tile) * 1.5);
+	--size-tile-repeat: round(var(--size-mark-sm), 1px);
+	--opacity-tile-repeat: 0.18;
 
 	/* Time review rows (sprint 057-DR, TR-03 / TR-04). The identity column (mark + contract name) is
 	   one stable width so rows of one contract line up. Entry separators start at the contract
