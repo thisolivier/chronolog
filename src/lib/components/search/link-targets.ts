@@ -11,6 +11,8 @@ export type LinkPickerItem = {
 	clientName: string;
 	clientShortCode: string;
 	clientColorIndex: number;
+	/** The note's contract, for its pattern tile (sprint 063-DR); '' from an older response */
+	contractId: string;
 	contractName: string;
 	/** ISO moment of the last edit */
 	updatedAt: string;
@@ -24,6 +26,7 @@ type NoteSearchResultJson = {
 	clientName?: string;
 	clientShortCode?: string;
 	clientColorIndex?: number;
+	contractId?: string;
 	contractName?: string;
 	updatedAt?: string;
 };
@@ -37,6 +40,7 @@ export function toLinkPickerItem(note: NoteSearchResultJson): LinkPickerItem {
 		clientName: note.clientName ?? '',
 		clientShortCode: note.clientShortCode ?? '',
 		clientColorIndex: note.clientColorIndex ?? 0,
+		contractId: note.contractId ?? '',
 		contractName: note.contractName ?? '',
 		updatedAt: note.updatedAt ?? ''
 	};

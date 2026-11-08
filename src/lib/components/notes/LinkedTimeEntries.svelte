@@ -113,7 +113,12 @@
 						</div>
 						{#if isOtherContract(entry)}
 							<div class="mt-0.5 flex min-w-0 items-center gap-mark-gap text-xs text-ink-faint" data-testid="linked-time-entry-contract">
-								<ContractMark contractName={entry.contractName} colorIndex={entry.clientColorIndex} size="sm" />
+								<ContractMark
+									contractName={entry.contractName}
+									contractId={entry.contractId}
+									colorIndex={entry.clientColorIndex}
+									size="sm"
+								/>
 								<span class="truncate">{entry.clientName} / {entry.contractName}</span>
 							</div>
 						{/if}

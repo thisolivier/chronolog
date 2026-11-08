@@ -49,7 +49,12 @@
 			{#if contractName}
 				<div class="flex min-w-0 items-center gap-mark-gap py-px">
 					{#if contractLabel}
-						<ContractMark contractName={contractLabel.name} colorIndex={contractLabel.clientColorIndex} size="sm" />
+						<ContractMark
+							contractName={contractLabel.name}
+							contractId={note.contractId}
+							colorIndex={contractLabel.clientColorIndex}
+							size="sm"
+						/>
 					{/if}
 					<span class="truncate text-xs font-medium text-ink-muted" data-testid="note-row-contract">{contractName}</span>
 				</div>

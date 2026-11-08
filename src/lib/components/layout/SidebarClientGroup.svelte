@@ -5,9 +5,10 @@
 	its contracts. The heading is the client's name (no colour dot: colour lives in the contract
 	marks), which opens the client view (`/notes/client/<id>`), and at the right edge a chevron
 	(collapse; sprint 039-CL) in one column with the Archived chevron (051-UI). A collapsed client
-	still shows its open contract. Each contract row is a ContractMark (client colour + initials),
-	the name at the mark-gap token, and the note count at the right. The selected contract is a
-	punch-out in the surface colour, not a blue wash.
+	still shows its open contract. Each contract row is a ContractMark (the contract's pattern tile
+	in the client colour), the name at the mark-gap token, and the note count at the right. The
+	selected contract is a punch-out in the surface colour, not a blue wash, and only it gets the
+	quiet repeat of its tile between the name and the count (DS-04, sprint 063-DR).
 	Exactly one contract: a single flattened row at the outer inset (the owner-selected looser
 	alignment: it does not line up with the marks inside the tinted groups), with the mark, the
 	contract name and the client name beneath it in small muted text.
@@ -19,6 +20,7 @@
 -->
 <script lang="ts">
 	import ContractMark from '$lib/components/identity/ContractMark.svelte';
+	import ContractTileRepeat from '$lib/components/identity/ContractTileRepeat.svelte';
 	import type { ClientGroup } from '$lib/utils/group-contracts-by-client';
 	import type { ContractsByClientResult } from '$lib/services/types';
 	import type { ClientReorderController } from './client-reorder.svelte';
@@ -135,12 +137,21 @@
 			{...reorderHandlers()}
 		>
 			<span class="mt-0.5 flex">
-				<ContractMark contractName={contract.name} colorIndex={group.clientColorIndex} size="sm" muted={markMuted(contract.isActive)} />
+				<ContractMark
+					contractName={contract.name}
+					contractId={contract.id}
+					colorIndex={group.clientColorIndex}
+					size="sm"
+					muted={markMuted(contract.isActive)}
+				/>
 			</span>
-			<span class="min-w-0 flex-1 truncate">{contract.name}{@render inactiveMark(contract.isActive)}<span
+			<span class="min-w-0 truncate {isSelected ? '' : 'flex-1'}">{contract.name}{@render inactiveMark(contract.isActive)}<span
 					class="block truncate text-[11px] leading-4 font-normal {isSelected ? 'text-ink-muted' : 'text-ink-faint'}"
 					data-testid="sidebar-row-client-name">{group.clientName}</span
 				></span>
+			{#if isSelected}
+				<ContractTileRepeat contractId={contract.id} colorIndex={group.clientColorIndex} absorbGap class="mt-0.5" />
+			{/if}
 			<span class="mt-0.5">{@render noteCount(contract.noteCount)}</span>
 		</button>
 	{:else}
@@ -202,8 +213,17 @@
 					data-contract-id={contract.id}
 					aria-current={isSelected ? 'page' : undefined}
 				>
-					<ContractMark contractName={contract.name} colorIndex={group.clientColorIndex} size="sm" muted={markMuted(contract.isActive)} />
-					<span class="min-w-0 flex-1 truncate">{contract.name}{@render inactiveMark(contract.isActive)}</span>
+					<ContractMark
+						contractName={contract.name}
+						contractId={contract.id}
+						colorIndex={group.clientColorIndex}
+						size="sm"
+						muted={markMuted(contract.isActive)}
+					/>
+					<span class="min-w-0 truncate {isSelected ? '' : 'flex-1'}">{contract.name}{@render inactiveMark(contract.isActive)}</span>
+					{#if isSelected}
+						<ContractTileRepeat contractId={contract.id} colorIndex={group.clientColorIndex} absorbGap />
+					{/if}
 					{@render noteCount(contract.noteCount)}
 				</button>
 			{/each}

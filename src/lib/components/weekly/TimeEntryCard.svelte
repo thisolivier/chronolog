@@ -411,7 +411,12 @@
 >
 	<!-- Identity: mark + contract name, client beneath (DS-02 / DS-04: compact mark, readable context) -->
 	<div class="entry-identity flex min-w-0 items-start gap-mark-gap">
-		<span class="mt-0.5"><ContractMark contractName={entry.contractName} colorIndex={entry.clientColorIndex} size="sm" /></span>
+		<span class="mt-0.5"><ContractMark
+				contractName={entry.contractName}
+				contractId={entry.contractId}
+				colorIndex={entry.clientColorIndex}
+				size="sm"
+			/></span>
 		{#if isEditingContract}
 			<div
 				class="entry-compact-select min-w-0 flex-1"

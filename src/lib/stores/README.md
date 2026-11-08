@@ -96,7 +96,7 @@ The user's contracts, archived ones included, filled by the sidebar when it load
 
 ### timer-state.svelte.ts
 
-Shared timer display state for cross-component communication. `TimerWidget` (in the sidebar) writes to it with `update(partial)` / `reset()`; `TimerIndicator` (in the AppShell top bar) reads from it. Reactive fields: `status` (`'idle' | 'running' | 'paused' | 'stopped'`), `elapsedSeconds` (frozen while stopped), `description`, `contractName` ("Client / Contract"), `clientColorIndex`, `contractShortCode` (client short code), and since 053-DR the capture's own identity `contractTitle` and `clientName` plus the running `startTime` / `startDate`, so the header ticks with no widget mounted.
+Shared timer display state for cross-component communication. `TimerWidget` (in the sidebar) writes to it with `update(partial)` / `reset()`; `TimerIndicator` (in the AppShell top bar) reads from it. Reactive fields: `status` (`'idle' | 'running' | 'paused' | 'stopped'`), `elapsedSeconds` (frozen while stopped), `description`, `contractName` ("Client / Contract"), `clientColorIndex`, `contractShortCode` (client short code), and since 053-DR the capture's own identity `contractTitle` and `clientName`, since 063-DR its `contractId` (the pill's pattern tile; also set by `timer-reflection.ts`), plus the running `startTime` / `startDate`, so the header ticks with no widget mounted.
 
 ### capture-draft.svelte.ts / capture-draft.ts
 

@@ -41,6 +41,7 @@ export async function loadTimerReflection(
 			clientColorIndex: contract?.clientColorIndex ?? 0,
 			contractShortCode: contract?.clientShortCode ?? '',
 			contractTitle: contract?.name ?? '',
+			contractId: contract?.id ?? '',
 			clientName: contract?.clientName ?? '',
 			startTime: isStopped ? '' : (timer.startTime ?? ''),
 			startDate: isStopped ? '' : (timer.date ?? '')
@@ -61,6 +62,7 @@ export async function loadTimerReflection(
 		contractName: pendingContract ? formatContractLabel(pendingContract.clientName, pendingContract.name) : '',
 		clientColorIndex: pendingContract?.clientColorIndex ?? 0,
 		contractTitle: pendingContract?.name ?? '',
+		contractId: pendingContract?.id ?? '',
 		clientName: pendingContract?.clientName ?? '',
 		startTime: pending.endTime ? '' : pending.startTime,
 		startDate: pending.endTime ? '' : pending.date

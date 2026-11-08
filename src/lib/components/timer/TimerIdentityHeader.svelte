@@ -1,6 +1,7 @@
 <!--
 	TimerIdentityHeader — the top of the timer widget (design r1 TC-02 / SH-06, sprint 053-DR).
-	Expanded: the large ContractMark, the contract name first and the client as subtitle on the
+	Expanded: the contract's pattern region (the large tile cropped at 1.5 tile widths, DS-04 /
+	DS-05, sprint 063-DR), the contract name first and the client as subtitle on the
 	client's wash, a "Change" button that reveals the contract select (running only; the chevron
 	never chooses a contract), the collapse chevron on the right, and the pulsing running light at
 	the top right while running (no RECORDING text).
@@ -19,6 +20,8 @@
 	interface Props {
 		status: 'running' | 'stopped';
 		contractName: string;
+		/** The capture's contract id: picks its pattern tile */
+		contractId?: string | null;
 		clientName: string;
 		clientColorIndex: number;
 		elapsedSeconds: number;
@@ -36,6 +39,7 @@
 	let {
 		status,
 		contractName,
+		contractId = null,
 		clientName,
 		clientColorIndex,
 		elapsedSeconds,
@@ -91,10 +95,10 @@
 
 {#snippet mark(size: 'sm' | 'lg')}
 	{#if hasContract}
-		<ContractMark {contractName} colorIndex={clientColorIndex} {size} />
+		<ContractMark {contractName} {contractId} colorIndex={clientColorIndex} {size} shape={size === 'lg' ? 'wide' : 'square'} />
 	{:else}
 		<span
-			class="{size === 'lg' ? 'size-(--size-mark-lg)' : 'size-(--size-mark-sm)'} shrink-0 rounded-mark border border-dashed border-line"
+			class="{size === 'lg' ? 'h-(--size-mark-lg) w-(--size-mark-timer-wide)' : 'size-(--size-mark-sm)'} shrink-0 rounded-mark border border-dashed border-line"
 			aria-hidden="true"
 		></span>
 	{/if}
@@ -122,7 +126,7 @@
 	</div>
 {:else}
 	<div
-		class="relative mb-3 flex items-center gap-2.5 py-2.5 pr-3 pl-3 {bleedClass} {washClass}"
+		class="relative mb-3 flex items-center gap-2 py-2.5 pl-3 {canCollapse ? 'pr-1' : 'pr-3'} {bleedClass} {washClass}"
 		data-testid="timer-identity"
 		data-state={status}
 	>
