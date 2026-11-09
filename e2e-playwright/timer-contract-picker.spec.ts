@@ -15,6 +15,10 @@ type Seeded = { clientName: string; firstId: string; firstName: string; secondId
 async function seed(page: Page, label: string): Promise<Seeded> {
 	const suffix = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
 	await page.goto('/');
+	// Let the app's own navigations after load settle (the root layout's afterNavigate may replace
+	// the URL with `/` once the document has loaded), or the caller's next goto is reported as
+	// "interrupted by another navigation" under load (WebKit, iPhone projects)
+	await page.waitForLoadState('networkidle');
 	return page.evaluate(
 		async ({ suffix, label }) => {
 			const post = async (url: string, body: unknown) => {
