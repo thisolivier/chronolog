@@ -6,7 +6,9 @@
 	  New note icon at the right. The "Notes" title, the contract and the count stay as screen-reader
 	  text (`note-list-context` is `sr-only`).
 	- `contract`, `client`, `all`: a title row (eyebrow, title and count, the repeat for a contract,
-	  New note) with the sort toggle on its own row below (054-DR, NT-01 / NT-02).
+	  New note) with the sort toggle on its own row below (054-DR, NT-01 / NT-02). The repeat and
+	  New note are centred on the title line (the h2, one 24 px line), not on eyebrow and title
+	  together (owner review of 064-DR).
 	The repeat (NT-03 / DS-04, 063-DR) is drawn only for one contract's list, never for a client's or
 	all notes, and shrinks to nothing before anything else in its row.
 -->
@@ -85,7 +87,7 @@
 		{:else if listHeader === 'contract' && contractLabel}
 			<p class="truncate text-xs text-ink-faint" data-testid="note-list-eyebrow">{contractLabel.clientName}</p>
 		{/if}
-		<h2 class="flex min-w-0 items-baseline gap-2 text-base font-semibold text-ink">
+		<h2 class="flex min-w-0 items-baseline gap-2 text-base/6 font-semibold text-ink">
 			{#if listHeader === 'contract' && contractLabel}
 				<span class="flex min-w-0 items-center gap-mark-gap self-center">
 					<ContractMark contractName={contractLabel.name} contractId={selectedContractId} colorIndex={contractLabel.clientColorIndex} size="sm" />
@@ -149,10 +151,14 @@
 			{@render newNote()}
 		</div>
 	{:else}
-		<div class="flex items-center gap-2">
+		<!-- The repeat and New note sit on the title line, not across eyebrow and title: the row
+			aligns bottoms and their group is one title line tall (the phone's 44 px button overflows it) -->
+		<div class="flex items-end gap-2">
 			{@render context()}
-			{@render repeat()}
-			{@render newNote()}
+			<div class="flex h-6 min-w-0 flex-1 items-center gap-2" data-testid="note-list-title-line-actions">
+				{@render repeat()}
+				{@render newNote()}
+			</div>
 		</div>
 		<div class="mt-1 flex items-center">{@render sortToggle()}</div>
 	{/if}

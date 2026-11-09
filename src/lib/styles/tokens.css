@@ -4,7 +4,7 @@
  * `@theme static` so every variable reaches :root even when no utility uses it: component
  * <style> blocks (NoteEditor, TimerIndicator) read them with var(--color-*).
  * Palette scales come from the Field Notes mood board (chalk, moss, pine, bark, rust, ochre) plus
- * a brighter `leaf` green for running / success. Semantic roles below point at the scales; prefer
+ * a brighter `leaf` green for success. Semantic roles below point at the scales; prefer
  * the roles in new code. Contrast pairings are recorded in docs/sprints/sprint-052-DR.md.
  */
 @theme static {
@@ -85,7 +85,7 @@
 	--color-ochre-800: #503d1c;
 	--color-ochre-900: #3c2d15;
 
-	/* Leaf: running timer, success (replaces green, emerald); brighter than moss so it reads on chalk */
+	/* Leaf: success (replaces green, emerald); brighter than moss so it reads on chalk */
 	--color-leaf-50: #edf5ec;
 	--color-leaf-100: #d7ead5;
 	--color-leaf-200: #b1d5ae;
@@ -125,7 +125,6 @@
 	--color-today: var(--color-ochre-100);
 	--color-success: var(--color-leaf-700);
 	--color-success-wash: var(--color-leaf-50);
-	--color-running: var(--color-leaf-500);
 	--color-selection: var(--color-pine-100);
 	--color-selection-edge: var(--color-pine-600);
 	--color-focus: var(--color-pine-500);

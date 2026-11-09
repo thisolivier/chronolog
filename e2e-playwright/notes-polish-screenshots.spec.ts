@@ -2,7 +2,8 @@
  * Sprint 064-DR (N1–N3) owner screenshots: the note editor header repeat, the notes list header and
  * linked time, on desktop 1280 × 800 (chromium) and the phone (iphone-15). Files are named
  * `n1-…`, `n2-…`, `n3-…` with a `-before` / `-after` suffix: `SPRINT_064_PHASE=before` names the
- * images of a run against the code before the sprint (default `after`). With
+ * images of a run against the code before the sprint (default `after`); `fix-phone-list-header-…`
+ * is the owner-review alignment fix (run it alone with `-g "alignment fix"`). With
  * `UPDATE_SPRINT_SCREENSHOTS=1` they go to docs/review/screenshots/sprint-064-DR/.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
@@ -72,4 +73,15 @@ test('phone: list header and linked time @iphone', async ({ page, baseURL }, tes
 		await unlinkButtons(page).first().tap();
 		await shot(page, 'n3-phone-unlink-confirm', linked);
 	}
+});
+
+// Owner review fix: the repeat and New note in line with the mark and title (fix-phone-list-header-*)
+test('phone: list header alignment fix @iphone', async ({ page, baseURL }, testInfo) => {
+	test.skip(testInfo.project.name !== 'iphone-15', 'iphone-15 only');
+	await signInAsFreshUser(page, baseURL, 'qa-064-fix-shots');
+	const seed = await seedNotesPolish(page);
+	await page.goto(`/notes/${seed.contractId}`);
+	await page.waitForLoadState('networkidle');
+	await expect(page.getByTestId('note-list-row')).toHaveCount(2);
+	await shot(page, 'fix-phone-list-header', page.getByTestId('note-list-header'));
 });

@@ -9,7 +9,7 @@ html {
 	background-color: var(--color-canvas);
 }
 
-/* Reduced motion: no pulsing, spinning or sliding; a running dot stays as a static dot (DS-01) */
+/* Reduced motion: no pulsing, spinning or sliding (DS-01) */
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,

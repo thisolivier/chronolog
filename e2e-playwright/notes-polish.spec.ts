@@ -5,6 +5,8 @@
  * - N2: with the sidebar beside the list (owner `notes`) the list header is one row: sort toggle,
  *   repeat, New note; title and count only for screen readers. `contract` / `client` / `all` keep
  *   their title rows. New note is icon only (no border or fill) everywhere and keeps its menu.
+ *   Owner review: the icon is the primary green again, and in the title rows the repeat and New
+ *   note are centred on the title line (the contract mark), not on eyebrow and title together.
  * - N3: linked time has no heading; each row starts with a clock glyph; × asks "Unlink?" inline.
  * Each test signs up its own user. Screenshots: notes-polish-screenshots.spec.ts.
  */
@@ -17,14 +19,32 @@ const newNoteButton = (page: Page) => page.getByRole('button', { name: 'New note
 const unlinkButtons = (page: Page) => page.getByTestId('linked-time-entries').getByRole('button', { name: 'Unlink time entry' });
 const box = async (locator: Locator) => (await locator.boundingBox())!;
 
-/** Icon only: no border, no fill until hovered */
+/** Icon only: no border, no fill until hovered; the icon in the primary green */
 async function expectBorderless(button: Locator) {
 	const style = await button.evaluate((element) => {
 		const computed = getComputedStyle(element);
-		return { border: computed.borderTopWidth, background: computed.backgroundColor };
+		const probe = document.createElement('span');
+		probe.style.color = 'var(--color-primary)';
+		document.body.append(probe);
+		const primary = getComputedStyle(probe).color;
+		probe.remove();
+		return { border: computed.borderTopWidth, background: computed.backgroundColor, color: computed.color, primary };
 	});
 	expect(style.border).toBe('0px');
 	expect(style.background).toBe('rgba(0, 0, 0, 0)');
+	expect(style.color).toBe(style.primary);
+}
+
+const verticalCentre = (rectangle: { y: number; height: number }) => rectangle.y + rectangle.height / 2;
+
+/** Title rows: the repeat (when drawn) and New note are centred on the title line, within 1 px */
+async function expectOnTitleLine(page: Page, reference: Locator, withRepeat: boolean) {
+	const referenceCentre = verticalCentre(await box(reference));
+	const buttonCentre = verticalCentre(await box(newNoteButton(page)));
+	expect(Math.abs(buttonCentre - referenceCentre)).toBeLessThanOrEqual(1);
+	if (!withRepeat) return;
+	const repeatCentre = verticalCentre(await box(header(page).getByTestId('note-list-header-space').getByTestId('contract-tile-repeat')));
+	expect(Math.abs(repeatCentre - referenceCentre)).toBeLessThanOrEqual(1);
 }
 
 test.describe('desktop 1280', () => {
@@ -78,6 +98,7 @@ test.describe('desktop 1280', () => {
 		await expect(page.getByTestId('note-list-count')).toBeVisible();
 		const titleBox = await box(page.getByTestId('note-list-title'));
 		expect((await box(page.getByTestId('note-sort-toggle'))).y).toBeGreaterThan(titleBox.y + titleBox.height - 1);
+		await expectOnTitleLine(page, header(page).getByTestId('contract-mark'), true);
 
 		// New note still starts a draft for the contract
 		await newNoteButton(page).click();
@@ -94,6 +115,8 @@ test.describe('desktop 1280', () => {
 		await expect(page.getByTestId('note-list-title')).toHaveText(seed.clientName);
 		await expect(page.getByTestId('note-list-title')).toBeVisible();
 		await expectBorderless(newNoteButton(page));
+		// No mark or repeat in the client view: New note is centred on the title
+		await expectOnTitleLine(page, page.getByTestId('note-list-title'), false);
 		await newNoteButton(page).click();
 		const menu = page.getByTestId('new-note-contract-menu');
 		await expect(menu.getByRole('menuitem')).toHaveCount(2);
@@ -211,6 +234,8 @@ test.describe('phone', () => {
 		const buttonBox = await box(newNoteButton(page));
 		expect(buttonBox.width).toBeGreaterThanOrEqual(44);
 		expect(buttonBox.height).toBeGreaterThanOrEqual(44);
+		// The repeat and New note on the title line, level with the contract mark
+		await expectOnTitleLine(page, header(page).getByTestId('contract-mark'), true);
 
 		// Single-column editor: still no repeat in its header
 		await openSeededNote(page, seed);
