@@ -4,6 +4,11 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 `chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
 030, 033 and 035 changed nothing in the CLI and are not listed.
 
+## 1.6.2 (sprint 064-DR follow-up, 2026-11-09): scrollbar above the day bars
+
+- The timesheet's overlay scrollbar paints above the edge-to-edge day bars again. No CLI or
+  database change.
+
 ## 1.6.1 (sprint 064-DR, 2026-11-09): owner polish round
 
 - Timesheet day bars run edge to edge with entry times aligned on the day total; the timer's pulsing

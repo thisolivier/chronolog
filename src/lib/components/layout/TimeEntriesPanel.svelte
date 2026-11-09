@@ -573,6 +573,10 @@
 	.timesheet-scroll {
 		--timesheet-gutter: 0.75rem;
 		padding-inline: var(--timesheet-gutter);
+		/* Its own stacking context: the sticky day headings carry a z-index, and without this they
+		   would escape to the panel's stacking context and paint over the scroller's overlay
+		   scrollbar now that the bar reaches the edge (owner, 2026-11-09). The scrollbar stays on top. */
+		isolation: isolate;
 	}
 	@media (min-width: 40rem) {
 		.timesheet-scroll {
