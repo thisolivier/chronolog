@@ -74,6 +74,10 @@ async function expectAlignedLayout(page: Page) {
 	const alignments = await measureTimeAlignment(page);
 	expect(alignments.length).toBeGreaterThan(3);
 	for (const alignment of alignments) expect(Math.abs(alignment.offBy), alignment.what).toBeLessThanOrEqual(1);
+	// The scroller is a stacking context, so its overlay scrollbar paints above the sticky bars
+	// (headless engines draw no overlay scrollbar, so the style is what can be checked)
+	const scrollerIsolation = await page.getByTestId('timesheet-scroll').evaluate((scroller) => getComputedStyle(scroller).isolation);
+	expect(scrollerIsolation, 'timesheet scroller stacking context').toBe('isolate');
 }
 
 const cardLayout = (page: Page) =>

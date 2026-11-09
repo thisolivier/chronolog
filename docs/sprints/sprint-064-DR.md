@@ -77,6 +77,10 @@ Two Opus engineers worked the branches in parallel; the PM merged `design-r1-pol
 - **N2** Header extracted to `layout/NoteListHeader.svelte` (`data-layout="one-row" | "title-rows"`). Owner `notes`: one row, sort toggle / repeat / New note, the same height as the editor header beside it; title, contract and count stay for screen readers. **Phone: no one-row case exists** since the sidebar is never beside the list there (owner is always `contract`); the phone gets the borderless 44 px New note button. The New note icon is now muted (matches the ellipsis) rather than primary green.
 - **N3** Rows extracted to `notes/LinkedTimeEntryRow.svelte`: clock glyph, accessible name "Linked time entry, …", no heading. × swaps the right-hand group for "Unlink? Unlink / Cancel"; one row at a time; focus to Unlink, back to × on cancel, to the next (or previous) row's × after unlinking. Same on the phone and inside the short-screen disclosure.
 
+### After release: scrollbar under the bars (v1.6.2)
+
+Owner, 2026-11-09: "the scroll bar on desktop is behind the extended bars". The sticky day headings have `z-index: 2`; the scroller was not a stacking context, so they escaped to the panel's and painted over the scroller's overlay scrollbar once the bar reached the edge (T1). `.timesheet-scroll` now has `isolation: isolate`, which keeps the headings' stacking inside the scroller and the scrollbar on top. Headless engines draw no overlay scrollbar, so `polish-time.spec.ts` checks the computed `isolation`; the visual check is the owner's in the desktop app.
+
 ### Verification on the merged tree
 
 - `npm run check`: 0 errors, 0 warnings. `npm run lint`: clean. `npm test`: 142 files, 1382 tests passed (9 new).
