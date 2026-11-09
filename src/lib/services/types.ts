@@ -229,6 +229,33 @@ export type WeekData = {
 	status: string;
 };
 
+/** Total time request (sprint 065-TT): inclusive bounds, null for open-ended; `'all'` or contract IDs */
+export type TotalTimeRequest = {
+	from: string | null;
+	to: string | null;
+	contracts: 'all' | string[];
+};
+
+/** One contract's share of a total; only contracts with time are listed */
+export type ContractTimeTotal = {
+	contractId: string;
+	contractName: string;
+	clientName: string;
+	clientShortCode: string;
+	totalMinutes: number;
+	entryCount: number;
+};
+
+/** `GET /api/time-entries/total` */
+export type TotalTimeResult = {
+	from: string | null;
+	to: string | null;
+	totalMinutes: number;
+	entryCount: number;
+	/** Most minutes first */
+	contracts: ContractTimeTotal[];
+};
+
 export type DayData = {
 	date: string;
 	entries: TimeEntryDisplay[];

@@ -29,6 +29,8 @@ import type { TimerLocalStart,
 	TimeEntryFields,
 	CreateTimeEntryInput,
 	WeekData,
+	TotalTimeRequest,
+	TotalTimeResult,
 	TimerStatus,
 	TimerEntry,
 	SaveTimerInput,
@@ -181,6 +183,10 @@ export class DelegatingDataService implements DataService {
 
 	updateWeeklyStatus(weekStart: string, status: string): Promise<void> {
 		return this.delegate.updateWeeklyStatus(weekStart, status);
+	}
+
+	getTotalTime(request: TotalTimeRequest): Promise<TotalTimeResult> {
+		return this.delegate.getTotalTime(request);
 	}
 
 	// ── Timer ─────────────────────────────────────────────────

@@ -21,6 +21,8 @@ import type { TimerLocalStart,
 	TimeEntryFields,
 	CreateTimeEntryInput,
 	WeekData,
+	TotalTimeRequest,
+	TotalTimeResult,
 	TimerStatus,
 	TimerEntry,
 	SaveTimerInput,
@@ -30,7 +32,7 @@ import type { TimerLocalStart,
 	DeliverableOption,
 	WorkTypeOption
 } from './types';
-import { fetchJson, postJson, putJson, patchJson, deleteRequest } from './fetch-helpers';
+import { fetchJson, fetchFreshJson, postJson, putJson, patchJson, deleteRequest } from './fetch-helpers';
 
 /** Stay safely under the browser's 64 KB limit for keepalive request bodies */
 const KEEPALIVE_BODY_LIMIT_BYTES = 60_000;
@@ -217,6 +219,15 @@ export class FetchDataService implements DataService {
 	/** Posts the Monday, never a week number, so the client cannot disagree with the server's rule (061-DR) */
 	async updateWeeklyStatus(weekStart: string, status: string): Promise<void> {
 		await postJson('/api/time-entries/weekly-statuses', { weekStart, status });
+	}
+
+	/** Never from the read cache: an old total shown as current would mislead (065-TT) */
+	async getTotalTime(request: TotalTimeRequest): Promise<TotalTimeResult> {
+		const searchParams = new URLSearchParams();
+		if (request.from) searchParams.set('from', request.from);
+		if (request.to) searchParams.set('to', request.to);
+		searchParams.set('contracts', request.contracts === 'all' ? 'all' : request.contracts.join(','));
+		return fetchFreshJson<TotalTimeResult>(`/api/time-entries/total?${searchParams}`);
 	}
 
 	// -- Timer --

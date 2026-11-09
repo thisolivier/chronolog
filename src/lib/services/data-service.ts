@@ -20,6 +20,8 @@ import type {
 	TimeEntryFields,
 	CreateTimeEntryInput,
 	WeekData,
+	TotalTimeRequest,
+	TotalTimeResult,
 	TimerStatus,
 	TimerEntry,
 	SaveTimerInput,
@@ -76,6 +78,8 @@ export interface DataService {
 	deleteTimeEntry(entryId: string): Promise<void>;
 	/** `weekStart` is the week's Monday (`YYYY-MM-DD`), its identity; no week number is sent */
 	updateWeeklyStatus(weekStart: string, status: string): Promise<void>;
+	/** Minutes per contract in a range (sprint 065-TT); always asks the server, never the read cache */
+	getTotalTime(request: TotalTimeRequest): Promise<TotalTimeResult>;
 
 	// Timer
 	getTimerStatus(): Promise<TimerStatus>;
