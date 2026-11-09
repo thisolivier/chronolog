@@ -1,6 +1,6 @@
 # Sprint 065-TT — Total time
 
-**Branch:** `total-time` from `main` at `7ae885c` (v1.6.2), worktree `.claude/worktrees/total-time`. **Status:** built and tested, not merged, no version bump, not deployed. No new dependencies, no migration (owner rule), nothing in `src-tauri/`.
+**Branch:** `total-time` from `main` at `7ae885c` (v1.6.2), worktree `.claude/worktrees/total-time`. **Status:** merged to `main`, shipped as v1.7.0 on 2026-11-09. No new dependencies, no migration (owner rule), nothing in `src-tauri/`.
 
 ## Owner's words (the brief)
 
@@ -20,7 +20,7 @@ One number for "how much time went on these contracts over this period", in the 
 ## Files
 
 - New: `src/lib/server/db/queries/time-entries-total.ts`, `src/routes/api/time-entries/total/+server.ts`, `src/routes/api/time-entries-total.test.ts`, `src/routes/api/contracts-by-client-system.test.ts`, `src/lib/components/weekly/TotalTimeModal.svelte`, `TotalTimeContractList.svelte`, `TotalTimeResult.svelte`, `total-time.ts`, `total-time.test.ts`, `cli/commands/total.mjs`, `cli/commands/total.test.mjs`, `e2e-playwright/total-time.spec.ts`.
-- Changed: `queries/contracts.ts` and `routes/api/contracts-by-client/+server.ts` (opt-in `includeSystem`), `WeekStrip.svelte`, `layout/TimeEntriesPanel.svelte`, `services/{data-service,fetch-data-service,delegating-data-service,types}.ts`, `fetch-data-service.test.ts`, `offline/offline-data-service.ts`, `cli/chronolog.mjs`, `cli/lib/args.mjs`, `cli/lib/cli-lib.test.mjs`; docs: `weekly/readme.md`, `layout/README.md`, `services/readme.md`, `cli/readme.md`, `cli/CHANGELOG.md` (Unreleased), `.claude/skills/chronolog-secretary/SKILL.md` (Totals section).
+- Changed: `queries/contracts.ts` and `routes/api/contracts-by-client/+server.ts` (opt-in `includeSystem`), `WeekStrip.svelte`, `layout/TimeEntriesPanel.svelte`, `services/{data-service,fetch-data-service,delegating-data-service,types}.ts`, `fetch-data-service.test.ts`, `offline/offline-data-service.ts`, `cli/chronolog.mjs`, `cli/lib/args.mjs`, `cli/lib/cli-lib.test.mjs`; docs: `weekly/readme.md`, `layout/README.md`, `services/readme.md`, `cli/readme.md`, `cli/CHANGELOG.md` (1.7.0), `.claude/skills/chronolog-secretary/SKILL.md` (Totals section).
 
 ## Tests
 
