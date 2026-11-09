@@ -1,6 +1,6 @@
 # Sprint 064-DR — Owner polish round: timesheet bars, notes headers, timer contract picker
 
-**Branches:** `design-r1-polish-time` (timesheet and timer) and `design-r1-polish-notes` (notes), both from `design-r1` at `3d58241` (v1.6.0); merged into `design-r1` as one merge. **Status:** ready for owner review. No new dependencies, no migrations, nothing in `src-tauri/`.
+**Branches:** `design-r1-polish-time` (timesheet and timer) and `design-r1-polish-notes` (notes), both from `design-r1` at `3d58241` (v1.6.0); merged into `design-r1` as one merge. **Status:** owner approved 2026-11-09 after three review fixes; merged to main and live at v1.6.1. No new dependencies, no migrations, nothing in `src-tauri/`.
 
 Source: owner instruction 2026-11-08 (verbatim in the next section), with the follow-up "Feel free to carry these over to the non-noted platform where it makes sense": a change written for desktop also applies on the phone (and the other way round) unless the layout there makes it meaningless.
 

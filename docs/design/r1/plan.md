@@ -42,7 +42,7 @@ on a branch `design-r1-<stage>`, gets a sprint doc under `docs/sprints/`, is rev
 | Home button (062-DR) | merged into design-r1: Chronolog home button with ‹ › beside it on every layout; awaiting owner review |
 | Integrated run | 2026-11-08 morning pass on design-r1 (`docs/review/2026-11-08-morning.md`): suites green apart from recorded flakes |
 | 060–062 | owner approved 2026-11-08 morning; merged and deployed as v1.5.1; pre-deploy dump `~/Backups/chronolog/pre-session/pre-v1.5.1-*.dump`; no migrations |
-| Polish round (064-DR) | `design-r1-polish-time` + `design-r1-polish-notes`: edge-to-edge day bars and aligned times, pulse light removed, contract picker from the timer heading, notes headers reduced, linked time confirm; merged into `design-r1`, ready for owner review, no migrations |
+| Polish round (064-DR) | `design-r1-polish-time` + `design-r1-polish-notes`: edge-to-edge day bars and aligned times, pulse light removed, contract picker from the timer heading, notes headers reduced, linked time confirm; owner approved 2026-11-09 with three fixes, merged and deployed as v1.6.1, pre-deploy dump `~/Backups/chronolog/pre-session/pre-v1.6.1-*.dump`, no migrations |
 | Pattern tiles (063-DR) | `design-r1-tiles`: 32 procedural one-colour tiles, hash allocation, DS-04 placements (DS-03 / DS-04 / DS-07); owner approved, merged and deployed as v1.6.0, pre-deploy dump `~/Backups/chronolog/pre-session/pre-v1.6.0-*.dump`, no migrations |
 | Next | stage 8 native checks (owner at the Mac) |
 | 8 | after the v1.5.1 deploy |
