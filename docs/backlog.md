@@ -82,14 +82,6 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
 - **Sunday-only test failure.** `e2e-playwright/checkpoint-bc-seed.ts` seeds six days, so on a Sunday
   `checkpoint-bc-acceptance.spec.ts:43` never finds its "today" entries and times out. One-line fix:
   seed the whole week or compute "today" from the seeded days.
-- **Split-time overlay's static green dot.** Left in place when the pulsing light went (064-DR T3);
-  remove it too if the owner wants no running colour at all (`--color-running` goes with it).
-- **New note icon colour.** Muted grey since the border went (matches the editor ellipsis); one class
-  back to the primary green if preferred.
-- **Focus after unlinking the last linked entry.** The section disappears and focus falls to the
-  page; moving it into the editor needs a hook from `NoteEditorPanel`.
-- **Phone T2 layout** (delete and attach between the contract name and the time) awaits the owner's
-  acceptance; the inset-total alternative is in the sprint screenshots.
 
 ## Owner-requested (2026-11-07): revisit week numbering before 28 December
 

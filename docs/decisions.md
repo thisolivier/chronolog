@@ -169,13 +169,15 @@ sense". Recorded here because three of them retire earlier design decisions:
 
 - **No running light.** The pulsing green dot (TC-02, O03 pulse timing, "RECORDING text removed;
   running dot pulses") is withdrawn: "the clock ticking is enough feedback." `TimerPulseDot` is
-  deleted. The split-time overlay's static dot is unaffected pending the owner's answer.
+  deleted. On review the owner removed the split-time overlay's static dot too, and with it
+  `--color-running`: no running colour anywhere.
 - **The timer heading is the contract picker.** The running panel's "Contract" field is gone.
   With no contract the header shows no tile region, "No contract yet" and a "Select" link; with
   one, the tile, names and "Change". Either link opens a dropdown of contracts at that spot;
   clicking away, Escape or collapsing cancels. The chevron still never chooses (053-DR).
 - **Headers lose what the sidebar already says.** When the sidebar names the contract, the notes
-  list header is one row: sort toggle, the contract's repeat, a borderless New note icon. The
+  list header is one row: sort toggle, the contract's repeat, a borderless New note icon (kept
+  the primary green on review). The
   editor header's repeat fills its row (the 063-DR ten-tile cap is lifted). Linked time has no
   heading; a clock glyph marks each row and unlinking asks inline first.
 - **Timesheet bars edge to edge**, text where it was; entry times end on the day total. On the

@@ -85,9 +85,15 @@ Two Opus engineers worked the branches in parallel; the PM merged `design-r1-pol
   - Flaky (passed on retry): `checkpoint-bc-acceptance.spec.ts:92` (chromium) and the new `timer-contract-picker.spec.ts:156` on iphone-15 (`page.goto('/')` "interrupted by another navigation" under full-suite load; the agent's own runs were clean).
 - Screenshots: `docs/review/screenshots/sprint-064-DR/` (`T*` and `n*` prefixes, before and after; 1280 × 800 chromium, phone from iphone-15).
 
+### Owner review fixes (branch `design-r1-polish-fixes`)
+
+- **New note icon green again.** `layout/NoteListNewNoteButton.svelte`: `text-primary` with the `primary-wash` hover (and the focus ring), still borderless with no fill at rest. `notes-polish.spec.ts` now also checks the icon's colour is `--color-primary`.
+- **No running colour.** The split overlay's static dot on "Second part" is gone (`timer/SplitTimeOverlay.svelte`); `--color-running` deleted from `styles/tokens.css`; the reduced-motion comment in `app.css`, the styles readme, the decision record and the backlog updated. Nothing in `src` references a running colour now.
+- **List header: repeat and New note on the title line.** In the `title-rows` layout (`layout/NoteListHeader.svelte`; phone, and desktop contract / client / all) the row aligns bottoms and the repeat plus New note sit in a group one title line tall (`h-6`, the h2 is `text-base/6`), so both are centred on the mark and title rather than on eyebrow and title together. Text positions unchanged on desktop; on the phone the 44 px button now overflows its 24 px group, so the row is 4 px shorter and the title 2 px higher. `notes-polish.spec.ts` measures the repeat's and the button's vertical centres against the header's `contract-mark` within 1 px (desktop contract view, every iPhone) and the button against the title in the desktop client view; the one-row assertions are unchanged. Screenshots: `fix-phone-list-header-before.png` / `-after.png` (iphone-15, taken by `notes-polish-screenshots.spec.ts`).
+
 ### Open for the owner
 
-1. Phone T2: accept delete and attach between the contract name and the time?
-2. New note icon muted grey (as the ellipsis) or back to green? One class.
-3. Should the split-time overlay's static green dot go too, for consistency with T3?
-4. After unlinking the last linked entry the section disappears and focus falls to the page; moving it into the editor needs a hook from the editor panel. Left as is.
+1. Phone T2: accept delete and attach between the contract name and the time? **Answered: approved.**
+2. New note icon muted grey (as the ellipsis) or back to green? One class. **Answered: green.**
+3. Should the split-time overlay's static green dot go too, for consistency with T3? **Answered: removed** (below).
+4. After unlinking the last linked entry the section disappears and focus falls to the page; moving it into the editor needs a hook from the editor panel. Left as is. **Answered: accepted.**
