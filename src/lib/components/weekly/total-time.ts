@@ -3,7 +3,7 @@
  * range matches, the contract list order and the result's display state.
  */
 import { getMondayOfWeek, getSundayOfWeek, isoWeekNumber } from '$lib/utils/iso-week';
-import type { ContractOption, TotalTimeResult } from '$lib/services/types';
+import type { ContractsByClientResult, TotalTimeResult } from '$lib/services/types';
 
 /** Inclusive bounds as the date inputs hold them: `''` is open-ended */
 export type DateRange = { from: string; to: string };
@@ -55,12 +55,38 @@ export function describeRange(range: DateRange): string {
 	return `${range.from} to ${range.to}`;
 }
 
-/** Active contracts first, then inactive, each keeping the server's order */
-export function orderContractsForPicker(contracts: ContractOption[]): { active: ContractOption[]; inactive: ContractOption[] } {
+/** The contracts the modal lists (`GET /api/contracts-by-client?includeArchived=true`) */
+export type PickerContract = Pick<
+	ContractsByClientResult,
+	'id' | 'name' | 'isActive' | 'clientId' | 'clientName' | 'clientShortCode' | 'clientColorIndex' | 'clientSortOrder' | 'archived' | 'clientArchived'
+>;
+
+/** "archived" (the contract or its client), "inactive", or null for a contract in normal use */
+export function contractStatusLabel(contract: PickerContract): 'archived' | 'inactive' | null {
+	if (contract.archived || contract.clientArchived) return 'archived';
+	return contract.isActive ? null : 'inactive';
+}
+
+/** Contracts in use first; inactive and archived ones behind the disclosure; server order kept */
+export function orderContractsForPicker(contracts: PickerContract[]): {
+	shown: PickerContract[];
+	hidden: PickerContract[];
+	hasArchived: boolean;
+} {
 	return {
-		active: contracts.filter((contract) => contract.isActive),
-		inactive: contracts.filter((contract) => !contract.isActive)
+		shown: contracts.filter((contract) => contractStatusLabel(contract) === null),
+		hidden: contracts.filter((contract) => contractStatusLabel(contract) !== null),
+		hasArchived: contracts.some((contract) => contractStatusLabel(contract) === 'archived')
 	};
+}
+
+/**
+ * What to ask for: every listed contract ticked is `'all'`, so the total opened from a week equals
+ * that week's total (which also counts the system "Deleted Contract" no box stands for).
+ */
+export function contractsForRequest(listedContractIds: string[], selectedContractIds: ReadonlySet<string>): 'all' | string[] {
+	const everyListedSelected = listedContractIds.length > 0 && listedContractIds.every((contractId) => selectedContractIds.has(contractId));
+	return everyListedSelected ? 'all' : listedContractIds.filter((contractId) => selectedContractIds.has(contractId));
 }
 
 export type TotalDisplay =

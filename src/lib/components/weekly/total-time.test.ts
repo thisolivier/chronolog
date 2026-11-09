@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
+	contractStatusLabel,
+	contractsForRequest,
 	describeRange,
 	isConnectionFailure,
 	matchingPresetKey,
@@ -7,7 +9,8 @@ import {
 	rangePresets,
 	totalDisplay
 } from './total-time';
-import type { ContractOption, TotalTimeResult } from '$lib/services/types';
+import type { TotalTimeResult } from '$lib/services/types';
+import type { PickerContract } from './total-time';
 
 describe('rangePresets', () => {
 	it('offers all time, the viewed week, this week, month and year', () => {
@@ -52,11 +55,33 @@ describe('describeRange', () => {
 });
 
 describe('orderContractsForPicker', () => {
-	it('splits active from inactive, keeping order', () => {
-		const contract = (id: string, isActive: boolean) => ({ id, isActive }) as ContractOption;
-		const ordered = orderContractsForPicker([contract('a', true), contract('b', false), contract('c', true)]);
-		expect(ordered.active.map((item) => item.id)).toEqual(['a', 'c']);
-		expect(ordered.inactive.map((item) => item.id)).toEqual(['b']);
+	const contract = (id: string, isActive: boolean, archived = false, clientArchived = false) =>
+		({ id, isActive, archived, clientArchived }) as PickerContract;
+
+	it('keeps contracts in use apart from inactive and archived ones, in order', () => {
+		const ordered = orderContractsForPicker([contract('a', true), contract('b', false), contract('c', true), contract('d', true, true)]);
+		expect(ordered.shown.map((item) => item.id)).toEqual(['a', 'c']);
+		expect(ordered.hidden.map((item) => item.id)).toEqual(['b', 'd']);
+		expect(ordered.hasArchived).toBe(true);
+		expect(orderContractsForPicker([contract('a', true), contract('b', false)]).hasArchived).toBe(false);
+	});
+
+	it('labels archived (contract or client) before inactive', () => {
+		expect(contractStatusLabel(contract('a', true))).toBeNull();
+		expect(contractStatusLabel(contract('b', false))).toBe('inactive');
+		expect(contractStatusLabel(contract('c', false, true))).toBe('archived');
+		expect(contractStatusLabel(contract('d', true, false, true))).toBe('archived');
+	});
+});
+
+describe('contractsForRequest', () => {
+	it('is all when every listed contract is ticked, so it matches the week total', () => {
+		expect(contractsForRequest(['a', 'b'], new Set(['a', 'b']))).toBe('all');
+	});
+	it('lists the ticked ones otherwise, and none for none', () => {
+		expect(contractsForRequest(['a', 'b', 'c'], new Set(['c', 'a']))).toEqual(['a', 'c']);
+		expect(contractsForRequest(['a', 'b'], new Set())).toEqual([]);
+		expect(contractsForRequest([], new Set())).toEqual([]);
 	});
 });
 

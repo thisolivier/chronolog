@@ -48,9 +48,9 @@ Environment variables win over the file:
 ### Totals (sprint 065-TT)
 
 - `total` asks `GET /api/time-entries/total` for the minutes recorded (drafts excluded) per contract.
-- Contracts: `--contract X` and `--client X` both repeat (`--contract ACME/Web --contract BETA/Retainer`); a client means all its contracts. `--all-contracts` sends `contracts=all`. One of the three is required (usage error, exit 2). References follow the never-guess rule (exit 3 with candidates).
-- Range: `--from` / `--to` take `YYYY-MM-DD` or the `--date` words; either alone is open-ended. `--all-time` has no bounds (and refuses `--from`/`--to`). With none of them, the current week from `GET /api/me`.
-- Output: `Total 12h30m (14 entries) · 2026-10-01 to 2026-11-09` (or `· all time`), then `  ACME/Website  8h15m  (9)` per contract with time, most first. `--json` prints the API reply plus `range` and the resolved `contracts` (`"all"` or `{ id, clientShortCode, name }`).
+- Contracts: `--contract X` and `--client X` both repeat (`--contract ACME/Web --contract BETA/Retainer`); a client means all its contracts. `--all-contracts` sends `contracts=all` and cannot be combined with `--contract` / `--client`. One of the three is required (usage error, exit 2). References follow the never-guess rule (exit 3 with candidates); unlike `log`, archived contracts and clients are included, so a past contract can be totalled.
+- Range: `--from` / `--to` take `YYYY-MM-DD` (a real day: `2026-02-30` is a usage error) or the `--date` words; either alone is open-ended. `--all-time` has no bounds (and refuses `--from`/`--to`). With none of them, the current week from `GET /api/me`.
+- Output: `Total 12h30m (14 entries) · 2026-10-01 to 2026-11-09` (or `· all time`), then `  ACME/Website  8h15m  (9)` per contract with time, most first. `--json` prints the API reply unchanged (its `contracts` are the per-contract totals) plus `range` and `selection` (`"all"` or the resolved `{ id, clientShortCode, name }` list).
 - The argument parser keeps every value of a repeated flag in `flagValues` (commands receive it next to `flags`, where the last value wins).
 
 ### Changing and deleting notes (sprint 034-CL)

@@ -2,7 +2,8 @@
 	TotalTimeModal (sprint 065-TT): opened from the week total. A date range (From / To, plus quick
 	choices: All time, the viewed week, This week, This month, This year), then the total recorded
 	(directly under the range, so it is in view on open on a phone), then the contracts to include
-	(all active ones checked at first; All / None), the total updating as the choices
+	(every contract checked at first, inactive and archived included, so the total matches the week
+	total it was opened from; All / None), the total updating as the choices
 	change (requests debounced 200 ms, stale replies ignored). Online only: offline it says
 	"Needs a connection". Desktop: a centred overlay. Phone: full window, the header as a top bar
 	(title left, Close right) and the fields scrolling under it, sized to the visual viewport like
@@ -16,10 +17,19 @@
 	import { getSundayOfWeek } from '$lib/utils/iso-week';
 	import { localDateString } from '$lib/components/timer/local-date';
 	import { VisualViewportBox } from '$lib/components/timer/visual-viewport.svelte';
-	import type { ContractOption, TotalTimeResult as TotalTimeReply } from '$lib/services/types';
+	import type { TotalTimeResult as TotalTimeReply } from '$lib/services/types';
 	import TotalTimeContractList from './TotalTimeContractList.svelte';
 	import TotalTimeResult from './TotalTimeResult.svelte';
-	import { describeRange, isConnectionFailure, matchingPresetKey, rangePresets, totalDisplay, type TotalDisplay } from './total-time';
+	import {
+	contractsForRequest,
+	describeRange,
+	isConnectionFailure,
+	matchingPresetKey,
+	rangePresets,
+	totalDisplay,
+	type PickerContract,
+	type TotalDisplay
+} from './total-time';
 
 	let {
 		weekStart,
@@ -38,7 +48,7 @@
 
 	let fromDate = $state(viewedWeekStart);
 	let toDate = $state(getSundayOfWeek(viewedWeekStart));
-	let contracts = $state<ContractOption[]>([]);
+	let contracts = $state<PickerContract[]>([]);
 	let contractsLoaded = $state(false);
 	let contractsFailure = $state<'offline' | 'error' | null>(null);
 	const selectedContractIds = new SvelteSet<string>();
@@ -64,11 +74,12 @@
 
 	onMount(() => {
 		closeButton?.focus();
+		// Archived contracts included (the sidebar's list); every one ticked to match the week total
 		dataService
-			.getContracts()
+			.getContractsByClient()
 			.then((contractList) => {
 				contracts = contractList;
-				for (const contract of contractList) if (contract.isActive) selectedContractIds.add(contract.id);
+				for (const contract of contractList) selectedContractIds.add(contract.id);
 				contractsLoaded = true;
 			})
 			.catch((error) => {
@@ -82,8 +93,9 @@
 
 	// Ask for the total 200 ms after the last change; only the newest request's reply is shown
 	$effect(() => {
-		const request = { from: fromDate || null, to: toDate || null, contracts: [...selectedContractIds] };
-		const isAskable = contractsLoaded && request.contracts.length > 0 && !(request.from && request.to && request.from > request.to);
+		const listedContractIds = contracts.map((contract) => contract.id);
+		const request = { from: fromDate || null, to: toDate || null, contracts: contractsForRequest(listedContractIds, selectedContractIds) };
+		const isAskable = contractsLoaded && selectedContractIds.size > 0 && !(request.from && request.to && request.from > request.to);
 		const sequence = ++requestSequence;
 		untrack(() => {
 			isLoading = isAskable;
@@ -169,7 +181,7 @@
 							onclick={() => ((fromDate = preset.range.from), (toDate = preset.range.to))}
 							aria-pressed={isSelected}
 							class={[
-								'rounded-control border px-2.5 py-0.5 text-xs pointer-coarse:py-2',
+								'rounded-control border px-2.5 py-0.5 text-xs pointer-coarse:min-h-11',
 								isSelected ? 'border-bark-600 bg-bark-600 text-on-accent' : 'border-line btn-quiet'
 							]}
 							data-testid="total-time-preset-{preset.key}"
@@ -180,13 +192,15 @@
 
 			<TotalTimeResult {display} rangeLabel={describeRange(range)} />
 
-			<TotalTimeContractList
-				{contracts}
-				isSelected={(contractId) => selectedContractIds.has(contractId)}
-				onToggle={toggleContract}
-				onSelectAll={selectAllContracts}
-				onSelectNone={() => selectedContractIds.clear()}
-			/>
+			{#if contractsLoaded}
+				<TotalTimeContractList
+					{contracts}
+					isSelected={(contractId) => selectedContractIds.has(contractId)}
+					onToggle={toggleContract}
+					onSelectAll={selectAllContracts}
+					onSelectNone={() => selectedContractIds.clear()}
+				/>
+			{/if}
 		</div>
 	</div>
 </div>

@@ -3,13 +3,13 @@
  * range, from `GET /api/time-entries/total`. Contracts: `--contract` (repeatable, never guessed),
  * `--client` (repeatable: all of that client's contracts) or `--all-contracts`. Range: `--from` /
  * `--to` (YYYY-MM-DD or a `--date` word; either alone is open-ended), `--all-time` for no bounds,
- * else the current week from `GET /api/me`.
+ * else the current week from `GET /api/me`. Archived contracts and clients count here (unlike
+ * `log`): references resolve against the lists with archived ones included.
  */
 
 import { UsageError } from '../lib/args.mjs';
-import { formatMinutes, resolveDateWord } from '../lib/dates.mjs';
+import { formatMinutes, isCalendarDate, resolveDateWord } from '../lib/dates.mjs';
 import { resolveClient, resolveContract } from '../lib/resolve.mjs';
-import { fetchContracts } from './read.mjs';
 
 const USAGE = 'Usage: chronolog total --contract X... | --client X... | --all-contracts [--from D] [--to D] [--all-time]';
 
@@ -28,7 +28,9 @@ export async function resolveRange(api, flags) {
 	if (!hasBound) return { from: me.weekStart, to: me.weekEnd };
 	const resolveBound = (flagName) => {
 		if (flags[flagName] === undefined) return null;
-		const date = resolveDateWord(flags[flagName], me.today);
+		const word = String(flags[flagName]).trim();
+		// A YYYY-MM-DD that is not a real day (2026-02-30) is refused here, never rolled over
+		const date = /^\d{4}-\d{2}-\d{2}$/.test(word) && !isCalendarDate(word) ? null : resolveDateWord(word, me.today);
 		if (!date) throw new UsageError(`--${flagName} must be YYYY-MM-DD, today, yesterday or a weekday, not “${flags[flagName]}”.`);
 		return date;
 	};
@@ -39,20 +41,23 @@ export async function resolveRange(api, flags) {
 
 /** `'all'`, or the contracts named by `--contract` and `--client` (deduplicated, in order) */
 export async function resolveContractSelection(api, flags, flagValues) {
-	if (flags.allContracts) return 'all';
 	const contractReferences = valuesOf(flagValues, flags, 'contract');
 	const clientReferences = valuesOf(flagValues, flags, 'client');
+	if (flags.allContracts && (contractReferences.length || clientReferences.length)) {
+		throw new UsageError(`--all-contracts already means every contract; drop --contract / --client, or --all-contracts.\n${USAGE}`);
+	}
+	if (flags.allContracts) return 'all';
 	if (contractReferences.length === 0 && clientReferences.length === 0) {
 		throw new UsageError(`Name the contracts: --contract X, --client X or --all-contracts.\n${USAGE}`);
 	}
-	const contractList = await fetchContracts(api);
+	const contractList = (await api.get('/api/contracts-by-client?includeArchived=true')).contracts;
 	const selected = new Map();
 	for (const reference of contractReferences) {
 		const contract = resolveContract(reference, contractList);
 		selected.set(contract.id, contract);
 	}
 	if (clientReferences.length) {
-		const { clients: clientList } = await api.get('/api/clients');
+		const { clients: clientList } = await api.get('/api/clients?includeArchived=true');
 		for (const reference of clientReferences) {
 			const client = resolveClient(reference, clientList);
 			for (const contract of contractList) if (contract.clientId === client.id) selected.set(contract.id, contract);
@@ -89,9 +94,10 @@ export async function total({ api, print, flags, flagValues }) {
 	if (range.to) params.set('to', range.to);
 	params.set('contracts', selection === 'all' ? 'all' : selection.map((contract) => contract.id).join(','));
 	const result = await api.get(`/api/time-entries/total?${params}`);
-	const contracts =
+	// The reply's `contracts` (per-contract totals) stays as it is; what was asked for is `selection`
+	const selectionSummary =
 		selection === 'all'
 			? 'all'
 			: selection.map((contract) => ({ id: contract.id, clientShortCode: contract.clientShortCode, name: contract.name }));
-	print(formatTotal(result, range), { ...result, range, contracts });
+	print(formatTotal(result, range), { ...result, range, selection: selectionSummary });
 }

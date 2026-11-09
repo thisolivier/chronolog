@@ -172,10 +172,11 @@ When the owner asks how much time went on a contract or client over a period ("h
 Acme since October?"), use `chronolog total`:
 
 - Contracts: `--contract X` (repeat it for several), `--client X` (all that client's contracts,
-  repeatable) or `--all-contracts`. One of them is required. The never-guess rule applies: an
+  repeatable) or `--all-contracts` (not combined with the others). One is required. Archived
+  contracts and clients count here. The never-guess rule applies: an
   ambiguous `--contract` exits 3 with candidates; ask which one.
 - Range: `--from D` / `--to D` (`YYYY-MM-DD`, `today`, `yesterday`, a weekday); either alone is
   open-ended. `--all-time` for no bounds. With none of these it is the current week.
 - Example: `chronolog total --client ACME --from 2026-10-01 --to today`. The first line is the
-  total and entry count, then one line per contract with time; `--json` adds the exact range and
-  contracts used. Report the numbers as printed; do not add them up yourself.
+  total and entry count, then one line per contract with time; `--json` keeps the per-contract totals in
+  `contracts` and adds the exact `range` and `selection` used. Report the numbers as printed; do not add them up yourself.

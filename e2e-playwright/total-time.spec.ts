@@ -67,16 +67,20 @@ test('week total opens Total time: defaults, None, one contract, All time, close
 	const seed = await seedTotals(page, Date.now().toString(36));
 	const modal = await openTotalTime(page);
 
-	// Default: the viewed (current) week, every active contract checked, the inactive one not
+	// Default: the viewed (current) week, every contract checked (inactive too)
 	await expect(page.getByTestId('total-time-from')).toHaveValue(seed.weekStart);
 	await expect(page.getByTestId('total-time-to')).toHaveValue(seed.weekEnd);
 	await expect(page.getByTestId('total-time-preset-this-week')).toHaveAttribute('aria-pressed', 'true');
 	await expect(page.getByTestId(`total-time-contract-${seed.alphaId}`)).toBeChecked();
 	await expect(page.getByTestId(`total-time-contract-${seed.betaId}`)).toBeChecked();
-	await expect(page.getByTestId(`total-time-contract-${seed.gammaId}`)).not.toBeChecked();
+	await expect(page.getByTestId(`total-time-contract-${seed.gammaId}`)).toBeChecked();
 	await expect(page.getByTestId('total-time-value')).toHaveText('2h 15m');
 	await expect(page.getByTestId('total-time-entry-count')).toHaveText('2 entries');
+	// The breakdown starts closed; one tap opens it
+	await expect(page.getByTestId('total-time-row').first()).toBeHidden();
+	await page.getByText('By contract (2)').click();
 	await expect(page.getByTestId('total-time-row')).toHaveCount(2);
+	await expect(page.getByTestId('total-time-row').first()).toBeVisible();
 	await expect(page.getByTestId('total-time-row').first()).toHaveAttribute('data-contract-id', seed.alphaId);
 
 	// None, then just Alpha
@@ -106,6 +110,44 @@ test('week total opens Total time: defaults, None, one contract, All time, close
 	await expect(modal).toBeVisible();
 	await page.keyboard.press('Escape');
 	await expect(modal).toBeHidden();
+});
+
+test('the modal opens on the week total, inactive and archived contracts included', async ({ page, baseURL }) => {
+	await signInAsFreshUser(page, baseURL, 'total-time-archived');
+	const seed = await seedTotals(page, Date.now().toString(36));
+	const archivedId = await page.evaluate(async ({ gammaId, alphaId, weekStart }) => {
+		const send = async (method: string, url: string, body: unknown) => {
+			const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+			if (!response.ok) throw new Error(`${url}: ${response.status} ${await response.text()}`);
+			return response.json();
+		};
+		const clientId = (await (await fetch(`/api/contracts-by-client`)).json()).contracts.find((contract: { id: string }) => contract.id === alphaId).clientId;
+		const archived = (await send('POST', '/api/contracts', { clientId, name: 'Delta', isActive: true })).contract.id;
+		await send('POST', '/api/time-entries', { contractId: gammaId, date: weekStart, duration: '2h' });
+		await send('POST', '/api/time-entries', { contractId: archived, date: weekStart, duration: '33m' });
+		await send('PATCH', `/api/contracts/${archived}`, { archived: true });
+		return archived;
+	}, seed);
+
+	await page.goto('/time');
+	await page.waitForLoadState('networkidle');
+	// 1h30 + 45m + 2h (inactive) + 33m (archived)
+	await expect(page.getByTestId('week-total')).toHaveText('4h 48m');
+	await page.getByTestId('week-total').click();
+	await expect(page.getByTestId('total-time-value')).toHaveText('4h 48m');
+	await expect(page.getByTestId('total-time-entry-count')).toHaveText('4 entries');
+
+	// Inactive and archived together behind one closed toggle, each marked, both ticked
+	const hidden = page.getByTestId('total-time-inactive');
+	await expect(hidden.locator('summary')).toHaveText('Show inactive and archived (2)');
+	await hidden.locator('summary').click();
+	await expect(page.getByTestId(`total-time-contract-${archivedId}`)).toBeChecked();
+	await expect(page.getByTestId(`total-time-contract-${seed.gammaId}`)).toBeChecked();
+	await expect(hidden.getByTestId('total-time-contract-status')).toHaveText(['inactive', 'archived']);
+
+	// Unticking the archived one drops its 33m
+	await page.getByTestId(`total-time-contract-${archivedId}`).uncheck();
+	await expect(page.getByTestId('total-time-value')).toHaveText('4h 15m');
 });
 
 test('opened from an earlier week, the viewed week is the default range', async ({ page, baseURL }) => {
@@ -152,8 +194,14 @@ test('phone: Total time fills the window with a top bar @iphone', async ({ page,
 	expect(totalBox.x).toBeGreaterThanOrEqual(0);
 	expect(totalBox.y + totalBox.height).toBeLessThanOrEqual(viewport.height);
 	expect(totalBox.x + totalBox.width).toBeLessThanOrEqual(viewport.width);
-	const contractsListTop = (await page.getByTestId('total-time-select-all').boundingBox())!.y;
-	expect(contractsListTop).toBeGreaterThan(totalBox.y);
+	// All and None are in view on open too (the breakdown is collapsed), and touch-sized
+	for (const testId of ['total-time-select-all', 'total-time-select-none']) {
+		const buttonBox = (await page.getByTestId(testId).boundingBox())!;
+		expect(buttonBox.y, testId).toBeGreaterThan(totalBox.y);
+		expect(buttonBox.y + buttonBox.height, testId).toBeLessThanOrEqual(viewport.height);
+		expect(buttonBox.height, testId).toBeGreaterThanOrEqual(44);
+	}
+	expect((await page.getByTestId('total-time-preset-all-time').boundingBox())!.height).toBeGreaterThanOrEqual(44);
 	await page.getByTestId('total-time-select-none').tap();
 	await page.getByTestId(`total-time-contract-${seed.betaId}`).scrollIntoViewIfNeeded();
 	await page.getByTestId(`total-time-contract-${seed.betaId}`).tap();
@@ -184,7 +232,9 @@ test('chronolog total sums the same entries for contracts, clients and ranges', 
 
 	const allTime = await runCli(['total', '--all-contracts', '--all-time', '--json'], environment);
 	expect(allTime.exitCode, allTime.stderr).toBe(0);
-	expect(JSON.parse(allTime.stdout)).toMatchObject({ totalMinutes: 195, entryCount: 3, range: { from: null, to: null }, contracts: 'all' });
+	const allTimeJson = JSON.parse(allTime.stdout);
+	expect(allTimeJson).toMatchObject({ totalMinutes: 195, entryCount: 3, range: { from: null, to: null }, selection: 'all' });
+	expect(allTimeJson.contracts).toHaveLength(2);
 
 	const thisWeek = await runCli(['total', '--client', `Totals ${suffix}`], environment);
 	expect(thisWeek.exitCode, thisWeek.stderr).toBe(0);

@@ -6,11 +6,13 @@ import { ReferenceError_ } from '../lib/resolve.mjs';
 const WEBSITE_ID = '11111111-2222-3333-4444-555555555555';
 const APP_ID = '11111111-2222-3333-4444-666666666666';
 const OTHER_ID = '11111111-2222-3333-4444-777777777777';
+const OLD_ID = '11111111-2222-3333-4444-888888888888';
 const contractsList = {
 	contracts: [
 		{ id: WEBSITE_ID, name: 'Website', clientShortCode: 'ACME', clientName: 'Acme', clientId: 'c-acme' },
 		{ id: APP_ID, name: 'Website app', clientShortCode: 'ACME', clientName: 'Acme', clientId: 'c-acme' },
-		{ id: OTHER_ID, name: 'Retainer', clientShortCode: 'BETA', clientName: 'Beta', clientId: 'c-beta' }
+		{ id: OTHER_ID, name: 'Retainer', clientShortCode: 'BETA', clientName: 'Beta', clientId: 'c-beta' },
+		{ id: OLD_ID, name: 'Old audit', clientShortCode: 'ACME', clientName: 'Acme', clientId: 'c-acme', archived: true }
 	]
 };
 const clientList = { clients: [{ id: 'c-acme', shortCode: 'ACME', name: 'Acme' }, { id: 'c-beta', shortCode: 'BETA', name: 'Beta' }] };
@@ -85,7 +87,27 @@ describe('chronolog total', () => {
 			{ contract: 'BETA/Retainer', client: 'ACME' },
 			{ contract: ['ACME/Website', 'BETA/Retainer'], client: ['ACME'] }
 		);
-		expect(query.get('contracts')).toBe([WEBSITE_ID, OTHER_ID, APP_ID].join(','));
+		expect(query.get('contracts')).toBe([WEBSITE_ID, OTHER_ID, APP_ID, OLD_ID].join(','));
+	});
+
+	it('resolves archived contracts and clients (lists fetched with includeArchived)', async () => {
+		const { query, api } = await run({ contract: 'ACME/Old audit' }, { contract: ['ACME/Old audit'] });
+		expect(query.get('contracts')).toBe(OLD_ID);
+		expect(api.calls).toContain('/api/contracts-by-client?includeArchived=true');
+		const byClient = await run({ client: 'ACME' }, { client: ['ACME'] });
+		expect(byClient.api.calls).toContain('/api/clients?includeArchived=true');
+	});
+
+	it('refuses --contract or --client with --all-contracts, before any request', async () => {
+		const attempt = run({ contract: 'ACME/Website', allContracts: true }, { contract: ['ACME/Website'] });
+		await expect(attempt).rejects.toThrow(UsageError);
+		await expect(run({ client: 'ACME', allContracts: true }, { client: ['ACME'] })).rejects.toThrow(UsageError);
+	});
+
+	it('refuses a date that is not a real day, before asking for the total', async () => {
+		const api = fakeApi();
+		await expect(total({ api, print: () => {}, flags: { allContracts: true, from: '2026-02-30' }, flagValues: {} })).rejects.toThrow(UsageError);
+		expect(api.calls.some((path) => path.startsWith('/api/time-entries/total'))).toBe(false);
 	});
 
 	it('never guesses an ambiguous contract (exit 3 with candidates)', async () => {
@@ -95,16 +117,17 @@ describe('chronolog total', () => {
 		expect(failure.candidates).toHaveLength(2);
 	});
 
-	it('prints the header and one aligned line per contract; --json adds the range and contracts', async () => {
+	it('prints the header and one aligned line per contract; --json keeps the reply and adds range and selection', async () => {
 		const { printed } = await run({ contract: 'ACME/Website' }, { contract: ['ACME/Website'] });
 		expect(printed.text).toBe(
 			['Total 12h30m (14 entries) · 2026-11-09 to 2026-11-15', '  ACME/Website   8h15m  (9)', '  BETA/Retainer  4h15m  (5)'].join('\n')
 		);
-		expect(printed.json).toMatchObject({
-			totalMinutes: 750,
+		expect(printed.json).toEqual({
+			...reply,
 			range: { from: '2026-11-09', to: '2026-11-15' },
-			contracts: [{ id: WEBSITE_ID, clientShortCode: 'ACME', name: 'Website' }]
+			selection: [{ id: WEBSITE_ID, clientShortCode: 'ACME', name: 'Website' }]
 		});
+		expect((await run({ allContracts: true })).printed.json.selection).toBe('all');
 	});
 });
 
