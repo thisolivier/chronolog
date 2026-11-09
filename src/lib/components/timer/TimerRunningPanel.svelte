@@ -1,7 +1,8 @@
 <!--
 	TimerRunningPanel — the running timer's body (TC-01/TC-03/TC-07, sprints 049, 053-DR, 055-DR):
-	the elapsed clock and Stop (text exactly "Stop": the Tauri tray clicks it), the editable start,
-	the contract (until one is chosen, then behind the header's "Change"), and the description
+	the elapsed clock and Stop (text exactly "Stop": the Tauri tray clicks it), the editable start
+	and the description. The contract is chosen from the identity header's picker (064-DR), not here.
+	The description comes
 	with Add note (once a contract is chosen) and Split time (desktop; opens the split overlay, sprint 056-DR).
 	`layout="screen"` is the phone capture screen: a large clock, the fields in a scrolling area,
 	and Add note and Stop pinned at the bottom above the keyboard and the home indicator.
@@ -9,7 +10,6 @@
 <script lang="ts">
 	import TimerDisplay from './TimerDisplay.svelte';
 	import TimerStartField from './TimerStartField.svelte';
-	import ContractSelect from './ContractSelect.svelte';
 	import SplitTimeButton from './SplitTimeButton.svelte';
 	import AttachNoteButton from '$lib/components/weekly/AttachNoteButton.svelte';
 	import { revealFocusedField } from './visual-viewport.svelte';
@@ -21,9 +21,8 @@
 		startDate,
 		onChangeStart,
 		onStop,
-		draftContractId = $bindable(''),
+		draftContractId,
 		draftDescription = $bindable(''),
-		isChangingContract = $bindable(false),
 		onDescriptionInput,
 		onAttachNote,
 		onSplit = undefined,
@@ -35,9 +34,9 @@
 		startDate: string;
 		onChangeStart: (start: { date: string; startTime: string }, confirmed: boolean) => Promise<StartChangeResult>;
 		onStop: () => void;
+		/** The capture's contract (empty until chosen in the header): enables Add note */
 		draftContractId: string;
 		draftDescription: string;
-		isChangingContract: boolean;
 		onDescriptionInput: () => void;
 		onAttachNote: () => Promise<void>;
 		onSplit?: () => void;
@@ -46,7 +45,6 @@
 		layout?: 'panel' | 'screen';
 	} = $props();
 
-	const showContractSelect = $derived(!draftContractId || isChangingContract);
 	const isScreen = $derived(layout === 'screen');
 
 	let isAttaching = $state(false);
@@ -72,25 +70,6 @@
 
 {#snippet fields()}
 	<div class="space-y-2">
-		{#if showContractSelect}
-			<div>
-				<label for="draft-contract" class="block text-xs font-medium text-ink-muted">Contract</label>
-				<div class="mt-0.5">
-					<ContractSelect id="draft-contract" bind:selectedContractId={draftContractId} compact={!isScreen} autofocus={isChangingContract} />
-				</div>
-				{#if !draftContractId}
-					<p class="mt-1 text-xs text-ink-faint" data-testid="timer-no-contract-hint">No contract yet: pick one now or when you stop</p>
-				{:else}
-					<button
-						type="button"
-						class="mt-1 text-xs text-ink-faint underline underline-offset-2 hover:text-ink"
-						onclick={() => (isChangingContract = false)}
-					>
-						Keep this contract
-					</button>
-				{/if}
-			</div>
-		{/if}
 		<div>
 			<div class="flex items-center justify-between">
 				<label for="draft-description" class="block text-xs font-medium text-ink-muted">Description</label>

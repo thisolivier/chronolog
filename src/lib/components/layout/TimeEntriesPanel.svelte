@@ -405,26 +405,30 @@
 	Day section (057-DR, TR-02): a bark-brown heading bar (date, local Add entry, day total) that
 	sticks to the top of the scroller while the day's entries scroll and is replaced by the next
 	day's heading at the boundary (sticky inside its own section). Square ends. Today carries an
-	ochre marker on its bar, with no tint across the day. Entries keep their chronological order.
+	ochre marker at the bar's left edge, with no tint across the day. Entries keep their
+	chronological order. Since 064-DR the bar runs edge to edge of the scroller (it cancels the
+	scroller's gutter) while its text keeps its place, and the day total's right edge lines up with
+	the entries' durations at both card widths (the section is the size container for that).
 -->
 {#snippet daySection(dayDate: string, entries: TimeEntryDisplay[], totalMinutes: number)}
 	{@const isToday = dayDate === todayString}
 	{@const isQuiet = entries.length === 0 && !isToday}
 	<section
-		class={['mb-4 transition-shadow', highlightedDay === dayDate && 'ring-2 ring-pine-300']}
+		class={['@container mb-4 transition-shadow', highlightedDay === dayDate && 'ring-2 ring-pine-300']}
 		bind:this={daySectionRefs[dayDate]}
 		data-day={dayDate}
 		aria-label={formatDayHeader(dayDate)}
 	>
 		<div
-			class={['day-heading flex min-h-9 items-center gap-3 px-3 py-1', isQuiet ? 'bg-bark-100 text-bark-800' : 'bg-bark-600 text-on-accent']}
+			class={['day-heading flex min-h-9 items-center gap-3 py-1', isQuiet ? 'bg-bark-100 text-bark-800' : 'bg-bark-600 text-on-accent']}
 			data-testid="day-heading"
 			data-today={isToday ? 'true' : undefined}
 		>
 			{#if isToday}
-				<span class="-ml-3 self-stretch border-l-4 border-ochre-300" aria-hidden="true"></span>
+				<span class="absolute inset-y-0 left-0 w-[4px] bg-ochre-300" aria-hidden="true" data-testid="today-marker"></span>
 			{/if}
-			<h2 class="min-w-0 text-sm font-semibold whitespace-nowrap sm:text-base">
+			<!-- Today: 4 px further in, where the marker used to push it -->
+			<h2 class={['min-w-0 text-sm font-semibold whitespace-nowrap sm:text-base', isToday && 'ml-[4px]']}>
 				<span class="hidden sm:inline">{formatDayHeading(dayDate)}</span>
 				<span class="sm:hidden">{formatDayHeading(dayDate, 'short')}</span>
 			</h2>
@@ -526,7 +530,7 @@
 	{/if}
 
 	<!-- Scrollable content: the selected week's seven days, then any older weeks loaded -->
-	<div bind:this={scrollContainer} onscroll={handleScroll} class="flex-1 overflow-y-auto px-3 pb-4 sm:px-6" data-testid="timesheet-scroll">
+	<div bind:this={scrollContainer} onscroll={handleScroll} class="timesheet-scroll flex-1 overflow-y-auto pb-4" data-testid="timesheet-scroll">
 		{#if isLoading && loadedWeeks.length === 0}
 			<div class="flex items-center justify-center py-12">
 				<p class="text-ink-faint">Loading weeks...</p>
@@ -563,5 +567,31 @@
 		top: 0;
 		z-index: 2;
 		border-radius: 0;
+	}
+
+	/* The scroller's side gutter, as a variable so the day heading can cancel it (064-DR, T1) */
+	.timesheet-scroll {
+		--timesheet-gutter: 0.75rem;
+		padding-inline: var(--timesheet-gutter);
+	}
+	@media (min-width: 40rem) {
+		.timesheet-scroll {
+			--timesheet-gutter: 1.5rem;
+		}
+	}
+
+	/* Edge to edge (T1): the bar reaches both sides of the scroller; its left padding keeps the date
+	   over the entries' 0.75rem row inset. Its right padding (T2) puts the day total's right edge on
+	   the entries' durations: the row's right edge in the narrow card (its actions sit before the
+	   time); in the wide card, past the one-button actions column and the column gap (TimeEntryCard). */
+	.day-heading {
+		margin-inline: calc(-1 * var(--timesheet-gutter));
+		padding-left: calc(var(--timesheet-gutter) + 0.75rem);
+		padding-right: var(--timesheet-gutter);
+	}
+	@container (min-width: 36rem) {
+		.day-heading {
+			padding-right: calc(var(--timesheet-gutter) + var(--size-entry-action) + var(--spacing-entry-column-gap));
+		}
 	}
 </style>

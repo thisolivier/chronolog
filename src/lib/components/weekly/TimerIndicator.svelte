@@ -2,9 +2,8 @@
 	TimerIndicator — the app bar's reflection of the capture (design r1 SH-04, sprint 053-DR).
 	The shell decides whether it shows (`reflection`, from `timer-visibility.ts`): only while no
 	TimerWidget is on screen. It names the capture's own contract (contract first, client under
-	it, ContractMark), never the contract being browsed. Running: the clock and the pulsing dot at
-	the top right. Stopped and unfinished: "Finish entry" with the frozen duration, no running
-	light, on an ochre fill with a flag glyph on the phone (060-DR). Clicking it opens the same capture (the shell passes the action).
+	it, ContractMark), never the contract being browsed. Running: the ticking clock, which is the running
+	feedback (no running light since 064-DR). Stopped and unfinished: "Finish entry" with the frozen duration, on an ochre fill with a flag glyph on the phone (060-DR). Clicking it opens the same capture (the shell passes the action).
 	Phones narrower than 420 px drop the ContractMark (062-DR), so the bar keeps Chronolog ‹ › whole;
 	the contract stays in the accessible name and on the capture screen it opens.
 	`showIdleAccess` keeps the pre-053 "Timer" button when the desktop sidebar is hidden and no
@@ -16,7 +15,6 @@
 	import { formatMinutes } from '$lib/utils/duration';
 	import type { HeaderReflection } from '$lib/components/timer/timer-visibility';
 	import ContractMark from '$lib/components/identity/ContractMark.svelte';
-	import TimerPulseDot from '$lib/components/timer/TimerPulseDot.svelte';
 
 	interface Props {
 		reflection: HeaderReflection;
@@ -56,7 +54,7 @@
 		data-testid="timer-indicator"
 		data-state={reflection}
 		class={[
-			'relative flex h-9 max-w-[22rem] min-w-0 items-center gap-mark-gap rounded-control border py-1 pr-3 pl-1.5 text-left max-[419px]:pl-2 transition-colors sm:pr-4',
+			'flex h-9 max-w-[22rem] min-w-0 items-center gap-mark-gap rounded-control border py-1 pr-3 pl-1.5 text-left max-[419px]:pl-2 transition-colors sm:pr-4',
 			// Stopped (060-DR): ochre fill and a flag, so it never reads as a running clock
 			reflection === 'finish' ? 'border-ochre-300 bg-ochre-100 hover:bg-ochre-200' : 'border-divider bg-sunken hover:bg-chalk-200'
 		]}
@@ -86,7 +84,6 @@
 			</span>
 		{:else}
 			<span class="ml-1 flex-shrink-0 text-sm font-medium tabular-nums text-ink-soft max-[419px]:ml-0" data-testid="timer-indicator-clock">{clockText}</span>
-			<TimerPulseDot class="absolute top-1 right-1" />
 		{/if}
 	</button>
 {:else if showIdleAccess}

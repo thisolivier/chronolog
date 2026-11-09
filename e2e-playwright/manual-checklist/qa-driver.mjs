@@ -905,7 +905,9 @@ await step('A9-timer-indicator', async () => {
 	let text = await topbar.innerText();
 	assert(/0:00:0\d/.test(text), 'elapsed not shown: ' + text);
 	await page.locator('#draft-description').fill('Timer-driven work on docs');
-	await selectByText(page.locator('label[for="draft-contract"] + div select'), 'Rocket Build');
+	// The running timer's contract is picked from its header's "Select" menu (sprint 064-DR)
+	await page.getByTestId('timer-select-contract').click();
+	await page.getByTestId('timer-contract-menu').getByRole('menuitemradio', { name: /Rocket Build/ }).click();
 	await sleep(1800);
 	text = await topbar.innerText();
 	assert(text.includes('Timer-driven work') && text.includes('Rocket Build'), 'indicator text: ' + text);

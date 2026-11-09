@@ -11,6 +11,7 @@ import { expect, test, type Page } from '@playwright/test';
 import path from 'node:path';
 import { signInAsFreshUser } from './fresh-user';
 import { sprintScreenshotDirectory } from './sprint-screenshots';
+import { chooseTimerContract } from './timer-contract-picker';
 
 const SCREENSHOTS = sprintScreenshotDirectory('sprint-053');
 
@@ -59,28 +60,21 @@ test.describe('desktop 1280', () => {
 		await widget(page).getByRole('button', { name: 'Start Timer' }).click();
 		await expect.poll(async () => page.evaluate(async () => (await (await fetch('/api/timer/status')).json()).timer?.id ?? null)).not.toBeNull();
 
-		// TC-02 identity: contract first, client as subtitle, running light, no RECORDING
+		// TC-02 identity: contract first, client as subtitle, no RECORDING (no running light since 064-DR)
 		const identity = widget(page).getByTestId('timer-identity');
 		await expect(identity.getByTestId('timer-identity-contract')).toHaveText(data.contractName);
 		await expect(identity.getByTestId('timer-identity-client')).toHaveText(data.clientName);
-		await expect(identity.getByTestId('timer-running-dot')).toBeVisible();
 		await expect(widget(page)).not.toContainText(/recording/i);
 		await expect(widget(page).getByRole('button', { name: 'Stop', exact: true })).toBeVisible();
-		// The dot sits at the top right, apart from the chevron
-		const dotBox = (await identity.getByTestId('timer-running-dot').boundingBox())!;
-		const identityBox = (await identity.boundingBox())!;
-		const chevronBox = (await collapseToggle(page).boundingBox())!;
-		expect(dotBox.x + dotBox.width).toBeGreaterThan(identityBox.x + identityBox.width - 16);
-		expect(dotBox.y).toBeLessThan(identityBox.y + 12);
-		// Half a pixel of slack: WebKit rounds the pulsing light's box a hair past the chevron (checkpoint A)
-		expect(dotBox.y + dotBox.height).toBeLessThanOrEqual(chevronBox.y + 0.5);
-		// The contract select hides behind "Change"; the chevron is not a selector
-		await expect(widget(page).locator('#draft-contract')).toHaveCount(0);
+		// The contract is chosen from the header's "Change" menu (064-DR); the chevron is not a selector
+		await expect(widget(page).getByRole('combobox')).toHaveCount(0);
 		await widget(page).getByRole('button', { name: 'Change contract' }).click();
-		await expect(widget(page).locator('#draft-contract')).toBeVisible();
-		await expect(widget(page).locator('#draft-contract')).toBeFocused();
-		await widget(page).getByRole('button', { name: 'Keep this contract' }).click();
-		await expect(widget(page).locator('#draft-contract')).toHaveCount(0);
+		const contractMenu = page.getByTestId('timer-contract-menu');
+		await expect(contractMenu.getByRole('menuitemradio', { checked: true })).toBeFocused();
+		await page.keyboard.press('Escape');
+		await expect(contractMenu).toHaveCount(0);
+		await expect(widget(page).getByRole('button', { name: 'Change contract' })).toBeFocused();
+		await expect(identity.getByTestId('timer-identity-contract')).toHaveText(data.contractName);
 
 		// Expanded sidebar timer: no header duplicate
 		await expect(headerPill(page)).toHaveCount(0);
@@ -116,7 +110,6 @@ test.describe('desktop 1280', () => {
 		await expect(headerPill(page)).toHaveAttribute('data-state', 'running');
 		await expect(headerPill(page)).toContainText(data.contractName);
 		await expect(headerPill(page)).toContainText(data.clientName);
-		await expect(headerPill(page).getByTestId('timer-running-dot')).toBeVisible();
 		await expect(headerPill(page).getByTestId('timer-indicator-clock')).toHaveText(/^\d\d:\d\d:\d\d$/);
 		// It names the capture, not the browsed contract
 		await page.getByRole('button', { name: 'Toggle sidebar' }).click();
@@ -141,25 +134,22 @@ test.describe('desktop 1280', () => {
 		await widget(page).getByRole('button', { name: 'Stop', exact: true }).click();
 		await expect(widget(page).getByRole('button', { name: 'Save', exact: true })).toBeVisible();
 		await expect(widget(page).getByTestId('timer-identity')).toHaveAttribute('data-state', 'stopped');
-		await expect(widget(page).getByTestId('timer-running-dot')).toHaveCount(0);
 
 		await widget(page).locator('#timer-description').fill('Wrote the agenda');
 		await widget(page).locator('#timer-time').fill('1h 15m');
 		await page.screenshot({ path: path.join(SCREENSHOTS, '06-desktop-stopped-unfinished.png') });
 
-		// Compact: Finish entry with the frozen duration, no running light
+		// Compact: Finish entry with the frozen duration
 		await collapseToggle(page).click();
 		const compact = widget(page).getByTestId('timer-compact');
 		await expect(compact).toContainText('Finish entry');
 		const frozen = await compact.getByTestId('timer-compact-frozen').innerText();
-		await expect(compact.getByTestId('timer-running-dot')).toHaveCount(0);
 		await expect(headerPill(page)).toHaveCount(0);
 
 		// Hidden sidebar: the header reads Finish entry, frozen, no running state
 		await page.getByRole('button', { name: 'Toggle sidebar' }).click();
 		await expect(headerPill(page)).toHaveAttribute('data-state', 'finish');
 		await expect(headerPill(page)).toContainText('Finish entry');
-		await expect(headerPill(page).getByTestId('timer-running-dot')).toHaveCount(0);
 		await expect(headerPill(page).getByTestId('timer-indicator-frozen')).toHaveText(frozen);
 		await page.waitForTimeout(1500);
 		await expect(headerPill(page).getByTestId('timer-indicator-frozen')).toHaveText(frozen);
@@ -219,7 +209,7 @@ test.describe('phone 390 @iphone', () => {
 		await open(page, '/');
 		const phoneWidget = page.locator('[data-testid^="timer-widget-"]').first();
 		await phoneWidget.getByRole('button', { name: 'Start Timer' }).click();
-		await phoneWidget.locator('#draft-contract').selectOption(data.contractId);
+		await chooseTimerContract(page, phoneWidget, { id: data.contractId });
 		await expect.poll(async () => page.evaluate(async () => (await (await fetch('/api/timer/status')).json()).timer?.id ?? null)).not.toBeNull();
 		// The focused capture (home) has no collapse chevron and no header duplicate
 		await expect(phoneWidget.getByTestId('timer-collapse-toggle')).toHaveCount(0);
@@ -229,7 +219,6 @@ test.describe('phone 390 @iphone', () => {
 		await open(page, `/notes/${data.contractId}/${data.noteId}`);
 		await expect(headerPill(page)).toBeVisible();
 		await expect(headerPill(page)).toHaveAttribute('data-state', 'running');
-		await expect(headerPill(page).getByTestId('timer-running-dot')).toBeVisible();
 		const firstClock = await headerPill(page).getByTestId('timer-indicator-clock').innerText();
 		await expect.poll(() => headerPill(page).getByTestId('timer-indicator-clock').innerText(), { timeout: 4000 }).not.toBe(firstClock);
 		await page.screenshot({ path: path.join(SCREENSHOTS, '05-iphone-notes-header-pill.png') });
@@ -250,7 +239,6 @@ test.describe('phone 390 @iphone', () => {
 		await expect(captureScreen).toHaveCount(0);
 		await expect(headerPill(page)).toHaveAttribute('data-state', 'finish');
 		await expect(headerPill(page)).toContainText('Finish entry');
-		await expect(headerPill(page).getByTestId('timer-running-dot')).toHaveCount(0);
 		await page.reload();
 		await expect(headerPill(page)).toHaveAttribute('data-state', 'finish');
 		await page.screenshot({ path: path.join(SCREENSHOTS, '07-iphone-finish-entry.png') });

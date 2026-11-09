@@ -161,3 +161,26 @@ mark's content goes (colour still names the client).
   repeat, the notes list header (one contract's list only) and the note editor header (not in the
   single-column phone layout). No repeats on time-entry rows, search rows or note bodies. See
   `docs/sprints/sprint-063-DR.md`.
+
+## 2026-11-08 — Owner polish round after v1.6.0 (064-DR)
+
+Seven small changes, with "feel free to carry these over to the non-noted platform where it makes
+sense". Recorded here because three of them retire earlier design decisions:
+
+- **No running light.** The pulsing green dot (TC-02, O03 pulse timing, "RECORDING text removed;
+  running dot pulses") is withdrawn: "the clock ticking is enough feedback." `TimerPulseDot` is
+  deleted. On review the owner removed the split-time overlay's static dot too, and with it
+  `--color-running`: no running colour anywhere.
+- **The timer heading is the contract picker.** The running panel's "Contract" field is gone.
+  With no contract the header shows no tile region, "No contract yet" and a "Select" link; with
+  one, the tile, names and "Change". Either link opens a dropdown of contracts at that spot;
+  clicking away, Escape or collapsing cancels. The chevron still never chooses (053-DR).
+- **Headers lose what the sidebar already says.** When the sidebar names the contract, the notes
+  list header is one row: sort toggle, the contract's repeat, a borderless New note icon (kept
+  the primary green on review). The
+  editor header's repeat fills its row (the 063-DR ten-tile cap is lifted). Linked time has no
+  heading; a clock glyph marks each row and unlinking asks inline first.
+- **Timesheet bars edge to edge**, text where it was; entry times end on the day total. On the
+  phone the row's icons moved before the time rather than insetting the total (see the sprint doc).
+
+Details, measurements and screenshots: `docs/sprints/sprint-064-DR.md`.

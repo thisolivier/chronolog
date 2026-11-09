@@ -4,7 +4,8 @@
  * The sidebar, the note list header and the note editor header used to repeat the same
  * "Client / Contract" three times. The rule here gives each layout one readable owner:
  *
- * - three columns, one contract selected: the sidebar owns it; the list says Notes and the count;
+ * - three columns, one contract selected: the sidebar owns it; the list header is one row (sort,
+ *   repeat, New note) with "Notes" and the count as screen-reader text only (064-DR);
  *   the editor shows the contract mark, the note code, the save state and the actions;
  * - navigation hidden (desktop sidebar collapsed, tablet overlay closed, phone): the list header
  *   names the client and contract again. "Hidden" is the shell's own record of what it presents
@@ -31,7 +32,7 @@ export interface NoteContextOwnership {
 	/** The navigation sidebar is not on screen beside the list */
 	navigationHidden: boolean;
 	/**
-	 * What the list header names: `notes` (Notes + count only), `contract` (client and contract),
+	 * What the list header names: `notes` (Notes + count, screen readers only; one row), `contract` (client and contract),
 	 * `client` (the client's name, all its contracts) or `all` (All notes)
 	 */
 	listHeader: 'notes' | 'contract' | 'client' | 'all';

@@ -4,6 +4,13 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 `chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
 030, 033 and 035 changed nothing in the CLI and are not listed.
 
+## 1.6.1 (sprint 064-DR, 2026-11-09): owner polish round
+
+- Timesheet day bars run edge to edge with entry times aligned on the day total; the timer's pulsing
+  light is gone and the contract is picked from the timer heading; notes headers lose the "Notes"
+  title and the ten-tile cap; linked time rows carry a clock glyph and ask before unlinking. The
+  CLI output is unchanged; no database change.
+
 ## 1.6.0 (sprint 063-DR, 2026-11-08): contract pattern tiles
 
 - Design r1 pattern tiles: every contract mark in the app is now one of 32 one-colour tiles in the

@@ -6,7 +6,8 @@
 	Client / contract text (NT-01): visible only in the single-column (phone) layout, where nothing
 	else names the note's own contract; elsewhere it is screen-reader text beside the mark (the
 	sidebar or the list header names it on screen). The free space after the save pill holds the
-	quiet repeat of the contract's pattern tile (NT-03 / DS-04, sprint 063-DR). The single-column
+	quiet repeat of the contract's pattern tile (NT-03 / DS-04, sprint 063-DR), filling the whole
+	space up to the actions (no ten-tile cap since 064-DR, N1). The single-column
 	layout has none: there the save pill and the ellipsis sit on different rows.
 -->
 <script lang="ts">
@@ -149,8 +150,8 @@
 			<!-- The contract repeat (NT-03): fills what the row leaves, shrinks to nothing first -->
 			<div class="flex min-w-0 flex-1 items-center" aria-hidden="true" data-testid="note-editor-header-space">
 				{#if contractLabel}
-					<!-- At most ten tiles: the list header and sidebar repeat too, so they must not read as one band -->
-					<ContractTileRepeat {contractId} colorIndex={contractLabel.clientColorIndex} class="max-w-[calc(var(--size-tile-repeat)*10)]" />
+					<!-- No cap since 064-DR (N1): the repeat runs all the way to the actions -->
+					<ContractTileRepeat {contractId} colorIndex={contractLabel.clientColorIndex} />
 				{/if}
 			</div>
 			{@render actions()}

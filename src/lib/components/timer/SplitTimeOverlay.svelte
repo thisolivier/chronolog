@@ -290,10 +290,7 @@
 			<!-- Second part -->
 			<section class={cardClass} aria-label="Second part" data-testid="timer-widget-split">
 				<div class="flex min-h-8 items-center justify-between gap-2">
-					<h3 class="{titleClass} flex items-center gap-2">
-						Second part
-						{#if splitSession.rightIsLive}<span class="h-2 w-2 rounded-full bg-running" aria-label="Running"></span>{/if}
-					</h3>
+					<h3 class={titleClass}>Second part</h3>
 					{#if actions.rightStop}
 						<button
 							type="button"

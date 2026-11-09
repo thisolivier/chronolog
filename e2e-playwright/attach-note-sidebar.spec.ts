@@ -16,6 +16,7 @@ import path from 'node:path';
 import { editor } from './notes-helpers';
 import { signInAsFreshUser } from './fresh-user';
 import { sprintScreenshotDirectory } from './sprint-screenshots';
+import { chooseTimerContract } from './timer-contract-picker';
 
 const SCREENSHOTS = sprintScreenshotDirectory('sprint-049');
 
@@ -139,7 +140,7 @@ for (const layout of [
 			// No contract yet: no button
 			await expect(widget.getByRole('button', { name: 'Attach note' })).toHaveCount(0);
 			await widget.locator('#draft-description').fill('Timer work');
-			await widget.locator('#draft-contract').selectOption(seeded.contractId);
+			await chooseTimerContract(page, widget, { id: seeded.contractId });
 			await expect
 				.poll(async () => page.evaluate(async () => (await (await fetch('/api/timer/status')).json()).timer?.id ?? null))
 				.not.toBeNull();

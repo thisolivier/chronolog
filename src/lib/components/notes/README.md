@@ -115,7 +115,7 @@ Formatting toolbar (054-DR, NT-05). Desktop groups: B / I | ¶ Normal text, H1, 
 
 ### NoteEditorHeader.svelte
 
-Header above the editor (054-DR, NT-04): the contract mark, the note code with its copy icon (`NoteCodeCopyButton`), `SaveStatusIndicator`, a message line, the quiet repeat of the contract's pattern tile in the free space (NT-03, `note-editor-header-space`, 063-DR; left out in the single-column layout, where Saved and the ellipsis sit on different rows), and one "Note actions" ellipsis menu (`NoteActionsMenu.svelte`). The client / contract text (`note-editor-context`) is visible only when `showContextText` (single-column phone layout, NT-01); elsewhere it stays as screen-reader text and the mark's tooltip. Delete asks for confirmation inline (`delete-confirm`; no native `confirm()`, which Tauri can suppress). A `conflict` status offers Reload. The note title stays in the body.
+Header above the editor (054-DR, NT-04): the contract mark, the note code with its copy icon (`NoteCodeCopyButton`), `SaveStatusIndicator`, a message line, the quiet repeat of the contract's pattern tile filling the free space up to the actions (NT-03, `note-editor-header-space`, 063-DR; uncapped since 064-DR; left out in the single-column layout, where Saved and the ellipsis sit on different rows), and one "Note actions" ellipsis menu (`NoteActionsMenu.svelte`). The client / contract text (`note-editor-context`) is visible only when `showContextText` (single-column phone layout, NT-01); elsewhere it stays as screen-reader text and the mark's tooltip. Delete asks for confirmation inline (`delete-confirm`; no native `confirm()`, which Tauri can suppress). A `conflict` status offers Reload. The note title stays in the body.
 
 ### NoteActionsMenu.svelte (054-DR)
 
@@ -131,7 +131,11 @@ The save pill (sprint 051-UI): "Saved" (leaf green) / "Saving" (ochre; also whil
 
 ### LinkedTimeEntries.svelte
 
-"Linked time · N" under the editor: entries whose description links to the note, newest first. Quiet (054-DR, NT-06): muted dates, and a row names its client / contract (with the contract mark) only when the entry is on another contract than the note (`noteContractId`; the API row carries `contractId`). Rows open the day in Time Entries; wiki-links in descriptions stay clickable; × unlinks. No timer controls.
+Linked time under the editor: entries whose description links to the note, newest first. No heading since 064-DR (N3): each row (`LinkedTimeEntryRow.svelte`) starts with a small clock glyph (`linked-time-entry-clock`, `aria-hidden`) and is named "Linked time entry, …" for screen readers. Quiet (054-DR, NT-06): muted dates, and a row names its client / contract (with the contract mark) only when the entry is on another contract than the note (`noteContractId`; the API row carries `contractId`). Rows open the day in Time Entries; wiki-links in descriptions stay clickable. × asks first (064-DR): the row's duration and × become "Unlink? Unlink / Cancel" (`unlink-confirm`, the editor header's delete-confirm style, never a native `confirm()`); focus goes to Unlink, Escape or Cancel keeps the link and returns focus to the row's ×, and after unlinking focus moves to the next row's × (or the previous one). One row asks at a time. No timer controls.
+
+### LinkedTimeEntryRow.svelte
+
+One linked time entry (split from `LinkedTimeEntries` in 064-DR): clock glyph, date, description, the contract line when it differs, and the right-hand group (duration and ×, or the inline unlink question). The parent owns which row is confirming and where focus goes (`data-unlink-request` / `data-unlink-confirm` hooks).
 
 ### NoteBacklinks.svelte
 
@@ -143,7 +147,7 @@ The save pill (sprint 051-UI): "Saved" (leaf green) / "Saving" (ochre; also whil
 
 ### LinkedTimeEntries.svelte
 
-Displays time entries linked to the current note. The date and duration never wrap (one line on a phone). Fetches from `/api/notes/[noteId]/time-entries` and supports unlinking entries. Rows open the entry's day in time mode (`navigation.showTimeEntryDay`), which scrolls the timesheet to it; descriptions render wiki-links through `WikiLinkRenderer`, so they show note titles.
+Displays time entries linked to the current note. The date and duration never wrap (one line on a phone). Fetches from `/api/notes/[noteId]/time-entries` and supports unlinking entries (after the inline "Unlink?" confirm, 064-DR). Rows open the entry's day in time mode (`navigation.showTimeEntryDay`), which scrolls the timesheet to it; descriptions render wiki-links through `WikiLinkRenderer`, so they show note titles.
 
 ### AttachmentList.svelte
 

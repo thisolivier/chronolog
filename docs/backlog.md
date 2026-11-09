@@ -77,6 +77,12 @@ The live backlog, rewritten 2026-11-03 after sprints 019 to 028. Sprint history 
   Keep the 24-unit square, one colour on transparent, and check at 16 px on the contact sheet
   (`e2e-playwright/contract-tiles.spec.ts`).
 
+## Owner-requested (2026-11-08): polish round follow-ups (064-DR)
+
+- **Sunday-only test failure.** `e2e-playwright/checkpoint-bc-seed.ts` seeds six days, so on a Sunday
+  `checkpoint-bc-acceptance.spec.ts:43` never finds its "today" entries and times out. One-line fix:
+  seed the whole week or compute "today" from the seeded days.
+
 ## Owner-requested (2026-11-07): revisit week numbering before 28 December
 
 Resolved by sprint 061-DR: ISO 8601 weeks everywhere again (decision 2026-11-07, "ISO 8601 after all"; `docs/sprints/sprint-061-DR.md`).

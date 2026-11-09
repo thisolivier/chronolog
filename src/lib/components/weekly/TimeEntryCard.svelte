@@ -579,7 +579,7 @@
 		{/if}
 		<button
 			onclick={() => (isConfirmingDelete = true)}
-			class="flex h-6 w-6 items-center justify-center rounded text-ink-faint opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-danger-wash hover:text-danger focus-visible:opacity-100 pointer-coarse:h-8 pointer-coarse:w-8 pointer-coarse:opacity-100"
+			class="flex size-(--size-entry-action) items-center justify-center rounded text-ink-faint opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-danger-wash hover:text-danger focus-visible:opacity-100 pointer-coarse:opacity-100"
 			title="Delete entry"
 			aria-label="Delete entry"
 		>&times;</button>
@@ -591,12 +591,15 @@
 </div>
 
 <style>
-	/* Narrow panel (phone): identity and time on one line, description full width beneath */
+	/* Narrow panel (phone): identity, row actions and time on one line, description full width
+	   beneath. The actions sit before the time (064-DR), so the time ends at the row's right edge,
+	   under the day total (TimeEntriesPanel); insetting the total past two always-visible touch
+	   buttons crowded the phone's heading bar. */
 	.entry-row {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) auto auto;
 		grid-template-areas:
-			'identity time actions'
+			'identity actions time'
 			'body body body';
 		column-gap: 0.75rem;
 		row-gap: 0.25rem;
@@ -608,8 +611,10 @@
 	.entry-body {
 		grid-area: body;
 	}
+	/* Narrow: a steady time column (fits "10:00-10:30"), so the actions before it line up row to row */
 	.entry-time {
 		grid-area: time;
+		min-width: 5.5rem;
 	}
 	.entry-actions {
 		grid-area: actions;
@@ -617,16 +622,20 @@
 		flex-direction: row;
 		align-items: flex-start;
 	}
-	/* Wide panel: one line of columns; the identity column is stable so same-contract rows align */
+	/* Wide panel: one line of columns; the identity column is stable so same-contract rows align.
+	   The actions stack in a one-button column (a wider outbox marker overhangs to the left). */
 	@container (min-width: 36rem) {
 		.entry-row {
-			grid-template-columns: var(--size-entry-identity) minmax(0, 1fr) auto auto;
+			grid-template-columns: var(--size-entry-identity) minmax(0, 1fr) auto var(--size-entry-action);
 			grid-template-areas: 'identity body time actions';
-			column-gap: 1rem;
+			column-gap: var(--spacing-entry-column-gap);
+		}
+		.entry-time {
+			min-width: 0;
 		}
 		.entry-actions {
 			flex-direction: column;
-			align-items: center;
+			align-items: flex-end;
 		}
 	}
 

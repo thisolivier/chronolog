@@ -3,7 +3,8 @@
  * - One tile per contract everywhere: the sidebar row, the notes list and editor headers, the
  *   timer, search and the week all draw the same motif (`data-tile`) for a contract.
  * - The quiet repeat: only on the selected sidebar row, the one-contract notes list header and the
- *   desktop note editor header; decorative (`aria-hidden`), the small tile size, cut by a CSS mask.
+ *   desktop note editor header (filled to the actions since 064-DR); decorative (`aria-hidden`),
+ *   the small tile size, cut by a CSS mask.
  * - The timer header region is the large tile cropped at 1.5 tile widths.
  * Screenshots for the owner (sprint-screenshots.ts; UPDATE_SPRINT_SCREENSHOTS=1 writes them into
  * docs/review/screenshots/sprint-063-DR/): chromium for desktop and the contact sheet, iphone-15
@@ -182,8 +183,8 @@ test('no header repeat in the all-notes view; the repeat gives way at a narrow w
 	await expect(repeat).toHaveCount(1);
 	const repeatBox = (await repeat.boundingBox()) ?? { x: actionsBox.x, width: 0 };
 	expect(repeatBox.x + repeatBox.width).toBeLessThanOrEqual(actionsBox.x);
-	// Capped at ten tiles, so it never reads as one band with the list header and sidebar repeats
-	expect(repeatBox.width).toBeLessThanOrEqual(16 * 10 + 0.5);
+	// No ten-tile cap since 064-DR (N1): it fills the row up to one gap before the actions
+	expect(actionsBox.x - (repeatBox.x + repeatBox.width)).toBeLessThanOrEqual(12.5);
 });
 
 test('owner screenshots: desktop surfaces and the motif contact sheet', async ({ page, baseURL }, testInfo) => {
