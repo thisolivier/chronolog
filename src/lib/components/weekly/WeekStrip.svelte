@@ -44,8 +44,8 @@
 		onDayClick: (date: string) => void;
 		/** Jump to the current week and today's section (sprint 041-CL); no button without it */
 		onToday?: () => void;
-		/** Open the Total time modal for this week (sprint 065-TT) */
-		onTotalClick: () => void;
+		/** Open the Total time modal for this week (sprint 065-TT); the button gets focus back on close */
+		onTotalClick: (opener: HTMLElement) => void;
 	} = $props();
 
 	const weekNumber = $derived(isoWeekNumber(weekStart));
@@ -100,7 +100,7 @@
 	<div class="week-strip-summary flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 pb-2 sm:justify-end sm:gap-x-3 sm:px-4 sm:pt-2 sm:pb-1">
 		<button
 			type="button"
-			onclick={onTotalClick}
+			onclick={(event) => onTotalClick(event.currentTarget)}
 			class="-mx-1.5 rounded-control px-1.5 text-base font-semibold whitespace-nowrap tabular-nums text-ink btn-quiet pointer-coarse:min-h-11 sm:text-lg"
 			aria-label="Total time: {weeklyTotalHours} this week"
 			title="Total time"

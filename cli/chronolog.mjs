@@ -23,6 +23,7 @@ import * as manageStructure from './commands/manage-structure.mjs';
 import * as imports from './commands/import.mjs';
 import * as timer from './commands/timer.mjs';
 import * as searchCommand from './commands/search.mjs';
+import { total } from './commands/total.mjs';
 import { todos } from './commands/todos.mjs';
 import { init } from './commands/init.mjs';
 import { Cancelled } from './lib/confirm.mjs';
@@ -36,6 +37,9 @@ const USAGE = `Usage: chronolog <command> [arguments] [--json]      (chronolog -
   clients [--all]                        list clients (--all: archived too)
   contracts [client] [--all]             list contracts (optionally one client's)
   week [2026-W45] [--client X | --contract X]   entries and totals for a week (default: current)
+  total --contract X... | --client X... | --all-contracts  [--from D] [--to D] [--all-time]
+                                 time recorded per contract (default range: the current week;
+                                 --from or --to alone is open-ended; --contract/--client repeat)
   log <contract> <duration> "<desc>" [--date D] [--deliverable X [--work-type Y]] [--note ID]
   edit <entry-id> [--duration D] [--description "..."] [--date D] [--deliverable X|none] [--work-type X|none]
   undo [--last-import] [--yes]           delete the last entry this CLI logged (or every entry of the last import)
@@ -81,6 +85,7 @@ const COMMANDS = {
 	clients: read.clients,
 	contracts: read.contracts,
 	week: read.week,
+	total,
 	notes: read.notes,
 	search: searchCommand.search,
 	todos,
@@ -140,7 +145,7 @@ function exitCodeFor(failure) {
 }
 
 export async function main(argv, environment = process.env) {
-	const { positionals, flags } = parseArguments(argv);
+	const { positionals, flags, flagValues } = parseArguments(argv);
 	const asJson = Boolean(flags.json);
 	const print = (humanText, jsonValue) => {
 		process.stdout.write((asJson ? JSON.stringify(jsonValue, null, 2) : humanText) + '\n');
@@ -165,7 +170,7 @@ export async function main(argv, environment = process.env) {
 		if (!command) throw new UsageError(`Unknown command “${commandName}”. Run chronolog --help.`);
 		const config = loadConfig(environment);
 		const api = createApiClient(config);
-		await command({ api, print, positionals: rest, flags, config, environment });
+		await command({ api, print, positionals: rest, flags, flagValues, config, environment });
 		await noticeVersionDrift({ api, environment });
 		return 0;
 	} catch (failure) {

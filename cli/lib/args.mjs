@@ -1,16 +1,22 @@
 /**
  * Minimal argv parser: positionals plus `--flag value`, `--flag=value` and boolean flags.
  * Only flags listed in `booleanFlags` are value-less; every other `--name` takes the next word.
- * `-y` is short for `--yes`.
+ * `-y` is short for `--yes`. A repeated value flag keeps its last value in `flags`; every value,
+ * in order, is in `flagValues` (`--contract A --contract B`, sprint 065-TT).
  */
 
 export class UsageError extends Error {}
 
-export const BOOLEAN_FLAGS = ['json', 'help', 'yes', 'all', 'active', 'inactive', 'version', 'force', 'noInsert', 'dryRun', 'atomic', 'lastImport'];
+export const BOOLEAN_FLAGS = ['json', 'help', 'yes', 'all', 'active', 'inactive', 'version', 'force', 'noInsert', 'dryRun', 'atomic', 'lastImport', 'allContracts', 'allTime'];
 
 export function parseArguments(argv, booleanFlags = BOOLEAN_FLAGS) {
 	const positionals = [];
 	const flags = {};
+	const flagValues = {};
+	const setValue = (name, value) => {
+		flags[name] = value;
+		(flagValues[name] ??= []).push(value);
+	};
 	for (let index = 0; index < argv.length; index += 1) {
 		const word = argv[index];
 		if (word === '--') {
@@ -23,11 +29,11 @@ export function parseArguments(argv, booleanFlags = BOOLEAN_FLAGS) {
 			if (booleanFlags.includes(name)) {
 				flags[name] = inlineValue === undefined ? true : inlineValue !== 'false';
 			} else if (inlineValue !== undefined) {
-				flags[name] = inlineValue;
+				setValue(name, inlineValue);
 			} else {
 				const value = argv[index + 1];
 				if (value === undefined || value.startsWith('--')) throw new UsageError(`--${rawName} needs a value`);
-				flags[name] = value;
+				setValue(name, value);
 				index += 1;
 			}
 		} else if (word === '-h') {
@@ -38,7 +44,7 @@ export function parseArguments(argv, booleanFlags = BOOLEAN_FLAGS) {
 			positionals.push(word);
 		}
 	}
-	return { positionals, flags };
+	return { positionals, flags, flagValues };
 }
 
 /** Commands written as two words (`note new`, `client add`, `attachment get`); `tag`/`tags` are the owner's word for work types. */

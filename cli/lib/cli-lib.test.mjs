@@ -17,8 +17,15 @@ describe('CLI argument parsing', () => {
 	it('separates positionals, valued flags and boolean flags', () => {
 		expect(parseArguments(['log', 'acme', '1h', 'Did it', '--date', 'yesterday', '--json', '--note=ACME.1'])).toEqual({
 			positionals: ['log', 'acme', '1h', 'Did it'],
-			flags: { date: 'yesterday', json: true, note: 'ACME.1' }
+			flags: { date: 'yesterday', json: true, note: 'ACME.1' },
+			flagValues: { date: ['yesterday'], note: ['ACME.1'] }
 		});
+	});
+
+	it('keeps every value of a repeated flag in flagValues, the last in flags', () => {
+		const parsed = parseArguments(['total', '--contract', 'ACME/Web', '--contract=ACME/App', '--all-time']);
+		expect(parsed.flags).toEqual({ contract: 'ACME/App', allTime: true });
+		expect(parsed.flagValues).toEqual({ contract: ['ACME/Web', 'ACME/App'] });
 	});
 
 	it('rejects a valued flag without a value', () => {

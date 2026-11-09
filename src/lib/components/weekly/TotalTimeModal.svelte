@@ -20,7 +20,16 @@
 	import TotalTimeResult from './TotalTimeResult.svelte';
 	import { describeRange, isConnectionFailure, matchingPresetKey, rangePresets, totalDisplay, type TotalDisplay } from './total-time';
 
-	let { weekStart, onClose }: { weekStart: string; onClose: () => void } = $props();
+	let {
+		weekStart,
+		returnFocusTo = null,
+		onClose
+	}: {
+		weekStart: string;
+		/** Focused again on close (WebKit never focuses a clicked button, so it is passed in) */
+		returnFocusTo?: HTMLElement | null;
+		onClose: () => void;
+	} = $props();
 
 	const dataService = getDataService();
 	const viewedWeekStart = untrack(() => weekStart);
@@ -48,7 +57,6 @@
 	);
 
 	let closeButton: HTMLButtonElement | undefined = $state();
-	const returnFocusTo = typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null;
 
 	const viewportBox = new VisualViewportBox();
 	$effect(() => viewportBox.track());
@@ -65,8 +73,9 @@
 			.catch((error) => {
 				contractsFailure = isConnectionFailure(error, connectivity.isOffline) ? 'offline' : 'error';
 			});
+		const focusOnClose = returnFocusTo;
 		return () => {
-			if (returnFocusTo?.isConnected) returnFocusTo.focus();
+			if (focusOnClose?.isConnected) focusOnClose.focus();
 		};
 	});
 
