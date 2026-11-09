@@ -2,6 +2,7 @@ import type { DataService } from './data-service';
 import { localDateString, localTimeString } from '$lib/components/timer/local-date';
 import type { TimerLocalStart,
 	ContractsByClientResult,
+	ContractsByClientOptions,
 	ContractOption,
 	CreateContractInput,
 	ClientSummary,
@@ -21,6 +22,8 @@ import type { TimerLocalStart,
 	TimeEntryFields,
 	CreateTimeEntryInput,
 	WeekData,
+	TotalTimeRequest,
+	TotalTimeResult,
 	TimerStatus,
 	TimerEntry,
 	SaveTimerInput,
@@ -30,7 +33,7 @@ import type { TimerLocalStart,
 	DeliverableOption,
 	WorkTypeOption
 } from './types';
-import { fetchJson, postJson, putJson, patchJson, deleteRequest } from './fetch-helpers';
+import { fetchJson, fetchFreshJson, postJson, putJson, patchJson, deleteRequest } from './fetch-helpers';
 
 /** Stay safely under the browser's 64 KB limit for keepalive request bodies */
 const KEEPALIVE_BODY_LIMIT_BYTES = 60_000;
@@ -42,10 +45,11 @@ const KEEPALIVE_BODY_LIMIT_BYTES = 60_000;
 export class FetchDataService implements DataService {
 	// -- Contracts --
 
-	async getContractsByClient(): Promise<ContractsByClientResult[]> {
+	async getContractsByClient(options?: ContractsByClientOptions): Promise<ContractsByClientResult[]> {
 		// Archived ones included: the sidebar folds them under its Archived item (sprint 033-CL)
+		const systemQuery = options?.includeSystem ? '&includeSystem=true' : '';
 		const data = await fetchJson<{ contracts: ContractsByClientResult[] }>(
-			'/api/contracts-by-client?includeArchived=true'
+			`/api/contracts-by-client?includeArchived=true${systemQuery}`
 		);
 		return data.contracts;
 	}
@@ -217,6 +221,15 @@ export class FetchDataService implements DataService {
 	/** Posts the Monday, never a week number, so the client cannot disagree with the server's rule (061-DR) */
 	async updateWeeklyStatus(weekStart: string, status: string): Promise<void> {
 		await postJson('/api/time-entries/weekly-statuses', { weekStart, status });
+	}
+
+	/** Never from the read cache: an old total shown as current would mislead (065-TT) */
+	async getTotalTime(request: TotalTimeRequest): Promise<TotalTimeResult> {
+		const searchParams = new URLSearchParams();
+		if (request.from) searchParams.set('from', request.from);
+		if (request.to) searchParams.set('to', request.to);
+		searchParams.set('contracts', request.contracts === 'all' ? 'all' : request.contracts.join(','));
+		return fetchFreshJson<TotalTimeResult>(`/api/time-entries/total?${searchParams}`);
 	}
 
 	// -- Timer --

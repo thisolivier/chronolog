@@ -9,13 +9,17 @@ import { listContractsByClientWithNoteCount } from '$lib/server/db/queries/contr
  * Ordered by sortOrder then contract name; `clientSortOrder` is the client's manual sidebar
  * position (sprint 039-CL; the sidebar groups clients by it, then by name). With `?includeArchived=true`, archived contracts and
  * the contracts of archived clients are included (`archived`, `clientArchived`; sprint 031-CL).
+ * With `?includeSystem=true` the system "Deleted Contract" is listed too when the user has one,
+ * and every row carries `system` (sprint 065-TT); without it the response is unchanged.
  */
 export const GET: RequestHandler = async ({ locals, url }) => {
 	const currentUser = locals.user;
 	if (!currentUser) throw error(401, 'Unauthorized');
 
+	const includeSystem = url.searchParams.get('includeSystem') === 'true';
 	const contractList = await listContractsByClientWithNoteCount(currentUser.id, {
-		includeArchived: url.searchParams.get('includeArchived') === 'true'
+		includeArchived: url.searchParams.get('includeArchived') === 'true',
+		includeSystem
 	});
 
 	return json({
@@ -32,7 +36,8 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 			clientSortOrder: row.clientSortOrder,
 			noteCount: row.noteCount,
 			archived: row.archivedAt !== null,
-			clientArchived: row.clientArchivedAt !== null
+			clientArchived: row.clientArchivedAt !== null,
+			...(includeSystem ? { system: row.isSystem } : {})
 		}))
 	});
 };

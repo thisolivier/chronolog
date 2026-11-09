@@ -4,6 +4,15 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 `chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
 030, 033 and 035 changed nothing in the CLI and are not listed.
 
+## 1.7.0 (sprint 065-TT, 2026-11-09): total time
+
+- New `chronolog total --contract X… | --client X… | --all-contracts [--from D] [--to D] [--all-time] [--json]`:
+  time recorded per contract over a range (default the current week; `--from` or `--to` alone is
+  open-ended). `--contract` and `--client` can be repeated; contract references are never guessed.
+- New `GET /api/time-entries/total?from=&to=&contracts=` (`contracts=all`, or comma-separated ids;
+  empty is none). In the app, tapping the week total opens a Total time window with the same
+  numbers. No database change.
+
 ## 1.6.2 (sprint 064-DR follow-up, 2026-11-09): scrollbar above the day bars
 
 - The timesheet's overlay scrollbar paints above the edge-to-edge day bars again. No CLI or

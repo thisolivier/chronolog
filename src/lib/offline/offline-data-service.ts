@@ -28,7 +28,9 @@ import type {
 	TimeEntryFields,
 	UpdateNoteInput,
 	UpdateNoteOptions,
-	WeekData
+	WeekData,
+	TotalTimeRequest,
+	TotalTimeResult
 } from '$lib/services/types';
 import { outbox } from './outbox-store.svelte';
 import {
@@ -429,6 +431,11 @@ export class OfflineDataService extends FetchDataService {
 
 	async resumeTimer(options?: ResumeTimerOptions): Promise<TimerEntry> {
 		return runOnlineOnly('Resuming the timer', () => super.resumeTimer(options));
+	}
+
+	/** Total time (065-TT) is online only: no cached or projected total */
+	async getTotalTime(request: TotalTimeRequest): Promise<TotalTimeResult> {
+		return runOnlineOnly('Total time', () => super.getTotalTime(request));
 	}
 
 	private queueEntryRemoval(entryId: string): void {

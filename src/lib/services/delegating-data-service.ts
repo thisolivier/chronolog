@@ -10,6 +10,7 @@ import type { DataService } from './data-service';
 import { announceNotesChanged } from './notes-changed-event';
 import type { TimerLocalStart,
 	ContractsByClientResult,
+	ContractsByClientOptions,
 	ContractOption,
 	CreateContractInput,
 	ClientSummary,
@@ -29,6 +30,8 @@ import type { TimerLocalStart,
 	TimeEntryFields,
 	CreateTimeEntryInput,
 	WeekData,
+	TotalTimeRequest,
+	TotalTimeResult,
 	TimerStatus,
 	TimerEntry,
 	SaveTimerInput,
@@ -53,8 +56,8 @@ export class DelegatingDataService implements DataService {
 
 	// ── Contracts ─────────────────────────────────────────────
 
-	getContractsByClient(): Promise<ContractsByClientResult[]> {
-		return this.delegate.getContractsByClient();
+	getContractsByClient(options?: ContractsByClientOptions): Promise<ContractsByClientResult[]> {
+		return this.delegate.getContractsByClient(options);
 	}
 
 	getContracts(): Promise<ContractOption[]> {
@@ -181,6 +184,10 @@ export class DelegatingDataService implements DataService {
 
 	updateWeeklyStatus(weekStart: string, status: string): Promise<void> {
 		return this.delegate.updateWeeklyStatus(weekStart, status);
+	}
+
+	getTotalTime(request: TotalTimeRequest): Promise<TotalTimeResult> {
+		return this.delegate.getTotalTime(request);
 	}
 
 	// ── Timer ─────────────────────────────────────────────────

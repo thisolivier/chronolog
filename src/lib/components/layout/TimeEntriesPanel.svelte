@@ -7,6 +7,7 @@
 	import WeekStrip from '$lib/components/weekly/WeekStrip.svelte';
 	import TimeEntryCard from '$lib/components/weekly/TimeEntryCard.svelte';
 	import NewEntryRow from '$lib/components/weekly/NewEntryRow.svelte';
+	import TotalTimeModal from '$lib/components/weekly/TotalTimeModal.svelte';
 	import { getMondayOfWeek, getWeekDates, formatDayHeader } from '$lib/utils/iso-week';
 	import { formatDayHeading, formatWeekHeading } from '$lib/components/weekly/week-labels';
 	import { dayJumpScrollTop } from '$lib/components/weekly/day-jump';
@@ -26,6 +27,14 @@
 	let isLoadingOlderWeek = $state(false);
 	let daySectionRefs: Record<string, HTMLElement> = {};
 	let scrollContainer: HTMLElement | undefined = $state();
+	/** The week the Total time modal opened from (sprint 065-TT); null while it is closed */
+	let totalTimeWeekStart = $state<string | null>(null);
+	let totalTimeOpener = $state<HTMLElement | null>(null);
+
+	function openTotalTime(weekStart: string, opener: HTMLElement) {
+		totalTimeOpener = opener;
+		totalTimeWeekStart = weekStart;
+	}
 
 	/**
 	 * Scroll the day list so a day's heading sits at the top. Sets scrollTop on the panel's own
@@ -494,9 +503,15 @@
 				{formatWeekHeading(weekStart)}
 			</h2>
 			<div class="h-px flex-1 bg-chalk-200"></div>
-			<span class="text-xs font-medium tabular-nums text-ink-faint">
+			<button
+				type="button"
+				onclick={(event) => openTotalTime(weekStart, event.currentTarget)}
+				class="rounded-control px-1 text-xs font-medium tabular-nums text-ink-faint btn-quiet"
+				title="Total time"
+				data-testid="older-week-total"
+			>
 				{formatMinutes(weekData?.weeklyTotalMinutes ?? 0)}
-			</span>
+			</button>
 		</div>
 		{#if !weekData}
 			<p class="px-1 text-sm text-ink-faint">Loading…</p>
@@ -526,7 +541,12 @@
 			onNextWeek={navigateToNextWeek}
 			onDayClick={handleDayClick}
 			onToday={() => navigation.showTimeEntryDay(todayString)}
+			onTotalClick={(opener) => openTotalTime(selectedWeekStart, opener)}
 		/>
+	{/if}
+
+	{#if totalTimeWeekStart}
+		<TotalTimeModal weekStart={totalTimeWeekStart} returnFocusTo={totalTimeOpener} onClose={() => (totalTimeWeekStart = null)} />
 	{/if}
 
 	<!-- Scrollable content: the selected week's seven days, then any older weeks loaded -->

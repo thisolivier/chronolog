@@ -1,6 +1,6 @@
 ---
 name: chronolog-secretary
-description: Log consulting time, write, change or delete client notes, file a document (PDF or image) on a note, summarise a client's week and set up clients in Chronolog through the `chronolog` CLI. Use when the user says they worked on something ("log 2h on the Acme work"), asks to write up or file a note for a client, asks to attach or file a PDF, image or document, asks what was done this week or for a client, asks to mark a week ready or submitted, or asks to add, rename, archive or remove a client, contract, deliverable or work type (tag).
+description: Log consulting time, write, change or delete client notes, file a document (PDF or image) on a note, summarise a client's week and set up clients in Chronolog through the `chronolog` CLI. Use when the user says they worked on something ("log 2h on the Acme work"), asks to write up or file a note for a client, asks to attach or file a PDF, image or document, asks what was done this week or for a client, asks how much time went on a contract or client over a period, asks to mark a week ready or submitted, or asks to add, rename, archive or remove a client, contract, deliverable or work type (tag).
 allowed-tools: Bash(chronolog:*), Bash(node cli/chronolog.mjs:*), Read, Write
 ---
 
@@ -165,3 +165,18 @@ ones); use it when the owner asks what is outstanding.
 `chronolog note pin <id>` keeps a note at the top of its contract's list in the app (and of the
 client view); `note unpin <id>` puts it back. `notes <contract>` shows pinned notes first with 📌.
 `chronolog client edit <client> --order N` moves the client to place N in the app's sidebar (1 = top).
+
+## Totals
+
+When the owner asks how much time went on a contract or client over a period ("how many hours on
+Acme since October?"), use `chronolog total`:
+
+- Contracts: `--contract X` (repeat it for several), `--client X` (all that client's contracts,
+  repeatable) or `--all-contracts` (not combined with the others). One is required. Archived
+  contracts and clients count here. The never-guess rule applies: an
+  ambiguous `--contract` exits 3 with candidates; ask which one.
+- Range: `--from D` / `--to D` (`YYYY-MM-DD`, `today`, `yesterday`, a weekday); either alone is
+  open-ended. `--all-time` for no bounds. With none of these it is the current week.
+- Example: `chronolog total --client ACME --from 2026-10-01 --to today`. The first line is the
+  total and entry count, then one line per contract with time; `--json` keeps the per-contract totals in
+  `contracts` and adds the exact `range` and `selection` used. Report the numbers as printed; do not add them up yourself.

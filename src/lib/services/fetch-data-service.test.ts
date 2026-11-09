@@ -123,6 +123,12 @@ describe('FetchDataService', () => {
 			expect(options?.method).toBeUndefined(); // GET is the default
 			expect(result).toEqual(contracts);
 		});
+
+		it('adds includeSystem=true when asked (the Total time modal)', async () => {
+			mockFetch.mockResolvedValueOnce(mockJsonResponse({ contracts: [] }));
+			await service.getContractsByClient({ includeSystem: true });
+			expect(getLastFetchCall(mockFetch)[0]).toBe('/api/contracts-by-client?includeArchived=true&includeSystem=true');
+		});
 	});
 
 	describe('getContracts', () => {
@@ -585,6 +591,36 @@ describe('FetchDataService', () => {
 		});
 	});
 
+	describe('getTotalTime', () => {
+		it('calls GET /api/time-entries/total with the range and contract IDs', async () => {
+			const total = { from: '2026-11-02', to: '2026-11-08', totalMinutes: 90, entryCount: 2, contracts: [] };
+			mockFetch.mockResolvedValueOnce(mockJsonResponse(total));
+
+			const result = await service.getTotalTime({ from: '2026-11-02', to: '2026-11-08', contracts: ['c1', 'c2'] });
+
+			const [url] = getLastFetchCall(mockFetch);
+			expect(url).toBe('/api/time-entries/total?from=2026-11-02&to=2026-11-08&contracts=c1%2Cc2');
+			expect(result).toEqual(total);
+		});
+
+		it('leaves out open bounds and sends contracts=all', async () => {
+			mockFetch.mockResolvedValueOnce(mockJsonResponse({ from: null, to: null, totalMinutes: 0, entryCount: 0, contracts: [] }));
+
+			await service.getTotalTime({ from: null, to: null, contracts: 'all' });
+
+			expect(getLastFetchCall(mockFetch)[0]).toBe('/api/time-entries/total?contracts=all');
+		});
+
+		it('never answers from the read cache when the network fails', async () => {
+			const total = { from: null, to: null, totalMinutes: 30, entryCount: 1, contracts: [] };
+			mockFetch.mockResolvedValueOnce(mockJsonResponse(total));
+			await service.getTotalTime({ from: null, to: null, contracts: 'all' });
+			mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+			await expect(service.getTotalTime({ from: null, to: null, contracts: 'all' })).rejects.toThrow('Failed to fetch');
+		});
+	});
+
 	// ── Timer ─────────────────────────────────────────────────
 
 	describe('getTimerStatus', () => {
@@ -844,6 +880,7 @@ describe('DelegatingDataService', () => {
 			updateTimeEntry: vi.fn().mockResolvedValue(undefined),
 			deleteTimeEntry: vi.fn().mockResolvedValue(undefined),
 			updateWeeklyStatus: vi.fn().mockResolvedValue(undefined),
+			getTotalTime: vi.fn().mockResolvedValue({ from: null, to: null, totalMinutes: 0, entryCount: 0, contracts: [] }),
 			getTimerStatus: vi.fn().mockResolvedValue({ timer: null }),
 			startTimer: vi.fn().mockResolvedValue({ id: `${label}-timer` }),
 			stopTimer: vi.fn().mockResolvedValue({ id: `${label}-timer-stop` }),
@@ -927,6 +964,9 @@ describe('DelegatingDataService', () => {
 
 		await delegator.updateWeeklyStatus('2026-02-02', 'submitted');
 		expect(inner.updateWeeklyStatus).toHaveBeenCalledWith('2026-02-02', 'submitted');
+
+		await delegator.getTotalTime({ from: null, to: null, contracts: 'all' });
+		expect(inner.getTotalTime).toHaveBeenCalledWith({ from: null, to: null, contracts: 'all' });
 
 		await delegator.getTimerStatus();
 		expect(inner.getTimerStatus).toHaveBeenCalledOnce();
@@ -1039,6 +1079,7 @@ describe('DataService interface completeness', () => {
 		'updateTimeEntry',
 		'deleteTimeEntry',
 		'updateWeeklyStatus',
+		'getTotalTime',
 		'getTimerStatus',
 		'startTimer',
 		'adjustTimerStart',

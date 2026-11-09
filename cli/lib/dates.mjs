@@ -48,6 +48,14 @@ export function weekRange(year, weekNumber) {
 	return { from: monday, to: addDays(monday, 6) };
 }
 
+/** True for a real `YYYY-MM-DD` calendar day (no 2026-02-30, which `Date` would roll into March) */
+export function isCalendarDate(text) {
+	const value = String(text ?? '').trim();
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+	const date = toDate(value);
+	return !Number.isNaN(date.getTime()) && formatDate(date) === value;
+}
+
 /** Resolves a `--date` word against `today` (YYYY-MM-DD in the person's timezone). */
 export function resolveDateWord(word, today) {
 	const value = String(word).trim().toLowerCase();
