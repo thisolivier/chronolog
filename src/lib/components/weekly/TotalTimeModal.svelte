@@ -1,7 +1,8 @@
 <!--
 	TotalTimeModal (sprint 065-TT): opened from the week total. A date range (From / To, plus quick
-	choices: All time, the viewed week, This week, This month, This year), the contracts to include
-	(all active ones checked at first; All / None) and the total recorded, updating as the choices
+	choices: All time, the viewed week, This week, This month, This year), then the total recorded
+	(directly under the range, so it is in view on open on a phone), then the contracts to include
+	(all active ones checked at first; All / None), the total updating as the choices
 	change (requests debounced 200 ms, stale replies ignored). Online only: offline it says
 	"Needs a connection". Desktop: a centred overlay. Phone: full window, the header as a top bar
 	(title left, Close right) and the fields scrolling under it, sized to the visual viewport like
@@ -177,6 +178,8 @@
 				</div>
 			</div>
 
+			<TotalTimeResult {display} rangeLabel={describeRange(range)} />
+
 			<TotalTimeContractList
 				{contracts}
 				isSelected={(contractId) => selectedContractIds.has(contractId)}
@@ -184,8 +187,6 @@
 				onSelectAll={selectAllContracts}
 				onSelectNone={() => selectedContractIds.clear()}
 			/>
-
-			<TotalTimeResult {display} rangeLabel={describeRange(range)} />
 		</div>
 	</div>
 </div>

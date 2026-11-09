@@ -25,9 +25,9 @@ function runCli(args: string[], environment: Record<string, string>) {
 type TotalTimeSeed = { alphaId: string; betaId: string; gammaId: string; weekStart: string; weekEnd: string };
 
 /** One client: Alpha (90 min this week, 60 min in 2025), Beta (45 min this week), Gamma inactive and empty */
-async function seedTotals(page: Page, suffix: string): Promise<TotalTimeSeed> {
+async function seedTotals(page: Page, suffix: string, extraContracts = 0): Promise<TotalTimeSeed> {
 	await page.goto('/');
-	return page.evaluate(async (suffix) => {
+	return page.evaluate(async ({ suffix, extraContracts }) => {
 		const post = async (url: string, body: unknown) => {
 			const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 			if (!response.ok) throw new Error(`${url}: ${response.status} ${await response.text()}`);
@@ -48,8 +48,9 @@ async function seedTotals(page: Page, suffix: string): Promise<TotalTimeSeed> {
 		await post('/api/time-entries', { contractId: alphaId, date: weekStart, duration: '1h 30m' });
 		await post('/api/time-entries', { contractId: alphaId, date: '2025-03-03', duration: '1h' });
 		await post('/api/time-entries', { contractId: betaId, date: weekStart, duration: '45m' });
+		for (let index = 1; index <= extraContracts; index += 1) await contract(`Extra ${index}`, true);
 		return { alphaId, betaId, gammaId, weekStart, weekEnd: local(sunday) };
-	}, suffix);
+	}, { suffix, extraContracts });
 }
 
 async function openTotalTime(page: Page) {
@@ -125,7 +126,8 @@ test('opened from an earlier week, the viewed week is the default range', async 
 test('phone: Total time fills the window with a top bar @iphone', async ({ page, baseURL, isMobile }) => {
 	test.skip(!isMobile, 'iPhone projects only');
 	await signInAsFreshUser(page, baseURL, 'total-time-phone');
-	const seed = await seedTotals(page, Date.now().toString(36));
+	// Enough contracts that the list runs well past the screen: the total must still be in view
+	const seed = await seedTotals(page, Date.now().toString(36), 10);
 	const modal = await openTotalTime(page);
 
 	const viewport = page.viewportSize()!;
@@ -144,7 +146,16 @@ test('phone: Total time fills the window with a top bar @iphone', async ({ page,
 	expect(closeBox.height).toBeGreaterThanOrEqual(44);
 
 	await expect(page.getByTestId('total-time-value')).toHaveText('2h 15m');
+	// The total sits under the date range, fully inside the viewport on open (no scrolling)
+	const totalBox = (await page.getByTestId('total-time-value').boundingBox())!;
+	expect(totalBox.y).toBeGreaterThanOrEqual(0);
+	expect(totalBox.x).toBeGreaterThanOrEqual(0);
+	expect(totalBox.y + totalBox.height).toBeLessThanOrEqual(viewport.height);
+	expect(totalBox.x + totalBox.width).toBeLessThanOrEqual(viewport.width);
+	const contractsListTop = (await page.getByTestId('total-time-select-all').boundingBox())!.y;
+	expect(contractsListTop).toBeGreaterThan(totalBox.y);
 	await page.getByTestId('total-time-select-none').tap();
+	await page.getByTestId(`total-time-contract-${seed.betaId}`).scrollIntoViewIfNeeded();
 	await page.getByTestId(`total-time-contract-${seed.betaId}`).tap();
 	await page.getByTestId('total-time-value').scrollIntoViewIfNeeded();
 	await expect(page.getByTestId('total-time-value')).toHaveText('45m');
