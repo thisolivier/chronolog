@@ -36,6 +36,7 @@ Environment variables win over the file:
 - `me`: who you are, today, current ISO 8601 week
 - `clients [--all]`, `contracts [client] [--all]`: reference lists (`--all` adds archived ones, marked `[archived]`)
 - `week [2026-W45] [--client X | --contract X]`: entries and totals
+- `total --contract X… | --client X… | --all-contracts [--from D] [--to D] [--all-time]`: time recorded per contract over a range (see "Totals" below)
 - `log <contract> <duration> "<desc>" [--date D] [--deliverable X [--work-type Y]] [--note ID]`
 - `note new <contract> "<title>" [--file body.md] [--date D]` (body from `--file` or stdin), `note show <note-id>`. `--date` (`YYYY-MM-DD`, `today`, `yesterday`, a weekday) backdates the note: its id carries that date and `createdAt` is noon of that day in the laptop's timezone; a future date is 400 `invalid_date`. The creation date cannot be changed afterwards (the id would have to change); delete and recreate instead.
 - `notes <contract> [--since YYYY-MM-DD]`, `search "<words or note id>" [--limit N]` (notes and time entries in two groups, matches marked `»…«`; `--json` is the `GET /api/search` result). `notes` lists pinned notes first, marked 📌.
@@ -43,6 +44,14 @@ Environment variables win over the file:
 - `status <2026-W45|current> <unsubmitted|draft-ready|submitted>`
 - `edit <entry-id> [--duration D] [--description "..."] [--date D] [--deliverable X|none] [--work-type X|none]`: change one entry (`PATCH /api/time-entries/<id>`); only the flags given change. A plain duration clears an old start/end range; a range sets a new one. A work type is resolved under the new deliverable if given, else the entry's current one (`--tag` works too). `--deliverable none` clears both; a new deliverable without `--work-type` clears the old deliverable's work type.
 - `undo`: delete the last entry this CLI logged. `log` records it in `last-entry.json` next to the config file; `undo` deletes it once and forgets it. It refuses (exit 2) when nothing is recorded or the record is for another server. Entries made in the app or edited are not undoable this way.
+
+### Totals (sprint 065-TT)
+
+- `total` asks `GET /api/time-entries/total` for the minutes recorded (drafts excluded) per contract.
+- Contracts: `--contract X` and `--client X` both repeat (`--contract ACME/Web --contract BETA/Retainer`); a client means all its contracts. `--all-contracts` sends `contracts=all`. One of the three is required (usage error, exit 2). References follow the never-guess rule (exit 3 with candidates).
+- Range: `--from` / `--to` take `YYYY-MM-DD` or the `--date` words; either alone is open-ended. `--all-time` has no bounds (and refuses `--from`/`--to`). With none of them, the current week from `GET /api/me`.
+- Output: `Total 12h30m (14 entries) · 2026-10-01 to 2026-11-09` (or `· all time`), then `  ACME/Website  8h15m  (9)` per contract with time, most first. `--json` prints the API reply plus `range` and the resolved `contracts` (`"all"` or `{ id, clientShortCode, name }`).
+- The argument parser keeps every value of a repeated flag in `flagValues` (commands receive it next to `flags`, where the last value wins).
 
 ### Changing and deleting notes (sprint 034-CL)
 
@@ -148,7 +157,7 @@ The admin commands take a path: `SHORTCODE` (client), `SHORTCODE/Contract`, `SHO
 
 ```
 cli/chronolog.mjs         entry: argv to command, exit codes, --json output
-cli/lib/args.mjs          argv parser (positionals, --flag value, switches), two-word commands and tag alias
+cli/lib/args.mjs          argv parser (positionals, --flag value, switches, repeated values), two-word commands and tag alias
 cli/lib/config.mjs        config path, environment overrides, mode 600 writes
 cli/lib/api.mjs           HTTP client: bearer token, device key, X-Timezone, ApiError
 cli/lib/resolve.mjs       reference matching for contracts, clients, deliverables, work types; path splitting
@@ -166,6 +175,7 @@ cli/lib/version.mjs       CLI_VERSION from the root package.json
 cli/lib/version-drift.mjs the daily server/CLI commit comparison and its stderr notice
 cli/commands/read.mjs     me, clients, contracts, week, notes, note show
 cli/commands/search.mjs   search (GET /api/search)
+cli/commands/total.mjs    total: contracts, range, GET /api/time-entries/total, aligned output (sprint 065-TT)
 cli/commands/write.mjs    log, note new, status
 cli/commands/correct.mjs  edit, undo
 cli/commands/import.mjs   import notes|entries; undo (correct.undo, or undo-import.mjs with --last-import)

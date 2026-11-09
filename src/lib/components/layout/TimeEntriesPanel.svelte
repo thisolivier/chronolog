@@ -29,7 +29,7 @@
 	let scrollContainer: HTMLElement | undefined = $state();
 	/** The week the Total time modal opened from (sprint 065-TT); null while it is closed */
 	let totalTimeWeekStart = $state<string | null>(null);
-	let totalTimeOpener: HTMLElement | null = null;
+	let totalTimeOpener = $state<HTMLElement | null>(null);
 
 	function openTotalTime(weekStart: string, opener: HTMLElement) {
 		totalTimeOpener = opener;

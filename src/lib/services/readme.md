@@ -39,3 +39,11 @@ Add the method to the `DataService` interface, implement it in `FetchDataService
 (and forward it in `DelegatingDataService`), add any new types to `types.ts`, and
 cover the HTTP call in `fetch-data-service.test.ts`, which mocks `fetch` and
 asserts the URL, method and body for every method.
+
+## Online-only reads
+
+`getTotalTime({ from, to, contracts })` (sprint 065-TT, `GET /api/time-entries/total`) reads
+through `fetchFreshJson`, so a failed request never answers with an old cached total, and
+`OfflineDataService` wraps it in `runOnlineOnly` (`NotAvailableOfflineError` offline). The Total
+time modal shows "Needs a connection" in that case. `contracts` is `'all'` or contract IDs; an empty
+list is a zero total.
