@@ -1,6 +1,7 @@
 import type {
 	TimerLocalStart,
 	ContractsByClientResult,
+	ContractsByClientOptions,
 	ContractOption,
 	CreateContractInput,
 	ClientSummary,
@@ -34,7 +35,8 @@ import type {
 
 export interface DataService {
 	// Contracts
-	getContractsByClient(): Promise<ContractsByClientResult[]>;
+	/** Archived included; `includeSystem` adds the system "Deleted Contract" when it exists */
+	getContractsByClient(options?: ContractsByClientOptions): Promise<ContractsByClientResult[]>;
 	getContracts(): Promise<ContractOption[]>;
 	createContract(data: CreateContractInput): Promise<{ id: string; clientId: string }>;
 

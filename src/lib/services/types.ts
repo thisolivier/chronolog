@@ -19,7 +19,12 @@ export type ContractsByClientResult = {
 	/** Only with `includeArchived` (sprint 031-CL): the contract, or its client, is archived */
 	archived?: boolean;
 	clientArchived?: boolean;
+	/** Only with `includeSystem` (sprint 065-TT): the user's system "Deleted Contract" */
+	system?: boolean;
 };
+
+/** `includeSystem` adds the system "Deleted Contract" (the Total time modal, sprint 065-TT) */
+export type ContractsByClientOptions = { includeSystem?: boolean };
 
 export type ContractOption = {
 	id: string;

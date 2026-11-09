@@ -112,7 +112,7 @@ test('week total opens Total time: defaults, None, one contract, All time, close
 	await expect(modal).toBeHidden();
 });
 
-test('the modal opens on the week total, inactive and archived contracts included', async ({ page, baseURL }) => {
+test('the modal opens on the week total, inactive, archived and deleted contracts included', async ({ page, baseURL }) => {
 	await signInAsFreshUser(page, baseURL, 'total-time-archived');
 	const seed = await seedTotals(page, Date.now().toString(36));
 	const archivedId = await page.evaluate(async ({ gammaId, alphaId, weekStart }) => {
@@ -126,28 +126,35 @@ test('the modal opens on the week total, inactive and archived contracts include
 		await send('POST', '/api/time-entries', { contractId: gammaId, date: weekStart, duration: '2h' });
 		await send('POST', '/api/time-entries', { contractId: archived, date: weekStart, duration: '33m' });
 		await send('PATCH', `/api/contracts/${archived}`, { archived: true });
+		// A deleted contract's 17m move to the system Deleted Contract (safe deletion)
+		const doomed = (await send('POST', '/api/contracts', { clientId, name: 'Doomed', isActive: true })).contract.id;
+		await send('POST', '/api/time-entries', { contractId: doomed, date: weekStart, duration: '17m' });
+		const deletion = await fetch(`/api/contracts/${doomed}`, { method: 'DELETE' });
+		if (!deletion.ok) throw new Error(`DELETE contract: ${deletion.status} ${await deletion.text()}`);
 		return archived;
 	}, seed);
 
 	await page.goto('/time');
 	await page.waitForLoadState('networkidle');
-	// 1h30 + 45m + 2h (inactive) + 33m (archived)
-	await expect(page.getByTestId('week-total')).toHaveText('4h 48m');
+	// 1h30 + 45m + 2h (inactive) + 33m (archived) + 17m (deleted)
+	await expect(page.getByTestId('week-total')).toHaveText('5h 5m');
 	await page.getByTestId('week-total').click();
-	await expect(page.getByTestId('total-time-value')).toHaveText('4h 48m');
-	await expect(page.getByTestId('total-time-entry-count')).toHaveText('4 entries');
+	await expect(page.getByTestId('total-time-value')).toHaveText('5h 5m');
+	await expect(page.getByTestId('total-time-entry-count')).toHaveText('5 entries');
 
-	// Inactive and archived together behind one closed toggle, each marked, both ticked
+	// Inactive, archived and deleted together behind one closed toggle, each marked, all ticked
 	const hidden = page.getByTestId('total-time-inactive');
-	await expect(hidden.locator('summary')).toHaveText('Show inactive and archived (2)');
+	await expect(hidden.locator('summary')).toHaveText('Show inactive, archived and deleted (3)');
 	await hidden.locator('summary').click();
 	await expect(page.getByTestId(`total-time-contract-${archivedId}`)).toBeChecked();
 	await expect(page.getByTestId(`total-time-contract-${seed.gammaId}`)).toBeChecked();
-	await expect(hidden.getByTestId('total-time-contract-status')).toHaveText(['inactive', 'archived']);
+	const statuses = (await hidden.getByTestId('total-time-contract-status').allTextContents()).sort();
+	expect(statuses).toEqual(['archived', 'deleted', 'inactive']);
+	await expect(hidden.locator('label', { hasText: 'Deleted Contract' }).locator('input')).toBeChecked();
 
-	// Unticking the archived one drops its 33m
+	// Unticking the archived one drops exactly its 33m (the deleted time stays counted)
 	await page.getByTestId(`total-time-contract-${archivedId}`).uncheck();
-	await expect(page.getByTestId('total-time-value')).toHaveText('4h 15m');
+	await expect(page.getByTestId('total-time-value')).toHaveText('4h 32m');
 });
 
 test('opened from an earlier week, the viewed week is the default range', async ({ page, baseURL }) => {

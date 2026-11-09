@@ -2,8 +2,8 @@
 	TotalTimeModal (sprint 065-TT): opened from the week total. A date range (From / To, plus quick
 	choices: All time, the viewed week, This week, This month, This year), then the total recorded
 	(directly under the range, so it is in view on open on a phone), then the contracts to include
-	(every contract checked at first, inactive and archived included, so the total matches the week
-	total it was opened from; All / None), the total updating as the choices
+	(every contract checked at first, inactive, archived and the system Deleted Contract included, so
+	the total matches the week total it was opened from; always sent as IDs; All / None), the total updating as the choices
 	change (requests debounced 200 ms, stale replies ignored). Online only: offline it says
 	"Needs a connection". Desktop: a centred overlay. Phone: full window, the header as a top bar
 	(title left, Close right) and the fields scrolling under it, sized to the visual viewport like
@@ -74,9 +74,9 @@
 
 	onMount(() => {
 		closeButton?.focus();
-		// Archived contracts included (the sidebar's list); every one ticked to match the week total
+		// Archived and the system Deleted Contract included; every one ticked to match the week total
 		dataService
-			.getContractsByClient()
+			.getContractsByClient({ includeSystem: true })
 			.then((contractList) => {
 				contracts = contractList;
 				for (const contract of contractList) selectedContractIds.add(contract.id);

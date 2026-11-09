@@ -1,4 +1,4 @@
-import { eq, and, inArray, isNull, sql } from 'drizzle-orm';
+import { eq, and, or, inArray, isNull, sql } from 'drizzle-orm';
 import { database, contracts, clients, notes } from '$lib/server/db';
 import {
 	decryptNullable,
@@ -253,12 +253,18 @@ export async function listContractsWithClientForUser(userId: string) {
 /**
  * Visible contracts with client info and note count, ordered by sortOrder then name. With
  * `includeArchived`, archived contracts and the contracts of archived clients are listed too
- * (never the system contract); `archivedAt` / `clientArchivedAt` tell them apart.
+ * (never the system contract); `archivedAt` / `clientArchivedAt` tell them apart. With
+ * `includeSystem` the user's system "Deleted Contract" is listed too when it exists (`isSystem`;
+ * sprint 065-TT, the Total time modal), so its reassigned entries can be counted.
  */
 export async function listContractsByClientWithNoteCount(
 	userId: string,
-	{ includeArchived = false }: { includeArchived?: boolean } = {}
+	{ includeArchived = false, includeSystem = false }: { includeArchived?: boolean; includeSystem?: boolean } = {}
 ) {
+	const listedContracts = includeArchived
+		? and(eq(clients.userId, userId), eq(clients.isSystem, false), eq(contracts.isSystem, false))
+		: visibleContractsForUser(userId);
+	const systemContract = and(eq(clients.userId, userId), eq(contracts.isSystem, true));
 	const rows = await database
 		.select({
 			id: contracts.id,
@@ -266,6 +272,7 @@ export async function listContractsByClientWithNoteCount(
 			isActive: contracts.isActive,
 			sortOrder: contracts.sortOrder,
 			archivedAt: contracts.archivedAt,
+			isSystem: contracts.isSystem,
 			clientId: clients.id,
 			clientName: clients.name,
 			clientShortCode: clients.shortCode,
@@ -279,11 +286,7 @@ export async function listContractsByClientWithNoteCount(
 		.innerJoin(clients, eq(contracts.clientId, clients.id))
 		// Trashed notes are not counted (sprint 037-CL)
 		.leftJoin(notes, and(eq(notes.contractId, contracts.id), isNull(notes.deletedAt)))
-		.where(
-			includeArchived
-				? and(eq(clients.userId, userId), eq(clients.isSystem, false), eq(contracts.isSystem, false))
-				: visibleContractsForUser(userId)
-		)
+		.where(includeSystem ? or(listedContracts, systemContract) : listedContracts)
 		.groupBy(contracts.id, clients.id);
 
 	return rows

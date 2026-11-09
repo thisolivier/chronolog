@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	contractStatusLabel,
 	contractsForRequest,
+	hiddenToggleLabel,
 	describeRange,
 	isConnectionFailure,
 	matchingPresetKey,
@@ -55,30 +56,44 @@ describe('describeRange', () => {
 });
 
 describe('orderContractsForPicker', () => {
-	const contract = (id: string, isActive: boolean, archived = false, clientArchived = false) =>
-		({ id, isActive, archived, clientArchived }) as PickerContract;
+	const contract = (id: string, isActive: boolean, archived = false, clientArchived = false, system = false) =>
+		({ id, isActive, archived, clientArchived, system }) as PickerContract;
 
-	it('keeps contracts in use apart from inactive and archived ones, in order', () => {
-		const ordered = orderContractsForPicker([contract('a', true), contract('b', false), contract('c', true), contract('d', true, true)]);
+	it('keeps contracts in use apart from inactive, archived and deleted ones, in order', () => {
+		const ordered = orderContractsForPicker([
+			contract('a', true),
+			contract('b', false),
+			contract('c', true),
+			contract('d', true, true),
+			contract('e', true, false, false, true)
+		]);
 		expect(ordered.shown.map((item) => item.id)).toEqual(['a', 'c']);
-		expect(ordered.hidden.map((item) => item.id)).toEqual(['b', 'd']);
-		expect(ordered.hasArchived).toBe(true);
-		expect(orderContractsForPicker([contract('a', true), contract('b', false)]).hasArchived).toBe(false);
+		expect(ordered.hidden.map((item) => item.id)).toEqual(['b', 'd', 'e']);
 	});
 
-	it('labels archived (contract or client) before inactive', () => {
+	it('labels deleted, then archived (contract or client), then inactive', () => {
 		expect(contractStatusLabel(contract('a', true))).toBeNull();
 		expect(contractStatusLabel(contract('b', false))).toBe('inactive');
 		expect(contractStatusLabel(contract('c', false, true))).toBe('archived');
 		expect(contractStatusLabel(contract('d', true, false, true))).toBe('archived');
+		expect(contractStatusLabel(contract('e', true, false, false, true))).toBe('deleted');
+	});
+
+	it('names the kinds behind the toggle', () => {
+		expect(hiddenToggleLabel([contract('b', false)])).toBe('Show inactive (1)');
+		expect(hiddenToggleLabel([contract('b', false), contract('d', true, true)])).toBe('Show inactive and archived (2)');
+		expect(hiddenToggleLabel([contract('b', false), contract('d', true, true), contract('e', true, false, false, true)])).toBe(
+			'Show inactive, archived and deleted (3)'
+		);
+		expect(hiddenToggleLabel([contract('e', true, false, false, true)])).toBe('Show deleted (1)');
 	});
 });
 
 describe('contractsForRequest', () => {
-	it('is all when every listed contract is ticked, so it matches the week total', () => {
-		expect(contractsForRequest(['a', 'b'], new Set(['a', 'b']))).toBe('all');
+	it('is always the ticked IDs, even when every one is ticked', () => {
+		expect(contractsForRequest(['a', 'b'], new Set(['a', 'b']))).toEqual(['a', 'b']);
 	});
-	it('lists the ticked ones otherwise, and none for none', () => {
+	it('lists the ticked ones, and none for none', () => {
 		expect(contractsForRequest(['a', 'b', 'c'], new Set(['c', 'a']))).toEqual(['a', 'c']);
 		expect(contractsForRequest(['a', 'b'], new Set())).toEqual([]);
 		expect(contractsForRequest([], new Set())).toEqual([]);

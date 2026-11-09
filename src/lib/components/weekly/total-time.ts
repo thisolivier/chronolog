@@ -58,35 +58,39 @@ export function describeRange(range: DateRange): string {
 /** The contracts the modal lists (`GET /api/contracts-by-client?includeArchived=true`) */
 export type PickerContract = Pick<
 	ContractsByClientResult,
-	'id' | 'name' | 'isActive' | 'clientId' | 'clientName' | 'clientShortCode' | 'clientColorIndex' | 'clientSortOrder' | 'archived' | 'clientArchived'
+	'id' | 'name' | 'isActive' | 'clientId' | 'clientName' | 'clientShortCode' | 'clientColorIndex' | 'clientSortOrder' | 'archived' | 'clientArchived' | 'system'
 >;
 
-/** "archived" (the contract or its client), "inactive", or null for a contract in normal use */
-export function contractStatusLabel(contract: PickerContract): 'archived' | 'inactive' | null {
+export type ContractStatus = 'inactive' | 'archived' | 'deleted';
+
+/** "deleted" (the system Deleted Contract), "archived" (contract or client), "inactive", or null in normal use */
+export function contractStatusLabel(contract: PickerContract): ContractStatus | null {
+	if (contract.system) return 'deleted';
 	if (contract.archived || contract.clientArchived) return 'archived';
 	return contract.isActive ? null : 'inactive';
 }
 
-/** Contracts in use first; inactive and archived ones behind the disclosure; server order kept */
-export function orderContractsForPicker(contracts: PickerContract[]): {
-	shown: PickerContract[];
-	hidden: PickerContract[];
-	hasArchived: boolean;
-} {
+/** Contracts in use first; inactive, archived and deleted ones behind the disclosure; server order kept */
+export function orderContractsForPicker(contracts: PickerContract[]): { shown: PickerContract[]; hidden: PickerContract[] } {
 	return {
 		shown: contracts.filter((contract) => contractStatusLabel(contract) === null),
-		hidden: contracts.filter((contract) => contractStatusLabel(contract) !== null),
-		hasArchived: contracts.some((contract) => contractStatusLabel(contract) === 'archived')
+		hidden: contracts.filter((contract) => contractStatusLabel(contract) !== null)
 	};
 }
 
+/** The disclosure names the kinds it holds: "Show inactive", "Show inactive, archived and deleted (3)" */
+export function hiddenToggleLabel(hidden: PickerContract[]): string {
+	const kinds = (['inactive', 'archived', 'deleted'] as const).filter((kind) => hidden.some((contract) => contractStatusLabel(contract) === kind));
+	const words = kinds.length > 1 ? `${kinds.slice(0, -1).join(', ')} and ${kinds[kinds.length - 1]}` : (kinds[0] ?? '');
+	return `Show ${words} (${hidden.length})`;
+}
+
 /**
- * What to ask for: every listed contract ticked is `'all'`, so the total opened from a week equals
- * that week's total (which also counts the system "Deleted Contract" no box stands for).
+ * Always the ticked contracts' IDs (the system Deleted Contract is listed like any other), so
+ * unticking one contract takes off exactly its minutes; none ticked is an empty list.
  */
-export function contractsForRequest(listedContractIds: string[], selectedContractIds: ReadonlySet<string>): 'all' | string[] {
-	const everyListedSelected = listedContractIds.length > 0 && listedContractIds.every((contractId) => selectedContractIds.has(contractId));
-	return everyListedSelected ? 'all' : listedContractIds.filter((contractId) => selectedContractIds.has(contractId));
+export function contractsForRequest(listedContractIds: string[], selectedContractIds: ReadonlySet<string>): string[] {
+	return listedContractIds.filter((contractId) => selectedContractIds.has(contractId));
 }
 
 export type TotalDisplay =

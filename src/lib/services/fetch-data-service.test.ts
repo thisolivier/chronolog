@@ -123,6 +123,12 @@ describe('FetchDataService', () => {
 			expect(options?.method).toBeUndefined(); // GET is the default
 			expect(result).toEqual(contracts);
 		});
+
+		it('adds includeSystem=true when asked (the Total time modal)', async () => {
+			mockFetch.mockResolvedValueOnce(mockJsonResponse({ contracts: [] }));
+			await service.getContractsByClient({ includeSystem: true });
+			expect(getLastFetchCall(mockFetch)[0]).toBe('/api/contracts-by-client?includeArchived=true&includeSystem=true');
+		});
 	});
 
 	describe('getContracts', () => {

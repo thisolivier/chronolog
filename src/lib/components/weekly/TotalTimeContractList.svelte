@@ -1,13 +1,13 @@
 <!--
 	Contract checkboxes for TotalTimeModal (sprint 065-TT): All / None above the list (None makes
 	picking one contract a single tap after), contracts in use grouped by client with the client's
-	colour tile, short code and name, and inactive and archived contracts (each marked) under a
-	collapsed "Show inactive" / "Show inactive and archived".
+	colour tile, short code and name, and inactive, archived and deleted (the system Deleted
+	Contract) contracts, each marked, under one collapsed toggle naming the kinds it holds.
 -->
 <script lang="ts">
 	import { groupContractsByClient } from '$lib/utils/group-contracts-by-client';
 	import { getClientDotClass } from '$lib/utils/client-colors';
-	import { contractStatusLabel, orderContractsForPicker, type PickerContract } from './total-time';
+	import { contractStatusLabel, hiddenToggleLabel, orderContractsForPicker, type PickerContract } from './total-time';
 
 	let {
 		contracts,
@@ -69,8 +69,8 @@
 		{@render contractGroups(shownGroups)}
 		{#if hiddenGroups.length > 0}
 			<details class="mt-3" data-testid="total-time-inactive">
-				<summary class="cursor-pointer text-xs text-ink-muted pointer-coarse:py-2">
-					{ordered.hasArchived ? 'Show inactive and archived' : 'Show inactive'} ({ordered.hidden.length})
+				<summary class="cursor-pointer text-xs text-ink-muted pointer-coarse:min-h-11 pointer-coarse:leading-[2.75rem]">
+					{hiddenToggleLabel(ordered.hidden)}
 				</summary>
 				<div class="mt-2">{@render contractGroups(hiddenGroups)}</div>
 			</details>

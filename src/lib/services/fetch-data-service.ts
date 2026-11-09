@@ -2,6 +2,7 @@ import type { DataService } from './data-service';
 import { localDateString, localTimeString } from '$lib/components/timer/local-date';
 import type { TimerLocalStart,
 	ContractsByClientResult,
+	ContractsByClientOptions,
 	ContractOption,
 	CreateContractInput,
 	ClientSummary,
@@ -44,10 +45,11 @@ const KEEPALIVE_BODY_LIMIT_BYTES = 60_000;
 export class FetchDataService implements DataService {
 	// -- Contracts --
 
-	async getContractsByClient(): Promise<ContractsByClientResult[]> {
+	async getContractsByClient(options?: ContractsByClientOptions): Promise<ContractsByClientResult[]> {
 		// Archived ones included: the sidebar folds them under its Archived item (sprint 033-CL)
+		const systemQuery = options?.includeSystem ? '&includeSystem=true' : '';
 		const data = await fetchJson<{ contracts: ContractsByClientResult[] }>(
-			'/api/contracts-by-client?includeArchived=true'
+			`/api/contracts-by-client?includeArchived=true${systemQuery}`
 		);
 		return data.contracts;
 	}

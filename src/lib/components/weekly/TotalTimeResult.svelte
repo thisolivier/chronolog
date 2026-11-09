@@ -30,7 +30,7 @@
 			{display.result.entryCount} {display.result.entryCount === 1 ? 'entry' : 'entries'}
 		</p>
 		<details class="mt-2" bind:open={isBreakdownOpen} data-testid="total-time-breakdown">
-			<summary class="cursor-pointer text-xs text-ink-muted pointer-coarse:py-2">By contract ({display.result.contracts.length})</summary>
+			<summary class="cursor-pointer text-xs text-ink-muted pointer-coarse:min-h-11 pointer-coarse:leading-[2.75rem]">By contract ({display.result.contracts.length})</summary>
 			<table class="mt-1 w-full text-sm">
 				<tbody>
 					{#each display.result.contracts as contractTotal (contractTotal.contractId)}

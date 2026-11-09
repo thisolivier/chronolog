@@ -10,6 +10,7 @@ import type { DataService } from './data-service';
 import { announceNotesChanged } from './notes-changed-event';
 import type { TimerLocalStart,
 	ContractsByClientResult,
+	ContractsByClientOptions,
 	ContractOption,
 	CreateContractInput,
 	ClientSummary,
@@ -55,8 +56,8 @@ export class DelegatingDataService implements DataService {
 
 	// ── Contracts ─────────────────────────────────────────────
 
-	getContractsByClient(): Promise<ContractsByClientResult[]> {
-		return this.delegate.getContractsByClient();
+	getContractsByClient(options?: ContractsByClientOptions): Promise<ContractsByClientResult[]> {
+		return this.delegate.getContractsByClient(options);
 	}
 
 	getContracts(): Promise<ContractOption[]> {

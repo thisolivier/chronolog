@@ -46,4 +46,4 @@ asserts the URL, method and body for every method.
 through `fetchFreshJson`, so a failed request never answers with an old cached total, and
 `OfflineDataService` wraps it in `runOnlineOnly` (`NotAvailableOfflineError` offline). The Total
 time modal shows "Needs a connection" in that case. `contracts` is `'all'` or contract IDs; an empty
-list is a zero total.
+list is a zero total. The modal's contract list is `getContractsByClient({ includeSystem: true })`, which adds the system "Deleted Contract" (`system: true`) so it can be ticked like any other.
