@@ -33,5 +33,7 @@ Tiles are procedural one-colour cutouts, a placeholder set the owner may replace
   and rows (`layout/NoteListPanel.svelte` with the repeat on one contract's list, `NoteListRow.svelte`),
   the note editor header (`notes/NoteEditorHeader.svelte`, repeat on desktop/tablet only), linked
   time entries (`notes/LinkedTimeEntries.svelte`), time-entry rows (`weekly/TimeEntryCard.svelte`),
-  search hits (`search/SearchHitRow.svelte`) and the link picker (`search/LinkPicker.svelte`). No
+  search hits (`search/SearchHitRow.svelte`), the link picker (`search/LinkPicker.svelte`) and the
+  Total time modal's breakdown and contract rows (`weekly/TotalTimeResult.svelte`,
+  `weekly/TotalTimeContractList.svelte`, sprint 066-TR). No
   repeats on time-entry rows, search rows or note bodies (DS-04).
