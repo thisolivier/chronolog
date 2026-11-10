@@ -1,8 +1,12 @@
 /**
  * Sprint 065-TT: the week total opens the Total time modal. It starts on the viewed week with every
  * active contract checked; None empties the selection; one contract's total matches the entries
- * seeded here; All time drops the bounds; Escape and Close shut it. On a phone (`@iphone`) the
- * modal fills the window with its header as the top bar. `chronolog total` reads the same totals.
+ * seeded here; All time drops the bounds; Escape and Close shut it. `chronolog total` reads the
+ * same totals.
+ * Sprint 066-TR (approved r1 layout, docs/design/total-time-r1, acceptance A01..A22): desktop is a
+ * bounded two-column modal (result left, Contracts right, the list scrolling inside); a phone
+ * (`@iphone`) gets the full-window results screen with a Contracts row that opens a sheet over the
+ * same live selection (Done and Escape only close it, sheet before modal).
  */
 import { test, expect, type Page } from '@playwright/test';
 import { execFile } from 'node:child_process';
@@ -76,19 +80,54 @@ test('week total opens Total time: defaults, None, one contract, All time, close
 	await expect(page.getByTestId(`total-time-contract-${seed.gammaId}`)).toBeChecked();
 	await expect(page.getByTestId('total-time-value')).toHaveText('2h 15m');
 	await expect(page.getByTestId('total-time-entry-count')).toHaveText('2 entries');
-	// The breakdown starts closed; one tap opens it
-	await expect(page.getByTestId('total-time-row').first()).toBeHidden();
-	await page.getByText('By contract (2)').click();
+	// A01: result and selector side by side; the breakdown starts open (TT-06)
+	const resultBox = (await page.getByTestId('total-time-result').boundingBox())!;
+	const panelBox = (await page.getByTestId('total-time-contracts-panel').boundingBox())!;
+	expect(panelBox.x).toBeGreaterThan(resultBox.x + resultBox.width - 1);
+	expect(panelBox.y).toBeLessThan(resultBox.y + resultBox.height);
+	await expect(page.getByTestId('total-time-contracts-row')).toHaveCount(0);
+	await expect(page.getByTestId('total-time-selected-count')).toHaveText(/^\d+ selected$/);
 	await expect(page.getByTestId('total-time-row')).toHaveCount(2);
 	await expect(page.getByTestId('total-time-row').first()).toBeVisible();
 	await expect(page.getByTestId('total-time-row').first()).toHaveAttribute('data-contract-id', seed.alphaId);
+	// The approved preset order, This week first on the current week
+	const presetKeys = await modal.locator('[data-testid^="total-time-preset-"]').evaluateAll((buttons) => buttons.map((button) => button.getAttribute('data-testid')));
+	expect(presetKeys).toEqual(['total-time-preset-this-week', 'total-time-preset-this-month', 'total-time-preset-this-year', 'total-time-preset-all-time']);
 
-	// None, then just Alpha
+	// A06: None is a dash and "No contracts selected", no stale rows, no fallback to All
 	await page.getByTestId('total-time-select-none').click();
 	await expect(page.getByTestId('total-time-message')).toHaveText('No contracts selected');
-	await page.getByTestId(`total-time-contract-${seed.alphaId}`).check();
+	await expect(page.getByTestId('total-time-value')).toHaveText('–');
+	await expect(page.getByTestId('total-time-row')).toHaveCount(0);
+	await expect(page.getByTestId('total-time-selected-count')).toHaveText('0 selected');
+
+	// A07: a contract with no time in range is a zero, "0 entries", and still counts as selected
+	await page.getByTestId('total-time-inactive').locator('summary').click();
+	await page.getByTestId(`total-time-contract-${seed.gammaId}`).check();
+	await expect(page.getByTestId('total-time-value')).toHaveText('0h');
+	await expect(page.getByTestId('total-time-entry-count')).toHaveText('0 entries');
+	await expect(page.getByTestId('total-time-message')).toHaveText('No time recorded');
+	await expect(page.getByTestId('total-time-selected-count')).toHaveText('1 selected');
+	await expect(page.getByTestId(`total-time-contract-${seed.gammaId}`)).toBeChecked();
+	await page.getByTestId(`total-time-contract-${seed.gammaId}`).uncheck();
+
+	// The whole row is the label: a click on the contract's name ticks it
+	await page.getByTestId('total-time-contracts-panel').getByText('Alpha', { exact: true }).click();
+	await expect(page.getByTestId(`total-time-contract-${seed.alphaId}`)).toBeChecked();
 	await expect(page.getByTestId('total-time-value')).toHaveText('1h 30m');
 	await expect(page.getByTestId('total-time-entry-count')).toHaveText('1 entry');
+
+	// A21: closing By contract sticks across filter updates
+	await page.getByTestId('total-time-breakdown-toggle').click();
+	await expect(page.getByTestId('total-time-breakdown-toggle')).toHaveAttribute('aria-expanded', 'false');
+	await expect(page.getByTestId('total-time-row')).toBeHidden();
+	await page.getByTestId(`total-time-contract-${seed.betaId}`).check();
+	await expect(page.getByTestId('total-time-value')).toHaveText('2h 15m');
+	await expect(page.getByTestId('total-time-breakdown-toggle')).toHaveAttribute('aria-expanded', 'false');
+	await expect(page.getByTestId('total-time-row').first()).toBeHidden();
+	await page.getByTestId('total-time-breakdown-toggle').click();
+	await expect(page.getByTestId('total-time-row')).toHaveCount(2);
+	await page.getByTestId(`total-time-contract-${seed.betaId}`).uncheck();
 
 	// All time: one tap clears both bounds and counts the 2025 entry
 	await page.getByTestId('total-time-preset-all-time').click();
@@ -101,6 +140,21 @@ test('week total opens Total time: defaults, None, one contract, All time, close
 	await page.getByTestId('total-time-from').fill('2024-01-01');
 	await page.getByTestId('total-time-to').fill('2024-12-31');
 	await expect(page.getByTestId('total-time-message')).toHaveText('No time recorded');
+
+	// A09: separate fields with a gap; From after To marks both, keeps the typed values, shows no total
+	const fromBox = (await page.getByTestId('total-time-from').boundingBox())!;
+	const toBox = (await page.getByTestId('total-time-to').boundingBox())!;
+	expect(toBox.x - (fromBox.x + fromBox.width)).toBeGreaterThanOrEqual(8);
+	await page.getByTestId('total-time-from').fill('2024-12-31');
+	await page.getByTestId('total-time-to').fill('2024-01-01');
+	await expect(page.getByTestId('total-time-message')).toHaveText('From is after To');
+	await expect(page.getByTestId('total-time-value')).toHaveText('–');
+	await expect(page.getByTestId('total-time-from')).toHaveAttribute('aria-invalid', 'true');
+	await expect(page.getByTestId('total-time-to')).toHaveAttribute('aria-invalid', 'true');
+	await expect(page.getByTestId('total-time-from')).toHaveValue('2024-12-31');
+	await page.getByTestId('total-time-to').fill('2025-12-31');
+	await expect(page.getByTestId('total-time-from')).not.toHaveAttribute('aria-invalid', 'true');
+	await expect(page.getByTestId('total-time-value')).toHaveText('1h');
 
 	// Close returns focus to the week total; Escape closes too
 	await modal.getByTestId('total-time-close').click();
@@ -165,17 +219,74 @@ test('opened from an earlier week, the viewed week is the default range', async 
 	await page.getByRole('button', { name: 'Previous week' }).click();
 	await page.getByTestId('week-total').click();
 	await expect(page.getByTestId('total-time-preset-viewed-week')).toHaveAttribute('aria-pressed', 'true');
+	// The viewed week leads the quick ranges
+	await expect(page.locator('[data-testid^="total-time-preset-"]').first()).toHaveAttribute('data-testid', 'total-time-preset-viewed-week');
 	await expect(page.getByTestId('total-time-from')).not.toHaveValue(seed.weekStart);
 	await expect(page.getByTestId('total-time-message')).toHaveText('No time recorded');
+	await expect(page.getByTestId('total-time-entry-count')).toHaveText('0 entries');
 	// A backdrop click closes it
 	await page.getByTestId('total-time-backdrop').click({ position: { x: 5, y: 5 } });
 	await expect(page.getByTestId('total-time-modal')).toBeHidden();
 });
 
-test('phone: Total time fills the window with a top bar @iphone', async ({ page, baseURL, isMobile }) => {
+test('a failed total offers Try again and keeps the choices (A18)', async ({ page, baseURL, isMobile }) => {
+	test.skip(isMobile, 'desktop layout');
+	await signInAsFreshUser(page, baseURL, 'total-time-retry');
+	const seed = await seedTotals(page, Date.now().toString(36));
+	await page.route('**/api/time-entries/total**', (route) => route.fulfill({ status: 500, body: '{"error":"boom"}' }));
+	await openTotalTime(page);
+	await expect(page.getByTestId('total-time-message')).toHaveText("Couldn't load the total");
+	await expect(page.getByTestId('total-time-value')).toHaveText('–');
+	await page.getByTestId(`total-time-contract-${seed.betaId}`).uncheck();
+	await expect(page.getByTestId('total-time-retry')).toBeVisible();
+	await page.unroute('**/api/time-entries/total**');
+	await page.getByTestId('total-time-retry').click();
+	await expect(page.getByTestId('total-time-value')).toHaveText('1h 30m');
+	await expect(page.getByTestId(`total-time-contract-${seed.betaId}`)).not.toBeChecked();
+});
+
+test('desktop: a long contract list scrolls inside the bounded modal (A13)', async ({ page, baseURL, isMobile }) => {
+	test.skip(isMobile, 'desktop layout');
+	await page.setViewportSize({ width: 1280, height: 720 });
+	await signInAsFreshUser(page, baseURL, 'total-time-long');
+	await seedTotals(page, Date.now().toString(36), 14);
+	const modal = await openTotalTime(page);
+	await expect(page.getByTestId('total-time-value')).toHaveText('2h 15m');
+
+	const viewport = page.viewportSize()!;
+	const inViewport = async () => {
+		const box = (await modal.boundingBox())!;
+		expect(box.x).toBeGreaterThan(0);
+		expect(box.y).toBeGreaterThan(0);
+		expect(box.x + box.width).toBeLessThan(viewport.width);
+		expect(box.y + box.height).toBeLessThan(viewport.height);
+	};
+	await inViewport();
+	await expect(modal.getByTestId('total-time-close')).toBeInViewport();
+	const scroller = page.getByTestId('total-time-contracts-scroller');
+	expect(await scroller.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
+
+	// Scrolling to the last contract moves only the list: header, dates and total stay put
+	const totalBefore = (await page.getByTestId('total-time-value').boundingBox())!;
+	await page.getByTestId('total-time-inactive').scrollIntoViewIfNeeded();
+	await expect(page.getByTestId('total-time-inactive')).toBeInViewport();
+	expect(await scroller.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+	await inViewport();
+	await expect(modal.getByTestId('total-time-close')).toBeInViewport();
+	await expect(page.getByTestId('total-time-from')).toBeInViewport();
+	expect((await page.getByTestId('total-time-value').boundingBox())!.y).toBeCloseTo(totalBefore.y, 0);
+
+	// A15 across 768px is not tested here: AppShell swaps its phone / desktop branch at that width,
+	// remounting the time entries panel and with it any open modal (pre-existing, outside 066-TR)
+	// Escape with no sheet closes the modal
+	await page.keyboard.press('Escape');
+	await expect(modal).toBeHidden();
+});
+
+test('phone: results screen, then the contract sheet over the same selection @iphone', async ({ page, baseURL, isMobile }) => {
 	test.skip(!isMobile, 'iPhone projects only');
 	await signInAsFreshUser(page, baseURL, 'total-time-phone');
-	// Enough contracts that the list runs well past the screen: the total must still be in view
+	// Enough contracts that the sheet's list runs well past the screen
 	const seed = await seedTotals(page, Date.now().toString(36), 10);
 	const modal = await openTotalTime(page);
 
@@ -195,30 +306,71 @@ test('phone: Total time fills the window with a top bar @iphone', async ({ page,
 	expect(closeBox.height).toBeGreaterThanOrEqual(44);
 
 	await expect(page.getByTestId('total-time-value')).toHaveText('2h 15m');
-	// The total sits under the date range, fully inside the viewport on open (no scrolling)
+	// A02: presets, dates, the Contracts row, the total, By contract, in that order; no checklist here
+	const topOf = async (testId: string) => (await page.getByTestId(testId).first().boundingBox())!.y;
+	const order = [
+		await topOf('total-time-preset-this-week'),
+		await topOf('total-time-from'),
+		await topOf('total-time-contracts-row'),
+		await topOf('total-time-value'),
+		await topOf('total-time-breakdown-toggle')
+	];
+	expect([...order].sort((first, second) => first - second)).toEqual(order);
+	expect(await topOf('total-time-to')).toBeCloseTo(await topOf('total-time-from'), 0);
+	await expect(page.getByTestId('total-time-contract-list')).toHaveCount(0);
+	await expect(page.getByTestId('total-time-contracts-panel')).toHaveCount(0);
 	const totalBox = (await page.getByTestId('total-time-value').boundingBox())!;
-	expect(totalBox.y).toBeGreaterThanOrEqual(0);
-	expect(totalBox.x).toBeGreaterThanOrEqual(0);
 	expect(totalBox.y + totalBox.height).toBeLessThanOrEqual(viewport.height);
-	expect(totalBox.x + totalBox.width).toBeLessThanOrEqual(viewport.width);
-	// All and None are in view on open too (the breakdown is collapsed), and touch-sized
-	for (const testId of ['total-time-select-all', 'total-time-select-none']) {
-		const buttonBox = (await page.getByTestId(testId).boundingBox())!;
-		expect(buttonBox.y, testId).toBeGreaterThan(totalBox.y);
-		expect(buttonBox.y + buttonBox.height, testId).toBeLessThanOrEqual(viewport.height);
-		expect(buttonBox.height, testId).toBeGreaterThanOrEqual(44);
-	}
 	expect((await page.getByTestId('total-time-preset-all-time').boundingBox())!.height).toBeGreaterThanOrEqual(44);
-	await page.getByTestId('total-time-select-none').tap();
-	await page.getByTestId(`total-time-contract-${seed.betaId}`).scrollIntoViewIfNeeded();
-	await page.getByTestId(`total-time-contract-${seed.betaId}`).tap();
-	await page.getByTestId('total-time-value').scrollIntoViewIfNeeded();
-	await expect(page.getByTestId('total-time-value')).toHaveText('45m');
-	// No sideways scroll inside the sheet
-	const overflow = await modal.evaluate((element) => element.scrollWidth - element.clientWidth);
-	expect(overflow).toBeLessThanOrEqual(0);
+	const rowCount = (await page.getByTestId('total-time-contracts-row').textContent())!.match(/(\d+) selected/)![1];
 
-	await modal.getByTestId('total-time-close').tap();
+	// A03: the sheet: All / None in its header, the count only in its footer, Done
+	await page.getByTestId('total-time-contracts-row').tap();
+	const sheet = page.getByTestId('total-time-contract-sheet');
+	await expect(sheet).toBeVisible();
+	await expect(sheet.getByTestId('total-time-selected-count')).toHaveText(`${rowCount} selected`);
+	await expect(sheet.getByText(/\d+ selected/)).toHaveCount(1);
+	await expect(sheet.getByTestId('total-time-sheet-done')).toBeVisible();
+	for (const testId of ['total-time-select-all', 'total-time-select-none', 'total-time-sheet-done']) {
+		expect((await sheet.getByTestId(testId).boundingBox())!.height, testId).toBeGreaterThanOrEqual(44);
+	}
+
+	// Live: None, then Beta, and the total behind the sheet follows
+	await sheet.getByTestId('total-time-select-none').tap();
+	await expect(page.getByTestId('total-time-message')).toHaveText('No contracts selected');
+	await expect(sheet.getByTestId('total-time-selected-count')).toHaveText('0 selected');
+	await sheet.getByTestId(`total-time-contract-${seed.betaId}`).tap();
+	await expect(page.getByTestId('total-time-value')).toHaveText('45m');
+	await expect(sheet.getByTestId('total-time-selected-count')).toHaveText('1 selected');
+
+	// The archived / deleted disclosure is reached by scrolling the sheet; the footer covers nothing
+	const hiddenToggle = sheet.getByTestId('total-time-inactive').locator('summary');
+	await hiddenToggle.scrollIntoViewIfNeeded();
+	await hiddenToggle.tap();
+	const gamma = sheet.getByTestId(`total-time-contract-${seed.gammaId}`);
+	await gamma.scrollIntoViewIfNeeded();
+	await expect(gamma).toBeInViewport();
+	const doneBox = (await sheet.getByTestId('total-time-sheet-done').boundingBox())!;
+	const lastRowBox = (await sheet.getByTestId('total-time-contract-row').last().boundingBox())!;
+	expect(lastRowBox.y + lastRowBox.height).toBeLessThanOrEqual(doneBox.y);
+	// No sideways scroll inside the sheet
+	expect(await sheet.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);
+
+	// Done only closes the sheet: the selection stays applied
+	await sheet.getByTestId('total-time-sheet-done').tap();
+	await expect(sheet).toBeHidden();
+	await expect(modal).toBeVisible();
+	await expect(page.getByTestId('total-time-value')).toHaveText('45m');
+	await expect(page.getByTestId('total-time-contracts-row')).toContainText('1 selected');
+
+	// Escape closes the sheet first, then the modal
+	await page.getByTestId('total-time-contracts-row').tap();
+	await expect(sheet).toBeVisible();
+	await page.keyboard.press('Escape');
+	await expect(sheet).toBeHidden();
+	await expect(modal).toBeVisible();
+	await expect(page.getByTestId('total-time-value')).toHaveText('45m');
+	await page.keyboard.press('Escape');
 	await expect(modal).toBeHidden();
 });
 
