@@ -112,6 +112,12 @@ export function getClientBgClass(colorIndex: number): string {
 	return CLIENT_COLORS[wrappedIndex].bgClass;
 }
 
+/** Returns the text class for headings on the wash (e.g. `text-id-rust-ink`), wrapping for >7. */
+export function getClientWashTextClass(colorIndex: number): string {
+	const wrappedIndex = colorIndex % CLIENT_COLORS.length;
+	return CLIENT_COLORS[wrappedIndex].washTextClass;
+}
+
 /** Returns the text class for initials on the strong colour (e.g. `text-on-accent`), wrapping for >7. */
 export function getClientMarkTextClass(colorIndex: number): string {
 	const wrappedIndex = colorIndex % CLIENT_COLORS.length;

@@ -3,7 +3,9 @@ import {
 	contractStatusLabel,
 	contractsForRequest,
 	hiddenToggleLabel,
-	describeRange,
+	colorIndexByContract,
+	isRangeBackwards,
+	selectedCountLabel,
 	isConnectionFailure,
 	matchingPresetKey,
 	orderContractsForPicker,
@@ -14,14 +16,14 @@ import type { TotalTimeResult } from '$lib/services/types';
 import type { PickerContract } from './total-time';
 
 describe('rangePresets', () => {
-	it('offers all time, the viewed week, this week, month and year', () => {
+	it('offers the viewed week first, then this week, month, year and all time (r1 order)', () => {
 		const presets = rangePresets('2026-11-09', '2026-10-26');
 		expect(presets.map((preset) => [preset.key, preset.label, preset.range.from, preset.range.to])).toEqual([
-			['all-time', 'All time', '', ''],
 			['viewed-week', 'Week 44', '2026-10-26', '2026-11-01'],
 			['this-week', 'This week', '2026-11-09', '2026-11-15'],
 			['this-month', 'This month', '2026-11-01', '2026-11-30'],
-			['this-year', 'This year', '2026-01-01', '2026-12-31']
+			['this-year', 'This year', '2026-01-01', '2026-12-31'],
+			['all-time', 'All time', '', '']
 		]);
 	});
 
@@ -46,12 +48,31 @@ describe('matchingPresetKey', () => {
 	});
 });
 
-describe('describeRange', () => {
-	it('words each kind of bound', () => {
-		expect(describeRange({ from: '', to: '' })).toBe('all time');
-		expect(describeRange({ from: '2026-11-02', to: '2026-11-08' })).toBe('2026-11-02 to 2026-11-08');
-		expect(describeRange({ from: '2026-11-02', to: '' })).toBe('from 2026-11-02');
-		expect(describeRange({ from: '', to: '2026-11-08' })).toBe('up to 2026-11-08');
+describe('isRangeBackwards', () => {
+	it('is true only when both ends are set and From is after To', () => {
+		expect(isRangeBackwards({ from: '2026-11-09', to: '2026-11-01' })).toBe(true);
+		expect(isRangeBackwards({ from: '2026-11-01', to: '2026-11-01' })).toBe(false);
+		expect(isRangeBackwards({ from: '2026-11-09', to: '' })).toBe(false);
+		expect(isRangeBackwards({ from: '', to: '' })).toBe(false);
+	});
+});
+
+describe('selectedCountLabel', () => {
+	it('counts ticked IDs', () => {
+		expect(selectedCountLabel(0)).toBe('0 selected');
+		expect(selectedCountLabel(2)).toBe('2 selected');
+	});
+});
+
+describe('colorIndexByContract', () => {
+	it('maps each contract to its client colour slot', () => {
+		const lookup = colorIndexByContract([
+			{ id: 'a', clientColorIndex: 3 },
+			{ id: 'b', clientColorIndex: 0 }
+		]);
+		expect(lookup.get('a')).toBe(3);
+		expect(lookup.get('b')).toBe(0);
+		expect(lookup.get('missing')).toBeUndefined();
 	});
 });
 

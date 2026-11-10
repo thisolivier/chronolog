@@ -5,6 +5,7 @@ import {
 	getClientDotClass,
 	getClientBgClass,
 	getClientMarkTextClass,
+	getClientWashTextClass,
 	suggestClientColorIndex,
 	findSharedClientColors
 } from './client-colors';
@@ -68,6 +69,13 @@ describe('getClientBgClass', () => {
 
 	it('wraps around for index > 7', () => {
 		expect(getClientBgClass(16)).toBe(getClientBgClass(0));
+	});
+});
+
+describe('getClientWashTextClass', () => {
+	it('returns the ink-on-wash class and wraps', () => {
+		expect(getClientWashTextClass(1)).toBe('text-id-juniper-ink');
+		expect(getClientWashTextClass(9)).toBe(getClientWashTextClass(1));
 	});
 });
 

@@ -1,6 +1,6 @@
 /**
- * Pure helpers for TotalTimeModal (sprint 065-TT): the quick date ranges, which one the current
- * range matches, the contract list order and the result's display state.
+ * Pure helpers for TotalTimeModal (sprint 065-TT, layout r1 in 066-TR): the quick date ranges,
+ * which one the current range matches, the contract list order and the result's display state.
  */
 import { getMondayOfWeek, getSundayOfWeek, isoWeekNumber } from '$lib/utils/iso-week';
 import type { ContractsByClientResult, TotalTimeResult } from '$lib/services/types';
@@ -18,11 +18,15 @@ function lastDayOfMonth(year: number, month: number): number {
 	return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
-/** The quick choices; "Viewed week" only when it is not the current week (it would repeat "This week") */
+/**
+ * The quick choices in the approved order (Total time r1, TT-02): This week, This month, This year,
+ * All time. The viewed week ("Week 44") leads when it is not the current week, since the modal
+ * opens on it from an older week (it would repeat "This week" otherwise).
+ */
 export function rangePresets(todayDate: string, viewedWeekStart: string): RangePreset[] {
 	const [year, month] = todayDate.split('-').map(Number);
 	const thisWeekStart = getMondayOfWeek(todayDate);
-	const presets: RangePreset[] = [{ key: 'all-time', label: 'All time', range: { from: '', to: '' } }];
+	const presets: RangePreset[] = [];
 	if (viewedWeekStart !== thisWeekStart) {
 		presets.push({
 			key: 'viewed-week',
@@ -37,7 +41,8 @@ export function rangePresets(todayDate: string, viewedWeekStart: string): RangeP
 			label: 'This month',
 			range: { from: `${year}-${pad(month)}-01`, to: `${year}-${pad(month)}-${pad(lastDayOfMonth(year, month))}` }
 		},
-		{ key: 'this-year', label: 'This year', range: { from: `${year}-01-01`, to: `${year}-12-31` } }
+		{ key: 'this-year', label: 'This year', range: { from: `${year}-01-01`, to: `${year}-12-31` } },
+		{ key: 'all-time', label: 'All time', range: { from: '', to: '' } }
 	);
 	return presets;
 }
@@ -47,12 +52,19 @@ export function matchingPresetKey(range: DateRange, presets: RangePreset[]): str
 	return presets.find((preset) => preset.range.from === range.from && preset.range.to === range.to)?.key ?? null;
 }
 
-/** The range in words for the result line: `2026-11-02 to 2026-11-08`, `all time`, `from 2026-11-02` */
-export function describeRange(range: DateRange): string {
-	if (!range.from && !range.to) return 'all time';
-	if (!range.to) return `from ${range.from}`;
-	if (!range.from) return `up to ${range.to}`;
-	return `${range.from} to ${range.to}`;
+/** From after To (both set): the result shows no total and both fields are marked (TT-12) */
+export function isRangeBackwards(range: DateRange): boolean {
+	return Boolean(range.from && range.to && range.from > range.to);
+}
+
+/** "1 selected" style count of ticked contract IDs, contracts without time included (TT-09) */
+export function selectedCountLabel(selectedCount: number): string {
+	return `${selectedCount} selected`;
+}
+
+/** The client colour slot of each listed contract, for the breakdown rows' pattern marks */
+export function colorIndexByContract(contracts: Pick<PickerContract, 'id' | 'clientColorIndex'>[]): Map<string, number> {
+	return new Map(contracts.map((contract) => [contract.id, contract.clientColorIndex]));
 }
 
 /** The contracts the modal lists (`GET /api/contracts-by-client?includeArchived=true`) */
@@ -111,7 +123,7 @@ export function totalDisplay(state: {
 	result: TotalTimeResult | null;
 }): TotalDisplay {
 	if (state.selectedCount === 0) return { kind: 'no-contracts' };
-	if (state.range.from && state.range.to && state.range.from > state.range.to) return { kind: 'bad-range' };
+	if (isRangeBackwards(state.range)) return { kind: 'bad-range' };
 	if (state.isLoading || (!state.result && !state.failure)) return { kind: 'loading' };
 	if (state.failure) return { kind: state.failure };
 	if (!state.result || state.result.totalMinutes === 0) return { kind: 'empty' };
