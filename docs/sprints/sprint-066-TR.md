@@ -1,6 +1,6 @@
 # Sprint 066-TR — Total time r1 layout
 
-**Branch:** `total-time-r1` from `main` at `a79a435` (v1.7.0 plus the design pack), worktree `.claude/worktrees/total-time-r1`. **Status:** on the branch, not merged, no version bump. Presentation only ("window dressing", the owner's words): no migration, no API change, no new dependency, nothing in `src-tauri/`, the CLI unchanged.
+**Branch:** `total-time-r1` from `main` at `a79a435` (v1.7.0 plus the design pack), worktree `.claude/worktrees/total-time-r1`. **Status:** merged to `main`, shipped as v1.7.1 on 2026-11-10. Presentation only ("window dressing", the owner's words): no migration, no API change, no new dependency, nothing in `src-tauri/`, the CLI unchanged.
 
 ## Goal
 

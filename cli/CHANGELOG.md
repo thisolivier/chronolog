@@ -4,7 +4,7 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 `chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
 030, 033 and 035 changed nothing in the CLI and are not listed.
 
-## Unreleased (sprint 066-TR): Total time layout
+## 1.7.1 (sprint 066-TR, 2026-11-10): Total time layout
 
 - The app's Total time window gets the approved r1 layout (two columns on desktop, a contract sheet
   on a phone). The CLI is unchanged (`chronolog total` reads the same endpoint, same output); no API
