@@ -1,0 +1,737 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Chronolog · Total time · Engineering handoff</title><style>
+:root { color-scheme: light; --paper:#fcfaf5; --ink:#292820; --pine:#174b32; --bark:#634733; --rule:#d7d0c3; }
+* {box-sizing:border-box} html {scroll-behavior:smooth} body {margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.masthead {background:var(--bark);color:#fff;padding:28px max(24px,calc((100vw - 1140px)/2));} .masthead p {margin:0;font-size:13px;letter-spacing:.05em;text-transform:uppercase}.masthead strong {display:block;font-size:28px;font-weight:650}
+.layout {max-width:1200px;margin:auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:42px;padding:32px 30px 80px} nav {position:sticky;top:24px;align-self:start;font-size:14px} nav a {display:block;padding:8px 0}nav small {display:block;color:#726b60;margin-top:20px}
+main {min-width:0} h1 {font-size:30px;line-height:1.2;color:var(--pine);margin:0 0 18px}h2 {font-size:23px;color:var(--pine);line-height:1.3;margin:40px 0 16px}h3 {font-size:18px;margin:28px 0 12px;line-height:1.4}p,ul,ol {margin:12px 0 18px}li {margin:5px 0}a {color:var(--pine);text-underline-offset:3px}a:hover {color:var(--bark)}section {scroll-margin-top:24px;margin-bottom:60px}section+section {padding-top:40px;border-top:2px solid var(--rule)}
+table {width:100%;border-collapse:collapse;font-size:14px;margin:20px 0 28px;display:block;overflow-x:auto}th,td {text-align:left;vertical-align:top;padding:12px;border-bottom:1px solid var(--rule)}th {background:#e9ecdf;font-weight:650}code {background:#ece9df;padding:2px 5px;border-radius:3px;overflow-wrap:anywhere}
+figure {margin:24px 0 30px;text-align:center;background:#f0ede5;padding:16px;border:1px solid var(--rule)}figure img {max-width:100%;max-height:680px;width:auto;height:auto;display:block;margin:auto}figcaption {font-size:13px;color:#645c50;margin-top:10px}footer {font-size:13px;color:#726b60;border-top:1px solid var(--rule);padding-top:22px}
+@media(max-width:800px){.layout {display:block;padding:24px 18px}nav {position:static;display:flex;flex-wrap:wrap;gap:5px 18px;border-bottom:1px solid var(--rule);padding-bottom:20px;margin-bottom:30px}nav small {width:100%;margin-top:5px}h1{font-size:26px}figure{padding:8px}th,td {padding:9px} }
+@media print {.masthead{background:white;color:var(--ink);padding:0 0 20px}nav{display:none}.layout{display:block;padding:0}body{font-size:10pt}section{break-before:page}section:first-child{break-before:auto}h2,h3{break-after:avoid}figure{break-inside:avoid}figure img{max-height:640px}a{color:inherit} }
+</style></head><body><header class="masthead"><p>Engineering handoff · Revision 1 · 10 November 2026</p><strong>Chronolog / Total time</strong></header><div class="layout"><nav aria-label="Document sections"><a href="#overview">Overview</a><a href="#specification">UI specification</a><a href="#acceptance">Acceptance checks</a><a href="#images">Image guide</a><a href="#verification">File verification</a><small>Offline reader<br>Markdown and original images included.</small></nav><main><section id="overview"><h1 id="overview-chronolog--total-time">Chronolog · Total time</h1>
+<p><strong>Engineering handoff · Revision 1 · 10 November
+2026</strong></p>
+<p>This is a focused UI specification for the existing Total time
+screen. Routing and the MVP already exist. The owner approved the second
+mobile draft and the desktop adaptation shown in this bundle.</p>
+<p>Open <a href="index.html">index.html</a> to read the illustrated pack
+offline, or use the Markdown sources:</p>
+<ul>
+<li><a href="total-time.md">UI specification</a> — layouts, interaction,
+responsive behaviour and supporting states.</li>
+<li><a href="acceptance.md">Acceptance checks</a> — implementation
+verification and source-dependent checks.</li>
+<li><a href="images/README.md">Image guide</a> — original renders, panel
+crops and limits of the visual references.</li>
+<li><a href="validation.md">File verification</a> — image provenance,
+crop fidelity and package checks.</li>
+</ul>
+<h2 id="overview-contents-and-authority">Contents and authority</h2>
+<p>Both approved renders are preserved unchanged in
+<strong>images/raw/</strong>. The specification embeds
+whole-screen/widget crops from <strong>images/crops/</strong>. Crop
+rectangles and checksums are recorded in
+<strong>images/manifest.json</strong>.</p>
+<p>The written specification defines behaviour. The renders define
+visual composition; their sample data, incidental backgrounds and pixel
+dimensions are not production data or a new token system. Use the app's
+existing colours, assigned contract patterns, components and
+terminology.</p>
+<p>The approval evidence in the conversation is:</p>
+<ul>
+<li>Mobile: “Love the second draft.”</li>
+<li>Desktop: “Perfect, write up a spec for the engineers with the images
+and zip it up.”</li>
+</ul>
+<p>This pack carries those approved designs forward. Supporting edge
+states and accessibility details are labelled engineering requirements;
+they were not separately rendered. Existing calculation, date, selection
+and persistence semantics must be checked in source and retained where
+this UI work does not explicitly change presentation.</p>
+<h2 id="overview-scope">Scope</h2>
+<p>Implement the approved responsive presentation for Total time and its
+contract selector. Preserve the existing route, totals calculation, date
+presets, multi-selection and archived/deleted access. No app source was
+supplied for this handoff, so component filenames, exact breakpoints and
+existing query behaviour have not been verified.</p>
+<p>The previous broader Chronolog reskin is reported as implemented.
+This is an additive specification for this screen, not a revision of
+that entire handoff.</p>
+</section><section id="specification"><h1 id="specification-total-time--ui-specification">Total time — UI
+specification</h1>
+<p><strong>Status:</strong> approved mobile and desktop design
+direction. Behaviour below consolidates the approved explanation;
+supporting states and integration details are engineering
+requirements.</p>
+<h2 id="specification-1-purpose-and-scope">1. Purpose and scope</h2>
+<p>Show the total logged time and entry count for a chosen date range
+and set of contracts, with a per-contract breakdown. Keep the result
+prominent and the controls compact. Reuse the existing Total time route
+and data/calculation model.</p>
+<p>The shared state consists of the date range, selected contract IDs,
+existing preset state, breakdown disclosure and archived/deleted
+disclosure. Mobile and desktop present the same selection and result;
+opening a mobile picker must not create a separate copy waiting for
+Apply.</p>
+<p>Preserve existing initial selections, date defaults and
+reopening/persistence behaviour. The sample below does not require two
+particular contracts to be selected by default.</p>
+<h2 id="specification-2-desktop-layout">2. Desktop layout</h2>
+<figure><a href="images/crops/desktop-modal.png" title="Open full-size panel"><img src="images/crops/desktop-modal.png"
+alt="Approved complete desktop modal" /></a><figcaption>Approved complete desktop modal · click for full size</figcaption></figure>
+<p>Full source: <a
+href="images/raw/desktop-approved.png">desktop-approved.png</a>.</p>
+<h3 id="specification-tt-01--centred-modal">TT-01 · Centred modal</h3>
+<p>Retain the centred modal over the dimmed Time Entries screen. Give it
+a bounded width and height, with visible margins around it. It must fit
+the available viewport rather than grow with the entire contract
+list.</p>
+<p>Use the compact bark-coloured header: <strong>Total time</strong> on
+the left and <strong>Close</strong> on the right. The modal contains one
+close action. Do not add a Save, Apply, Done or Cancel footer.</p>
+<h3 id="specification-tt-02--shared-date-toolbar">TT-02 · Shared date
+toolbar</h3>
+<p>Place the four presets on the left and the labelled From/To fields on
+the right in one compact toolbar below the title. A thin horizontal rule
+separates it from the content.</p>
+<p>Preset order follows the approved treatment: <strong>This week, This
+month, This year, All time</strong>. The active preset has the existing
+pine/selected treatment. From and To are separate outlined controls with
+a visible gap; their borders must not touch or overlap. Both endpoints
+remain directly editable.</p>
+<p>The screenshots use “9 Nov 2026” and “15 Nov 2026”. Preserve the
+app's established date picker/parsing and locale behaviour; the design
+does not require replacing the native input implementation.</p>
+<h3 id="specification-tt-03--result-and-selector-side-by-side">TT-03 ·
+Result and selector side by side</h3>
+<p>Use two columns, separated by a quiet vertical rule:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Left: result</th>
+<th>Right: contract selection</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Prominent total, entry count and expanded By contract section</td>
+<td>Contracts heading, selection count, All/None and client-grouped
+checkbox list</td>
+</tr>
+<tr class="even">
+<td>Flexible width for readable contract names and aligned
+durations</td>
+<td>Enough width for names, subtitles and consistently aligned
+checkboxes</td>
+</tr>
+<tr class="odd">
+<td>No duplicate Contracts filter button</td>
+<td>No Done/Apply action; changes are live</td>
+</tr>
+</tbody>
+</table>
+<p>The approved raster is a composition reference, not an exact
+percentage split. Keep the modal header and date toolbar accessible. The
+contract list scrolls independently without moving the total. If a long
+breakdown also exceeds the available height, scroll its rows within the
+result area while preserving the total/count and column header.</p>
+<h2 id="specification-3-mobile-layout">3. Mobile layout</h2>
+<figure><a href="images/crops/mobile-results.png" title="Open full-size panel"><img src="images/crops/mobile-results.png"
+alt="Approved complete mobile results screen" /></a><figcaption>Approved complete mobile results screen · click for full size</figcaption></figure>
+<p>Full source: <a
+href="images/raw/mobile-approved.png">mobile-approved.png</a>.</p>
+<h3 id="specification-tt-04--main-results-screen">TT-04 · Main results
+screen</h3>
+<p>Use the existing full-width mobile presentation and Close navigation.
+Keep the header compact, respecting the top safe area. Avoid the MVP's
+oversized empty header region.</p>
+<p>Content order:</p>
+<ol type="1">
+<li>Preset row.</li>
+<li>From/To date fields, side by side with a clear gap.</li>
+<li>One <strong>Contracts · N selected</strong> row with filter icon and
+disclosure.</li>
+<li>Prominent total and entry count.</li>
+<li>By contract disclosure and result rows.</li>
+</ol>
+<p>Do not repeat the date range as a long ISO-formatted caption above
+the total. The date inputs already supply that context. Do not place the
+full selection checklist under the results.</p>
+<p>Allow the main page to scroll for a long breakdown; do not require
+the hero total to occupy a permanently fixed portion of a small phone
+viewport.</p>
+<h3 id="specification-tt-05--mobile-contract-sheet">TT-05 · Mobile
+contract sheet</h3>
+<figure><a href="images/crops/mobile-contract-sheet.png" title="Open full-size panel"><img src="images/crops/mobile-contract-sheet.png"
+alt="Approved complete mobile contract sheet" /></a><figcaption>Approved complete mobile contract sheet · click for full size</figcaption></figure>
+<p>Full source: <a
+href="images/raw/mobile-approved.png">mobile-approved.png</a>.</p>
+<p>Tapping Contracts opens a tall sheet above the dimmed results screen.
+Use the same grouped selection component and state as desktop.</p>
+<ul>
+<li>Sheet header: <strong>Contracts</strong>, with small
+<strong>All</strong> and <strong>None</strong> text actions.</li>
+<li>Body: scrollable client groups and contract rows.</li>
+<li>Anchored footer: <strong>N selected</strong> on the left and
+<strong>Done</strong> on the right.</li>
+<li>The selected count appears once inside the sheet, in its footer; do
+not repeat it beneath the sheet title.</li>
+<li>Respect the bottom safe area. Reserve space for the footer so it
+never covers the final row.</li>
+</ul>
+<p>Selections update the underlying result immediately. <strong>Done
+only closes the sheet</strong>. Other supported sheet dismissals have
+the same selection-retention semantics; dismissal does not roll back
+changes. Close on the main screen exits Total time through its existing
+navigation.</p>
+<p>The mobile reference shows only part of the available client list.
+Virgin Media O2 and the archived/deleted disclosure must remain
+reachable by scrolling; they are not removed because they fall outside
+that crop.</p>
+<h2 id="specification-4-shared-result-treatment">4. Shared result
+treatment</h2>
+<h3 id="specification-tt-06--total-and-breakdown">TT-06 · Total and
+breakdown</h3>
+<p>Use bold pine typography for the total, with a quieter entry count
+directly below. Format duration using the app's existing duration
+formatter; do not introduce decimal-hour conversion or new rounding
+rules.</p>
+<p>The <strong>By contract</strong> section is expanded by default when
+results are first presented, and retains its disclosure affordance. Once
+the user toggles it during the open session, filter updates should not
+force it open again.</p>
+<p>Each row contains:</p>
+<ul>
+<li>The contract's existing pattern mark.</li>
+<li>The readable contract name as the primary label.</li>
+<li>Smaller client/contract context where useful.</li>
+<li>Duration aligned to the right.</li>
+</ul>
+<p>Use thin separators, without a padded card around every result. Names
+may wrap; durations must remain readable without colliding with text.
+The sample order is not a new sorting specification: retain the current
+breakdown ordering unless it prevents a coherent existing rule.</p>
+<h3 id="specification-tt-07--sample-data-is-illustrative">TT-07 · Sample
+data is illustrative</h3>
+<p>Both approved renders use the same filtered example:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Contract</th>
+<th>Duration</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>National Debt Relief Onboarding</td>
+<td>1h 1m</td>
+</tr>
+<tr class="even">
+<td>Daily Pay Onboarding 2026</td>
+<td>52m</td>
+</tr>
+<tr class="odd">
+<td><strong>Total</strong></td>
+<td><strong>1h 53m</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The combined count is <strong>5 entries</strong>. No per-contract
+entry counts were supplied. These figures demonstrate layout; they are
+not defaults or hard-coded application data.</p>
+<h2 id="specification-5-contract-selector">5. Contract selector</h2>
+<h3 id="specification-tt-08--grouping-identity-and-selection">TT-08 ·
+Grouping, identity and selection</h3>
+<p>Group contracts by client. Use the established client-colour tint for
+each group, with readable client headings. Do not repeat a client short
+code plus its full name, or add a decorative dot beside the heading.</p>
+<p>Rows have the contract pattern at left, name/context in the middle
+and checkbox at the far right. Make the whole row a usable selection
+target while retaining a real labelled checkbox for keyboard and
+assistive technology.</p>
+<p>Selected rows reveal the standard chalk background within the tinted
+client group. Checkboxes use the existing selected control style rather
+than browser-default bright blue. Unselected rows retain the group's
+tint.</p>
+<p>Reuse each contract's <strong>current assigned pattern and client
+colour</strong>. The generative render's illustrative motif mappings
+must not reassign production identities.</p>
+<p>Use existing display-name logic where available. The illustrated
+split into “Hungryroot” and “Onboarding 2026” is presentation, not a new
+data field. Do not hard-code names or split arbitrary strings by brittle
+rules; wrapping the actual contract name is preferable when no reliable
+short label exists. Avoid redundant subtitles, such as repeating
+“Onboarding” beneath Native App Onboarding or adding it to CCX
+Internal.</p>
+<h3 id="specification-tt-09--counts-and-bulk-selection">TT-09 · Counts
+and bulk selection</h3>
+<p>Show <strong>N selected</strong> based on the selected contract IDs,
+including selected contracts with no entries in the current range. It is
+not the count of contributing rows in the breakdown.</p>
+<p>All/None reuse the existing bulk-selection scope and behaviour. The
+scope of archived/deleted inclusion must be confirmed in source; this
+reskin must not silently broaden or narrow it. Changing the date range
+does not clear contract choices.</p>
+<p>Use live updates throughout. There is no pending filter transaction
+and no Apply/Save step.</p>
+<h3 id="specification-tt-10--archived-and-deleted-contracts">TT-10 ·
+Archived and deleted contracts</h3>
+<p>Retain <strong>Show archived and deleted (N)</strong> as a collapsed
+disclosure after the active groups. The rendered 17 is sample data;
+calculate the label from the existing model.</p>
+<p>Expanding the section reveals the existing eligible historical
+contracts. Selecting them filters their existing time records; it does
+not restore, unarchive or modify the contracts. Closing the disclosure
+must not silently deselect hidden checked rows. Preserve whatever
+distinguishing archived/deleted labels the current implementation
+provides.</p>
+<h2 id="specification-6-date-and-filtering-behaviour">6. Date and
+filtering behaviour</h2>
+<h3 id="specification-tt-11--preserve-existing-range-semantics">TT-11 ·
+Preserve existing range semantics</h3>
+<p>Reuse current definitions of This week, This month, This year and All
+time, including timezone, inclusivity, week start and historical bounds.
+The preset sets the existing date state. Manual edits update that same
+state; the active preset indication must remain accurate rather than
+claiming This week after the range no longer matches it.</p>
+<p>Do not create an ISO/calendar-week change, new time-entry inclusion
+rule or different treatment of running entries as part of this UI pass.
+Confirm those semantics against the implementation.</p>
+<p>Once a valid range/selection is available, use the existing update
+mechanism to refresh the total, count and breakdown together. Preserve
+ordinary date-input editing states; do not repeatedly query with
+partially typed invalid dates.</p>
+<h3 id="specification-tt-12--supporting-states">TT-12 · Supporting
+states</h3>
+<p>These are engineering requirements to make the approved layout
+complete; they were not separately rendered.</p>
+<table>
+<thead>
+<tr class="header">
+<th>State</th>
+<th>Result area</th>
+<th>Controls</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>No contracts selected</td>
+<td>Show the MVP's dash and <strong>No contracts selected</strong>; no
+stale breakdown</td>
+<td>Keep dates and selector usable; do not silently fall back to
+All</td>
+</tr>
+<tr class="even">
+<td>Selected contracts, no matching entries</td>
+<td>Show a zero duration using the existing formatter, <strong>0
+entries</strong>, and a concise no-entries message</td>
+<td>Preserve the selected contracts and range</td>
+</tr>
+<tr class="odd">
+<td>Invalid/incomplete date range</td>
+<td>Identify the affected field(s); do not show an old total as the
+result of the invalid range</td>
+<td>Preserve typed values for correction; no automatic swap of
+endpoints</td>
+</tr>
+<tr class="even">
+<td>Loading, if retrieval is asynchronous</td>
+<td>Indicate updating without presenting stale data as current or
+flashing a false zero</td>
+<td>Keep layout stable; use the existing loading strategy</td>
+</tr>
+<tr class="odd">
+<td>Retrieval failure</td>
+<td>Show an inline failure/retry state; preserve the last entered
+filters</td>
+<td>Do not reset selection or fabricate totals</td>
+</tr>
+<tr class="even">
+<td>Rapid filter changes</td>
+<td>Display only the result for the latest valid filter state</td>
+<td>Ignore outdated asynchronous responses</td>
+</tr>
+</tbody>
+</table>
+<p>Distinguish <strong>no selection</strong> from <strong>a valid
+selection with no time</strong>.</p>
+<h2 id="specification-7-responsive-and-interaction-requirements">7.
+Responsive and interaction requirements</h2>
+<h3 id="specification-tt-13--layout-transition">TT-13 · Layout
+transition</h3>
+<p>Use a content-fit breakpoint consistent with the app's existing
+responsive system. Do not infer an exact CSS threshold from the PNG
+dimensions.</p>
+<p>When there is enough width/height, use the desktop modal with two
+columns. At narrow widths, use the mobile result layout and sheet
+selector. Short desktop windows retain internal scrolling rather than
+cropping controls or forcing a fullscreen desktop presentation.</p>
+<p>A resize must retain the current range, selected IDs and results. If
+the picker was open and the layout becomes wide, the same selection is
+available in the desktop column. Returning narrow must not create
+conflicting selector state or duplicate overlays. Exact focus transfer
+is an engineering detail.</p>
+<h3 id="specification-tt-14--accessibility-and-focus">TT-14 ·
+Accessibility and focus</h3>
+<p>Reuse the app's dialog/sheet primitives where possible. Keep focus
+within the active overlay, return focus to its trigger on dismissal,
+provide a clear accessible dialog name and keep keyboard focus
+visible.</p>
+<p>Checkbox labels include the full meaningful contract name. Space
+toggles the focused checkbox. Date inputs retain visible labels. The
+All/None and disclosure controls remain keyboard reachable. When a date
+popup or sheet is open, Escape dismisses the innermost overlay first
+rather than unexpectedly exiting the entire screen.</p>
+<p>Respect safe areas, zoom and increased text size. Do not rely on
+colour/pattern alone to identify selection; readable names and
+checkboxes remain present.</p>
+<h2 id="specification-8-visual-implementation-boundaries">8. Visual
+implementation boundaries</h2>
+<p>Use the existing implemented Chronolog typography, spacing, controls
+and colour tokens. The approved composition is compact, warm and
+graphic, with a prominent result and quieter controls.</p>
+<p>The PNGs are not CSS measurements, production pattern assets or a
+requirement to recreate their incidental app background. The desktop
+render's background totals and names are illustrative. Implement this
+Total time surface; no unrelated shell, routing, data-model or timesheet
+changes are specified.</p>
+</section><section id="acceptance"><h1 id="acceptance-acceptance-and-integration">Acceptance and
+integration</h1>
+<p><strong>No application tests have been run for this handoff.</strong>
+These are checks for the engineering implementation.</p>
+<h2 id="acceptance-verify-against-the-existing-code">Verify against the
+existing code</h2>
+<p>The screen already has routing and an MVP. Inspect these details
+before changing them:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Area</th>
+<th>Preserve / establish</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Range semantics</td>
+<td>Inclusive/exclusive dates, timezone, preset definitions, All time
+bounds and date input parser</td>
+</tr>
+<tr class="even">
+<td>Calculation</td>
+<td>Entry eligibility, running-entry handling, duration
+precision/rounding and breakdown ordering</td>
+</tr>
+<tr class="odd">
+<td>Selection</td>
+<td>Existing initial defaults, bulk All/None scope, hidden historical
+selections and reopening persistence</td>
+</tr>
+<tr class="even">
+<td>History</td>
+<td>Archived/deleted record availability and labels; disclosure count
+calculation</td>
+</tr>
+<tr class="odd">
+<td>Identity</td>
+<td>Actual client colours, contract-pattern assignments and safe
+display-name formatting</td>
+</tr>
+<tr class="even">
+<td>UI integration</td>
+<td>Existing modal/sheet primitives, breakpoints, focus/keyboard
+conventions and asynchronous loading strategy</td>
+</tr>
+</tbody>
+</table>
+<p>No new API, component library or data schema is prescribed. The live
+filter state should be shared across desktop and mobile
+presentations.</p>
+<h2 id="acceptance-acceptance-checklist">Acceptance checklist</h2>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Scenario</th>
+<th>Pass condition</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>A01</td>
+<td>Open on desktop</td>
+<td>Centred bounded modal; compact title/date toolbar; result and
+selector visible together</td>
+</tr>
+<tr class="even">
+<td>A02</td>
+<td>Open on mobile</td>
+<td>Compact header, presets, separated date fields, Contracts row,
+total/count and breakdown in that order</td>
+</tr>
+<tr class="odd">
+<td>A03</td>
+<td>Open the mobile selector</td>
+<td>Client-grouped sheet; scrollable list; pinned count/Done footer; no
+duplicate selection count inside sheet</td>
+</tr>
+<tr class="even">
+<td>A04</td>
+<td>Toggle Daily Pay and National Debt Relief</td>
+<td>Both layouts show the same selected IDs and recompute
+total/count/breakdown together</td>
+</tr>
+<tr class="odd">
+<td>A05</td>
+<td>Close the mobile sheet with Done or supported dismissal</td>
+<td>Selection remains applied; no Save/Apply transaction or
+rollback</td>
+</tr>
+<tr class="even">
+<td>A06</td>
+<td>Clear all selection</td>
+<td>Dash and No contracts selected; stale rows disappear; no automatic
+All fallback</td>
+</tr>
+<tr class="odd">
+<td>A07</td>
+<td>Select a contract with no entries in range</td>
+<td>Zero result and 0 entries; contract remains selected and included in
+N selected</td>
+</tr>
+<tr class="even">
+<td>A08</td>
+<td>Choose each date preset</td>
+<td>Existing range semantics retained; active preset indicator and date
+controls agree</td>
+</tr>
+<tr class="odd">
+<td>A09</td>
+<td>Edit the dates</td>
+<td>Both endpoints editable; clear gap; no overlapping borders; invalid
+states preserve input</td>
+</tr>
+<tr class="even">
+<td>A10</td>
+<td>Rapidly change filters</td>
+<td>Latest state wins; obsolete responses cannot overwrite current
+results</td>
+</tr>
+<tr class="odd">
+<td>A11</td>
+<td>Use All/None with historical section expanded/collapsed</td>
+<td>Existing intended scope retained; disclosure visibility alone does
+not clear checked rows</td>
+</tr>
+<tr class="even">
+<td>A12</td>
+<td>Select archived/deleted contracts</td>
+<td>Existing historical time can be included; contract lifecycle state
+is unchanged</td>
+</tr>
+<tr class="odd">
+<td>A13</td>
+<td>Scroll a long desktop contract list</td>
+<td>Header/date controls and result summary stay visible; no page-height
+growth</td>
+</tr>
+<tr class="even">
+<td>A14</td>
+<td>Scroll a long breakdown</td>
+<td>Rows remain usable without displacing the desktop total/count or
+hiding modal controls</td>
+</tr>
+<tr class="odd">
+<td>A15</td>
+<td>Resize between wide and narrow</td>
+<td>Dates, selection and results persist; no duplicate selector state or
+overlays</td>
+</tr>
+<tr class="even">
+<td>A16</td>
+<td>Keyboard and assistive technology</td>
+<td>Modal name, full checkbox labels, visible focus, logical order and
+focus return work</td>
+</tr>
+<tr class="odd">
+<td>A17</td>
+<td>Long names / increased text size</td>
+<td>Text wraps without colliding with checkboxes/durations or making
+controls unreachable</td>
+</tr>
+<tr class="even">
+<td>A18</td>
+<td>Load failure / loading</td>
+<td>Filter choices remain; no false zero or stale result presented as
+current; recoverable failure</td>
+</tr>
+<tr class="odd">
+<td>A19</td>
+<td>Pattern/colour review</td>
+<td>Existing production identities reused; selection remains obvious
+from checkboxes and labels</td>
+</tr>
+<tr class="even">
+<td>A20</td>
+<td>Use approved sample fixture</td>
+<td>61m + 52m = 113m (1h 53m), combined count 5; no invented
+per-contract count</td>
+</tr>
+<tr class="odd">
+<td>A21</td>
+<td>Toggle By contract</td>
+<td>Starts expanded for results; user collapse is respected across
+filter updates in the session</td>
+</tr>
+<tr class="even">
+<td>A22</td>
+<td>Exit Total time</td>
+<td>Existing Close navigation works; no new save/discard behaviour or
+unrelated state mutation</td>
+</tr>
+</tbody>
+</table>
+<h2 id="acceptance-deliverable-verification">Deliverable
+verification</h2>
+<p>The bundle preserves the two approved raw renders and three direct
+panel crops. Source hashes, crop rectangles and link/integrity checks
+are recorded with the images and validation report. These checks
+validate the handoff files, not the application.</p>
+</section><section id="images"><h1 id="images-image-guide">Image guide</h1>
+<h2 id="images-approved-full-renders">Approved full renders</h2>
+<table>
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a
+href="images/raw/mobile-approved.png">mobile-approved.png</a></td>
+<td>Approved second mobile draft, showing results and the contract
+sheet</td>
+</tr>
+<tr class="even">
+<td><a
+href="images/raw/desktop-approved.png">desktop-approved.png</a></td>
+<td>Approved desktop adaptation, with result and selector side by
+side</td>
+</tr>
+</tbody>
+</table>
+<p>These raw files are unchanged copies of the generated renders. No
+earlier rejected drafts are included.</p>
+<h2 id="images-whole-panel-crops">Whole-panel crops</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Crop</th>
+<th>Source</th>
+<th>Bounds: left, top, right, bottom</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a
+href="images/crops/mobile-results.png">mobile-results.png</a></td>
+<td>mobile-approved.png</td>
+<td>66, 58, 623, 1181</td>
+</tr>
+<tr class="even">
+<td><a
+href="images/crops/mobile-contract-sheet.png">mobile-contract-sheet.png</a></td>
+<td>mobile-approved.png</td>
+<td>692, 393, 1243, 1181</td>
+</tr>
+<tr class="odd">
+<td><a href="images/crops/desktop-modal.png">desktop-modal.png</a></td>
+<td>desktop-approved.png</td>
+<td>250, 139, 1288, 927</td>
+</tr>
+</tbody>
+</table>
+<p>Coordinates refer to original image pixels. Left/top are inclusive;
+right/bottom are exclusive. Crops are not resized or retouched. Full
+provenance and checksums: <a
+href="images/manifest.json">manifest.json</a>.</p>
+<h2 id="images-interpretation">Interpretation</h2>
+<ul>
+<li>Reuse actual assigned contract patterns and client colours; do not
+replace them with motifs extracted from these rasters.</li>
+<li>Dates, totals, counts and visible contracts are illustrative.</li>
+<li>The mobile crop ends before some historical/other-client content;
+keep the full existing list and archived/deleted disclosure available by
+scrolling.</li>
+<li>Desktop background UI is incidental context, not part of this
+change.</li>
+<li>Exact font sizes, spacing and breakpoints come from the implemented
+app's system and actual layout fit, not screenshot pixels.</li>
+</ul>
+<p>The <a href="total-time.md">written specification</a> defines
+behaviour where a still image cannot.</p>
+</section><section id="verification"><h1 id="verification-file-verification">File verification</h1>
+<p><strong>Revision 1 · 10 November 2026</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Check</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Approved source images</td>
+<td>Two raw PNGs match their original generated files byte for byte;
+SHA-256 hashes are in the image manifest</td>
+</tr>
+<tr class="even">
+<td>Panel crops</td>
+<td>Three crops match the corresponding source rectangles pixel for
+pixel, without resizing or retouching</td>
+</tr>
+<tr class="odd">
+<td>Image decoding</td>
+<td>All five PNGs decode completely</td>
+</tr>
+<tr class="even">
+<td>Visual review</td>
+<td>Desktop modal, mobile results screen and mobile contract sheet crops
+reviewed; whole panels and their controls are included</td>
+</tr>
+<tr class="odd">
+<td>Requirements</td>
+<td>14 unique UI requirement IDs and 22 unique acceptance-check IDs</td>
+</tr>
+<tr class="even">
+<td>Sample arithmetic</td>
+<td>61m + 52m = 113m = 1h 53m; count of 5 is illustrative supplied
+sample data</td>
+</tr>
+<tr class="odd">
+<td>Document links</td>
+<td>All local Markdown/HTML references resolve; internal HTML anchors
+exist and are unique</td>
+</tr>
+<tr class="even">
+<td>Offline reader</td>
+<td>One HTML reading copy with embedded CSS; no remote resource
+dependencies</td>
+</tr>
+<tr class="odd">
+<td>Package integrity</td>
+<td>ZIP CRC and byte-for-byte correspondence of every archive entry
+checked after packaging</td>
+</tr>
+</tbody>
+</table>
+<p>The PNGs are composition references, not production assets. The
+offline reader was checked structurally; no browser rendering test or
+application test was performed. No app source was available. The
+engineering acceptance checklist is prospective, not a report of
+implemented behaviour.</p>
+<p>See <a href="images/manifest.json">image provenance</a>, <a
+href="total-time.md">UI specification</a> and <a
+href="acceptance.md">acceptance checks</a>. <code>SHA256SUMS.txt</code>
+records the bundle files except itself.</p>
+</section><footer>Design handoff only. Application implementation and testing remain with engineering.</footer></main></div></body></html>

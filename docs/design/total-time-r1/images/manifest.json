@@ -1,0 +1,67 @@
+{
+  "revision": 1,
+  "date": "2026-11-10",
+  "raw": [
+    {
+      "file": "images/raw/mobile-approved.png",
+      "original_filename": "exec-3c7e200f-1c73-4bd4-ad8f-9374cab2b19b.png",
+      "size_px": [
+        1312,
+        1199
+      ],
+      "sha256": "1913a48c48d5592f78dc0e925c6e2809b063ccad7be570d9cb85f4fafc6d13b0",
+      "status": "Approved second mobile draft: main results and selection sheet"
+    },
+    {
+      "file": "images/raw/desktop-approved.png",
+      "original_filename": "exec-220a2c8b-5557-4439-b1c0-5367791b8a41.png",
+      "size_px": [
+        1536,
+        1024
+      ],
+      "sha256": "41476e7d98295f5c999a7de9804a96594fd37121169d8b0aae489101eb966639",
+      "status": "Approved desktop treatment: result and selection side by side"
+    }
+  ],
+  "crops": [
+    {
+      "file": "images/crops/mobile-results.png",
+      "source": "images/raw/mobile-approved.png",
+      "box_px": [
+        66,
+        58,
+        623,
+        1181
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "description": "Complete main mobile screen",
+      "sha256": "fb0e23c876e5ecaaadb53e0c12d72a518775605b058362225bd4e9fdd7fb9dce"
+    },
+    {
+      "file": "images/crops/mobile-contract-sheet.png",
+      "source": "images/raw/mobile-approved.png",
+      "box_px": [
+        692,
+        393,
+        1243,
+        1181
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "description": "Complete contract sheet including footer and safe area",
+      "sha256": "00386f31a7e35371c5b3a8dbf38e692566f1c8a1957627526f8e12b8717fac98"
+    },
+    {
+      "file": "images/crops/desktop-modal.png",
+      "source": "images/raw/desktop-approved.png",
+      "box_px": [
+        250,
+        139,
+        1288,
+        927
+      ],
+      "coordinate_convention": "left/top inclusive; right/bottom exclusive",
+      "description": "Complete centred desktop modal",
+      "sha256": "b9b2938d3cecb01c1dc93e15e95b3889239ae0816503cf1ac723934841d53bae"
+    }
+  ]
+}
