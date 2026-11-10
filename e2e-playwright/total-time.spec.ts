@@ -374,6 +374,63 @@ test('phone: results screen, then the contract sheet over the same selection @ip
 	await expect(modal).toBeHidden();
 });
 
+/** Opens Total time on the previous week, so the fifth "Week N" chip is present */
+async function openOnPreviousWeek(page: Page) {
+	await page.goto('/time');
+	await page.waitForLoadState('networkidle');
+	await page.getByRole('button', { name: 'Previous week' }).click();
+	await page.getByTestId('week-total').click();
+	await expect(page.getByTestId('total-time-preset-viewed-week')).toHaveAttribute('aria-pressed', 'true');
+	return page.locator('[data-testid^="total-time-preset-"]');
+}
+
+/** The chips' tops, which are equal when the row has not wrapped */
+async function chipTops(chips: ReturnType<Page['locator']>) {
+	const boxes = await chips.evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().top));
+	return boxes.map((top) => Math.round(top));
+}
+
+test('phone: five quick ranges stay on one row that scrolls sideways @iphone', async ({ page, baseURL, isMobile }) => {
+	test.skip(!isMobile, 'iPhone projects only');
+	await signInAsFreshUser(page, baseURL, 'total-time-chips-phone');
+	await seedTotals(page, Date.now().toString(36));
+	const chips = await openOnPreviousWeek(page);
+	await expect(chips).toHaveCount(5);
+	expect(new Set(await chipTops(chips)).size).toBe(1);
+	for (const height of await chips.evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().height))) {
+		expect(height).toBeGreaterThanOrEqual(44);
+	}
+	// The last chip is reached by scrolling the row, not the page
+	const allTime = page.getByTestId('total-time-preset-all-time');
+	await allTime.scrollIntoViewIfNeeded();
+	await expect(allTime).toBeInViewport({ ratio: 1 });
+	await allTime.tap();
+	await expect(allTime).toHaveAttribute('aria-pressed', 'true');
+	const body = page.getByTestId('total-time-body');
+	expect(await body.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);
+});
+
+test('desktop at 900px: five quick ranges on one line, the dates move under them', async ({ page, baseURL, isMobile }) => {
+	test.skip(isMobile, 'desktop layout');
+	await page.setViewportSize({ width: 900, height: 720 });
+	await signInAsFreshUser(page, baseURL, 'total-time-chips-900');
+	await seedTotals(page, Date.now().toString(36));
+	const chips = await openOnPreviousWeek(page);
+	await expect(chips).toHaveCount(5);
+	const tops = await chipTops(chips);
+	expect(new Set(tops).size).toBe(1);
+	// Both date fields inside the modal, below or beside the chips, never overlapping them
+	const modalBox = (await page.getByTestId('total-time-modal').boundingBox())!;
+	const lastChipBox = (await page.getByTestId('total-time-preset-all-time').boundingBox())!;
+	for (const testId of ['total-time-from', 'total-time-to']) {
+		const fieldBox = (await page.getByTestId(testId).boundingBox())!;
+		expect(fieldBox.x + fieldBox.width, testId).toBeLessThanOrEqual(modalBox.x + modalBox.width);
+		const isBeside = fieldBox.x >= lastChipBox.x + lastChipBox.width;
+		const isBelow = fieldBox.y >= lastChipBox.y + lastChipBox.height;
+		expect(isBeside || isBelow, testId).toBe(true);
+	}
+});
+
 test('chronolog total sums the same entries for contracts, clients and ranges', async ({ page, baseURL, isMobile }) => {
 	test.skip(isMobile, 'CLI check runs once, on desktop projects');
 	await signInAsFreshUser(page, baseURL, 'total-time-cli');
