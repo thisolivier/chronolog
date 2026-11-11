@@ -31,7 +31,7 @@
 		</div>
 		<TotalTimeBulkActions {onSelectAll} {onSelectNone} />
 	</div>
-	<div class="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 pb-1" data-testid="total-time-contracts-scroller">
+	<div class="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain pr-1 pb-1" data-testid="total-time-contracts-scroller">
 		{@render children()}
 	</div>
 </section>

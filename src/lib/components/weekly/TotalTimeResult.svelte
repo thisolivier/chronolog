@@ -77,7 +77,7 @@
 				<span class={['inline-block text-xs transition-transform', !isBreakdownOpen && '-rotate-90']} aria-hidden="true">▼</span>
 				By contract
 			</button>
-			<ul id="total-time-breakdown-rows" class="border-t border-divider md:min-h-0 md:flex-1 md:overflow-y-auto md:overscroll-contain" hidden={!isBreakdownOpen}>
+			<ul id="total-time-breakdown-rows" class="border-t border-divider md:min-h-0 md:flex-1 touch-pan-y md:overflow-y-auto md:overscroll-contain" hidden={!isBreakdownOpen}>
 				{#each display.result.contracts as contractTotal (contractTotal.contractId)}
 					<li class="flex items-center gap-3 border-b border-divider py-3 pr-1" data-testid="total-time-row" data-contract-id={contractTotal.contractId}>
 						<ContractMark contractName={contractTotal.contractName} contractId={contractTotal.contractId} colorIndex={colorIndexFor(contractTotal.contractId)} size="lg" />

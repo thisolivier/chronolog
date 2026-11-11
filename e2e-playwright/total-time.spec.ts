@@ -431,6 +431,85 @@ test('desktop at 900px: five quick ranges on one line, the dates move under them
 	}
 });
 
+test('phone: the page behind is locked and the sheet always closes (066-TR follow-up) @iphone', async ({ page, baseURL, isMobile }) => {
+	test.skip(!isMobile, 'iPhone projects only');
+	await signInAsFreshUser(page, baseURL, 'total-time-lock');
+	await seedTotals(page, Date.now().toString(36), 12);
+	await page.goto('/time');
+	await page.waitForLoadState('networkidle');
+	const timesheet = page.getByTestId('timesheet-scroll');
+	await timesheet.evaluate((element) => (element.scrollTop = 80));
+	const timesheetTop = await timesheet.evaluate((element) => element.scrollTop);
+	expect(timesheetTop).toBeGreaterThan(0);
+
+	// (a) Open: the body is pinned; scrolling over the modal never moves the timesheet
+	await page.getByTestId('week-total').click();
+	const modal = page.getByTestId('total-time-modal');
+	await expect(modal).toBeVisible();
+	await expect(page.locator('body')).toHaveAttribute('data-scroll-locked', 'true');
+	expect(await page.evaluate(() => getComputedStyle(document.body).position)).toBe('fixed');
+	const modalBox = (await modal.boundingBox())!;
+	await page.mouse.move(modalBox.x + modalBox.width / 2, modalBox.y + modalBox.height / 2);
+	await page.mouse.wheel(0, 600).catch(() => {}); // mobile WebKit may not support the wheel
+	await page.getByTestId('total-time-body').evaluate((element) => element.scrollBy(0, 600));
+	expect(await timesheet.evaluate((element) => element.scrollTop)).toBe(timesheetTop);
+	expect(await page.evaluate(() => window.scrollY)).toBe(0);
+	// Only the inner scrollers take touch panning
+	expect(await page.getByTestId('total-time-backdrop').evaluate((element) => getComputedStyle(element).touchAction)).toBe('none');
+	expect(await page.getByTestId('total-time-body').evaluate((element) => getComputedStyle(element).touchAction)).toBe('pan-y');
+
+	// (b) The sheet: covers the whole screen, scrolled to its end Done is still there and closes it
+	await page.getByTestId('total-time-body').evaluate((element) => (element.scrollTop = 0));
+	await page.getByTestId('total-time-contracts-row').tap();
+	const sheet = page.getByTestId('total-time-contract-sheet');
+	await expect(sheet).toBeVisible();
+	const viewport = page.viewportSize()!;
+	const sheetBackdropBox = (await page.getByTestId('total-time-sheet-backdrop').boundingBox())!;
+	expect(sheetBackdropBox.y).toBeLessThanOrEqual(1);
+	expect(sheetBackdropBox.height).toBeGreaterThanOrEqual(viewport.height - 2);
+	const sheetScroller = page.getByTestId('total-time-sheet-scroller');
+	await sheetScroller.evaluate((element) => (element.scrollTop = element.scrollHeight));
+	await page.mouse.wheel(0, 2000).catch(() => {});
+	const done = page.getByTestId('total-time-sheet-done');
+	await expect(done).toBeInViewport({ ratio: 1 });
+	expect(await timesheet.evaluate((element) => element.scrollTop)).toBe(timesheetTop);
+	await done.tap();
+	await expect(sheet).toBeHidden();
+	// The modal's lock is still held after the sheet's own lock is released
+	await expect(page.locator('body')).toHaveAttribute('data-scroll-locked', 'true');
+
+	// Closing restores the page and the timesheet where they were
+	await modal.getByTestId('total-time-close').tap();
+	await expect(modal).toBeHidden();
+	await expect(page.locator('body')).not.toHaveAttribute('data-scroll-locked', 'true');
+	expect(await page.evaluate(() => getComputedStyle(document.body).position)).not.toBe('fixed');
+	expect(await timesheet.evaluate((element) => element.scrollTop)).toBe(timesheetTop);
+});
+
+test('phone: From and To share one line at 320 and 375 px (066-TR follow-up) @iphone', async ({ page, baseURL, isMobile }) => {
+	test.skip(!isMobile, 'iPhone projects only');
+	await signInAsFreshUser(page, baseURL, 'total-time-dates');
+	await seedTotals(page, Date.now().toString(36));
+	for (const width of [320, 375]) {
+		await page.setViewportSize({ width, height: 667 });
+		const modal = await openTotalTime(page);
+		const modalBox = (await modal.boundingBox())!;
+		const fromBox = (await page.getByTestId('total-time-from').boundingBox())!;
+		const toBox = (await page.getByTestId('total-time-to').boundingBox())!;
+		for (const [name, box] of [['from', fromBox], ['to', toBox]] as const) {
+			expect(box.x, `${name} at ${width}`).toBeGreaterThanOrEqual(modalBox.x);
+			expect(box.x + box.width, `${name} at ${width}`).toBeLessThanOrEqual(modalBox.x + modalBox.width);
+			expect(box.height, `${name} at ${width}`).toBeGreaterThanOrEqual(40);
+		}
+		expect(Math.round(fromBox.y), `same line at ${width}`).toBe(Math.round(toBox.y));
+		expect(toBox.x - (fromBox.x + fromBox.width), `gap at ${width}`).toBeGreaterThanOrEqual(8);
+		// No zoom on focus: the fields stay at 16px
+		expect(await page.getByTestId('total-time-from').evaluate((element) => parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(16);
+		await modal.getByTestId('total-time-close').tap();
+		await expect(modal).toBeHidden();
+	}
+});
+
 test('chronolog total sums the same entries for contracts, clients and ranges', async ({ page, baseURL, isMobile }) => {
 	test.skip(isMobile, 'CLI check runs once, on desktop projects');
 	await signInAsFreshUser(page, baseURL, 'total-time-cli');

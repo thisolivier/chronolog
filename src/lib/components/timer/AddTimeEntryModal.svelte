@@ -5,7 +5,8 @@
 	Desktop: a centred overlay. Phone: a full-height sheet sized to the visible viewport, so the
 	actions stay above the keyboard and the fields scroll. Escape and a backdrop click never throw
 	away typed content: ignored while a select has focus (its own list may be open), and they ask
-	first when the form is dirty. It never touches a running timer.
+	first when the form is dirty. It never touches a running timer. While open the page is
+	scroll-locked (`lockBodyScroll`, iOS) and only the fields' scroller takes touch panning.
 -->
 <script lang="ts">
 	import { tick, untrack } from 'svelte';
@@ -16,6 +17,7 @@
 	import { describeSaveError } from './save-error';
 	import { localDateString } from './local-date';
 	import { VisualViewportBox, revealFocusedField } from './visual-viewport.svelte';
+	import { lockBodyScroll } from '$lib/utils/scroll-lock';
 	import { parseDuration } from '$lib/utils/duration';
 	import { getDataService } from '$lib/services/context';
 	import type { CreateTimeEntryInput } from '$lib/services/types';
@@ -63,6 +65,7 @@
 
 	const viewportBox = new VisualViewportBox();
 	$effect(() => viewportBox.track());
+	$effect(() => lockBodyScroll());
 
 	$effect(() => {
 		descriptionElement?.focus();
@@ -154,7 +157,7 @@
 <svelte:window onkeydown={handleWindowKeydown} />
 
 <div
-	class="fixed inset-x-0 z-50 flex justify-center bg-chalk-950/40 md:items-center md:p-4"
+	class="fixed inset-x-0 z-50 flex touch-none justify-center bg-chalk-950/40 md:items-center md:p-4"
 	style={viewportBox.style}
 	onclick={handleBackdropClick}
 	role="presentation"
@@ -167,7 +170,7 @@
 		aria-labelledby="add-entry-title"
 	>
 		<div
-			class="min-h-0 flex-1 scroll-pt-2 scroll-pb-4 overflow-y-auto overscroll-contain px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-4 md:px-6 md:pt-6"
+			class="min-h-0 flex-1 scroll-pt-2 scroll-pb-4 touch-pan-y overflow-y-auto overscroll-contain px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-4 md:px-6 md:pt-6"
 			onfocusin={revealFocusedField}
 		>
 			<h2 id="add-entry-title" class="mb-4 text-lg font-semibold text-ink">Add Time Entry</h2>
