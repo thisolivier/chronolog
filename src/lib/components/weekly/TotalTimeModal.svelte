@@ -10,7 +10,8 @@
 	that opens TotalTimeContractSheet, then the result; the page scrolls. One selection, shown in
 	whichever place the width allows, so a resize keeps it and never doubles an overlay. Escape
 	closes the sheet first, then the modal; a backdrop click and Close close; focus returns to the
-	opener.
+	opener. While open the page is scroll-locked (`lockBodyScroll`, for iOS) and only the inner
+	scrollers take touch panning (`touch-action: none` on the overlay, `pan-y` on the scrollers).
 -->
 <script lang="ts">
 	import { onMount, tick, untrack } from 'svelte';
@@ -20,6 +21,7 @@
 	import { getSundayOfWeek } from '$lib/utils/iso-week';
 	import { localDateString } from '$lib/components/timer/local-date';
 	import { VisualViewportBox } from '$lib/components/timer/visual-viewport.svelte';
+	import { lockBodyScroll } from '$lib/utils/scroll-lock';
 	import TotalTimeContractList from './TotalTimeContractList.svelte';
 	import TotalTimeContractsPanel from './TotalTimeContractsPanel.svelte';
 	import TotalTimeContractSheet from './TotalTimeContractSheet.svelte';
@@ -83,6 +85,8 @@
 
 	const viewportBox = new VisualViewportBox();
 	$effect(() => viewportBox.track());
+	// iOS: pin the page so nothing behind scrolls or rubber-bands while the modal is open
+	$effect(() => lockBodyScroll());
 	// Wide again: the selection is in the column, so the sheet is simply gone (not reopened later)
 	$effect(() => {
 		if (wideLayout.current) untrack(() => (isSheetOpen = false));
@@ -160,7 +164,7 @@
 {/snippet}
 
 <div
-	class="fixed inset-x-0 z-50 flex justify-center bg-chalk-950/40 md:items-center md:p-6"
+	class="fixed inset-x-0 z-50 flex touch-none justify-center bg-chalk-950/40 md:items-center md:p-6"
 	style={viewportBox.style}
 	onclick={handleBackdropClick}
 	role="presentation"
@@ -184,11 +188,11 @@
 			>Close</button>
 		</header>
 
-		<div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:flex md:flex-col md:overflow-hidden md:px-6 md:pt-5 md:pb-0" data-testid="total-time-body">
+		<div class="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:flex md:flex-col md:overflow-hidden md:px-6 md:pt-5 md:pb-0" data-testid="total-time-body">
 			<TotalTimeDateToolbar {presets} {selectedPresetKey} {isBackwards} bind:fromDate bind:toDate />
 
 			<div class="md:grid md:min-h-0 md:flex-1 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-				<div class="flex flex-col pt-1 md:min-h-0 md:overflow-y-auto md:pt-5 md:pr-6 md:pb-5" data-testid="total-time-result-column">
+				<div class="flex flex-col pt-1 md:min-h-0 md:touch-pan-y md:overflow-y-auto md:overscroll-contain md:pt-5 md:pr-6 md:pb-5" data-testid="total-time-result-column">
 					{#if !wideLayout.current && contractsLoaded}
 						<TotalTimeContractsRow bind:element={contractsRow} selectedCount={selectedContractIds.size} isExpanded={isSheetShown} onOpen={() => (isSheetOpen = true)} />
 					{/if}
@@ -205,7 +209,7 @@
 		</div>
 
 		{#if isSheetShown}
-			<TotalTimeContractSheet selectedCount={selectedContractIds.size} onSelectAll={selectAllContracts} onSelectNone={() => selectedContractIds.clear()} onDone={closeSheet}>
+			<TotalTimeContractSheet viewportStyle={viewportBox.style} selectedCount={selectedContractIds.size} onSelectAll={selectAllContracts} onSelectNone={() => selectedContractIds.clear()} onDone={closeSheet}>
 				{@render contractList()}
 			</TotalTimeContractSheet>
 		{/if}

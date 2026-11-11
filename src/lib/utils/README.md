@@ -19,6 +19,7 @@ Pure utility modules with no server or framework dependencies. Usable on both cl
 - **search-snippet.ts** — Search snippets (sprint 042-CL): `findMatchRanges` (case-insensitive), `plainTextFromMarkdown`, `buildSearchSnippet` (an excerpt around the first match, cut at words, with match offsets) and `snippetParts` for rendering `<mark>`s. Shared by `GET /api/search` and the results page.
 - **task-items.ts** — `extractTaskItems(markdown)`: the `- [ ]` / `- [x]` items of a note (text, checked, depth, line), skipping fenced code and empty items. Used by `GET /api/notes/todos` (sprint 040-CL).
 - **copy-text.ts** — `copyText(text)`: the Clipboard API, then a hidden-textarea `execCommand('copy')` fallback (Safari/WebKit, the Tauri webview); resolves to whether it copied, never throws (the note code in the editor header, sprint 051-UI).
+- **scroll-lock.ts** — `lockBodyScroll()`: pins `document.body` (`position: fixed; top: -scrollY; width: 100%; overflow: hidden`, `data-scroll-locked`) while a full-window modal or sheet is open, the iOS-safe lock (Safari ignores `overflow: hidden` for touch scrolling), and restores the scroll position on the last unlock; reference-counted, so a sheet inside a modal never unlocks early. Returns the unlock (call from an `$effect`). Used by TotalTimeModal, its contract sheet and AddTimeEntryModal (066-TR follow-up).
 - **uuid.ts** — `isUuid()`, used by the `[clientId=uuid]` / `[contractId=uuid]` route matchers so malformed IDs return 404 rather than a database error.
 
 ## Testing
