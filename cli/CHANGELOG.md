@@ -4,7 +4,7 @@ The CLI ships in the repo and takes its version from the root `package.json` (`c
 `chronolog me` also shows the server's version). A laptop is up to date after `git pull`. Sprints
 030, 033 and 035 changed nothing in the CLI and are not listed.
 
-## Unreleased (066-TR follow-up): pull the contract sheet down to close it
+## 1.7.3 (sprint 066-TR follow-up, 2026-11-11): pull the contract sheet down to close it
 
 - In the app on a phone, the Total time contract sheet closes when pulled down from the top of its
   list (or dragged by its handle, header or footer), like other slide-up sheets. The CLI is
