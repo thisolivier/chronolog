@@ -103,7 +103,7 @@ Notes may hold checkbox items, `- [ ] open` and `- [x] done` (nested by two spac
 
 ### Version
 
-`chronolog --version` prints the CLI version, the root `package.json` version (1.7.1 since sprint 066-TR). `chronolog me` adds the server's (`serverVersion` from `GET /api/me`) and both commits in brackets (`serverCommit`, `dev` for a server run from a checkout; this checkout's `git rev-parse HEAD`). Changes per sprint are in [CHANGELOG.md](CHANGELOG.md).
+`chronolog --version` prints the CLI version, the root `package.json` version (1.7.2 since the 066-TR follow-up). `chronolog me` adds the server's (`serverVersion` from `GET /api/me`) and both commits in brackets (`serverCommit`, `dev` for a server run from a checkout; this checkout's `git rev-parse HEAD`). Changes per sprint are in [CHANGELOG.md](CHANGELOG.md).
 
 **Version drift notice (044-CL).** At most once a day, after a command succeeds, the CLI asks `GET /api/me` for `serverCommit` and compares it with its own commit. When both are known and differ it prints one line on **stderr** (never stdout, so `--json` output is unaffected):
 
