@@ -510,6 +510,86 @@ test('phone: From and To share one line at 320 and 375 px (066-TR follow-up) @ip
 	}
 });
 
+/**
+ * A one-finger vertical drag on `selector`, as touchstart / touchmove... / touchend spread over
+ * `durationMs`, then held `holdMs` before release. Plain events carrying `touches` (WebKit has no
+ * Touch constructor); the sheet's handler reads only `touches`, `changedTouches` and the target.
+ */
+async function dragVertically(page: Page, selector: string, distance: number, durationMs: number, holdMs = 0) {
+	await page.evaluate(
+		async ({ selector, distance, durationMs, holdMs }) => {
+			const target = document.querySelector(selector)!;
+			const box = target.getBoundingClientRect();
+			const clientX = box.left + box.width / 2;
+			const startY = box.top + box.height / 2;
+			const fire = (type: string, clientY: number, isActive: boolean) => {
+				const event = new Event(type, { bubbles: true, cancelable: true });
+				const touch = { identifier: 1, target, clientX, clientY, pageX: clientX, pageY: clientY };
+				Object.defineProperty(event, 'touches', { value: isActive ? [touch] : [] });
+				Object.defineProperty(event, 'changedTouches', { value: [touch] });
+				target.dispatchEvent(event);
+			};
+			const pause = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+			const steps = 10;
+			fire('touchstart', startY, true);
+			for (let step = 1; step <= steps; step += 1) {
+				await pause(durationMs / steps);
+				fire('touchmove', startY + (distance * step) / steps, true);
+			}
+			if (holdMs) await pause(holdMs);
+			fire('touchend', startY + distance, false);
+		},
+		{ selector, distance, durationMs, holdMs }
+	);
+}
+
+test('phone: pulling the contract sheet down from the top dismisses it (066-TR follow-up) @iphone', async ({ page, baseURL, isMobile }) => {
+	test.skip(!isMobile, 'iPhone projects only');
+	await signInAsFreshUser(page, baseURL, 'total-time-pull');
+	const seed = await seedTotals(page, Date.now().toString(36), 10);
+	const modal = await openTotalTime(page);
+	await page.getByTestId('total-time-contracts-row').tap();
+	const sheet = page.getByTestId('total-time-contract-sheet');
+	const scroller = page.getByTestId('total-time-sheet-scroller');
+	await expect(sheet).toBeVisible();
+	await sheet.getByTestId(`total-time-contract-${seed.betaId}`).tap();
+	await expect(page.getByTestId('total-time-value')).toHaveText('1h 30m');
+	const firstRow = '[data-testid="total-time-sheet-scroller"] [data-testid="total-time-contract-row"]';
+
+	// At the top of the list, a 150 px pull closes the sheet; the modal and the selection stay
+	expect(await scroller.evaluate((element) => element.scrollTop)).toBe(0);
+	await dragVertically(page, firstRow, 150, 200);
+	await expect(sheet).toBeHidden();
+	await expect(modal).toBeVisible();
+	await expect(page.getByTestId('total-time-value')).toHaveText('1h 30m');
+	await expect(page.getByTestId(`total-time-contract-${seed.betaId}`)).toHaveCount(0);
+	await expect(page.getByTestId('total-time-contracts-row')).toBeFocused();
+
+	// Scrolled down the list, the same pull is the list's own scroll: the sheet stays
+	await page.getByTestId('total-time-contracts-row').tap();
+	await expect(sheet).toBeVisible();
+	await expect(sheet.getByTestId(`total-time-contract-${seed.betaId}`)).not.toBeChecked();
+	await scroller.evaluate((element) => (element.scrollTop = 200));
+	expect(await scroller.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+	await dragVertically(page, firstRow, 150, 200);
+	await page.waitForTimeout(300);
+	await expect(sheet).toBeVisible();
+	expect(await sheet.evaluate((element) => element.style.transform)).toBe('');
+
+	// Back at the top, a short slow pull springs back
+	await scroller.evaluate((element) => (element.scrollTop = 0));
+	await dragVertically(page, firstRow, 40, 400, 150);
+	await page.waitForTimeout(300);
+	await expect(sheet).toBeVisible();
+	expect(await sheet.evaluate((element) => element.style.transform)).toBe('');
+
+	// The handle drags the sheet wherever the list is
+	await scroller.evaluate((element) => (element.scrollTop = 200));
+	await dragVertically(page, '[data-testid="total-time-sheet-handle"]', 150, 200);
+	await expect(sheet).toBeHidden();
+	await expect(modal).toBeVisible();
+});
+
 test('chronolog total sums the same entries for contracts, clients and ranges', async ({ page, baseURL, isMobile }) => {
 	test.skip(isMobile, 'CLI check runs once, on desktop projects');
 	await signInAsFreshUser(page, baseURL, 'total-time-cli');

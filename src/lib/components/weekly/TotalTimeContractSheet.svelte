@@ -7,13 +7,16 @@
 	only close it. The footer is a flex sibling of the list, so it never covers the last row.
 	iOS (follow-up fix): fixed over the visible viewport, the page scroll-locked, `touch-action: none`
 	everywhere but the list (`pan-y`, overscroll contained), so the handle, header and footer never
-	drag the page and Done stays reachable.
+	drag the page and Done stays reachable. Pull down to dismiss (`sheet-drag.ts`): drag the handle,
+	header or footer, or pull the list down from its top, and the sheet follows the finger; released
+	past 96 px or on a downward flick it closes through Done's path, otherwise it springs back.
 -->
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
 	import { lockBodyScroll } from '$lib/utils/scroll-lock';
 	import TotalTimeBulkActions from './TotalTimeBulkActions.svelte';
 	import { selectedCountLabel } from './total-time';
+	import { attachSheetDrag } from './sheet-drag';
 
 	let {
 		viewportStyle,
@@ -35,10 +38,16 @@
 	} = $props();
 
 	let sheetElement: HTMLDivElement | undefined = $state();
+	let backdropElement: HTMLDivElement | undefined = $state();
+	let scrollerElement: HTMLDivElement | undefined = $state();
 
 	onMount(() => sheetElement?.focus());
 	// A second lock (reference-counted): the page stays pinned until the modal's own lock goes too
 	$effect(() => lockBodyScroll());
+	$effect(() => {
+		if (!sheetElement || !backdropElement || !scrollerElement) return;
+		return attachSheetDrag(sheetElement, { scroller: scrollerElement, backdrop: backdropElement, onDismiss: () => onDone() });
+	});
 
 	function handleBackdropClick(event: MouseEvent) {
 		if (event.target === event.currentTarget) onDone();
@@ -46,6 +55,7 @@
 </script>
 
 <div
+	bind:this={backdropElement}
 	class="fixed inset-x-0 z-10 flex touch-none flex-col justify-end bg-chalk-950/40"
 	style={viewportStyle}
 	onclick={handleBackdropClick}
@@ -61,14 +71,14 @@
 		tabindex="-1"
 		data-testid="total-time-contract-sheet"
 	>
-		<div class="flex shrink-0 justify-center pt-2" aria-hidden="true">
+		<div class="flex shrink-0 justify-center pt-2 pb-1" aria-hidden="true" data-testid="total-time-sheet-handle">
 			<span class="h-1 w-10 rounded-full bg-chalk-300"></span>
 		</div>
 		<div class="flex shrink-0 items-center gap-2 px-4 pt-1 pb-3">
 			<h3 id="total-time-sheet-title" class="flex-1 text-xl font-semibold text-primary">Contracts</h3>
 			<TotalTimeBulkActions {onSelectAll} {onSelectNone} />
 		</div>
-		<div class="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-3 pb-3" data-testid="total-time-sheet-scroller">
+		<div bind:this={scrollerElement} class="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-3 pb-3" data-testid="total-time-sheet-scroller">
 			{@render children()}
 		</div>
 		<div class="flex shrink-0 items-center gap-3 border-t border-divider px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
